@@ -52,18 +52,17 @@ function createMainWindow() {
 }
 
 function buildTrayIcon() {
-  // 16×16 purple square — replaced with a real icon asset in Session 5.
-  const size = 16;
-  const buf = Buffer.alloc(size * size * 4);
-  for (let i = 0; i < size * size; i++) {
-    buf[i * 4] = 0x53; buf[i * 4 + 1] = 0x4a;
-    buf[i * 4 + 2] = 0xb7; buf[i * 4 + 3] = 0xff;
+  const iconPath = path.join(__dirname, '..', '..', 'build', 'tray-icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) {
+    console.error('Tray icon not found at', iconPath);
   }
-  return nativeImage.createFromBuffer(buf, { width: size, height: size });
+  return icon;
 }
 
 function createTray() {
-  tray = new Tray(buildTrayIcon());
+  const icon = buildTrayIcon();
+  tray = new Tray(icon);
   tray.setToolTip('Moodmark');
 
   const menu = Menu.buildFromTemplate([

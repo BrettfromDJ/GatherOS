@@ -6,6 +6,7 @@ directories:
 files:
   - src/main/**/*
   - dist/renderer/**/*
+  - build/tray-icon*.png
   - package.json
 asarUnpack:
   - node_modules/better-sqlite3/**/*
