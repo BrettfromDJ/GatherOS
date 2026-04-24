@@ -80,11 +80,12 @@ async function startScreenshotCapture() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    fullscreen: true,
+    simpleFullscreen: true,
     resizable: false,
     movable: false,
     hasShadow: false,
     skipTaskbar: true,
+    enableLargerThanScreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload-overlay.js'),
       contextIsolation: true,
@@ -92,6 +93,9 @@ async function startScreenshotCapture() {
       sandbox: false,
     },
   });
+
+  overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  overlayWin.setAlwaysOnTop(true, 'screen-saver');
 
   overlayWin.webContents.session.setDisplayMediaRequestHandler((_req, callback) => {
     desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
