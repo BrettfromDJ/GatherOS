@@ -1,4 +1,13 @@
-const { globalShortcut, BrowserWindow, desktopCapturer, screen, app } = require('electron');
+const {
+  globalShortcut,
+  BrowserWindow,
+  desktopCapturer,
+  screen,
+  app,
+  systemPreferences,
+  dialog,
+  shell,
+} = require('electron');
 const path = require('node:path');
 
 const isDev = !app.isPackaged;
@@ -19,8 +28,49 @@ function unregisterCaptureHotkey() {
   globalShortcut.unregisterAll();
 }
 
+async function ensureScreenRecordingPermission() {
+  if (process.platform !== 'darwin') return true;
+
+  let status = systemPreferences.getMediaAccessStatus('screen');
+  if (status === 'granted') return true;
+
+  // Calling desktopCapturer.getSources() triggers the system prompt the
+  // first time. After the user responds, the status updates.
+  try {
+    await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 1, height: 1 },
+    });
+  } catch {
+    // Ignore — we'll re-check status below.
+  }
+
+  status = systemPreferences.getMediaAccessStatus('screen');
+  if (status === 'granted') return true;
+
+  const res = await dialog.showMessageBox({
+    type: 'info',
+    buttons: ['Open System Settings', 'Cancel'],
+    defaultId: 0,
+    cancelId: 1,
+    title: 'Screen Recording Permission Needed',
+    message: 'Moodmark needs permission to record your screen to capture screenshots.',
+    detail:
+      'Click "Open System Settings", enable Screen Recording for Electron, then quit Moodmark (Ctrl+C in Terminal) and run it again with "npm run dev".',
+  });
+  if (res.response === 0) {
+    shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
+    );
+  }
+  return false;
+}
+
 async function startScreenshotCapture() {
   if (overlayWin) return;
+
+  const ok = await ensureScreenRecordingPermission();
+  if (!ok) return;
 
   const display = screen.getPrimaryDisplay();
   const { x, y, width, height } = display.bounds;
@@ -43,7 +93,6 @@ async function startScreenshotCapture() {
     },
   });
 
-  // Let the overlay renderer call getDisplayMedia() without a permission prompt.
   overlayWin.webContents.session.setDisplayMediaRequestHandler((_req, callback) => {
     desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
       callback({ video: sources[0] });
