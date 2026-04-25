@@ -21,9 +21,7 @@
 
 .collapseBtn {
   position: absolute;
-  /* Aligned vertically with the traffic lights (window y≈24):
-     sidebar margin 10 + top 2 + half-button 12 = 24. */
-  top: 2px;
+  top: 4px;
   right: 14px;
   width: 24px;
   height: 24px;
