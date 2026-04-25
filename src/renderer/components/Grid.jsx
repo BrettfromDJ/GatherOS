@@ -19,6 +19,24 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
     const isCollection = view?.type === 'collection';
     return (
       <div className={styles.state}>
+        {isCollection && (
+          <div className={styles.emptyGraphic} aria-hidden="true">
+            <div className={styles.blobs}>
+              <div className={styles.blobA} />
+              <div className={styles.blobB} />
+              <div className={styles.blobC} />
+            </div>
+            <div className={`${styles.glassCardWrap} ${styles.cardA}`}>
+              <div className={styles.glassCard} />
+            </div>
+            <div className={`${styles.glassCardWrap} ${styles.cardB}`}>
+              <div className={styles.glassCard} />
+            </div>
+            <div className={`${styles.glassCardWrap} ${styles.cardC}`}>
+              <div className={styles.glassCard} />
+            </div>
+          </div>
+        )}
         <div className={styles.emptyTitle}>
           {isCollection ? 'Collection is empty' : 'Nothing saved yet'}
         </div>
