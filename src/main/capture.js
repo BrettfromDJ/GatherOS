@@ -16,7 +16,22 @@ const DEV_URL = 'http://localhost:5173';
 let overlayWin = null;
 
 function registerCaptureHotkey() {
-  globalShortcut.register('CommandOrControl+Shift+S', startScreenshotCapture);
+  const accelerator = 'CommandOrControl+Shift+S';
+  const registered = globalShortcut.register(accelerator, () => {
+    console.log('[moodmark] ⌘⇧S fired');
+    startScreenshotCapture().catch((err) =>
+      console.error('[moodmark] capture failed:', err),
+    );
+  });
+  const isRegistered = globalShortcut.isRegistered(accelerator);
+  console.log(
+    `[moodmark] globalShortcut.register('${accelerator}') → returned=${registered}, isRegistered=${isRegistered}`,
+  );
+  if (!isRegistered) {
+    console.warn(
+      '[moodmark] Hotkey not registered — another app may own ⌘⇧S, or macOS is blocking it.',
+    );
+  }
 }
 
 function unregisterCaptureHotkey() {
