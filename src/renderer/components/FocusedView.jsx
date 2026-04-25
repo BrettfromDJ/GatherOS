@@ -56,9 +56,13 @@ export default function FocusedView({
   return (
     <div className={styles.focused}>
       <div className={styles.topBar}>
-        <button className={styles.backBtn} onClick={onBack} title="Back to grid (Esc)">
+        <button
+          className={styles.backBtn}
+          onClick={onBack}
+          aria-label="Back to grid"
+          title="Back to grid (Esc)"
+        >
           <span className={styles.chevron}>‹</span>
-          <span>Back</span>
         </button>
 
         {total > 1 && (
