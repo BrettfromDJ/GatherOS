@@ -81,6 +81,7 @@ export default function App() {
     reload,
     toggleFavorite,
     deleteSave,
+    updateSaveMeta,
   } = useLibrary();
 
   const [selected, setSelected] = useState(() => new Set());
@@ -388,6 +389,7 @@ export default function App() {
             allCollections={collections}
             onClose={() => setFocusedId(null)}
             onCollectionsChanged={loadCollections}
+            onUpdateMeta={updateSaveMeta}
           />
         )}
       </div>

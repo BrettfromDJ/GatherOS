@@ -46,6 +46,21 @@ export function useLibrary() {
     setSaves((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  // Edit title / source_url. DB columns are snake_case, JS API is camelCase,
+  // so apply both shapes locally for an optimistic update.
+  const updateSaveMeta = useCallback(async (id, meta) => {
+    await window.moodmark.saves.update({ id, ...meta });
+    setSaves((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = { ...s };
+        if ('title' in meta) next.title = meta.title;
+        if ('sourceUrl' in meta) next.source_url = meta.sourceUrl;
+        return next;
+      }),
+    );
+  }, []);
+
   return {
     saves,
     loading,
@@ -56,5 +71,6 @@ export function useLibrary() {
     reload: load,
     toggleFavorite,
     deleteSave,
+    updateSaveMeta,
   };
 }

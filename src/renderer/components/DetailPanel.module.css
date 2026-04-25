@@ -149,6 +149,95 @@
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
+.metaEditSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.metaField {
+  display: block;
+}
+
+.metaFieldLabel {
+  display: block;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 5px;
+}
+
+.metaInput {
+  width: 100%;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.025);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: background 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.metaInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.metaInput:focus {
+  background: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px rgba(0, 122, 255, 0.18);
+}
+
+.metaInputRow {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.metaInputRow .metaInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.openLinkBtn {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.025);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+.openLinkBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.openLinkBtn:hover:not(:disabled) {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.openLinkBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .collectionsSection {
   padding: 12px 16px 14px;
   border-bottom: 1px solid var(--border);

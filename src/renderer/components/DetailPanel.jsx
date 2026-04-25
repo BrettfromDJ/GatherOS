@@ -43,15 +43,58 @@ function fileTypeLabel(filePath) {
   return ext === 'JPG' ? 'JPEG' : ext;
 }
 
+function ExternalLinkIcon() {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8.5 2h3.5v3.5" />
+      <path d="M12 2L7 7" />
+      <path d="M11.5 8.5V11.5a0.5 0.5 0 0 1 -0.5 0.5H3a0.5 0.5 0 0 1 -0.5 -0.5V3.5a0.5 0.5 0 0 1 0.5 -0.5H5.5" />
+    </svg>
+  );
+}
+
 export default function DetailPanel({
   record,
   allCollections = [],
   onClose,
   onCollectionsChanged,
+  onUpdateMeta,
 }) {
   const src = fileUrl(record.file_path);
   const typeLabel = fileTypeLabel(record.file_path);
   const [copiedColor, setCopiedColor] = useState(null);
+
+  const [nameDraft, setNameDraft] = useState(record.title || '');
+  const [urlDraft, setUrlDraft] = useState(record.source_url || '');
+
+  // Reset drafts whenever the user moves to a different record.
+  useEffect(() => {
+    setNameDraft(record.title || '');
+    setUrlDraft(record.source_url || '');
+  }, [record.id, record.title, record.source_url]);
+
+  const persistedUrl = (record.source_url || '').trim();
+  const canOpenUrl = /^https?:\/\//i.test(persistedUrl);
+
+  function commitName() {
+    const next = nameDraft.trim();
+    if (next === (record.title || '')) return;
+    onUpdateMeta?.(record.id, { title: next || null });
+  }
+
+  function commitUrl() {
+    const next = urlDraft.trim();
+    if (next === (record.source_url || '')) return;
+    onUpdateMeta?.(record.id, { sourceUrl: next || null });
+  }
 
   const [memberships, setMemberships] = useState([]);
   const [picker, setPicker] = useState(null); // { x, y }
@@ -200,6 +243,55 @@ export default function DetailPanel({
         )}
       </div>
 
+      <div className={styles.metaEditSection}>
+        <label className={styles.metaField}>
+          <span className={styles.metaFieldLabel}>Name</span>
+          <input
+            className={styles.metaInput}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+              if (e.key === 'Escape') {
+                setNameDraft(record.title || '');
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="Untitled"
+          />
+        </label>
+        <label className={styles.metaField}>
+          <span className={styles.metaFieldLabel}>URL</span>
+          <div className={styles.metaInputRow}>
+            <input
+              className={styles.metaInput}
+              type="url"
+              value={urlDraft}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onBlur={commitUrl}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') {
+                  setUrlDraft(record.source_url || '');
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="https://…"
+            />
+            <button
+              type="button"
+              className={styles.openLinkBtn}
+              disabled={!canOpenUrl}
+              onClick={() => window.moodmark.shell.openUrl(persistedUrl)}
+              title={canOpenUrl ? 'Open in browser' : 'Add a URL first'}
+            >
+              <ExternalLinkIcon />
+            </button>
+          </div>
+        </label>
+      </div>
+
       {palette.length > 0 && (
         <div className={styles.palette}>
           {palette.map((color) => (
@@ -299,12 +391,6 @@ export default function DetailPanel({
       </div>
 
       <dl className={styles.meta}>
-        {record.title && (
-          <>
-            <dt>Title</dt>
-            <dd>{record.title}</dd>
-          </>
-        )}
         <dt>Saved</dt>
         <dd>{formatDate(record.created_at)}</dd>
         {record.width && record.height && (

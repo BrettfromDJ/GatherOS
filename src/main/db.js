@@ -161,12 +161,13 @@ function deleteSave(id) {
   return { ok: true, filePath: save.file_path, thumbPath: save.thumb_path };
 }
 
-function updateSave({ id, title, favorited } = {}) {
+function updateSave({ id, title, favorited, sourceUrl } = {}) {
   const db = getDatabase();
   const fields = [];
   const params = [];
   if (title !== undefined) { fields.push('title = ?'); params.push(title); }
   if (favorited !== undefined) { fields.push('favorited = ?'); params.push(favorited ? 1 : 0); }
+  if (sourceUrl !== undefined) { fields.push('source_url = ?'); params.push(sourceUrl); }
   if (!fields.length) return { ok: true };
   params.push(id);
   db.prepare(`UPDATE saves SET ${fields.join(', ')} WHERE id = ?`).run(...params);
