@@ -347,6 +347,7 @@ export default function App() {
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
+            onToggleCollapse={toggleSidebar}
           />
         )}
 
@@ -364,7 +365,7 @@ export default function App() {
               onToggleFavorite={toggleFavorite}
               onOpenInPreview={handleOpenInPreview}
               onDelete={handleDelete}
-              onToggleSidebar={toggleSidebar}
+              onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
             />
           ) : (
             <>
@@ -374,7 +375,7 @@ export default function App() {
                 columns={gridColumns}
                 onColumnsChange={setGridColumns}
                 count={saves.length}
-                onToggleSidebar={toggleSidebar}
+                onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
               />
               <div className="grid-scroll">
                 <Grid

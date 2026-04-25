@@ -40,8 +40,10 @@
 
 .searchWrap {
   position: relative;
-  flex: 1 1 320px;
-  max-width: 380px;
+  /* Fixed 380px when there's room; shrinks (never grows) when the
+     window narrows. Prevents the field from widening as siblings like
+     "120 saves" → "5 saves" change width while the user types. */
+  flex: 0 1 380px;
   margin-left: auto;
   margin-right: auto;
   -webkit-app-region: no-drag;

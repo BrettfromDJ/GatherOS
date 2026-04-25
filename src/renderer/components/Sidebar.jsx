@@ -13,6 +13,15 @@ function GridIcon() {
   );
 }
 
+function CollapseSidebarIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <rect x="2" y="3" width="12" height="10" rx="1.6" />
+      <line x1="6" y1="3" x2="6" y2="13" />
+    </svg>
+  );
+}
+
 function StarIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -54,6 +63,7 @@ export default function Sidebar({
   onRenameCollection,
   onDeleteCollection,
   onReorderCollections,
+  onToggleCollapse,
 }) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -159,6 +169,16 @@ export default function Sidebar({
 
   return (
     <aside className={styles.sidebar}>
+      {onToggleCollapse && (
+        <button
+          type="button"
+          className={styles.collapseBtn}
+          onClick={onToggleCollapse}
+          title="Collapse sidebar"
+        >
+          <CollapseSidebarIcon />
+        </button>
+      )}
       <nav className={styles.section}>
         {SMART_VIEWS.map(({ id, label, color, Icon }) => {
           const active = view.type === id;
