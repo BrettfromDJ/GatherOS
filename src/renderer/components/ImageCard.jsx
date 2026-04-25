@@ -23,6 +23,7 @@ export default function ImageCard({
   selectionActive,
   onSelect,
   onOpen,
+  onContextMenu,
 }) {
   const src = fileUrl(record.file_path);
   const aspect =
@@ -38,6 +39,12 @@ export default function ImageCard({
       ].filter(Boolean).join(' ')}
       onClick={(e) => onSelect(record.id, e.metaKey || e.ctrlKey || e.shiftKey)}
       onDoubleClick={() => onOpen(record)}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          onContextMenu(record.id, e.clientX, e.clientY);
+        }
+      }}
     >
       <div className={styles.frame} style={{ aspectRatio: aspect }}>
         {src && (

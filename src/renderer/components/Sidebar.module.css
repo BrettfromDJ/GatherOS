@@ -36,6 +36,141 @@
   -webkit-app-region: no-drag;
 }
 
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 4px;
+  -webkit-app-region: no-drag;
+}
+
+.sectionHeaderLabel {
+  flex: 1 1 auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.addBtn {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 17px;
+  line-height: 1;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -1px;
+}
+
+.addBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+.newCollectionForm {
+  padding: 4px 8px 8px;
+  -webkit-app-region: no-drag;
+}
+
+.newCollectionInput {
+  width: 100%;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 0.5px solid rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+}
+
+.newCollectionInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px rgba(0, 122, 255, 0.22);
+}
+
+.colorPickerRow {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 6px;
+  flex-wrap: wrap;
+}
+
+.colorPickerDot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 80ms ease;
+}
+
+.colorPickerDot:hover {
+  transform: scale(1.15);
+}
+
+.colorPickerDotSelected {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 1.5px;
+}
+
+.newCollectionBtns {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.formBtn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+}
+
+.formBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.formBtnPrimary {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(0, 80, 200, 0.4);
+}
+
+.formBtnPrimary:hover {
+  background: #0071e3;
+}
+
+.renameInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 0;
+  font-family: var(--font-ui);
+}
+
+.active .renameInput {
+  color: #fff;
+}
+
 .item {
   display: flex;
   align-items: center;

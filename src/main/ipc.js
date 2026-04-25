@@ -1,7 +1,11 @@
 const { ipcMain, shell, dialog, BrowserWindow } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
-const { getAllSaves, deleteSave, updateSave, insertSave } = require('./db');
+const {
+  getAllSaves, deleteSave, updateSave, insertSave,
+  getAllCollections, createCollection, renameCollection, deleteCollection,
+  addSaveToCollection, removeSaveFromCollection,
+} = require('./db');
 const {
   deleteImageFiles,
   saveImageFromFile,
@@ -73,9 +77,12 @@ function registerIpcHandlers() {
     throw new Error(`All ${candidates.length} URL(s) failed:\n${errors.join('\n')}`);
   });
 
-  ipcMain.handle('collections:get-all', () => []);
-  ipcMain.handle('collections:create', () => ({ ok: true }));
-  ipcMain.handle('collections:add-save', () => ({ ok: true }));
+  ipcMain.handle('collections:get-all', () => getAllCollections());
+  ipcMain.handle('collections:create', (_e, payload) => createCollection(payload));
+  ipcMain.handle('collections:rename', (_e, payload) => renameCollection(payload));
+  ipcMain.handle('collections:delete', (_e, id) => deleteCollection(id));
+  ipcMain.handle('collections:add-save', (_e, payload) => addSaveToCollection(payload));
+  ipcMain.handle('collections:remove-save', (_e, payload) => removeSaveFromCollection(payload));
 
   ipcMain.handle('capture:screenshot', () => {
     startScreenshotCapture();

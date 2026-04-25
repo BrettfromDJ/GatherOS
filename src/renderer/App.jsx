@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
+import ContextMenu from './components/ContextMenu.jsx';
 import { useLibrary } from './hooks/useLibrary.js';
 
 function pickLargestFromSrcset(srcset) {
@@ -17,7 +18,7 @@ function pickLargestFromSrcset(srcset) {
     const w = descriptor && descriptor.endsWith('w')
       ? parseFloat(descriptor)
       : descriptor && descriptor.endsWith('x')
-        ? parseFloat(descriptor) * 1000 // arbitrary weight so 2x > 1x
+        ? parseFloat(descriptor) * 1000
         : 0;
     if (url && w > bestWidth) {
       best = url;
@@ -39,7 +40,6 @@ function extractDropImageUrls(dataTransfer) {
     candidates.push(u);
   };
 
-  // text/html — collect every <img src/srcset/data-src> we can find.
   const html = dataTransfer.getData('text/html');
   if (html) {
     try {
@@ -56,7 +56,6 @@ function extractDropImageUrls(dataTransfer) {
     }
   }
 
-  // text/uri-list — first non-comment line is usually the dragged URL.
   const uriList = dataTransfer.getData('text/uri-list');
   if (uriList) {
     for (const line of uriList.split(/\r?\n/)) {
@@ -65,7 +64,6 @@ function extractDropImageUrls(dataTransfer) {
     }
   }
 
-  // text/plain fallback.
   const text = dataTransfer.getData('text/plain');
   if (text) add(text);
 
@@ -80,6 +78,7 @@ export default function App() {
     setView,
     search,
     setSearch,
+    reload,
     toggleFavorite,
     deleteSave,
   } = useLibrary();
@@ -89,20 +88,91 @@ export default function App() {
   const [focusedId, setFocusedId] = useState(null);
   const [dragging, setDragging] = useState(false);
 
+  // Collections state
+  const [collections, setCollections] = useState([]);
+
+  const loadCollections = useCallback(async () => {
+    const data = await window.moodmark.collections.getAll();
+    setCollections(data);
+  }, []);
+
+  useEffect(() => { loadCollections(); }, [loadCollections]);
+
+  // Refresh collection counts whenever the grid refreshes
+  useEffect(() => {
+    if (!loading) loadCollections();
+  }, [loading, loadCollections]);
+
+  // Card context menu
+  const [cardCtx, setCardCtx] = useState(null); // { saveId, x, y, items }
+
+  const buildCardMenuItems = useCallback((saveId) => {
+    const items = [];
+    if (view.type === 'collection') {
+      items.push({
+        label: 'Remove from Collection',
+        danger: true,
+        onClick: async () => {
+          await window.moodmark.collections.removeSave({ collectionId: view.id, saveId });
+          reload();
+          loadCollections();
+        },
+      });
+    }
+    const others = view.type === 'collection'
+      ? collections.filter((c) => c.id !== view.id)
+      : collections;
+    if (others.length > 0) {
+      if (items.length > 0) items.push({ type: 'separator' });
+      items.push({ type: 'header', label: 'Add to Collection' });
+      for (const col of others) {
+        items.push({
+          label: col.name,
+          onClick: async () => {
+            await window.moodmark.collections.addSave({ collectionId: col.id, saveId });
+            loadCollections();
+          },
+        });
+      }
+    }
+    return items;
+  }, [collections, view, reload, loadCollections]);
+
+  const handleCardContextMenu = useCallback((saveId, x, y) => {
+    const items = buildCardMenuItems(saveId);
+    if (items.length === 0) return;
+    setCardCtx({ saveId, x, y, items });
+  }, [buildCardMenuItems]);
+
+  const handleCreateCollection = useCallback(async (payload) => {
+    await window.moodmark.collections.create(payload);
+    loadCollections();
+  }, [loadCollections]);
+
+  const handleRenameCollection = useCallback(async (payload) => {
+    await window.moodmark.collections.rename(payload);
+    loadCollections();
+  }, [loadCollections]);
+
+  const handleDeleteCollection = useCallback(async (id) => {
+    await window.moodmark.collections.delete(id);
+    // If we were viewing the deleted collection, go back to All
+    if (view.type === 'collection' && view.id === id) setView({ type: 'all' });
+    loadCollections();
+  }, [view, setView, loadCollections]);
+
   const focusedIndex = useMemo(
     () => (focusedId ? saves.findIndex((s) => s.id === focusedId) : -1),
     [saves, focusedId],
   );
   const focused = focusedIndex >= 0 ? saves[focusedIndex] : null;
 
-  // If the focused record disappears (deleted, filtered out), drop focus.
   if (focusedId && !focused) {
     setFocusedId(null);
   }
 
   const handleSelect = useCallback((id, additive) => {
     if (additive) {
-      // ⌘-click / checkbox toggle: pure multi-select, no focus change.
       setSelected((prev) => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
@@ -111,8 +181,6 @@ export default function App() {
       });
       return;
     }
-    // Plain click on the card body: focus it, drop any prior selection so
-    // the grid is "clean" when the user backs out.
     setSelected(new Set());
     setFocusedId(id);
   }, []);
@@ -123,7 +191,6 @@ export default function App() {
 
   const handleOpenFromCard = useCallback(
     (record) => {
-      // Double-click bypasses the focused view and goes straight to Preview.app.
       handleOpenInPreview(record.file_path);
     },
     [handleOpenInPreview],
@@ -190,7 +257,6 @@ export default function App() {
     e.stopPropagation();
     setDragging(false);
 
-    // Files dragged from Finder, browser-downloaded images, etc.
     const files = [...e.dataTransfer.files].filter((f) =>
       f.type.startsWith('image/'),
     );
@@ -223,7 +289,14 @@ export default function App() {
       onDrop={onDrop}
     >
       <div className="layout">
-        <Sidebar view={view} onViewChange={setView} />
+        <Sidebar
+          view={view}
+          onViewChange={setView}
+          collections={collections}
+          onCreateCollection={handleCreateCollection}
+          onRenameCollection={handleRenameCollection}
+          onDeleteCollection={handleDeleteCollection}
+        />
 
         <div className="main-col">
           {focused ? (
@@ -252,8 +325,10 @@ export default function App() {
                   selected={selected}
                   onSelect={handleSelect}
                   onOpen={handleOpenFromCard}
+                  onContextMenu={handleCardContextMenu}
                   columns={gridColumns}
                   loading={loading}
+                  view={view}
                 />
               </div>
             </>
@@ -297,6 +372,15 @@ export default function App() {
         <div className="drop-overlay">
           <span className="drop-message">Drop to save</span>
         </div>
+      )}
+
+      {cardCtx && (
+        <ContextMenu
+          x={cardCtx.x}
+          y={cardCtx.y}
+          items={cardCtx.items}
+          onClose={() => setCardCtx(null)}
+        />
       )}
     </div>
   );

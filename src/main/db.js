@@ -109,11 +109,15 @@ function insertSave({
   return record;
 }
 
-function getAllSaves({ search = '', filter = 'all', sort = 'newest' } = {}) {
+function getAllSaves({ search = '', filter = 'all', sort = 'newest', collectionId = null } = {}) {
   const db = getDatabase();
   const conditions = [];
   const params = [];
 
+  if (collectionId) {
+    conditions.push(`id IN (SELECT save_id FROM collection_items WHERE collection_id = ?)`);
+    params.push(collectionId);
+  }
   if (search) {
     conditions.push(`(title LIKE ? OR id IN (
       SELECT save_id FROM save_tags
@@ -157,6 +161,56 @@ function updateSave({ id, title, favorited } = {}) {
   return { ok: true };
 }
 
+// ── Collections ────────────────────────────────────────────────────────────
+
+function getAllCollections() {
+  return getDatabase().prepare(`
+    SELECT c.*, COUNT(ci.save_id) AS save_count
+    FROM collections c
+    LEFT JOIN collection_items ci ON ci.collection_id = c.id
+    GROUP BY c.id
+    ORDER BY c.created_at ASC
+  `).all();
+}
+
+function createCollection({ name, color } = {}) {
+  const db = getDatabase();
+  const record = {
+    id: crypto.randomUUID(),
+    name: name || 'Untitled',
+    color: color || '#007aff',
+    created_at: Date.now(),
+  };
+  db.prepare(
+    'INSERT INTO collections (id, name, color, created_at) VALUES (@id, @name, @color, @created_at)'
+  ).run(record);
+  return record;
+}
+
+function renameCollection({ id, name } = {}) {
+  getDatabase().prepare('UPDATE collections SET name = ? WHERE id = ?').run(name, id);
+  return { ok: true };
+}
+
+function deleteCollection(id) {
+  getDatabase().prepare('DELETE FROM collections WHERE id = ?').run(id);
+  return { ok: true };
+}
+
+function addSaveToCollection({ collectionId, saveId } = {}) {
+  getDatabase().prepare(
+    'INSERT OR IGNORE INTO collection_items (collection_id, save_id, added_at) VALUES (?, ?, ?)'
+  ).run(collectionId, saveId, Date.now());
+  return { ok: true };
+}
+
+function removeSaveFromCollection({ collectionId, saveId } = {}) {
+  getDatabase().prepare(
+    'DELETE FROM collection_items WHERE collection_id = ? AND save_id = ?'
+  ).run(collectionId, saveId);
+  return { ok: true };
+}
+
 module.exports = {
   initDatabase,
   getDatabase,
@@ -167,4 +221,10 @@ module.exports = {
   getSave,
   deleteSave,
   updateSave,
+  getAllCollections,
+  createCollection,
+  renameCollection,
+  deleteCollection,
+  addSaveToCollection,
+  removeSaveFromCollection,
 };

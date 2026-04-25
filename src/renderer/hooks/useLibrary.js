@@ -19,6 +19,7 @@ export function useLibrary() {
         search,
         filter: filterFor(view),
         sort: 'newest',
+        collectionId: view.type === 'collection' ? view.id : undefined,
       });
       setSaves(data);
     } finally {
