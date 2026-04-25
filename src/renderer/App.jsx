@@ -19,7 +19,7 @@ export default function App() {
   } = useLibrary();
 
   const [selected, setSelected] = useState(() => new Set());
-  const [density, setDensity] = useState(4);
+  const [cardMinWidth, setCardMinWidth] = useState(220);
   const [focusedId, setFocusedId] = useState(null);
   const [dragging, setDragging] = useState(false);
 
@@ -135,8 +135,8 @@ export default function App() {
               <Toolbar
                 search={search}
                 onSearchChange={setSearch}
-                density={density}
-                onDensityChange={setDensity}
+                cardMinWidth={cardMinWidth}
+                onCardMinWidthChange={setCardMinWidth}
                 count={saves.length}
               />
               <div className="grid-scroll">
@@ -145,7 +145,7 @@ export default function App() {
                   selected={selected}
                   onSelect={handleSelect}
                   onOpen={handleOpenFromCard}
-                  density={density}
+                  cardMinWidth={cardMinWidth}
                   loading={loading}
                 />
               </div>

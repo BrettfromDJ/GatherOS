@@ -1,7 +1,40 @@
 import React from 'react';
 import styles from './Toolbar.module.css';
 
-export default function Toolbar({ search, onSearchChange, density, onDensityChange, count }) {
+function GridSmallIcon() {
+  return (
+    <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+      <rect x="2"  y="2"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="6"  y="2"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="10" y="2"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="2"  y="6"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="6"  y="6"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="10" y="6"  width="2.5" height="2.5" rx="0.5" />
+      <rect x="2"  y="10" width="2.5" height="2.5" rx="0.5" />
+      <rect x="6"  y="10" width="2.5" height="2.5" rx="0.5" />
+      <rect x="10" y="10" width="2.5" height="2.5" rx="0.5" />
+    </svg>
+  );
+}
+
+function GridLargeIcon() {
+  return (
+    <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+      <rect x="2" y="2" width="4.5" height="4.5" rx="0.75" />
+      <rect x="7.5" y="2" width="4.5" height="4.5" rx="0.75" />
+      <rect x="2" y="7.5" width="4.5" height="4.5" rx="0.75" />
+      <rect x="7.5" y="7.5" width="4.5" height="4.5" rx="0.75" />
+    </svg>
+  );
+}
+
+export default function Toolbar({
+  search,
+  onSearchChange,
+  cardMinWidth,
+  onCardMinWidthChange,
+  count,
+}) {
   return (
     <div className={styles.toolbar}>
       <div className={styles.searchWrap}>
@@ -21,13 +54,20 @@ export default function Toolbar({ search, onSearchChange, density, onDensityChan
         </span>
       )}
 
-      <button
-        className={styles.densityBtn}
-        onClick={() => onDensityChange(density === 4 ? 2 : 4)}
-        title={density === 4 ? 'Switch to larger previews' : 'Switch to denser grid'}
-      >
-        {density === 4 ? '▦' : '▤'}
-      </button>
+      <div className={styles.zoom} title="Card size">
+        <GridSmallIcon />
+        <input
+          type="range"
+          min="140"
+          max="380"
+          step="20"
+          value={cardMinWidth}
+          onChange={(e) => onCardMinWidthChange(Number(e.target.value))}
+          className={styles.slider}
+          aria-label="Card size"
+        />
+        <GridLargeIcon />
+      </div>
     </div>
   );
 }
