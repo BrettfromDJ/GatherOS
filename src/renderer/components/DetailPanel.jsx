@@ -58,6 +58,21 @@ function ExportIcon() {
   );
 }
 
+function TagIcon() {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 5h9M2.5 9h9M5.5 2l-1 10M9.5 2l-1 10" />
+    </svg>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg
@@ -293,7 +308,10 @@ export default function DetailPanel({
       )}
 
       <div className={styles.collectionsSection}>
-        <div className={styles.collectionsLabel}>Collections</div>
+        <div className={styles.collectionsLabel}>
+          <span className={styles.sectionLabelIcon}><CollectionIcon /></span>
+          Collections
+        </div>
         <div className={styles.collectionPills}>
           {memberships.map((c) => (
             <span key={c.id} className={styles.collectionPill}>
@@ -327,7 +345,10 @@ export default function DetailPanel({
       </div>
 
       <div className={styles.tagsSection}>
-        <div className={styles.tagsLabel}>Tags</div>
+        <div className={styles.tagsLabel}>
+          <span className={styles.sectionLabelIcon}><TagIcon /></span>
+          Tags
+        </div>
         <div className={styles.tagPills}>
           {tags.map((t) => (
             <span key={t.id} className={styles.tagPill}>
