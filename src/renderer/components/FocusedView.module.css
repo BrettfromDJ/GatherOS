@@ -23,32 +23,6 @@
   -webkit-app-region: no-drag;
 }
 
-.iconBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
-}
-
-.iconBtn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-primary);
-}
-
-.iconBtnActive,
-.iconBtnActive:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
 .backBtn {
   display: inline-flex;
   align-items: center;
@@ -102,13 +76,6 @@
   object-fit: contain;
   border-radius: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-}
-
-.imageFit {
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .navBtn {

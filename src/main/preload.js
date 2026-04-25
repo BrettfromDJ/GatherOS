@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('moodmark', {
   },
   image: {
     openInPreview: (filePath) => ipcRenderer.invoke('image:open-in-preview', filePath),
+    export: (filePath, defaultName) =>
+      ipcRenderer.invoke('image:export', { filePath, defaultName }),
   },
   on: (channel, listener) => {
     const allowed = new Set(['save:created', 'update-ready']);

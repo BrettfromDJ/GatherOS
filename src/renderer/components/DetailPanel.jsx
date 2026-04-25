@@ -19,6 +19,12 @@ function formatBytes(n) {
   return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
+function defaultExportName(record) {
+  const ext = (record.file_path.split('.').pop() || 'png').toLowerCase();
+  if (record.title) return `${record.title}.${ext}`;
+  return `moodmark-${record.id.slice(0, 8)}.${ext}`;
+}
+
 export default function DetailPanel({
   record,
   onClose,
@@ -28,6 +34,10 @@ export default function DetailPanel({
 }) {
   const src = fileUrl(record.file_path);
   const favorited = !!record.favorited;
+
+  const handleExport = () => {
+    window.moodmark.image.export(record.file_path, defaultExportName(record));
+  };
 
   return (
     <aside className={styles.panel}>
@@ -86,6 +96,9 @@ export default function DetailPanel({
           onClick={() => onOpenInPreview(record.file_path)}
         >
           Open full size
+        </button>
+        <button className={styles.actionBtn} onClick={handleExport}>
+          Export…
         </button>
         <button
           className={`${styles.actionBtn} ${styles.danger}`}

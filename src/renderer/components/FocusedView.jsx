@@ -1,17 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import styles from './FocusedView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
-
-function FitIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 5.5V2h3.5" />
-      <path d="M12 8.5V12h-3.5" />
-      <path d="M8.5 2H12v3.5" />
-      <path d="M5.5 12H2V8.5" />
-    </svg>
-  );
-}
 
 export default function FocusedView({
   record,
@@ -23,8 +12,6 @@ export default function FocusedView({
   hasPrev,
   hasNext,
 }) {
-  const [fitToWindow, setFitToWindow] = useState(false);
-
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -59,24 +46,14 @@ export default function FocusedView({
           </div>
         )}
 
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${styles.iconBtn} ${fitToWindow ? styles.iconBtnActive : ''}`}
-            onClick={() => setFitToWindow((v) => !v)}
-            title={fitToWindow ? 'Show at original size' : 'Fit to window'}
-            aria-pressed={fitToWindow}
-          >
-            <FitIcon />
-          </button>
-        </div>
+        <div className={styles.actions} />
       </div>
 
       <div className={styles.stage}>
         {src && (
           <img
             src={src}
-            className={`${styles.image} ${fitToWindow ? styles.imageFit : ''}`}
+            className={styles.image}
             alt={record.title || ''}
             draggable={false}
           />

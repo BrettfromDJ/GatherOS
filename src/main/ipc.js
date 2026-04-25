@@ -1,4 +1,6 @@
-const { ipcMain, shell } = require('electron');
+const { ipcMain, shell, dialog, BrowserWindow } = require('electron');
+const fs = require('node:fs');
+const path = require('node:path');
 const { getAllSaves, deleteSave, updateSave, insertSave } = require('./db');
 const { deleteImageFiles, saveImageFromFile } = require('./storage');
 const {
@@ -49,6 +51,22 @@ function registerIpcHandlers() {
   ipcMain.handle('image:open-in-preview', (_e, filePath) => {
     shell.openPath(filePath);
     return { ok: true };
+  });
+
+  ipcMain.handle('image:export', async (e, { filePath, defaultName } = {}) => {
+    if (!filePath) return { ok: false, reason: 'no-path' };
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const result = await dialog.showSaveDialog(owner ?? undefined, {
+      defaultPath: defaultName || path.basename(filePath),
+    });
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+    try {
+      await fs.promises.copyFile(filePath, result.filePath);
+      return { ok: true, savedPath: result.filePath };
+    } catch (err) {
+      console.error('export failed:', err);
+      return { ok: false, error: err.message };
+    }
   });
 
   ipcMain.on('toast:set-interactive', (_e, interactive) => {
