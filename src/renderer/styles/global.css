@@ -153,6 +153,31 @@ button {
   color: #fff;
 }
 
+/* Compact buttons: icon-only at rest, label slides open on hover. */
+.selection-btn-compact {
+  gap: 0;
+}
+
+.selection-btn-compact .selection-btn-label {
+  display: inline-block;
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    max-width 220ms ease,
+    margin-left 220ms ease,
+    opacity 160ms ease;
+}
+
+.selection-btn-compact:hover .selection-btn-label,
+.selection-btn-compact:focus-visible .selection-btn-label {
+  max-width: 220px;
+  margin-left: 6px;
+  opacity: 1;
+}
+
 .selection-btn:hover {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 100%);

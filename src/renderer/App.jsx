@@ -503,22 +503,23 @@ export default function App() {
           {collections.length > 0 && (
             <button
               type="button"
-              className="selection-btn"
+              className="selection-btn selection-btn-compact"
               onClick={openBulkPicker}
+              title="Add to Collection"
             >
               <span className="selection-btn-icon"><CollectionIcon /></span>
-              Add to Collection
+              <span className="selection-btn-label">Add to Collection</span>
             </button>
           )}
           {selected.size >= 2 && (
             <button
               type="button"
-              className="selection-btn"
+              className="selection-btn selection-btn-compact"
               onClick={handleBulkExportBoard}
-              title="Compose selected images into a single moodboard PNG"
+              title="Export as Moodboard"
             >
               <span className="selection-btn-icon"><BoardExportIcon /></span>
-              Export as Moodboard
+              <span className="selection-btn-label">Export as Moodboard</span>
             </button>
           )}
           <button
