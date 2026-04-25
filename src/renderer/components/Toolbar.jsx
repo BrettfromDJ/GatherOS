@@ -28,13 +28,18 @@ function GridLargeIcon() {
   );
 }
 
+const COLS_MIN = 2;
+const COLS_MAX = 8;
+
 export default function Toolbar({
   search,
   onSearchChange,
-  cardMinWidth,
-  onCardMinWidthChange,
+  columns,
+  onColumnsChange,
   count,
 }) {
+  // Slider is inverted so dragging right = bigger cards = fewer columns.
+  const sliderValue = COLS_MAX + COLS_MIN - columns;
   return (
     <div className={styles.toolbar}>
       <div className={styles.searchWrap}>
@@ -58,11 +63,13 @@ export default function Toolbar({
         <GridSmallIcon />
         <input
           type="range"
-          min="140"
-          max="380"
-          step="20"
-          value={cardMinWidth}
-          onChange={(e) => onCardMinWidthChange(Number(e.target.value))}
+          min={COLS_MIN}
+          max={COLS_MAX}
+          step={1}
+          value={sliderValue}
+          onChange={(e) =>
+            onColumnsChange(COLS_MAX + COLS_MIN - Number(e.target.value))
+          }
           className={styles.slider}
           aria-label="Card size"
         />

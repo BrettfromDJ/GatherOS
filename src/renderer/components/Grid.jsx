@@ -2,7 +2,7 @@ import React from 'react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 
-export default function Grid({ saves, selected, onSelect, onOpen, cardMinWidth, loading }) {
+export default function Grid({ saves, selected, onSelect, onOpen, columns, loading }) {
   if (loading && saves.length === 0) {
     return <div className={styles.state} />;
   }
@@ -21,7 +21,7 @@ export default function Grid({ saves, selected, onSelect, onOpen, cardMinWidth, 
   return (
     <div
       className={styles.grid}
-      style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardMinWidth}px, 1fr))` }}
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {saves.map((s) => (
         <ImageCard
