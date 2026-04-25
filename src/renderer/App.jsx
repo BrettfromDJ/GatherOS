@@ -311,6 +311,29 @@ export default function App() {
     if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false);
   }, []);
 
+  // After a successful drop we want to land the user on the new save's
+  // detail view. saves is refreshed asynchronously by the save:created
+  // listener in useLibrary, so we stash the id and let an effect promote
+  // it to focusedId once the list contains it.
+  const [pendingFocusId, setPendingFocusId] = useState(null);
+
+  useEffect(() => {
+    if (!pendingFocusId) return;
+    if (saves.some((s) => s.id === pendingFocusId)) {
+      setFocusedId(pendingFocusId);
+      setPendingFocusId(null);
+    }
+  }, [pendingFocusId, saves]);
+
+  const focusAfterDrop = useCallback((id) => {
+    if (!id) return;
+    // Drops always land in All Saves; bounce out of any filtered view so
+    // the new record is actually reachable when saves reloads.
+    if (view.type !== 'all') setView({ type: 'all' });
+    setSelected(new Set());
+    setPendingFocusId(id);
+  }, [view, setView]);
+
   const onDrop = useCallback(async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -320,13 +343,16 @@ export default function App() {
       f.type.startsWith('image/'),
     );
     if (files.length > 0) {
+      let lastId = null;
       for (const file of files) {
         try {
-          await window.moodmark.saves.dropFile(file);
+          const record = await window.moodmark.saves.dropFile(file);
+          if (record?.id) lastId = record.id;
         } catch (err) {
           console.error('Drop failed:', err);
         }
       }
+      if (lastId) focusAfterDrop(lastId);
       return;
     }
 
@@ -334,11 +360,12 @@ export default function App() {
     if (candidates.length === 0) return;
 
     try {
-      await window.moodmark.saves.dropUrl(candidates);
+      const record = await window.moodmark.saves.dropUrl(candidates);
+      if (record?.id) focusAfterDrop(record.id);
     } catch (err) {
       console.error('URL drop failed:', err);
     }
-  }, []);
+  }, [focusAfterDrop]);
 
   return (
     <div
