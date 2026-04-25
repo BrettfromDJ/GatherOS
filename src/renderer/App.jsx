@@ -18,6 +18,25 @@ function BoardExportIcon() {
   );
 }
 
+function ClearIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 4h11" />
+      <path d="M5.5 4V2.5a0.75 0.75 0 0 1 0.75 -0.75h3.5a0.75 0.75 0 0 1 0.75 0.75V4" />
+      <path d="M3.75 4v9a0.75 0.75 0 0 0 0.75 0.75h7a0.75 0.75 0 0 0 0.75 -0.75V4" />
+      <path d="M6.5 7v4M9.5 7v4" />
+    </svg>
+  );
+}
+
 function pickLargestFromSrcset(srcset) {
   if (!srcset) return null;
   let best = null;
@@ -478,6 +497,7 @@ export default function App() {
             className="selection-btn"
             onClick={clearSelection}
           >
+            <span className="selection-btn-icon"><ClearIcon /></span>
             Clear
           </button>
           {collections.length > 0 && (
@@ -506,6 +526,7 @@ export default function App() {
             className="selection-btn selection-btn-danger"
             onClick={handleDeleteSelected}
           >
+            <span className="selection-btn-icon"><TrashIcon /></span>
             Delete
           </button>
         </div>
