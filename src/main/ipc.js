@@ -1,8 +1,13 @@
 const { ipcMain, shell } = require('electron');
-const { getAllSaves, deleteSave, updateSave } = require('./db');
+const { getAllSaves, deleteSave, updateSave, insertSave } = require('./db');
 const { deleteImageFiles, saveImageFromFile } = require('./storage');
-const { insertSave } = require('./db');
-const { handleOverlayComplete, handleOverlayCancel, startScreenshotCapture } = require('./capture');
+const {
+  handleOverlayComplete,
+  handleOverlayCancel,
+  startScreenshotCapture,
+} = require('./capture');
+const { notifySaved } = require('./notify');
+const { setToastInteractive, hideToastWindow } = require('./toast-window');
 
 function registerIpcHandlers() {
   ipcMain.handle('saves:get-all', (_e, opts) => getAllSaves(opts));
@@ -17,7 +22,9 @@ function registerIpcHandlers() {
 
   ipcMain.handle('saves:drop-file', async (_e, filePath) => {
     const imgData = await saveImageFromFile(filePath);
-    return insertSave(imgData);
+    const record = insertSave(imgData);
+    notifySaved(record);
+    return record;
   });
 
   ipcMain.handle('collections:get-all', () => []);
@@ -29,8 +36,8 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
-  ipcMain.handle('overlay:complete', (_e, dataUrl) => {
-    handleOverlayComplete(dataUrl);
+  ipcMain.handle('overlay:complete', (_e, payload) => {
+    handleOverlayComplete(payload);
     return { ok: true };
   });
 
@@ -42,6 +49,15 @@ function registerIpcHandlers() {
   ipcMain.handle('image:open-in-preview', (_e, filePath) => {
     shell.openPath(filePath);
     return { ok: true };
+  });
+
+  ipcMain.on('toast:set-interactive', (_e, interactive) => {
+    setToastInteractive(!!interactive);
+  });
+
+  ipcMain.on('toast:empty', () => {
+    setToastInteractive(false);
+    hideToastWindow();
   });
 }
 

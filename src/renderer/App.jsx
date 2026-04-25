@@ -1,27 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import Toast from './components/Toast.jsx';
-
-let toastSeq = 0;
+import React, { useState, useCallback } from 'react';
 
 export default function App() {
-  const [toasts, setToasts] = useState([]);
   const [dragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    return window.moodmark.on('save:created', (record) => {
-      showToast(record);
-    });
-  }, []);
-
-  function showToast(record) {
-    const id = ++toastSeq;
-    setToasts((prev) => [...prev, { id, record }]);
-    setTimeout(() => dismissToast(id), 2500);
-  }
-
-  function dismissToast(id) {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }
 
   const onDragOver = useCallback((e) => {
     e.preventDefault();
@@ -44,8 +24,7 @@ export default function App() {
     const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'));
     for (const file of files) {
       try {
-        const record = await window.moodmark.saves.dropFile(file.path);
-        showToast(record);
+        await window.moodmark.saves.dropFile(file.path);
       } catch (err) {
         console.error('Drop failed:', err);
       }
@@ -71,12 +50,6 @@ export default function App() {
           <span className="drop-message">Drop to save</span>
         </div>
       )}
-
-      <div className="toast-stack">
-        {toasts.map((t) => (
-          <Toast key={t.id} record={t.record} onDismiss={() => dismissToast(t.id)} />
-        ))}
-      </div>
     </div>
   );
 }

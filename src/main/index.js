@@ -1,17 +1,63 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  nativeImage,
+  protocol,
+  net,
+} = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-const { initDatabase, closeDatabase } = require('./db');
+const { initDatabase, closeDatabase, insertSave } = require('./db');
 const { ensureStorageDirs, saveImageFromFile } = require('./storage');
-const { insertSave } = require('./db');
 const { registerIpcHandlers } = require('./ipc');
-const { setMainWindow, registerCaptureHotkey, unregisterCaptureHotkey, startScreenshotCapture } = require('./capture');
+const {
+  registerCaptureHotkey,
+  unregisterCaptureHotkey,
+  startScreenshotCapture,
+} = require('./capture');
+const { showToast, destroyToastWindow } = require('./toast-window');
+const { setSaveNotifier } = require('./notify');
 
 const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
 
 let mainWindow = null;
 let tray = null;
+
+// Custom file protocol so renderers loaded over http://localhost (and the
+// packaged app loaded from file://) can both read images out of the userData
+// directory by absolute path.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'moodmark-file',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: true,
+    },
+  },
+]);
+
+function registerMoodmarkFileProtocol() {
+  protocol.handle('moodmark-file', (req) => {
+    const url = new URL(req.url);
+    // moodmark-file:///Users/.../thumbs/abc.jpg → /Users/.../thumbs/abc.jpg
+    const abs = decodeURIComponent(url.pathname);
+    return net.fetch(pathToFileURL(abs).toString());
+  });
+}
+
+function notifySaved(record) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('save:created', record);
+  }
+  showToast(record);
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -34,18 +80,17 @@ function createMainWindow() {
     },
   });
 
-  setMainWindow(mainWindow);
-
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => {
     mainWindow = null;
-    setMainWindow(null);
   });
 
   if (isDev) {
     mainWindow.loadURL(DEV_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'renderer', 'index.html'));
+    mainWindow.loadFile(
+      path.join(__dirname, '..', '..', 'dist', 'renderer', 'index.html'),
+    );
   }
 
   return mainWindow;
@@ -61,8 +106,7 @@ function buildTrayIcon() {
 }
 
 function createTray() {
-  const icon = buildTrayIcon();
-  tray = new Tray(icon);
+  tray = new Tray(buildTrayIcon());
   tray.setToolTip('Moodmark');
 
   const menu = Menu.buildFromTemplate([
@@ -86,9 +130,7 @@ function createTray() {
       try {
         const imgData = await saveImageFromFile(file);
         const record = insertSave(imgData);
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('save:created', record);
-        }
+        notifySaved(record);
       } catch (err) {
         console.error('Tray drop failed:', err);
       }
@@ -97,6 +139,8 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  setSaveNotifier(notifySaved);
+  registerMoodmarkFileProtocol();
   ensureStorageDirs();
   initDatabase();
   registerIpcHandlers();
@@ -111,6 +155,10 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  destroyToastWindow();
 });
 
 app.on('will-quit', () => {

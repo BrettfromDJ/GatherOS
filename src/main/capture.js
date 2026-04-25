@@ -14,11 +14,6 @@ const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
 
 let overlayWin = null;
-let _mainWindow = null;
-
-function setMainWindow(win) {
-  _mainWindow = win;
-}
 
 function registerCaptureHotkey() {
   globalShortcut.register('CommandOrControl+Shift+S', startScreenshotCapture);
@@ -124,11 +119,10 @@ async function handleOverlayComplete(rect) {
 
     const { saveImageFromBuffer } = require('./storage');
     const { insertSave } = require('./db');
+    const { notifySaved } = require('./notify');
     const imgData = await saveImageFromBuffer(cropped, 'png');
     const record = insertSave(imgData);
-    if (_mainWindow && !_mainWindow.isDestroyed()) {
-      _mainWindow.webContents.send('save:created', record);
-    }
+    notifySaved(record);
   } catch (err) {
     console.error('Failed to capture screenshot:', err);
     if (!win.isDestroyed()) win.close();
@@ -170,7 +164,6 @@ function handleOverlayCancel() {
 }
 
 module.exports = {
-  setMainWindow,
   registerCaptureHotkey,
   unregisterCaptureHotkey,
   startScreenshotCapture,
