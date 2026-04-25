@@ -135,6 +135,8 @@ export default function App() {
 
   const handleDelete = useCallback(
     async (id) => {
+      const ok = await window.moodmark.saves.confirmDelete(1);
+      if (!ok) return;
       await deleteSave(id);
       if (focusedId === id) setFocusedId(null);
       setSelected((prev) => {
@@ -145,6 +147,20 @@ export default function App() {
     },
     [deleteSave, focusedId],
   );
+
+  const handleDeleteSelected = useCallback(async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const ok = await window.moodmark.saves.confirmDelete(ids.length);
+    if (!ok) return;
+    for (const id of ids) {
+      await deleteSave(id);
+    }
+    setSelected(new Set());
+    if (focusedId && ids.includes(focusedId)) setFocusedId(null);
+  }, [selected, deleteSave, focusedId]);
+
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
 
   const goPrev = useCallback(() => {
     if (focusedIndex > 0) setFocusedId(saves[focusedIndex - 1].id);
@@ -259,6 +275,28 @@ export default function App() {
           />
         )}
       </div>
+
+      {!focused && selected.size > 0 && (
+        <div className="selection-bar">
+          <span className="selection-count">
+            {selected.size} selected
+          </span>
+          <button
+            type="button"
+            className="selection-btn"
+            onClick={clearSelection}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            className="selection-btn selection-btn-danger"
+            onClick={handleDeleteSelected}
+          >
+            Delete
+          </button>
+        </div>
+      )}
 
       {dragging && (
         <div className="drop-overlay">

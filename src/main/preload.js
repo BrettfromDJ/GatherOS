@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),
     update: (payload) => ipcRenderer.invoke('saves:update', payload),
     delete: (id) => ipcRenderer.invoke('saves:delete', id),
+    confirmDelete: (count) => ipcRenderer.invoke('saves:confirm-delete', count),
     dropFile: (file) => {
       // Electron 32+ removed File.path; webUtils.getPathForFile is the
       // sanctioned replacement and must be called from the preload.

@@ -24,6 +24,24 @@ function registerIpcHandlers() {
     return result;
   });
 
+  ipcMain.handle('saves:confirm-delete', async (e, count) => {
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const n = Math.max(1, Number(count) || 1);
+    const result = await dialog.showMessageBox(owner ?? undefined, {
+      type: 'warning',
+      buttons: ['Cancel', n === 1 ? 'Delete' : `Delete ${n} Saves`],
+      defaultId: 1,
+      cancelId: 0,
+      title: n === 1 ? 'Delete save?' : `Delete ${n} saves?`,
+      message:
+        n === 1
+          ? 'Are you sure you want to delete this save?'
+          : `Are you sure you want to delete these ${n} saves?`,
+      detail: 'The image files will be permanently removed from your library.',
+    });
+    return result.response === 1;
+  });
+
   ipcMain.handle('saves:update', (_e, payload) => updateSave(payload));
 
   ipcMain.handle('saves:drop-file', async (_e, filePath) => {

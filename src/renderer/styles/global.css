@@ -79,3 +79,54 @@ button {
   font-weight: 500;
   letter-spacing: -0.01em;
 }
+
+.selection-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 16px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+  z-index: 60;
+}
+
+.selection-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.selection-btn {
+  padding: 5px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.selection-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.selection-btn-danger {
+  background: var(--icon-red);
+  border-color: var(--icon-red);
+  color: #fff;
+}
+
+.selection-btn-danger:hover {
+  background: #e02d22;
+  border-color: #e02d22;
+}

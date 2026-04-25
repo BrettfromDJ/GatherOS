@@ -28,6 +28,7 @@ export default function Grid({ saves, selected, onSelect, onOpen, cardMinWidth, 
           key={s.id}
           record={s}
           selected={selected.has(s.id)}
+          selectionActive={selected.size > 0}
           onSelect={onSelect}
           onOpen={onOpen}
         />
