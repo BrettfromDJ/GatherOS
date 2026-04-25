@@ -91,7 +91,7 @@ function createMainWindow() {
     show: false,
     frame: false,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 14 },
+    trafficLightPosition: { x: 22, y: 22 },
     backgroundColor: '#ffffff',
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: 'active',
