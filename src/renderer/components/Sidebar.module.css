@@ -8,13 +8,16 @@
   border-radius: 14px;
   overflow-y: auto;
   -webkit-app-region: drag;
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(40px) saturate(1.8);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.38) 100%);
+  backdrop-filter: blur(40px) saturate(1.9);
+  -webkit-backdrop-filter: blur(40px) saturate(1.9);
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+    0 0 0 0.5px rgba(0, 0, 0, 0.07),
     0 1px 2px rgba(0, 0, 0, 0.04),
-    0 8px 24px rgba(0, 0, 0, 0.08);
+    0 12px 32px rgba(0, 0, 0, 0.1);
 }
 
 .section {
@@ -43,21 +46,28 @@
   padding: 5px 8px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   color: var(--text-primary);
   font-size: 13px;
   text-align: left;
   cursor: pointer;
+  transition: background 100ms ease, box-shadow 100ms ease;
 }
 
 .item:hover {
-  background: var(--hover-bg);
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .active,
 .active:hover {
-  background: var(--accent);
+  background:
+    linear-gradient(180deg, rgba(50, 145, 255, 1) 0%, rgba(10, 132, 255, 1) 100%);
   color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(10, 132, 255, 0.25);
 }
 
 .icon {
