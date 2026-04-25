@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -116,9 +116,30 @@ export default function DetailPanel({
   const src = fileUrl(record.file_path);
   const favorited = !!record.favorited;
   const typeLabel = fileTypeLabel(record.file_path);
+  const [copiedColor, setCopiedColor] = useState(null);
+
+  const palette = useMemo(() => {
+    if (!record.palette) return [];
+    try {
+      const parsed = JSON.parse(record.palette);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [record.palette]);
 
   const handleExport = () => {
     window.moodmark.image.export(record.file_path, defaultExportName(record));
+  };
+
+  const copyColor = async (hex) => {
+    try {
+      await navigator.clipboard.writeText(hex);
+      setCopiedColor(hex);
+      setTimeout(() => setCopiedColor((c) => (c === hex ? null : c)), 1200);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
   };
 
   return (
@@ -143,6 +164,26 @@ export default function DetailPanel({
           </div>
         )}
       </div>
+
+      {palette.length > 0 && (
+        <div className={styles.palette}>
+          {palette.map((color) => (
+            <button
+              key={color}
+              type="button"
+              className={`${styles.swatch} ${copiedColor === color ? styles.swatchCopied : ''}`}
+              style={{ background: color }}
+              onClick={() => copyColor(color)}
+              title={copiedColor === color ? `Copied ${color}` : `Click to copy ${color}`}
+              aria-label={`Copy ${color}`}
+            >
+              <span className={styles.swatchHex}>
+                {copiedColor === color ? 'Copied' : color.toUpperCase()}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <dl className={styles.meta}>
         {record.title && (

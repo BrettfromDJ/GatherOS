@@ -75,7 +75,17 @@ function closeDatabase() {
   }
 }
 
-function insertSave({ id, filePath, thumbPath, width, height, fileSize, sourceUrl, title } = {}) {
+function insertSave({
+  id,
+  filePath,
+  thumbPath,
+  width,
+  height,
+  fileSize,
+  sourceUrl,
+  title,
+  palette,
+} = {}) {
   const db = getDatabase();
   const record = {
     id: id || crypto.randomUUID(),
@@ -86,7 +96,7 @@ function insertSave({ id, filePath, thumbPath, width, height, fileSize, sourceUr
     width: width || null,
     height: height || null,
     file_size: fileSize || null,
-    palette: null,
+    palette: Array.isArray(palette) && palette.length ? JSON.stringify(palette) : null,
     created_at: Date.now(),
     favorited: 0,
   };
