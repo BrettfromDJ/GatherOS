@@ -9,6 +9,7 @@
     "name": "Moodmark"
   },
   "scripts": {
+    "predev": "node -e \"try{require('child_process').execSync('pkill -f \\\"Electron.app/Contents/MacOS/Electron\\\"',{stdio:'ignore'})}catch(e){}\"",
     "dev": "concurrently -k -n vite,electron -c cyan,magenta \"npm:dev:vite\" \"npm:dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",

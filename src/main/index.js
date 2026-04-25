@@ -181,6 +181,13 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// Concurrently sends SIGTERM (and Ctrl+C sends SIGINT) when the dev
+// run is killed. Without these, Electron sometimes lingers after the
+// terminal goes away and keeps holding the global shortcut.
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => app.quit());
+}
+
 app.on('before-quit', () => {
   destroyToastWindow();
 });
