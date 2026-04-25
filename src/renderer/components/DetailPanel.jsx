@@ -99,6 +99,13 @@ function defaultExportName(record) {
   return `moodmark-${record.id.slice(0, 8)}.${ext}`;
 }
 
+function fileTypeLabel(filePath) {
+  if (!filePath) return null;
+  const ext = (filePath.split('.').pop() || '').toUpperCase();
+  if (!ext) return null;
+  return ext === 'JPG' ? 'JPEG' : ext;
+}
+
 export default function DetailPanel({
   record,
   onClose,
@@ -108,6 +115,7 @@ export default function DetailPanel({
 }) {
   const src = fileUrl(record.file_path);
   const favorited = !!record.favorited;
+  const typeLabel = fileTypeLabel(record.file_path);
 
   const handleExport = () => {
     window.moodmark.image.export(record.file_path, defaultExportName(record));
@@ -124,12 +132,15 @@ export default function DetailPanel({
 
       <div className={styles.preview}>
         {src && (
-          <img
-            src={src}
-            className={styles.image}
-            alt={record.title || ''}
-            draggable={false}
-          />
+          <div className={styles.imageWrap}>
+            <img
+              src={src}
+              className={styles.image}
+              alt={record.title || ''}
+              draggable={false}
+            />
+            {typeLabel && <div className={styles.typeBadge}>{typeLabel}</div>}
+          </div>
         )}
       </div>
 
