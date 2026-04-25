@@ -125,13 +125,49 @@ export default function DetailPanel({
   const [memberships, setMemberships] = useState([]);
   const [picker, setPicker] = useState(null); // { x, y }
 
+  const [tags, setTags] = useState([]);
+  const [tagDraft, setTagDraft] = useState('');
+
   useEffect(() => {
     let cancelled = false;
-    window.moodmark.collections.getForSave(record.id).then((rows) => {
-      if (!cancelled) setMemberships(rows);
+    Promise.all([
+      window.moodmark.collections.getForSave(record.id),
+      window.moodmark.tags.getForSave(record.id),
+    ]).then(([cols, tagRows]) => {
+      if (cancelled) return;
+      setMemberships(cols);
+      setTags(tagRows);
     });
     return () => { cancelled = true; };
   }, [record.id]);
+
+  async function refreshTags() {
+    const rows = await window.moodmark.tags.getForSave(record.id);
+    setTags(rows);
+  }
+
+  async function commitTag() {
+    const name = tagDraft.trim();
+    if (!name) return;
+    await window.moodmark.tags.addToSave({ saveId: record.id, name });
+    setTagDraft('');
+    refreshTags();
+  }
+
+  async function removeTag(tagId) {
+    await window.moodmark.tags.removeFromSave({ saveId: record.id, tagId });
+    refreshTags();
+  }
+
+  function handleTagKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commitTag();
+    } else if (e.key === 'Backspace' && tagDraft === '' && tags.length > 0) {
+      // Backspace on empty input removes the most recently added tag.
+      removeTag(tags[tags.length - 1].id);
+    }
+  }
 
   async function refreshMemberships() {
     const rows = await window.moodmark.collections.getForSave(record.id);
@@ -264,6 +300,34 @@ export default function DetailPanel({
           {memberships.length === 0 && availableToAdd.length === 0 && (
             <span className={styles.collectionsEmpty}>No collections yet</span>
           )}
+        </div>
+      </div>
+
+      <div className={styles.tagsSection}>
+        <div className={styles.tagsLabel}>Tags</div>
+        <div className={styles.tagPills}>
+          {tags.map((t) => (
+            <span key={t.id} className={styles.tagPill}>
+              <span className={styles.tagHash}>#</span>
+              <span className={styles.tagName}>{t.name}</span>
+              <button
+                type="button"
+                className={styles.tagRemove}
+                onClick={() => removeTag(t.id)}
+                title="Remove tag"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            className={styles.tagInput}
+            value={tagDraft}
+            onChange={(e) => setTagDraft(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            onBlur={commitTag}
+            placeholder={tags.length === 0 ? 'Add a tag…' : '+ tag'}
+          />
         </div>
       </div>
 

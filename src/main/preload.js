@@ -28,6 +28,12 @@ contextBridge.exposeInMainWorld('moodmark', {
     addSave: (payload) => ipcRenderer.invoke('collections:add-save', payload),
     removeSave: (payload) => ipcRenderer.invoke('collections:remove-save', payload),
   },
+  tags: {
+    getAll: () => ipcRenderer.invoke('tags:get-all'),
+    getForSave: (saveId) => ipcRenderer.invoke('tags:get-for-save', saveId),
+    addToSave: (payload) => ipcRenderer.invoke('tags:add-to-save', payload),
+    removeFromSave: (payload) => ipcRenderer.invoke('tags:remove-from-save', payload),
+  },
   capture: {
     screenshot: () => ipcRenderer.invoke('capture:screenshot'),
   },

@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import styles from './ContextMenu.module.css';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
+  const [pos, setPos] = useState({ x, y, ready: false });
 
   useEffect(() => {
     function onMouseDown(e) {
@@ -20,11 +21,32 @@ export default function ContextMenu({ x, y, items, onClose }) {
     };
   }, [onClose]);
 
+  // Clamp into the viewport; flip up if the menu would overflow the bottom.
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const margin = 8;
+    let nx = x;
+    let ny = y;
+    if (nx + rect.width > window.innerWidth - margin) {
+      nx = Math.max(margin, window.innerWidth - rect.width - margin);
+    }
+    if (ny + rect.height > window.innerHeight - margin) {
+      ny = Math.max(margin, y - rect.height);
+    }
+    setPos({ x: nx, y: ny, ready: true });
+  }, [x, y, items]);
+
   return ReactDOM.createPortal(
     <div
       ref={ref}
       className={styles.menu}
-      style={{ position: 'fixed', top: y, left: x }}
+      style={{
+        position: 'fixed',
+        top: pos.y,
+        left: pos.x,
+        visibility: pos.ready ? 'visible' : 'hidden',
+      }}
     >
       {items.map((item, i) => {
         if (item.type === 'separator') {

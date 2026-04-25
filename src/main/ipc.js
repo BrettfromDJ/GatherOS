@@ -5,6 +5,7 @@ const {
   getAllSaves, deleteSave, updateSave, insertSave,
   getAllCollections, getCollectionsForSave, createCollection, renameCollection,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
+  getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
 } = require('./db');
 const {
   deleteImageFiles,
@@ -85,6 +86,11 @@ function registerIpcHandlers() {
   ipcMain.handle('collections:reorder', (_e, ids) => reorderCollections(ids));
   ipcMain.handle('collections:add-save', (_e, payload) => addSaveToCollection(payload));
   ipcMain.handle('collections:remove-save', (_e, payload) => removeSaveFromCollection(payload));
+
+  ipcMain.handle('tags:get-all', () => getAllTags());
+  ipcMain.handle('tags:get-for-save', (_e, saveId) => getTagsForSave(saveId));
+  ipcMain.handle('tags:add-to-save', (_e, payload) => addTagToSave(payload));
+  ipcMain.handle('tags:remove-from-save', (_e, payload) => removeTagFromSave(payload));
 
   ipcMain.handle('capture:screenshot', () => {
     startScreenshotCapture();

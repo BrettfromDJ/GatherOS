@@ -244,6 +244,96 @@
   color: var(--text-tertiary);
 }
 
+.tagsSection {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tagsLabel {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.tagPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 2px 2px 6px;
+  background: rgba(0, 122, 255, 0.07);
+  border: 0.5px solid rgba(0, 122, 255, 0.18);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-width: 100%;
+}
+
+.tagHash {
+  color: rgba(0, 122, 255, 0.55);
+  margin-right: 1px;
+}
+
+.tagName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagRemove {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: rgba(0, 122, 255, 0.55);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 1px;
+}
+
+.tagRemove:hover {
+  background: rgba(0, 122, 255, 0.15);
+  color: var(--accent);
+}
+
+.tagInput {
+  flex: 1 1 60px;
+  min-width: 60px;
+  background: transparent;
+  border: 0.5px dashed rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.tagInput:focus {
+  border: 0.5px solid var(--accent);
+  background: rgba(0, 122, 255, 0.04);
+}
+
+.tagInput::placeholder {
+  color: var(--text-tertiary);
+}
+
 .meta {
   display: grid;
   grid-template-columns: 88px 1fr;

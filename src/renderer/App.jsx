@@ -105,6 +105,8 @@ export default function App() {
 
   // Card context menu
   const [cardCtx, setCardCtx] = useState(null); // { saveId, x, y, items }
+  // Bulk "Add to Collection" picker, anchored above the selection bar.
+  const [bulkPicker, setBulkPicker] = useState(null); // { x, y }
 
   const buildCardMenuItems = useCallback((saveId) => {
     const items = [];
@@ -234,6 +236,29 @@ export default function App() {
   }, [selected, deleteSave, focusedId]);
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
+
+  const openBulkPicker = useCallback((e) => {
+    if (collections.length === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setBulkPicker({ x: rect.left, y: rect.top - 4 });
+  }, [collections.length]);
+
+  const bulkPickerItems = useMemo(() => {
+    if (!bulkPicker) return [];
+    const ids = [...selected];
+    return [
+      { type: 'header', label: `Add ${ids.length} to Collection` },
+      ...collections.map((c) => ({
+        label: c.name,
+        onClick: async () => {
+          for (const saveId of ids) {
+            await window.moodmark.collections.addSave({ collectionId: c.id, saveId });
+          }
+          loadCollections();
+        },
+      })),
+    ];
+  }, [bulkPicker, selected, collections, loadCollections]);
 
   const goPrev = useCallback(() => {
     if (focusedIndex > 0) setFocusedId(saves[focusedIndex - 1].id);
@@ -371,6 +396,15 @@ export default function App() {
           >
             Clear
           </button>
+          {collections.length > 0 && (
+            <button
+              type="button"
+              className="selection-btn"
+              onClick={openBulkPicker}
+            >
+              Add to Collection
+            </button>
+          )}
           <button
             type="button"
             className="selection-btn selection-btn-danger"
@@ -393,6 +427,15 @@ export default function App() {
           y={cardCtx.y}
           items={cardCtx.items}
           onClose={() => setCardCtx(null)}
+        />
+      )}
+
+      {bulkPicker && (
+        <ContextMenu
+          x={bulkPicker.x}
+          y={bulkPicker.y}
+          items={bulkPickerItems}
+          onClose={() => setBulkPicker(null)}
         />
       )}
     </div>

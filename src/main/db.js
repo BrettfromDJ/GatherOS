@@ -212,6 +212,54 @@ function createCollection({ name, color } = {}) {
   return record;
 }
 
+// ── Tags ───────────────────────────────────────────────────────────────────
+
+function getAllTags() {
+  return getDatabase().prepare(`
+    SELECT t.*, COUNT(st.save_id) AS save_count
+    FROM tags t
+    LEFT JOIN save_tags st ON st.tag_id = t.id
+    GROUP BY t.id
+    ORDER BY t.name ASC
+  `).all();
+}
+
+function getTagsForSave(saveId) {
+  return getDatabase().prepare(`
+    SELECT t.* FROM tags t
+    JOIN save_tags st ON st.tag_id = t.id
+    WHERE st.save_id = ?
+    ORDER BY t.name ASC
+  `).all(saveId);
+}
+
+function addTagToSave({ saveId, name } = {}) {
+  const trimmed = (name || '').trim().toLowerCase().replace(/^#+/, '');
+  if (!trimmed || !saveId) return { ok: false };
+  const db = getDatabase();
+  let tag = db.prepare('SELECT * FROM tags WHERE name = ?').get(trimmed);
+  if (!tag) {
+    const id = crypto.randomUUID();
+    db.prepare('INSERT INTO tags (id, name) VALUES (?, ?)').run(id, trimmed);
+    tag = { id, name: trimmed };
+  }
+  db.prepare(
+    'INSERT OR IGNORE INTO save_tags (save_id, tag_id) VALUES (?, ?)'
+  ).run(saveId, tag.id);
+  return { ok: true, tag };
+}
+
+function removeTagFromSave({ saveId, tagId } = {}) {
+  if (!saveId || !tagId) return { ok: false };
+  const db = getDatabase();
+  db.prepare('DELETE FROM save_tags WHERE save_id = ? AND tag_id = ?').run(saveId, tagId);
+  // Sweep orphaned tags so the global tag list stays clean.
+  db.prepare(
+    'DELETE FROM tags WHERE id = ? AND id NOT IN (SELECT tag_id FROM save_tags)'
+  ).run(tagId);
+  return { ok: true };
+}
+
 function reorderCollections(orderedIds) {
   const db = getDatabase();
   const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
@@ -264,4 +312,8 @@ module.exports = {
   reorderCollections,
   addSaveToCollection,
   removeSaveFromCollection,
+  getAllTags,
+  getTagsForSave,
+  addTagToSave,
+  removeTagFromSave,
 };
