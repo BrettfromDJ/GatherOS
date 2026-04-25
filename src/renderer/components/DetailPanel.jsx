@@ -127,6 +127,17 @@ export default function DetailPanel({
 
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState('');
+  const [addingTag, setAddingTag] = useState(false);
+  const tagInputRef = React.useRef(null);
+
+  function startAddingTag() {
+    setAddingTag(true);
+    requestAnimationFrame(() => tagInputRef.current?.focus());
+  }
+
+  function focusTagInput() {
+    requestAnimationFrame(() => tagInputRef.current?.focus());
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -146,12 +157,14 @@ export default function DetailPanel({
     setTags(rows);
   }
 
-  async function commitTag() {
+  async function commitTag({ keepOpen = false } = {}) {
     const name = tagDraft.trim();
-    if (!name) return;
-    await window.moodmark.tags.addToSave({ saveId: record.id, name });
-    setTagDraft('');
-    refreshTags();
+    if (name) {
+      await window.moodmark.tags.addToSave({ saveId: record.id, name });
+      setTagDraft('');
+      refreshTags();
+    }
+    if (keepOpen) focusTagInput();
   }
 
   async function removeTag(tagId) {
@@ -161,12 +174,22 @@ export default function DetailPanel({
 
   function handleTagKeyDown(e) {
     if (e.key === 'Enter' || e.key === ',') {
+      // Commit the current tag and immediately reopen for the next one.
       e.preventDefault();
-      commitTag();
+      commitTag({ keepOpen: true });
+    } else if (e.key === 'Escape') {
+      setTagDraft('');
+      setAddingTag(false);
     } else if (e.key === 'Backspace' && tagDraft === '' && tags.length > 0) {
       // Backspace on empty input removes the most recently added tag.
       removeTag(tags[tags.length - 1].id);
     }
+  }
+
+  function handleTagBlur() {
+    // Commit any pending text on blur and exit adding mode.
+    commitTag();
+    setAddingTag(false);
   }
 
   async function refreshMemberships() {
@@ -320,14 +343,25 @@ export default function DetailPanel({
               </button>
             </span>
           ))}
-          <input
-            className={styles.tagInput}
-            value={tagDraft}
-            onChange={(e) => setTagDraft(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            onBlur={commitTag}
-            placeholder={tags.length === 0 ? 'Add a tag…' : '+ tag'}
-          />
+          {addingTag ? (
+            <input
+              ref={tagInputRef}
+              className={styles.tagInput}
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={handleTagBlur}
+              placeholder="tag name"
+            />
+          ) : (
+            <button
+              type="button"
+              className={styles.addPillBtn}
+              onClick={startAddingTag}
+            >
+              + Add
+            </button>
+          )}
         </div>
       </div>
 
