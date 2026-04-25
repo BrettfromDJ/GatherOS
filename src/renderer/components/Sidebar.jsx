@@ -2,17 +2,6 @@ import React, { useRef, useState } from 'react';
 import styles from './Sidebar.module.css';
 import ContextMenu from './ContextMenu.jsx';
 
-const COLLECTION_COLORS = [
-  '#ff3b30',
-  '#ff9500',
-  '#ffcc00',
-  '#34c759',
-  '#007aff',
-  '#5856d6',
-  '#ff2d55',
-  '#8e8e93',
-];
-
 function GridIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -41,6 +30,16 @@ function ClockIcon() {
   );
 }
 
+export function CollectionIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="9" height="6" rx="1.4" opacity="0.45" />
+      <rect x="4.5" y="5" width="9" height="6" rx="1.4" opacity="0.7" />
+      <rect x="2.5" y="7" width="11" height="6.4" rx="1.5" fill="currentColor" stroke="none" opacity="0.9" />
+    </svg>
+  );
+}
+
 const SMART_VIEWS = [
   { id: 'all', label: 'All Saves', color: 'var(--icon-blue)', Icon: GridIcon },
   { id: 'favorites', label: 'Favorites', color: 'var(--icon-orange)', Icon: StarIcon },
@@ -54,15 +53,18 @@ export default function Sidebar({
   onCreateCollection,
   onRenameCollection,
   onDeleteCollection,
+  onReorderCollections,
 }) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState(COLLECTION_COLORS[4]);
 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection }
+
+  const [draggingId, setDraggingId] = useState(null);
+  const [dropTargetId, setDropTargetId] = useState(null);
 
   const createInputRef = useRef(null);
   const renameInputRef = useRef(null);
@@ -70,8 +72,6 @@ export default function Sidebar({
   function startCreating() {
     setCreating(true);
     setNewName('');
-    setNewColor(COLLECTION_COLORS[4]);
-    // Focus on next frame after render
     requestAnimationFrame(() => createInputRef.current?.focus());
   }
 
@@ -83,7 +83,7 @@ export default function Sidebar({
   async function commitCreate() {
     const name = newName.trim();
     if (!name) { cancelCreating(); return; }
-    await onCreateCollection({ name, color: newColor });
+    await onCreateCollection({ name });
     cancelCreating();
   }
 
@@ -112,6 +112,42 @@ export default function Sidebar({
   function handleCollectionContextMenu(e, collection) {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, collection });
+  }
+
+  // ── Drag-to-reorder ──────────────────────────────────────────────────────
+  function handleDragStart(e, id) {
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    // Setting some data is required by Firefox/Electron for drag to start.
+    e.dataTransfer.setData('text/moodmark-collection', id);
+  }
+
+  function handleDragOver(e, id) {
+    if (!draggingId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dropTargetId !== id) setDropTargetId(id);
+  }
+
+  function handleDragEnd() {
+    setDraggingId(null);
+    setDropTargetId(null);
+  }
+
+  async function handleDrop(e, targetId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const fromId = draggingId;
+    handleDragEnd();
+    if (!fromId || fromId === targetId) return;
+    const ids = collections.map((c) => c.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, fromId);
+    await onReorderCollections(reordered);
   }
 
   const ctxItems = ctxMenu
@@ -162,21 +198,6 @@ export default function Sidebar({
             onKeyDown={handleCreateKeyDown}
             placeholder="Collection name"
           />
-          <div className={styles.colorPickerRow}>
-            {COLLECTION_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className={[
-                  styles.colorPickerDot,
-                  newColor === color && styles.colorPickerDotSelected,
-                ].filter(Boolean).join(' ')}
-                style={{ background: color }}
-                onClick={() => setNewColor(color)}
-                aria-label={color}
-              />
-            ))}
-          </div>
           <div className={styles.newCollectionBtns}>
             <button className={styles.formBtn} onClick={cancelCreating}>Cancel</button>
             <button
@@ -195,13 +216,21 @@ export default function Sidebar({
         ) : (
           collections.map((c) => {
             const active = view.type === 'collection' && view.id === c.id;
+            const isDragging = draggingId === c.id;
+            const isDropTarget = dropTargetId === c.id && draggingId && draggingId !== c.id;
+            const itemClass = [
+              styles.item,
+              active && styles.active,
+              isDragging && styles.dragging,
+              isDropTarget && styles.dropTarget,
+            ].filter(Boolean).join(' ');
+
             if (renamingId === c.id) {
               return (
-                <div
-                  key={c.id}
-                  className={`${styles.item} ${active ? styles.active : ''}`}
-                >
-                  <span className={styles.dot} style={{ background: c.color }} />
+                <div key={c.id} className={itemClass}>
+                  <span className={styles.icon}>
+                    <CollectionIcon />
+                  </span>
                   <input
                     ref={renameInputRef}
                     className={styles.renameInput}
@@ -217,11 +246,21 @@ export default function Sidebar({
             return (
               <button
                 key={c.id}
-                className={`${styles.item} ${active ? styles.active : ''}`}
+                className={itemClass}
                 onClick={() => onViewChange({ type: 'collection', id: c.id })}
                 onContextMenu={(e) => handleCollectionContextMenu(e, c)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c.id)}
+                onDragOver={(e) => handleDragOver(e, c.id)}
+                onDragEnd={handleDragEnd}
+                onDrop={(e) => handleDrop(e, c.id)}
               >
-                <span className={styles.dot} style={{ background: c.color }} />
+                <span
+                  className={styles.icon}
+                  style={{ color: active ? '#fff' : 'var(--text-tertiary)' }}
+                >
+                  <CollectionIcon />
+                </span>
                 <span className={styles.label}>{c.name}</span>
                 {c.save_count > 0 && (
                   <span className={styles.count}>{c.save_count}</span>

@@ -97,41 +97,15 @@
   box-shadow: 0 0 0 2.5px rgba(0, 122, 255, 0.22);
 }
 
-.colorPickerRow {
-  display: flex;
-  gap: 6px;
-  padding: 8px 0 6px;
-  flex-wrap: wrap;
-}
-
-.colorPickerDot {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 0.5px solid rgba(0, 0, 0, 0.14);
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  transition: transform 80ms ease;
-}
-
-.colorPickerDot:hover {
-  transform: scale(1.15);
-}
-
-.colorPickerDotSelected {
-  outline: 2.5px solid var(--accent);
-  outline-offset: 1.5px;
-}
-
 .newCollectionBtns {
   display: flex;
   gap: 6px;
-  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .formBtn {
-  padding: 4px 10px;
+  flex: 1 1 0;
+  padding: 5px 10px;
   border-radius: 5px;
   font-size: 12px;
   cursor: pointer;
@@ -169,6 +143,14 @@
 
 .active .renameInput {
   color: #fff;
+}
+
+.dragging {
+  opacity: 0.4;
+}
+
+.dropTarget {
+  box-shadow: inset 0 2px 0 0 var(--accent);
 }
 
 .item {

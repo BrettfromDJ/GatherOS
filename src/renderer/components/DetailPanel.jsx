@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import ContextMenu from './ContextMenu.jsx';
+import { CollectionIcon } from './Sidebar.jsx';
 
 function StarIcon({ filled }) {
   return (
@@ -108,15 +110,62 @@ function fileTypeLabel(filePath) {
 
 export default function DetailPanel({
   record,
+  allCollections = [],
   onClose,
   onToggleFavorite,
   onDelete,
   onOpenInPreview,
+  onCollectionsChanged,
 }) {
   const src = fileUrl(record.file_path);
   const favorited = !!record.favorited;
   const typeLabel = fileTypeLabel(record.file_path);
   const [copiedColor, setCopiedColor] = useState(null);
+
+  const [memberships, setMemberships] = useState([]);
+  const [picker, setPicker] = useState(null); // { x, y }
+
+  useEffect(() => {
+    let cancelled = false;
+    window.moodmark.collections.getForSave(record.id).then((rows) => {
+      if (!cancelled) setMemberships(rows);
+    });
+    return () => { cancelled = true; };
+  }, [record.id]);
+
+  async function refreshMemberships() {
+    const rows = await window.moodmark.collections.getForSave(record.id);
+    setMemberships(rows);
+    onCollectionsChanged?.();
+  }
+
+  async function removeFromCollection(collectionId) {
+    await window.moodmark.collections.removeSave({ collectionId, saveId: record.id });
+    refreshMemberships();
+  }
+
+  async function addToCollection(collectionId) {
+    await window.moodmark.collections.addSave({ collectionId, saveId: record.id });
+    refreshMemberships();
+  }
+
+  const memberIds = new Set(memberships.map((c) => c.id));
+  const availableToAdd = allCollections.filter((c) => !memberIds.has(c.id));
+
+  function openPicker(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPicker({ x: rect.left, y: rect.bottom + 4 });
+  }
+
+  const pickerItems = availableToAdd.length > 0
+    ? [
+        { type: 'header', label: 'Add to Collection' },
+        ...availableToAdd.map((c) => ({
+          label: c.name,
+          onClick: () => addToCollection(c.id),
+        })),
+      ]
+    : [];
 
   const palette = useMemo(() => {
     if (!record.palette) return [];
@@ -184,6 +233,40 @@ export default function DetailPanel({
         </div>
       )}
 
+      <div className={styles.collectionsSection}>
+        <div className={styles.collectionsLabel}>Collections</div>
+        <div className={styles.collectionPills}>
+          {memberships.map((c) => (
+            <span key={c.id} className={styles.collectionPill}>
+              <span className={styles.collectionPillIcon}>
+                <CollectionIcon />
+              </span>
+              <span className={styles.collectionPillName}>{c.name}</span>
+              <button
+                type="button"
+                className={styles.collectionPillRemove}
+                onClick={() => removeFromCollection(c.id)}
+                title="Remove from collection"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {availableToAdd.length > 0 && (
+            <button
+              type="button"
+              className={styles.addPillBtn}
+              onClick={openPicker}
+            >
+              + Add
+            </button>
+          )}
+          {memberships.length === 0 && availableToAdd.length === 0 && (
+            <span className={styles.collectionsEmpty}>No collections yet</span>
+          )}
+        </div>
+      </div>
+
       <dl className={styles.meta}>
         {record.title && (
           <>
@@ -236,6 +319,15 @@ export default function DetailPanel({
           <span>Delete</span>
         </button>
       </div>
+
+      {picker && (
+        <ContextMenu
+          x={picker.x}
+          y={picker.y}
+          items={pickerItems}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </aside>
   );
 }

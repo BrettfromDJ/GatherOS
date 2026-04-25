@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {
   getAllSaves, deleteSave, updateSave, insertSave,
-  getAllCollections, createCollection, renameCollection, deleteCollection,
-  addSaveToCollection, removeSaveFromCollection,
+  getAllCollections, getCollectionsForSave, createCollection, renameCollection,
+  deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
 } = require('./db');
 const {
   deleteImageFiles,
@@ -78,9 +78,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('collections:get-all', () => getAllCollections());
+  ipcMain.handle('collections:get-for-save', (_e, saveId) => getCollectionsForSave(saveId));
   ipcMain.handle('collections:create', (_e, payload) => createCollection(payload));
   ipcMain.handle('collections:rename', (_e, payload) => renameCollection(payload));
   ipcMain.handle('collections:delete', (_e, id) => deleteCollection(id));
+  ipcMain.handle('collections:reorder', (_e, ids) => reorderCollections(ids));
   ipcMain.handle('collections:add-save', (_e, payload) => addSaveToCollection(payload));
   ipcMain.handle('collections:remove-save', (_e, payload) => removeSaveFromCollection(payload));
 

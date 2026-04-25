@@ -60,7 +60,19 @@ function initDatabase() {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  migrate();
   return db;
+}
+
+function migrate() {
+  const cols = db.prepare("PRAGMA table_info(collections)").all();
+  if (!cols.find((c) => c.name === 'order_index')) {
+    db.exec('ALTER TABLE collections ADD COLUMN order_index INTEGER DEFAULT 0');
+    // Seed existing rows in created_at order so they keep their visual order.
+    const rows = db.prepare('SELECT id FROM collections ORDER BY created_at ASC').all();
+    const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
+    rows.forEach((r, i) => stmt.run(i, r.id));
+  }
 }
 
 function getDatabase() {
@@ -169,22 +181,45 @@ function getAllCollections() {
     FROM collections c
     LEFT JOIN collection_items ci ON ci.collection_id = c.id
     GROUP BY c.id
-    ORDER BY c.created_at ASC
+    ORDER BY c.order_index ASC, c.created_at ASC
   `).all();
+}
+
+function getCollectionsForSave(saveId) {
+  return getDatabase().prepare(`
+    SELECT c.* FROM collections c
+    JOIN collection_items ci ON ci.collection_id = c.id
+    WHERE ci.save_id = ?
+    ORDER BY c.order_index ASC, c.created_at ASC
+  `).all(saveId);
 }
 
 function createCollection({ name, color } = {}) {
   const db = getDatabase();
+  const next = db.prepare(
+    'SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM collections'
+  ).get();
   const record = {
     id: crypto.randomUUID(),
     name: name || 'Untitled',
     color: color || '#007aff',
     created_at: Date.now(),
+    order_index: next.n,
   };
   db.prepare(
-    'INSERT INTO collections (id, name, color, created_at) VALUES (@id, @name, @color, @created_at)'
+    'INSERT INTO collections (id, name, color, created_at, order_index) VALUES (@id, @name, @color, @created_at, @order_index)'
   ).run(record);
   return record;
+}
+
+function reorderCollections(orderedIds) {
+  const db = getDatabase();
+  const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
+  const txn = db.transaction((ids) => {
+    ids.forEach((id, idx) => stmt.run(idx, id));
+  });
+  txn(orderedIds);
+  return { ok: true };
 }
 
 function renameCollection({ id, name } = {}) {
@@ -222,9 +257,11 @@ module.exports = {
   deleteSave,
   updateSave,
   getAllCollections,
+  getCollectionsForSave,
   createCollection,
   renameCollection,
   deleteCollection,
+  reorderCollections,
   addSaveToCollection,
   removeSaveFromCollection,
 };

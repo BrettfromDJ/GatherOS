@@ -161,6 +161,16 @@ export default function App() {
     loadCollections();
   }, [view, setView, loadCollections]);
 
+  const handleReorderCollections = useCallback(async (orderedIds) => {
+    // Optimistic local reorder so the sidebar doesn't flash back to old order.
+    setCollections((prev) => {
+      const byId = new Map(prev.map((c) => [c.id, c]));
+      return orderedIds.map((id) => byId.get(id)).filter(Boolean);
+    });
+    await window.moodmark.collections.reorder(orderedIds);
+    loadCollections();
+  }, [loadCollections]);
+
   const focusedIndex = useMemo(
     () => (focusedId ? saves.findIndex((s) => s.id === focusedId) : -1),
     [saves, focusedId],
@@ -296,6 +306,7 @@ export default function App() {
           onCreateCollection={handleCreateCollection}
           onRenameCollection={handleRenameCollection}
           onDeleteCollection={handleDeleteCollection}
+          onReorderCollections={handleReorderCollections}
         />
 
         <div className="main-col">
@@ -338,10 +349,12 @@ export default function App() {
         {focused && (
           <DetailPanel
             record={focused}
+            allCollections={collections}
             onClose={() => setFocusedId(null)}
             onToggleFavorite={toggleFavorite}
             onDelete={handleDelete}
             onOpenInPreview={handleOpenInPreview}
+            onCollectionsChanged={loadCollections}
           />
         )}
       </div>

@@ -149,6 +149,101 @@
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
+.collectionsSection {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.collectionsLabel {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.collectionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.collectionPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.07);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-primary);
+  max-width: 100%;
+}
+
+.collectionPillIcon {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+.collectionPillIcon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.collectionPillName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collectionPillRemove {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.collectionPillRemove:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.addPillBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: transparent;
+  border: 0.5px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.addPillBtn:hover {
+  background: rgba(0, 122, 255, 0.06);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collectionsEmpty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .meta {
   display: grid;
   grid-template-columns: 88px 1fr;
