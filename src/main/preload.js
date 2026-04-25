@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     export: (filePath, defaultName) =>
       ipcRenderer.invoke('image:export', { filePath, defaultName }),
   },
+  boards: {
+    export: (saveIds) => ipcRenderer.invoke('boards:export', saveIds),
+  },
   shell: {
     openUrl: (url) => ipcRenderer.invoke('shell:open-url', url),
   },

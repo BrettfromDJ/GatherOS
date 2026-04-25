@@ -7,6 +7,17 @@ import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import { useLibrary } from './hooks/useLibrary.js';
 
+function BoardExportIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="6" rx="1" />
+      <rect x="9" y="2" width="5" height="4" rx="1" />
+      <rect x="2" y="10" width="5" height="4" rx="1" />
+      <rect x="9" y="8" width="5" height="6" rx="1" />
+    </svg>
+  );
+}
+
 function pickLargestFromSrcset(srcset) {
   if (!srcset) return null;
   let best = null;
@@ -267,6 +278,20 @@ export default function App() {
     setBulkPicker({ x: rect.left, y: rect.top - 4 });
   }, [collections.length]);
 
+  const handleBulkExportBoard = useCallback(async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      const result = await window.moodmark.boards.export(ids);
+      if (result?.ok) {
+        // Selection cleared on success so the success state isn't ambiguous.
+        setSelected(new Set());
+      }
+    } catch (err) {
+      console.error('Board export failed:', err);
+    }
+  }, [selected]);
+
   const bulkPickerItems = useMemo(() => {
     if (!bulkPicker) return [];
     const ids = [...selected];
@@ -463,6 +488,17 @@ export default function App() {
             >
               <span className="selection-btn-icon"><CollectionIcon /></span>
               Add to Collection
+            </button>
+          )}
+          {selected.size >= 2 && (
+            <button
+              type="button"
+              className="selection-btn"
+              onClick={handleBulkExportBoard}
+              title="Compose selected images into a single PNG"
+            >
+              <span className="selection-btn-icon"><BoardExportIcon /></span>
+              Export as Image
             </button>
           )}
           <button

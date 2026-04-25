@@ -225,6 +225,87 @@ function deleteImageFiles(filePath, thumbPath) {
   try { fs.unlinkSync(thumbPath); } catch {}
 }
 
+// Compose a multi-image mood board PNG. Greedy-packs into N columns
+// (column count scales with selection size) — each new tile lands in
+// whichever column is currently shortest, mirroring the in-app
+// masonry's visual but balanced for height.
+async function composeMoodBoard(saves, outputPath) {
+  if (!Array.isArray(saves) || saves.length === 0) {
+    throw new Error('composeMoodBoard called without any saves');
+  }
+  const sharp = require('sharp');
+
+  const COL_WIDTH = 500;
+  const GAP = 16;
+  const PADDING = 32;
+  const BG = { r: 250, g: 250, b: 249, alpha: 1 }; // #FAFAF9 — match the app surface
+
+  const columns = Math.min(
+    saves.length,
+    saves.length <= 4 ? 2 : saves.length <= 9 ? 3 : 4,
+  );
+
+  // Resize each save to the column width so heights are deterministic.
+  const tiles = [];
+  for (const save of saves) {
+    if (!save?.file_path || !fs.existsSync(save.file_path)) continue;
+    try {
+      const resized = await sharp(save.file_path)
+        .resize({ width: COL_WIDTH, withoutEnlargement: false })
+        .png()
+        .toBuffer({ resolveWithObject: true });
+      tiles.push({
+        buf: resized.data,
+        width: resized.info.width,
+        height: resized.info.height,
+      });
+    } catch (err) {
+      console.error('Skipping unreadable save in board:', save.file_path, err.message);
+    }
+  }
+  if (tiles.length === 0) throw new Error('No readable images to compose');
+
+  // Greedy: each tile drops into the currently shortest column.
+  const colHeights = Array(columns).fill(0);
+  const colCounts = Array(columns).fill(0);
+  const placements = [];
+  for (const tile of tiles) {
+    let shortest = 0;
+    for (let i = 1; i < columns; i += 1) {
+      if (colHeights[i] < colHeights[shortest]) shortest = i;
+    }
+    const isFirstInCol = colCounts[shortest] === 0;
+    const top = colHeights[shortest] + (isFirstInCol ? 0 : GAP);
+    const left = shortest * (COL_WIDTH + GAP);
+    placements.push({ buf: tile.buf, top, left });
+    colHeights[shortest] = top + tile.height;
+    colCounts[shortest] += 1;
+  }
+
+  const totalWidth = columns * COL_WIDTH + (columns - 1) * GAP + PADDING * 2;
+  const totalHeight = Math.max(...colHeights) + PADDING * 2;
+
+  await sharp({
+    create: {
+      width: totalWidth,
+      height: totalHeight,
+      channels: 4,
+      background: BG,
+    },
+  })
+    .composite(
+      placements.map((p) => ({
+        input: p.buf,
+        top: PADDING + p.top,
+        left: PADDING + p.left,
+      })),
+    )
+    .png()
+    .toFile(outputPath);
+
+  return { width: totalWidth, height: totalHeight, count: tiles.length };
+}
+
 module.exports = {
   ensureStorageDirs,
   getImagesDir,
@@ -234,4 +315,5 @@ module.exports = {
   saveImageFromBuffer,
   saveImageFromUrl,
   deleteImageFiles,
+  composeMoodBoard,
 };

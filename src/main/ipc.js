@@ -2,7 +2,7 @@ const { ipcMain, shell, dialog, BrowserWindow } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  getAllSaves, deleteSave, updateSave, insertSave,
+  getAllSaves, getSave, deleteSave, updateSave, insertSave,
   getAllCollections, getCollectionsForSave, createCollection, renameCollection,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
@@ -11,6 +11,7 @@ const {
   deleteImageFiles,
   saveImageFromFile,
   saveImageFromUrl,
+  composeMoodBoard,
 } = require('./storage');
 const {
   handleOverlayComplete,
@@ -132,6 +133,33 @@ function registerIpcHandlers() {
       return { ok: true, savedPath: result.filePath };
     } catch (err) {
       console.error('export failed:', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('boards:export', async (e, saveIds) => {
+    if (!Array.isArray(saveIds) || saveIds.length === 0) {
+      return { ok: false, reason: 'no-ids' };
+    }
+    const saves = saveIds.map(getSave).filter(Boolean);
+    if (saves.length === 0) return { ok: false, reason: 'no-saves' };
+
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const dialogResult = await dialog.showSaveDialog(owner ?? undefined, {
+      defaultPath: `moodmark-board-${stamp}.png`,
+      filters: [{ name: 'PNG Image', extensions: ['png'] }],
+    });
+    if (dialogResult.canceled || !dialogResult.filePath) {
+      return { ok: false, canceled: true };
+    }
+    try {
+      const meta = await composeMoodBoard(saves, dialogResult.filePath);
+      // Pop the file in Finder so the user can immediately see / drag it.
+      shell.showItemInFolder(dialogResult.filePath);
+      return { ok: true, savedPath: dialogResult.filePath, ...meta };
+    } catch (err) {
+      console.error('Board export failed:', err);
       return { ok: false, error: err.message };
     }
   });
