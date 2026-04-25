@@ -101,6 +101,13 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
+  ipcMain.handle('shell:open-external', (_e, url) => {
+    if (typeof url !== 'string') return { ok: false };
+    if (!/^https?:\/\//i.test(url)) return { ok: false, reason: 'invalid-protocol' };
+    shell.openExternal(url);
+    return { ok: true };
+  });
+
   ipcMain.handle('image:export', async (e, { filePath, defaultName } = {}) => {
     if (!filePath) return { ok: false, reason: 'no-path' };
     const owner = BrowserWindow.fromWebContents(e.sender);

@@ -1,6 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { sourceName } from '../lib/sourceName.js';
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      className={styles.miniIcon}
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8.5 2h3.5v3.5" />
+      <path d="M12 2L7 7" />
+      <path d="M11.5 8.5V11.5a0.5 0.5 0 0 1 -0.5 0.5H3a0.5 0.5 0 0 1 -0.5 -0.5V3.5a0.5 0.5 0 0 1 0.5 -0.5H5.5" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      className={styles.miniIcon}
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="4" y="4" width="8" height="8" rx="1.5" />
+      <path d="M9.5 4V2.5A0.5 0.5 0 0 0 9 2H2.5A0.5 0.5 0 0 0 2 2.5V9A0.5 0.5 0 0 0 2.5 9.5H4" />
+    </svg>
+  );
+}
+
+function CheckMarkIcon() {
+  return (
+    <svg
+      className={styles.miniIcon}
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 7.5L6 10.5 11.5 4.5" />
+    </svg>
+  );
+}
 
 function StarIcon({ filled }) {
   return (
@@ -116,9 +171,25 @@ export default function DetailPanel({
   const src = fileUrl(record.file_path);
   const favorited = !!record.favorited;
   const typeLabel = fileTypeLabel(record.file_path);
+  const [copied, setCopied] = useState(false);
 
   const handleExport = () => {
     window.moodmark.image.export(record.file_path, defaultExportName(record));
+  };
+
+  const openSource = () => {
+    if (record.source_url) window.moodmark.shell.openExternal(record.source_url);
+  };
+
+  const copySource = async () => {
+    if (!record.source_url) return;
+    try {
+      await navigator.clipboard.writeText(record.source_url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
   };
 
   return (
@@ -165,6 +236,33 @@ export default function DetailPanel({
           <>
             <dt>Size</dt>
             <dd>{formatBytes(record.file_size)}</dd>
+          </>
+        ) : null}
+        {record.source_url ? (
+          <>
+            <dt>Source</dt>
+            <dd className={styles.sourceCell}>
+              <button
+                type="button"
+                className={styles.sourceLink}
+                onClick={openSource}
+                title={record.source_url}
+              >
+                <span className={styles.sourceName}>
+                  {sourceName(record.source_url)}
+                </span>
+                <ExternalLinkIcon />
+              </button>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={copySource}
+                title={copied ? 'Copied!' : 'Copy URL'}
+                aria-label="Copy URL"
+              >
+                {copied ? <CheckMarkIcon /> : <CopyIcon />}
+              </button>
+            </dd>
           </>
         ) : null}
       </dl>

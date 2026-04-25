@@ -147,6 +147,66 @@
   flex-shrink: 0;
 }
 
+.miniIcon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.sourceCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.sourceLink:hover {
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.sourceName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.iconBtn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
 .actionBtn.active {
   background: var(--accent);
   border-color: var(--accent);

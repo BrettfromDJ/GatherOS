@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     export: (filePath, defaultName) =>
       ipcRenderer.invoke('image:export', { filePath, defaultName }),
   },
+  shell: {
+    openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  },
   on: (channel, listener) => {
     const allowed = new Set(['save:created', 'update-ready']);
     if (!allowed.has(channel)) return () => {};
