@@ -489,17 +489,18 @@ export default function App() {
 
       {!focused && selected.size > 0 && (
         <div className="selection-bar">
-          <span className="selection-count">
-            {selected.size} selected
-          </span>
-          <button
-            type="button"
-            className="selection-btn"
-            onClick={clearSelection}
-          >
-            <span className="selection-btn-icon"><ClearIcon /></span>
-            Clear
-          </button>
+          <div className="selection-status">
+            <span className="selection-count">
+              {selected.size} selected
+            </span>
+            <button
+              type="button"
+              className="selection-clear-link"
+              onClick={clearSelection}
+            >
+              Clear
+            </button>
+          </div>
           {collections.length > 0 && (
             <button
               type="button"
@@ -524,11 +525,12 @@ export default function App() {
           )}
           <button
             type="button"
-            className="selection-btn selection-btn-danger"
+            className="selection-btn selection-btn-danger selection-btn-compact"
             onClick={handleDeleteSelected}
+            title="Delete"
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
-            Delete
+            <span className="selection-btn-label">Delete</span>
           </button>
         </div>
       )}
