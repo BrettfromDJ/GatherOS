@@ -3,7 +3,7 @@ import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 
 export default function ImageCard({ record, selected, onSelect, onOpen }) {
-  const src = fileUrl(record.thumb_path);
+  const src = fileUrl(record.file_path);
   const aspect =
     record.width && record.height ? record.width / record.height : 4 / 3;
 
