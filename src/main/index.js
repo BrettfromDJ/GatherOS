@@ -5,10 +5,10 @@ const {
   Menu,
   nativeImage,
   protocol,
-  net,
 } = require('electron');
+const fs = require('node:fs');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+const { Readable } = require('node:stream');
 
 const { initDatabase, closeDatabase, insertSave } = require('./db');
 const { ensureStorageDirs, saveImageFromFile } = require('./storage');
@@ -43,12 +43,32 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+};
+
 function registerMoodmarkFileProtocol() {
-  protocol.handle('moodmark-file', (req) => {
+  protocol.handle('moodmark-file', async (req) => {
     const url = new URL(req.url);
     // moodmark-file:///Users/.../thumbs/abc.jpg → /Users/.../thumbs/abc.jpg
     const abs = decodeURIComponent(url.pathname);
-    return net.fetch(pathToFileURL(abs).toString());
+    console.log('[moodmark-file]', abs);
+
+    if (!fs.existsSync(abs)) {
+      console.error('[moodmark-file] not found:', abs);
+      return new Response(null, { status: 404 });
+    }
+
+    const ext = path.extname(abs).slice(1).toLowerCase();
+    const contentType = CONTENT_TYPES[ext] || 'application/octet-stream';
+    return new Response(Readable.toWeb(fs.createReadStream(abs)), {
+      headers: { 'Content-Type': contentType },
+    });
   });
 }
 
