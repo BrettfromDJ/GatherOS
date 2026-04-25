@@ -93,8 +93,6 @@ function createMainWindow() {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 22, y: 22 },
     backgroundColor: '#ffffff',
-    vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
-    visualEffectState: 'active',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
