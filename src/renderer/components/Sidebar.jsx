@@ -38,8 +38,6 @@ const SMART_VIEWS = [
 export default function Sidebar({ view, onViewChange, collections = [], counts = {} }) {
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.brand}>Moodmark</div>
-
       <nav className={styles.section}>
         {SMART_VIEWS.map(({ id, label, color, Icon }) => {
           const active = view.type === id;
