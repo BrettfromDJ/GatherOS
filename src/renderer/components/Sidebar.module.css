@@ -10,9 +10,7 @@
   position: relative;
   -webkit-app-region: drag;
   background: #FAFAF9;
-  box-shadow:
-    0 4px 34px 20px rgba(0, 0, 0, 0.02),
-    0 0 1px 1px #FFF inset;
+  box-shadow: 0 4px 34px 20px rgba(0, 0, 0, 0.02), 0 0 1px 1px #FFF inset;
 }
 
 .collapseBtn {
