@@ -105,6 +105,10 @@
     0 1px 2px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   transition: transform 80ms ease;
+  /* Lift the swatch above sibling sections so its absolutely-positioned
+     tooltip isn't painted behind .preview / .imageWrap when it extends
+     above the swatch row. */
+  z-index: 1;
 }
 
 .swatch:hover {
@@ -132,6 +136,7 @@
   pointer-events: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   animation: tooltipIn 120ms ease;
+  z-index: 10;
 }
 
 .swatchTooltip::after {
