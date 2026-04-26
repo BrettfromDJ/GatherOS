@@ -225,32 +225,40 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
             Each new upload runs once. Disable any feature you don't want billed against your key.
           </p>
           <label className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              className={styles.toggleInput}
-              checked={!!prefs.autoNameOnSave}
-              onChange={() => togglePref('autoNameOnSave')}
-              disabled={!hasKey}
-            />
             <span className={styles.toggleText}>
               <span className={styles.toggleLabel}>Auto-name new uploads</span>
               <span className={styles.toggleSub}>
                 Generate a short title for each image you save. Runs in the background.
               </span>
             </span>
+            <span className={styles.switch}>
+              <input
+                type="checkbox"
+                checked={!!prefs.autoNameOnSave}
+                onChange={() => togglePref('autoNameOnSave')}
+                disabled={!hasKey}
+              />
+              <span className={styles.switchTrack}>
+                <span className={styles.switchKnob} />
+              </span>
+            </span>
           </label>
           <label className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              className={styles.toggleInput}
-              checked={!!prefs.semanticSearch}
-              onChange={() => togglePref('semanticSearch')}
-              disabled={!hasKey}
-            />
             <span className={styles.toggleText}>
               <span className={styles.toggleLabel}>Semantic search</span>
               <span className={styles.toggleSub}>
                 Index new saves with vector embeddings so the search bar matches by meaning ("dark moody UI") instead of exact words.
+              </span>
+            </span>
+            <span className={styles.switch}>
+              <input
+                type="checkbox"
+                checked={!!prefs.semanticSearch}
+                onChange={() => togglePref('semanticSearch')}
+                disabled={!hasKey}
+              />
+              <span className={styles.switchTrack}>
+                <span className={styles.switchKnob} />
               </span>
             </span>
           </label>

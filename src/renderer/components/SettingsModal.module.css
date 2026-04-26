@@ -204,9 +204,9 @@
 
 .toggleRow {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 0;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
   cursor: pointer;
   user-select: none;
 }
@@ -216,18 +216,12 @@
   opacity: 0.5;
 }
 
-.toggleInput {
-  margin-top: 2px;
-  width: 14px;
-  height: 14px;
-  accent-color: var(--accent);
-  cursor: inherit;
-}
-
 .toggleText {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .toggleLabel {
@@ -240,6 +234,61 @@
   font-size: 11px;
   color: var(--text-tertiary);
   line-height: 1.4;
+}
+
+/* iOS-style switch. Hidden checkbox does the focus / a11y work; the
+   styled track + knob ride on top. Sibling selectors against the
+   :checked input flip the colors and slide the knob. */
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+}
+
+.switch input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+  z-index: 1;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  transition: background 200ms cubic-bezier(0.3, 0, 0, 1);
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.04),
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 200ms cubic-bezier(0.3, 0, 0, 1);
+}
+
+.switch input:checked ~ .switchTrack {
+  background: #34c759;
+}
+
+.switch input:checked ~ .switchTrack .switchKnob {
+  transform: translateX(16px);
+}
+
+.switch input:focus-visible ~ .switchTrack {
+  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.25);
 }
 
 .reindexBox {

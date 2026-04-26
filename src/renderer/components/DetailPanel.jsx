@@ -471,7 +471,7 @@ export default function DetailPanel({
       <div className={styles.promptSection}>
         <div className={styles.promptHeader}>
           <span className={styles.sectionLabelIcon}><SparkleIcon /></span>
-          <span className={styles.promptLabel}>Generation Prompt</span>
+          <span className={styles.promptLabel}>Image Prompt</span>
           {record.ai_prompt && (
             <div className={styles.promptHeaderActions}>
               <button
