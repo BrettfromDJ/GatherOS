@@ -16,6 +16,23 @@ function SparkleIcon() {
   );
 }
 
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="6.4" width="8" height="6" rx="1.2" />
+      <path d="M4.8 6.4V4.5a2.2 2.2 0 0 1 4.4 0v1.9" />
+    </svg>
+  );
+}
+
 function TagIcon() {
   return (
     <svg
@@ -507,7 +524,9 @@ export default function DetailPanel({
             disabled={promptGenerating}
             title={aiConfigured ? 'Generate an image-generation prompt' : 'Configure OpenAI key to enable'}
           >
-            <span className={styles.autoTagIcon}><SparkleIcon /></span>
+            <span className={styles.autoTagIcon}>
+              {aiConfigured ? <SparkleIcon /> : <LockIcon />}
+            </span>
             {promptGenerating ? 'Generating…' : 'Generate prompt'}
           </button>
         )}
@@ -636,7 +655,9 @@ export default function DetailPanel({
             disabled={autoTagging}
             title={aiConfigured ? 'Auto-tag with AI' : 'Configure OpenAI key to enable'}
           >
-            <span className={styles.autoTagIcon}><SparkleIcon /></span>
+            <span className={styles.autoTagIcon}>
+              {aiConfigured ? <SparkleIcon /> : <LockIcon />}
+            </span>
             {autoTagging ? 'Tagging…' : 'Auto-tag'}
           </button>
         </div>
