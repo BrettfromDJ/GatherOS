@@ -148,6 +148,30 @@ export default function App() {
   // route through embeddings rather than LIKE.
   const semanticSearchActive = aiConfigured && !!prefs.semanticSearch;
 
+  // Set of save ids the main process is currently AI-indexing. Driven
+  // by save:indexing-start / save:indexing-end events. DetailPanel
+  // reads this to show a loading indicator in the Name field while
+  // the title is being generated.
+  const [indexingIds, setIndexingIds] = useState(() => new Set());
+  useEffect(() => {
+    const offStart = window.moodmark.on('save:indexing-start', (id) => {
+      setIndexingIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    });
+    const offEnd = window.moodmark.on('save:indexing-end', (id) => {
+      setIndexingIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    });
+    return () => { offStart?.(); offEnd?.(); };
+  }, []);
+
   // Collections state
   const [collections, setCollections] = useState([]);
 
@@ -580,6 +604,7 @@ export default function App() {
             allCollections={collections}
             allTags={allTags}
             aiConfigured={aiConfigured}
+            aiIndexing={indexingIds.has(focused.id)}
             onClose={() => setFocusedId(null)}
             onCollectionsChanged={loadCollections}
             onTagsChanged={loadAllTags}

@@ -68,7 +68,14 @@ contextBridge.exposeInMainWorld('moodmark', {
     reindexLibrary: () => ipcRenderer.invoke('ai:reindex-library'),
   },
   on: (channel, listener) => {
-    const allowed = new Set(['save:created', 'save:updated', 'update-ready', 'ai:reindex-progress']);
+    const allowed = new Set([
+      'save:created',
+      'save:updated',
+      'save:indexing-start',
+      'save:indexing-end',
+      'update-ready',
+      'ai:reindex-progress',
+    ]);
     if (!allowed.has(channel)) return () => {};
     const wrapped = (_event, ...args) => listener(...args);
     ipcRenderer.on(channel, wrapped);

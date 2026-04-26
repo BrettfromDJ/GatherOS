@@ -109,11 +109,26 @@ async function maybeAIIndexInBackground(record) {
   const key = getOpenAIKey();
   if (!key) return;
 
+  // Tell the renderer this save is being processed so the UI can show
+  // a loading indicator. Mirrored on completion / failure in the
+  // finally block below.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('save:indexing-start', record.id);
+  }
+
   try {
     const { title, description, text } = await analyzeImage(key, record.file_path);
 
     const updates = { id: record.id };
-    if (wantName && title) updates.title = title;
+    // Re-fetch before writing the AI title — the user may have typed
+    // their own name in the Name field while the API was in flight.
+    // Don't overwrite it.
+    if (wantName && title) {
+      const fresh = getSave(record.id);
+      if (!fresh?.title || !fresh.title.trim()) {
+        updates.title = title;
+      }
+    }
     if (wantSemantic && description) updates.aiDescription = description;
     // OCR runs on the same vision call regardless of pref. Always
     // persist (empty string when nothing was found) so the unindexed
@@ -146,6 +161,10 @@ async function maybeAIIndexInBackground(record) {
     }
   } catch (err) {
     console.error('AI index failed:', err.message);
+  } finally {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('save:indexing-end', record.id);
+    }
   }
 }
 

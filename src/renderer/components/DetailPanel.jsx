@@ -93,6 +93,7 @@ export default function DetailPanel({
   allCollections = [],
   allTags = [],
   aiConfigured = false,
+  aiIndexing = false,
   onClose,
   onCollectionsChanged,
   onTagsChanged,
@@ -372,20 +373,31 @@ export default function DetailPanel({
       <div className={styles.metaEditSection}>
         <label className={styles.metaField}>
           <span className={styles.metaFieldLabel}>Name</span>
-          <input
-            className={styles.metaInput}
-            value={nameDraft}
-            onChange={(e) => setNameDraft(e.target.value)}
-            onBlur={commitName}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-              if (e.key === 'Escape') {
-                setNameDraft(record.title || '');
-                e.currentTarget.blur();
-              }
-            }}
-            placeholder="Untitled"
-          />
+          <div className={styles.metaInputRow}>
+            <input
+              className={styles.metaInput}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') {
+                  setNameDraft(record.title || '');
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder={aiIndexing ? '' : 'Untitled'}
+            />
+            {aiIndexing && (
+              <span
+                className={styles.loadingDots}
+                aria-label="Generating name with AI"
+                role="status"
+              >
+                <span /><span /><span />
+              </span>
+            )}
+          </div>
         </label>
         <label className={styles.metaField}>
           <span className={styles.metaFieldLabel}>URL</span>

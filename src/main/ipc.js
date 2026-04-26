@@ -368,6 +368,7 @@ function registerIpcHandlers() {
     let failed = 0;
     for (let i = 0; i < targets.length; i += 1) {
       const row = targets[i];
+      event.sender.send('save:indexing-start', row.id);
       try {
         const { title, description, text } = await analyzeImage(key, row.file_path);
         const updates = { id: row.id };
@@ -395,6 +396,8 @@ function registerIpcHandlers() {
       } catch (err) {
         console.error('Reindex failed for save', row.id, '-', err.message);
         failed += 1;
+      } finally {
+        event.sender.send('save:indexing-end', row.id);
       }
       event.sender.send('ai:reindex-progress', {
         processed: i + 1,
