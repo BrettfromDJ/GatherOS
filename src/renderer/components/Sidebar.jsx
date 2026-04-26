@@ -180,7 +180,7 @@ export default function Sidebar({
         </button>
       )}
       <nav className={styles.section}>
-        {SMART_VIEWS.map(({ id, label, color, Icon }) => {
+        {SMART_VIEWS.map(({ id, label, Icon }) => {
           const active = view.type === id;
           return (
             <button
@@ -188,7 +188,10 @@ export default function Sidebar({
               className={`${styles.item} ${active ? styles.active : ''}`}
               onClick={() => onViewChange({ type: id })}
             >
-              <span className={styles.icon} style={{ color: active ? '#fff' : color }}>
+              <span
+                className={styles.icon}
+                style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
+              >
                 <Icon />
               </span>
               <span className={styles.label}>{label}</span>
