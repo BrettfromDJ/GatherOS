@@ -140,8 +140,13 @@ export default function Sidebar({
   async function commitCreateBoard() {
     const name = newBoardName.trim();
     if (!name) { cancelCreatingBoard(); return; }
-    await onCreateBoard?.({ name });
-    cancelCreatingBoard();
+    try {
+      await onCreateBoard?.({ name });
+    } catch (err) {
+      console.error('Create board failed:', err);
+    } finally {
+      cancelCreatingBoard();
+    }
   }
 
   function startRenameBoard(board) {
