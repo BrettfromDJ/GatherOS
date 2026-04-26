@@ -118,7 +118,7 @@ async function analyzeImage(apiKey, filePath) {
         role: 'system',
         content:
           'You write designer-friendly metadata for visual inspiration. ' +
-          'Return JSON: {"title": "...", "description": "..."}. ' +
+          'Return JSON: {"title": "...", "description": "...", "text": "..."}. ' +
           'title: 2-6 words, Title Case, capture subject/style/mood. ' +
           'description: ONE sentence packed with concrete searchable nouns ' +
           'and adjectives. Cover (a) every notable object or subject visible ' +
@@ -127,7 +127,11 @@ async function analyzeImage(apiKey, filePath) {
           'minimalist, brutalist, Renaissance, illustration, photograph, 3D ' +
           'render, vaporwave), (c) the dominant colors, (d) the mood, and ' +
           '(e) the likely use case ("landing page", "poster", "UI screenshot"). ' +
-          'Prefer concrete nouns over abstract framing. No quotes, no emoji.',
+          'Prefer concrete nouns over abstract framing. No quotes, no emoji. ' +
+          'text: every word that appears IN the image — UI labels, headlines, ' +
+          'body copy, button text, signage, captions. Preserve original wording ' +
+          'and capitalization. Separate distinct lines with " | ". Empty string ' +
+          'if no text is visible.',
       },
       {
         role: 'user',
@@ -138,7 +142,10 @@ async function analyzeImage(apiKey, filePath) {
       },
     ],
     response_format: { type: 'json_object' },
-    max_tokens: 280,
+    // Bumped to fit OCR'd text. Long text-heavy screenshots can produce
+    // a few hundred tokens of OCR; this gives enough headroom while
+    // still being inexpensive.
+    max_tokens: 800,
   };
 
   const res = await fetch(`${API_BASE}/chat/completions`, {
@@ -173,7 +180,14 @@ async function analyzeImage(apiKey, filePath) {
   const description = typeof parsed.description === 'string'
     ? parsed.description.trim().replace(/^["'`]+|["'`]+$/g, '').slice(0, 600)
     : '';
-  return { title: title || null, description: description || null };
+  const text = typeof parsed.text === 'string'
+    ? parsed.text.trim().slice(0, 4000)
+    : '';
+  return {
+    title: title || null,
+    description: description || null,
+    text: text || null,
+  };
 }
 
 // text-embedding-3-small returns a 1536-dim Float32 vector. Returns

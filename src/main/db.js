@@ -81,6 +81,9 @@ function migrate() {
   if (!saveCols.find((c) => c.name === 'embedding')) {
     db.exec('ALTER TABLE saves ADD COLUMN embedding BLOB');
   }
+  if (!saveCols.find((c) => c.name === 'ocr_text')) {
+    db.exec('ALTER TABLE saves ADD COLUMN ocr_text TEXT');
+  }
 }
 
 function getDatabase() {
@@ -139,16 +142,17 @@ function getAllSaves({ search = '', filter = 'all', sort = 'newest', collectionI
     params.push(collectionId);
   }
   if (search) {
-    // Substring match against title + tags only. ai_description is
-    // intentionally excluded — descriptions enumerate every visible
+    // Substring match against title, tags, and OCR text. ai_description
+    // is intentionally excluded — descriptions enumerate every visible
     // object so substring-matching them turns "sky" into a 50% hit
-    // rate. The semantic ranker handles ai_description-style recall.
-    conditions.push(`(title LIKE ? OR id IN (
+    // rate. ocr_text is the actual text inside the image (UI labels,
+    // signage, body copy) so a literal match there is high-signal.
+    conditions.push(`(title LIKE ? OR ocr_text LIKE ? OR id IN (
       SELECT save_id FROM save_tags
       JOIN tags ON save_tags.tag_id = tags.id
       WHERE tags.name LIKE ?
     ))`);
-    params.push(`%${search}%`, `%${search}%`);
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
   if (filter === 'favorites') conditions.push('favorited = 1');
   if (filter === 'recent') {
@@ -173,7 +177,7 @@ function deleteSave(id) {
   return { ok: true, filePath: save.file_path, thumbPath: save.thumb_path };
 }
 
-function updateSave({ id, title, favorited, sourceUrl, aiDescription, embedding } = {}) {
+function updateSave({ id, title, favorited, sourceUrl, aiDescription, ocrText, embedding } = {}) {
   const db = getDatabase();
   const fields = [];
   const params = [];
@@ -181,6 +185,7 @@ function updateSave({ id, title, favorited, sourceUrl, aiDescription, embedding 
   if (favorited !== undefined) { fields.push('favorited = ?'); params.push(favorited ? 1 : 0); }
   if (sourceUrl !== undefined) { fields.push('source_url = ?'); params.push(sourceUrl); }
   if (aiDescription !== undefined) { fields.push('ai_description = ?'); params.push(aiDescription); }
+  if (ocrText !== undefined) { fields.push('ocr_text = ?'); params.push(ocrText); }
   if (embedding !== undefined) { fields.push('embedding = ?'); params.push(embedding); }
   if (!fields.length) return { ok: true };
   params.push(id);
@@ -205,17 +210,23 @@ function getSavesByIds(ids) {
     .all(...ids);
 }
 
-// Saves that haven't been through the AI pipeline yet — used by the
-// "Re-index library" button in Settings to backfill old uploads.
+// Saves that haven't been fully through the AI pipeline. Catches both
+// "never processed" (embedding NULL) and "processed before a newer
+// signal was added" (ocr_text NULL but embedding present). After a
+// successful processing pass we set ocr_text to '' instead of NULL
+// when no text is found, so re-runs don't keep re-processing the same
+// rows forever.
+const UNINDEXED_WHERE = 'embedding IS NULL OR ocr_text IS NULL';
+
 function getUnindexedSaves() {
   return getDatabase()
-    .prepare('SELECT id, file_path, title FROM saves WHERE embedding IS NULL ORDER BY created_at DESC')
+    .prepare(`SELECT id, file_path, title FROM saves WHERE ${UNINDEXED_WHERE} ORDER BY created_at DESC`)
     .all();
 }
 
 function getUnindexedCount() {
   return getDatabase()
-    .prepare('SELECT COUNT(*) AS c FROM saves WHERE embedding IS NULL')
+    .prepare(`SELECT COUNT(*) AS c FROM saves WHERE ${UNINDEXED_WHERE}`)
     .get().c;
 }
 

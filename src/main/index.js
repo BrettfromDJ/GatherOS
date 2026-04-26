@@ -110,15 +110,23 @@ async function maybeAIIndexInBackground(record) {
   if (!key) return;
 
   try {
-    const { title, description } = await analyzeImage(key, record.file_path);
+    const { title, description, text } = await analyzeImage(key, record.file_path);
 
     const updates = { id: record.id };
     if (wantName && title) updates.title = title;
     if (wantSemantic && description) updates.aiDescription = description;
+    // OCR runs on the same vision call regardless of pref. Always
+    // persist (empty string when nothing was found) so the unindexed
+    // sweep doesn't keep retrying the same row forever.
+    updates.ocrText = text || '';
 
     if (wantSemantic) {
       const tags = getTagsForSave(record.id).map((t) => t.name).join(', ');
-      const embedSource = [title, description, tags].filter(Boolean).join('. ');
+      // Cap the OCR slice so a text-heavy screenshot doesn't dilute
+      // the embedding. 300 chars ≈ ~75 tokens, plenty to surface key
+      // headlines / labels semantically.
+      const ocrSnippet = text ? text.slice(0, 300) : '';
+      const embedSource = [title, description, ocrSnippet, tags].filter(Boolean).join('. ');
       if (embedSource) {
         try {
           const vec = await embedText(key, embedSource);

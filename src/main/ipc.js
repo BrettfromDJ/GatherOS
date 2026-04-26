@@ -320,14 +320,18 @@ function registerIpcHandlers() {
     for (let i = 0; i < targets.length; i += 1) {
       const row = targets[i];
       try {
-        const { title, description } = await analyzeImage(key, row.file_path);
+        const { title, description, text } = await analyzeImage(key, row.file_path);
         const updates = { id: row.id };
         if (description) updates.aiDescription = description;
+        // Always set ocr_text (empty string for no text) so the
+        // unindexed sweep stops picking the row up.
+        updates.ocrText = text || '';
         // Don't overwrite a title the user already supplied.
         if (title && !row.title) updates.title = title;
 
         const tags = getTagsForSave(row.id).map((t) => t.name).join(', ');
-        const embedSource = [title, description, tags].filter(Boolean).join('. ');
+        const ocrSnippet = text ? text.slice(0, 300) : '';
+        const embedSource = [title, description, ocrSnippet, tags].filter(Boolean).join('. ');
         if (embedSource) {
           const vec = await embedText(key, embedSource);
           updates.embedding = Buffer.from(new Float32Array(vec).buffer);
