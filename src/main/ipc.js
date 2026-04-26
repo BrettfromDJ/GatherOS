@@ -61,15 +61,29 @@ function registerIpcHandlers() {
       const queryF32 = new Float32Array(queryVec);
       const dim = queryF32.length;
 
-      const rows = getSaveEmbeddings();
-      const ranked = rows.map((row) => {
-        const v = bufferToFloat32(row.embedding);
-        return { id: row.id, score: cosineSim(queryF32, v, dim) };
-      });
-      ranked.sort((a, b) => b.score - a.score);
+      // Cosine threshold tuned for text-embedding-3-small with the
+      // image-description prompts produced by analyzeImage. Below ~0.30
+      // results read as "noise" — keeps the search bar from returning
+      // every embedded save when the query only matches a handful well.
+      const MIN_SCORE = 0.3;
+      // Plus a relative cap: drop anything below 55% of the top score so
+      // a strong match doesn't drag along marginal ones.
+      const RELATIVE_CUTOFF = 0.55;
 
-      // Pull a generous candidate set and let the LIKE path handle the
-      // remaining filters (favorites, recent, collection) as a post-pass.
+      const rows = getSaveEmbeddings();
+      const scored = rows
+        .map((row) => {
+          const v = bufferToFloat32(row.embedding);
+          return { id: row.id, score: cosineSim(queryF32, v, dim) };
+        })
+        .filter((r) => r.score >= MIN_SCORE)
+        .sort((a, b) => b.score - a.score);
+
+      if (scored.length === 0) return [];
+
+      const relativeFloor = scored[0].score * RELATIVE_CUTOFF;
+      const ranked = scored.filter((r) => r.score >= relativeFloor);
+
       const topIds = ranked.slice(0, 80).map((r) => r.id);
       const candidates = getSavesByIds(topIds);
       const orderById = new Map(topIds.map((id, i) => [id, i]));

@@ -556,6 +556,8 @@ export default function App() {
                   columns={gridColumns}
                   loading={loading}
                   view={view}
+                  search={search}
+                  semanticSearchActive={semanticSearchActive}
                 />
               </div>
             </>

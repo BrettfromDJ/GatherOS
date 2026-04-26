@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 
-export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu, onDragStart, columns, loading, view }) {
+export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu, onDragStart, columns, loading, view, search, semanticSearchActive }) {
   const columnBuckets = useMemo(() => {
     const buckets = Array.from({ length: columns }, () => []);
     saves.forEach((save, i) => {
@@ -16,12 +16,19 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
   }
 
   if (saves.length === 0) {
+    const trimmedSearch = (search || '').trim();
     const isCollection = view?.type === 'collection';
     const isFavorites = view?.type === 'favorites';
 
     let title = 'Nothing saved yet';
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
-    if (isCollection) {
+    if (trimmedSearch) {
+      // Active search: distinguish "no matches" from "empty library".
+      title = `No matches for "${trimmedSearch}"`;
+      hint = semanticSearchActive
+        ? 'Try a different description, or turn off Semantic search to fall back to keyword matching.'
+        : 'Try a different keyword.';
+    } else if (isCollection) {
       title = 'Collection is empty';
       hint = 'Right-click any image and choose "Add to Collection"';
     } else if (isFavorites) {
