@@ -149,6 +149,20 @@
   border-top-color: rgba(28, 28, 30, 0.92);
 }
 
+/* The leftmost swatch sits flush against the panel's left padding, so the
+   centered tooltip would extend past the panel's left edge and get clipped
+   (overflow-y: auto forces overflow-x: auto per CSS spec). Anchor the
+   tooltip's left edge to the swatch's left and shift the arrow to keep it
+   pointed at the swatch's center. */
+.swatch:first-child .swatchTooltip {
+  left: 0;
+  transform: translateX(0);
+}
+
+.swatch:first-child .swatchTooltip::after {
+  left: 9px;
+}
+
 @keyframes tooltipIn {
   from { opacity: 0; transform: translate(-50%, 4px); }
   to   { opacity: 1; transform: translate(-50%, 0); }
