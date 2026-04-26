@@ -55,6 +55,20 @@
   -webkit-app-region: no-drag;
 }
 
+/* Row wrapper for smart-view items so a sibling action button (e.g. the
+   upload + on All Saves) can sit beside the main item without breaking
+   the item's full-width hover background. */
+.smartViewRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.smartViewRow > .item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .sectionHeader {
   padding: 6px 8px 4px;
   font-size: 10.5px;

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
@@ -411,6 +411,31 @@ export default function App() {
     }
   }, [focusAfterDrop]);
 
+  // Hidden file picker — triggered by the "+" button on the All Saves
+  // sidebar row. Routes the chosen files through the same dropFile +
+  // focusAfterDrop pipeline as drag-and-drop.
+  const fileInputRef = useRef(null);
+
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileInput = useCallback(async (e) => {
+    const files = [...e.target.files].filter((f) => f.type.startsWith('image/'));
+    e.target.value = ''; // reset so re-picking the same file fires onChange again
+    if (files.length === 0) return;
+    let lastId = null;
+    for (const file of files) {
+      try {
+        const record = await window.moodmark.saves.dropFile(file);
+        if (record?.id) lastId = record.id;
+      } catch (err) {
+        console.error('Upload failed:', err);
+      }
+    }
+    if (lastId) focusAfterDrop(lastId);
+  }, [focusAfterDrop]);
+
   return (
     <div
       className={`app-shell${dragging ? ' drag-over' : ''}`}
@@ -418,6 +443,15 @@ export default function App() {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileInput}
+      />
+
       <div className={`layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         {!sidebarCollapsed && (
           <Sidebar
@@ -429,6 +463,7 @@ export default function App() {
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
             onToggleCollapse={toggleSidebar}
+            onUpload={handleUploadClick}
           />
         )}
 

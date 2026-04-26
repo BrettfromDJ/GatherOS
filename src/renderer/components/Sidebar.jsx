@@ -64,6 +64,7 @@ export default function Sidebar({
   onDeleteCollection,
   onReorderCollections,
   onToggleCollapse,
+  onUpload,
 }) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -182,20 +183,32 @@ export default function Sidebar({
       <nav className={styles.section}>
         {SMART_VIEWS.map(({ id, label, Icon }) => {
           const active = view.type === id;
+          const showUpload = id === 'all' && onUpload;
           return (
-            <button
-              key={id}
-              className={`${styles.item} ${active ? styles.active : ''}`}
-              onClick={() => onViewChange({ type: id })}
-            >
-              <span
-                className={styles.icon}
-                style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
+            <div key={id} className={styles.smartViewRow}>
+              <button
+                className={`${styles.item} ${active ? styles.active : ''}`}
+                onClick={() => onViewChange({ type: id })}
               >
-                <Icon />
-              </span>
-              <span className={styles.label}>{label}</span>
-            </button>
+                <span
+                  className={styles.icon}
+                  style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
+                >
+                  <Icon />
+                </span>
+                <span className={styles.label}>{label}</span>
+              </button>
+              {showUpload && (
+                <button
+                  type="button"
+                  className={styles.addBtn}
+                  onClick={onUpload}
+                  title="Upload image"
+                >
+                  +
+                </button>
+              )}
+            </div>
           );
         })}
       </nav>
