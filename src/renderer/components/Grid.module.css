@@ -38,8 +38,8 @@
 }
 
 /* ── Empty-state liquid-glass graphic ─────────────────────────────────────
-   Three layered glass cards float gently above slowly drifting color blobs,
-   so the backdrop-blur on the cards actually has something to refract. */
+   Three layered glass cards stacked over soft color blobs so the
+   backdrop-blur on the cards actually has something to refract. */
 
 .emptyGraphic {
   position: relative;
@@ -63,22 +63,18 @@
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  will-change: transform;
 }
 
 .blobA {
   top: 0;
   left: 0;
   background: radial-gradient(circle, rgba(120, 180, 255, 0.55), transparent 70%);
-  animation: drift 9s ease-in-out infinite;
 }
 
 .blobB {
   bottom: 0;
   right: 0;
   background: radial-gradient(circle, rgba(255, 180, 200, 0.55), transparent 70%);
-  animation: drift 11s ease-in-out infinite reverse;
-  animation-delay: -3s;
 }
 
 .blobC {
@@ -87,14 +83,6 @@
   width: 90px;
   height: 90px;
   background: radial-gradient(circle, rgba(180, 255, 210, 0.45), transparent 70%);
-  animation: drift 13s ease-in-out infinite;
-  animation-delay: -6s;
-}
-
-@keyframes drift {
-  0%, 100% { transform: translate(0, 0); }
-  33%      { transform: translate(18px, -12px); }
-  66%      { transform: translate(-14px, 14px); }
 }
 
 .glassCardWrap {
@@ -125,34 +113,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: float 4.2s ease-in-out infinite;
-  will-change: transform;
 }
 
+.cardA .glassCard { opacity: 0.55; }
+.cardB .glassCard { opacity: 0.75; }
+.cardC .glassCard { opacity: 0.95; }
 
-.cardA .glassCard {
-  opacity: 0.55;
-  animation-delay: 0s;
-}
-
-.cardB .glassCard {
-  opacity: 0.75;
-  animation-delay: 0.45s;
-}
-
-.cardC .glassCard {
-  opacity: 0.95;
-  animation-delay: 0.9s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
-}
-
-/* Favorites empty-state — designer-supplied embossed heart SVG with a
-   gentle float. The SVG carries its own drop-shadows + inner highlight
-   via SVG filter primitives, so we don't add extra CSS shadow layers. */
+/* Favorites empty-state — designer-supplied embossed heart SVG. The
+   SVG carries its own drop-shadows + inner highlight via filter
+   primitives, so we don't add extra CSS shadow layers. */
 
 .heartHero {
   position: relative;
@@ -167,12 +136,4 @@
 .heartHero svg {
   width: 100%;
   height: 100%;
-  animation: float 4.2s ease-in-out infinite;
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .blobA, .blobB, .blobC, .glassCard, .heartHero svg {
-    animation: none;
-  }
 }
