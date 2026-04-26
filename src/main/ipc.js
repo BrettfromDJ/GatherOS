@@ -23,9 +23,8 @@ const {
 const { notifySaved } = require('./notify');
 const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
-const {
-  testApiKey, autoTagImage, analyzeImage, embedText,
-} = require('./openai');
+const { testApiKey, autoTagImage, analyzeImage, embedText } = require('./openai');
+const { detectColorName } = require('./colorNames');
 
 // Cosine similarity over Float32 BLOBs from SQLite. ~1 ms per save at
 // 1536 dims; fine up to a few thousand records before we'd want a
@@ -48,6 +47,35 @@ function bufferToFloat32(buf) {
 }
 
 function registerIpcHandlers() {
+  // Merges saves whose extracted palette is perceptually similar to a
+  // named color in the query (e.g. "orange", "navy") into the existing
+  // result set. Same view filters (favorites/recent/collection/explicit
+  // colorHex) get applied so semantic + LIKE + name-color-match all
+  // honor the active context.
+  function mergeColorNameMatches(results, opts, queryText) {
+    const detectedHex = detectColorName(queryText);
+    if (!detectedHex) return results;
+    // Get every save that already passes the user's other filters
+    // (LIKE-irrelevant pieces of the query stripped out — we only want
+    // the view scoping here, not text matching).
+    const filteredSet = getAllSaves({
+      filter: opts.filter,
+      collectionId: opts.collectionId,
+      colorHex: opts.colorHex || undefined,
+    });
+    const colorMatches = filterByColor(filteredSet, detectedHex, 30);
+    if (colorMatches.length === 0) return results;
+    const seen = new Set(results.map((s) => s.id));
+    const merged = [...results];
+    for (const m of colorMatches) {
+      if (!seen.has(m.id)) {
+        merged.push(m);
+        seen.add(m.id);
+      }
+    }
+    return merged;
+  }
+
   ipcMain.handle('saves:get-all', async (_e, opts = {}) => {
     const semanticEnabled = settings.getPref('semanticSearch', false);
     const haveKey = settings.hasOpenAIKey();
@@ -56,7 +84,7 @@ function registerIpcHandlers() {
     // Falls back to the regular LIKE path if semantic search isn't
     // configured, isn't on, or there's no actual query to embed.
     if (!semanticEnabled || !haveKey || !queryText) {
-      return getAllSaves(opts);
+      return mergeColorNameMatches(getAllSaves(opts), opts, queryText);
     }
 
     try {
@@ -142,10 +170,10 @@ function registerIpcHandlers() {
       if (opts.colorHex) {
         filtered = filterByColor(filtered, opts.colorHex);
       }
-      return filtered;
+      return mergeColorNameMatches(filtered, opts, queryText);
     } catch (err) {
       console.error('Semantic search failed, falling back to LIKE:', err.message);
-      return getAllSaves(opts);
+      return mergeColorNameMatches(getAllSaves(opts), opts, queryText);
     }
   });
 
