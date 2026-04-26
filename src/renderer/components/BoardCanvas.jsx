@@ -258,19 +258,51 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
     const dx = (e.clientX - s.startMouseX) / viewport.z;
     const dirX = s.corner.includes('r') ? 1 : -1;
     const dirY = s.corner.includes('b') ? 1 : -1;
-    const newWidth = Math.max(20, s.startWidth + dx * dirX);
-    const scale = newWidth / s.startWidth;
+    let newWidth = Math.max(20, s.startWidth + dx * dirX);
+
+    // Snap threshold expressed in screen pixels so the snap "feel" is
+    // the same at any zoom level.
+    const SNAP_PX = 6;
+    const snapWorld = SNAP_PX / viewport.z;
 
     if (s.type === 'text') {
-      const newFontSize = Math.max(6, Math.min(240, s.startFontSize * scale));
-      // Text auto-sizes; we shift x for left-corner drags so the right
-      // edge stays anchored.
+      let scale = newWidth / s.startWidth;
+      let newFontSize = Math.max(6, Math.min(240, s.startFontSize * scale));
+      // Snap font size to other text items' font sizes when within
+      // a few screen pixels of the rendered diff.
+      let bestDiff = SNAP_PX / viewport.z; // font-size units
+      for (const it of items) {
+        if (it.id === s.itemId || it.type !== 'text') continue;
+        const fs = it.font_size || 16;
+        const diff = Math.abs(newFontSize - fs);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          newFontSize = fs;
+        }
+      }
+      // Recompute newWidth from the snapped font_size so the box layout
+      // tracks the snap (left-anchor x shift uses this).
+      scale = newFontSize / s.startFontSize;
+      newWidth = s.startWidth * scale;
       const newX = dirX < 0 ? s.startX - (newWidth - s.startWidth) : s.startX;
       setItems((prev) => prev.map((it) =>
         it.id === s.itemId ? { ...it, font_size: newFontSize, x: newX } : it,
       ));
     } else {
-      // Images keep aspect ratio: width and height scale together.
+      // Images keep aspect ratio. Snap newWidth to either another
+      // image's width directly, or to the width that would produce
+      // a matching height. Pick the closest.
+      const aspect = s.startWidth / s.startHeight;
+      let bestDiff = snapWorld;
+      for (const it of items) {
+        if (it.id === s.itemId || it.type !== 'image') continue;
+        const wDiff = Math.abs(newWidth - it.width);
+        if (wDiff < bestDiff) { bestDiff = wDiff; newWidth = it.width; }
+        const candidateW = it.height * aspect;
+        const hDiff = Math.abs(newWidth - candidateW);
+        if (hDiff < bestDiff) { bestDiff = hDiff; newWidth = candidateW; }
+      }
+      const scale = newWidth / s.startWidth;
       const newHeight = Math.max(20, s.startHeight * scale);
       const newX = dirX < 0 ? s.startX - (newWidth - s.startWidth) : s.startX;
       const newY = dirY < 0 ? s.startY - (newHeight - s.startHeight) : s.startY;
@@ -280,7 +312,7 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
           : it,
       ));
     }
-  }, [viewport.z]);
+  }, [viewport.z, items]);
 
   const handleResizeEnd = useCallback(async (e) => {
     const s = resizeState.current;
