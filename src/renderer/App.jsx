@@ -157,6 +157,13 @@ export default function App() {
 
   const [selected, setSelected] = useState(() => new Set());
   const [gridColumns, setGridColumns] = useState(3);
+  const [gridLayout, setGridLayout] = useState(() => {
+    try { return localStorage.getItem('moodmark.gridLayout') || 'masonry'; }
+    catch { return 'masonry'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
+  }, [gridLayout]);
   const [focusedId, setFocusedId] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -953,6 +960,8 @@ export default function App() {
                 onSearchChange={setSearch}
                 columns={gridColumns}
                 onColumnsChange={setGridColumns}
+                layout={gridLayout}
+                onLayoutChange={setGridLayout}
                 count={saves.length}
                 onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
                 semanticSearchActive={semanticSearchActive}
@@ -983,6 +992,7 @@ export default function App() {
                   semanticSearchActive={semanticSearchActive}
                   colorFilter={colorFilter}
                   freshIds={freshIds}
+                  layout={gridLayout}
                 />
               </div>
             </>

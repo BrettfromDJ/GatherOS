@@ -1,8 +1,31 @@
 import React, { useMemo } from 'react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
+import { fileUrl } from '../lib/fileUrl.js';
 
-export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu, onDragStart, columns, loading, view, search, semanticSearchActive, colorFilter, freshIds }) {
+function relativeDate(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const day = 24 * 60 * 60 * 1000;
+  if (diff < day) return 'Today';
+  if (diff < 2 * day) return 'Yesterday';
+  if (diff < 7 * day) return `${Math.floor(diff / day)}d ago`;
+  if (diff < 30 * day) return `${Math.floor(diff / (7 * day))}w ago`;
+  if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+  return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+}
+
+function hostnameOf(url) {
+  if (!url) return '';
+  try { return new URL(url).hostname.replace(/^www\./, ''); }
+  catch { return url; }
+}
+
+export default function Grid({
+  saves, selected, onSelect, onOpen, onContextMenu, onDragStart,
+  columns, loading, view, search, semanticSearchActive, colorFilter,
+  freshIds, layout = 'masonry',
+}) {
   const columnBuckets = useMemo(() => {
     const buckets = Array.from({ length: columns }, () => []);
     saves.forEach((save, i) => {
@@ -24,7 +47,6 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
     let title = 'Nothing saved yet';
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
     if (trimmedSearch) {
-      // Active search: distinguish "no matches" from "empty library".
       title = `No matches for "${trimmedSearch}"`;
       hint = semanticSearchActive
         ? 'Try a different description, or turn off Visual search to fall back to keyword matching.'
@@ -47,6 +69,64 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
       <div className={styles.state}>
         <div className={styles.emptyTitle}>{title}</div>
         <div className={styles.emptyHint}>{hint}</div>
+      </div>
+    );
+  }
+
+  if (layout === 'list') {
+    return (
+      <div className={styles.list}>
+        {saves.map((s) => {
+          const isSelected = selected.has(s.id);
+          const isFresh = freshIds?.has(s.id);
+          return (
+            <div
+              key={s.id}
+              data-save-id={s.id}
+              className={[
+                styles.listRow,
+                isSelected && styles.listRowSelected,
+                isFresh && styles.listRowFresh,
+              ].filter(Boolean).join(' ')}
+              draggable={!!onDragStart}
+              onClick={(e) => onSelect(s.id, e.metaKey || e.ctrlKey || e.shiftKey)}
+              onDoubleClick={() => onOpen(s)}
+              onContextMenu={(e) => {
+                if (onContextMenu) {
+                  e.preventDefault();
+                  onContextMenu(s.id, e.clientX, e.clientY);
+                }
+              }}
+              onDragStart={(e) => {
+                if (!onDragStart) return;
+                onDragStart(e, s);
+              }}
+            >
+              <div className={styles.listThumb}>
+                <img
+                  src={fileUrl(s.thumb_path || s.file_path)}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                />
+              </div>
+              <div className={styles.listMain}>
+                <div className={styles.listTitle}>
+                  {s.title || <span className={styles.listUntitled}>Untitled</span>}
+                </div>
+                {s.source_url && (
+                  <div className={styles.listSource}>{hostnameOf(s.source_url)}</div>
+                )}
+              </div>
+              {s.width && s.height && (
+                <div className={styles.listDims}>
+                  {s.width}×{s.height}
+                </div>
+              )}
+              <div className={styles.listDate}>{relativeDate(s.created_at)}</div>
+            </div>
+          );
+        })}
       </div>
     );
   }

@@ -51,6 +51,27 @@ function GridSmallIcon() {
   );
 }
 
+function MasonryIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <rect x="2"  y="2"  width="5.5" height="7"   rx="1" />
+      <rect x="8.5" y="2"  width="5.5" height="4.5" rx="1" />
+      <rect x="2"  y="10.5" width="5.5" height="3.5" rx="1" />
+      <rect x="8.5" y="8"  width="5.5" height="6"   rx="1" />
+    </svg>
+  );
+}
+
+function ListViewIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+      <line x1="2.5" y1="4"  x2="13.5" y2="4" />
+      <line x1="2.5" y1="8"  x2="13.5" y2="8" />
+      <line x1="2.5" y1="12" x2="13.5" y2="12" />
+    </svg>
+  );
+}
+
 function GridLargeIcon() {
   return (
     <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
@@ -77,6 +98,8 @@ export default function Toolbar({
   onClearColorFilter,
   searchInputRef,
   viewTitle = null,
+  layout = 'masonry',
+  onLayoutChange,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -136,22 +159,49 @@ export default function Toolbar({
           </span>
         )}
 
-        <div className={styles.zoom} title="Card size">
-          <GridSmallIcon />
-          <input
-            type="range"
-            min={COLS_MIN}
-            max={COLS_MAX}
-            step={1}
-            value={sliderValue}
-            onChange={(e) =>
-              onColumnsChange(COLS_MAX + COLS_MIN - Number(e.target.value))
-            }
-            className={styles.slider}
-            aria-label="Card size"
-          />
-          <GridLargeIcon />
-        </div>
+        {onLayoutChange && (
+          <div className={styles.layoutToggle} role="group" aria-label="Layout">
+            <button
+              type="button"
+              className={[styles.layoutBtn, layout === 'masonry' && styles.layoutBtnActive]
+                .filter(Boolean).join(' ')}
+              onClick={() => onLayoutChange('masonry')}
+              title="Masonry"
+              aria-pressed={layout === 'masonry'}
+            >
+              <MasonryIcon />
+            </button>
+            <button
+              type="button"
+              className={[styles.layoutBtn, layout === 'list' && styles.layoutBtnActive]
+                .filter(Boolean).join(' ')}
+              onClick={() => onLayoutChange('list')}
+              title="List"
+              aria-pressed={layout === 'list'}
+            >
+              <ListViewIcon />
+            </button>
+          </div>
+        )}
+
+        {layout === 'masonry' && (
+          <div className={styles.zoom} title="Card size">
+            <GridSmallIcon />
+            <input
+              type="range"
+              min={COLS_MIN}
+              max={COLS_MAX}
+              step={1}
+              value={sliderValue}
+              onChange={(e) =>
+                onColumnsChange(COLS_MAX + COLS_MIN - Number(e.target.value))
+              }
+              className={styles.slider}
+              aria-label="Card size"
+            />
+            <GridLargeIcon />
+          </div>
+        )}
       </div>
     </div>
   );
