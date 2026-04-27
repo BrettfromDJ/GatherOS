@@ -39,11 +39,6 @@
   transition: none !important;
 }
 
-.row .scroller,
-.row .card {
-  pointer-events: auto;
-}
-
 .scroller {
   display: flex;
   gap: 12px;

@@ -73,10 +73,13 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
     }, {
       root: sc,
       threshold: 0,
-      // Require the sentinel to be at least 24px above the viewport
-      // before counting as "out" — gives a buffer past the threshold
-      // so a slow scroll near the boundary doesn't sit on the edge.
-      rootMargin: '-24px 0px 0px 0px',
+      // No rootMargin — the sentinel sits at the very top of the
+      // scroll content, so at scrollTop=0 it's intersecting and we
+      // start in expanded-cards mode. (A negative top margin here
+      // would shrink the root from the top and make the sentinel
+      // "out" on initial load — kept the cards from ever rendering
+      // their stacked thumbnails.) The 180ms debounce below is
+      // enough buffer for slow-scroll near the edge.
     });
     obs.observe(sentinel);
     return () => {
