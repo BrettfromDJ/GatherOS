@@ -15,7 +15,25 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
   const [prefs, setPrefs] = useState({ autoNameOnSave: true });
   const [unindexed, setUnindexed] = useState(0);
   const [reindexState, setReindexState] = useState({ running: false, processed: 0, total: 0 });
+  const [exportState, setExportState] = useState({ running: false, message: null });
   const inputRef = useRef(null);
+
+  async function handleExportLibrary() {
+    if (exportState.running) return;
+    setExportState({ running: true, message: null });
+    try {
+      const result = await window.moodmark.library.exportZip();
+      if (result?.ok) {
+        setExportState({ running: false, message: `Exported to ${result.savedPath}` });
+      } else if (result?.canceled) {
+        setExportState({ running: false, message: null });
+      } else {
+        setExportState({ running: false, message: result?.error || 'Export failed' });
+      }
+    } catch (err) {
+      setExportState({ running: false, message: err.message || 'Export failed' });
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -303,6 +321,29 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
               >
                 {reindexState.running ? 'Indexing…' : 'Index now'}
               </button>
+            </div>
+          )}
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>Data</div>
+          <p className={styles.sectionHint}>
+            Export your entire library — the Moodmark database plus every
+            saved image and thumbnail — into a single .zip backup. You can
+            restore later by replacing the contents of the app's data
+            folder with this archive's contents.
+          </p>
+          <button
+            type="button"
+            className={styles.reindexBtn}
+            onClick={handleExportLibrary}
+            disabled={exportState.running}
+          >
+            {exportState.running ? 'Exporting…' : 'Export Library as Zip'}
+          </button>
+          {exportState.message && (
+            <div className={styles.sectionHint} style={{ marginTop: 8 }}>
+              {exportState.message}
             </div>
           )}
         </section>

@@ -977,6 +977,7 @@ export default function App() {
                 onColumnsChange={setGridColumns}
                 layout={gridLayout}
                 onLayoutChange={setGridLayout}
+                onOpenQuickSwitcher={() => setQuickSwitcherOpen(true)}
                 onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
                 semanticSearchActive={semanticSearchActive}
                 colorFilter={colorFilter}

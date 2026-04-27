@@ -99,6 +99,7 @@ export default function Toolbar({
   viewTitle = null,
   layout = 'masonry',
   onLayoutChange,
+  onOpenQuickSwitcher,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -137,6 +138,17 @@ export default function Toolbar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />
+        {onOpenQuickSwitcher && (
+          <button
+            type="button"
+            className={styles.qkChip}
+            onClick={onOpenQuickSwitcher}
+            title="Quick switcher — jump to any bucket, tag, or save"
+          >
+            <span className={styles.qkChipKey}>⌘</span>
+            <span className={styles.qkChipKey}>K</span>
+          </button>
+        )}
       </div>
 
       <div className={styles.right}>

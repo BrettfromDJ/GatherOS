@@ -1,6 +1,7 @@
-const { ipcMain, shell, dialog, BrowserWindow, nativeImage } = require('electron');
+const { ipcMain, shell, dialog, BrowserWindow, nativeImage, app } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const {
   getAllSaves, getSave, deleteSave, restoreSave, permanentlyDeleteSave,
   emptyTrash, updateSave, insertSave,
@@ -351,6 +352,41 @@ function registerIpcHandlers() {
       }
     }
     return { ok: true, count, targetDir };
+  });
+
+  // Full library backup as a single .zip — includes the SQLite DB,
+  // images/, and thumbs/. Uses the macOS `zip` CLI (built in) so no
+  // new node deps. Returns { ok, savedPath, count? } or { canceled }.
+  ipcMain.handle('library:export-zip', async (e) => {
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const dlg = await dialog.showSaveDialog(owner ?? undefined, {
+      title: 'Export Moodmark library',
+      buttonLabel: 'Export',
+      defaultPath: `moodmark-backup-${stamp}.zip`,
+      filters: [{ name: 'Zip', extensions: ['zip'] }],
+    });
+    if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
+
+    const userDataDir = app.getPath('userData');
+    // Whitelist what we ship in the backup so we don't accidentally
+    // bundle Electron caches, GPU shader caches, log files, etc.
+    const includes = ['moodmark.db', 'images', 'thumbs'];
+    const present = includes.filter((p) => fs.existsSync(path.join(userDataDir, p)));
+    if (present.length === 0) return { ok: false, reason: 'nothing-to-export' };
+
+    return new Promise((resolve) => {
+      // -r recursive, -X drop extra macOS attrs, -q quiet.
+      const args = ['-rXq', dlg.filePath, ...present, '-x', '*.DS_Store'];
+      const proc = spawn('zip', args, { cwd: userDataDir });
+      let stderr = '';
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('close', (code) => {
+        if (code === 0) resolve({ ok: true, savedPath: dlg.filePath });
+        else resolve({ ok: false, error: `zip exited with code ${code}: ${stderr.trim()}` });
+      });
+      proc.on('error', (err) => resolve({ ok: false, error: err.message }));
+    });
   });
 
   ipcMain.handle('boards:export', async (e, saveIds) => {

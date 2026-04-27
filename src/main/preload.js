@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('moodmark', {
   shell: {
     openUrl: (url) => ipcRenderer.invoke('shell:open-url', url),
   },
+  library: {
+    exportZip: () => ipcRenderer.invoke('library:export-zip'),
+  },
   drag: {
     // Fire-and-forget IPC because webContents.startDrag must run
     // synchronously off the renderer's dragstart event.

@@ -193,7 +193,7 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  padding: 6px 12px 6px 32px;
+  padding: 6px 60px 6px 32px;
   background: #FAFAF9;
   border: none;
   border-radius: 22px;
@@ -203,6 +203,53 @@
   outline: none;
   box-shadow: 0 4px 34px 2px rgba(0, 0, 0, 0.03), 0 0 1px 1px #FFF inset;
   transition: box-shadow 120ms ease;
+}
+
+/* ⌘K hint inside the search input — clickable chip that opens the
+   quick switcher. Positioned absolute against .searchWrap so the
+   input padding-right above keeps it from overlapping typed text. */
+.qkChip {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.07);
+  border-radius: 5px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+.qkChip:hover {
+  background: rgba(10, 132, 255, 0.10);
+  border-color: rgba(10, 132, 255, 0.30);
+}
+
+.qkChipKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background: var(--titlebar-bg, #fff);
+  border: 0.5px solid rgba(0, 0, 0, 0.10);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--text-secondary);
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.04);
+}
+
+.qkChip:hover .qkChipKey {
+  color: var(--accent);
+  border-color: rgba(10, 132, 255, 0.25);
 }
 
 .search:focus {
