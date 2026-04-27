@@ -91,6 +91,16 @@ function PencilIcon() {
   );
 }
 
+function BucketDisclosureChevron() {
+  // Plain down-chevron — rotated -90° via CSS when the bucket is
+  // collapsed, so the same icon does both states.
+  return (
+    <svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true">
+      <path d="M1.5 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const SMART_VIEWS = [
   { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
   { id: 'unsorted', label: 'Unsorted', color: 'var(--icon-yellow)', Icon: InboxIcon },
@@ -212,6 +222,29 @@ export default function Sidebar({
   function handleCollectionContextMenu(e, collection) {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, collection });
+  }
+
+  // ── Collapse state for parent buckets ─────────────────────────────────
+  const COLLAPSE_KEY = 'moodmark.sidebar.collapsedBuckets';
+  const [collapsedBuckets, setCollapsedBuckets] = useState(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSE_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedBuckets]));
+    } catch {}
+  }, [collapsedBuckets]);
+
+  function toggleBucketCollapse(id) {
+    setCollapsedBuckets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   }
 
   // ── Hover preview ────────────────────────────────────────────────────────
@@ -432,6 +465,12 @@ export default function Sidebar({
             const active = view.type === 'collection' && view.id === c.id;
             const isDragging = draggingId === c.id;
             const isDropTarget = dropTargetId === c.id && draggingId && draggingId !== c.id;
+            // Top-level buckets with children get a leading disclosure
+            // chevron. Other rows render an empty placeholder so labels
+            // line up across rows that do/don't have one.
+            const childCount = isChild ? 0 : childrenOf(c.id).length;
+            const hasChildren = childCount > 0;
+            const isCollapsed = hasChildren && collapsedBuckets.has(c.id);
             const itemClass = [
               styles.item,
               isChild && styles.itemChild,
@@ -489,6 +528,25 @@ export default function Sidebar({
                   }
                 }}
               >
+                {!isChild && (
+                  <span
+                    className={[
+                      styles.bucketChevron,
+                      hasChildren && styles.bucketChevronVisible,
+                      isCollapsed && styles.bucketChevronCollapsed,
+                    ].filter(Boolean).join(' ')}
+                    role={hasChildren ? 'button' : undefined}
+                    aria-label={hasChildren ? (isCollapsed ? 'Expand sub-buckets' : 'Collapse sub-buckets') : undefined}
+                    onClick={(e) => {
+                      if (!hasChildren) return;
+                      e.stopPropagation();
+                      e.preventDefault();
+                      toggleBucketCollapse(c.id);
+                    }}
+                  >
+                    <BucketDisclosureChevron />
+                  </span>
+                )}
                 <span
                   className={styles.icon}
                   style={{ color: active ? '#fff' : 'var(--icon-blue)' }}
@@ -505,7 +563,7 @@ export default function Sidebar({
           return topLevel.map((c) => (
             <React.Fragment key={c.id}>
               {renderItem(c, false)}
-              {childrenOf(c.id).map((child) => renderItem(child, true))}
+              {!collapsedBuckets.has(c.id) && childrenOf(c.id).map((child) => renderItem(child, true))}
               {creatingChildOf === c.id && (
                 <div className={`${styles.newCollectionForm} ${styles.newChildForm}`}>
                   <input
