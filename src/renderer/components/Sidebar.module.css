@@ -351,24 +351,33 @@
 }
 
 .label {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Save count sits inline right after the bucket name, in a small
+   light-gray pill so it reads as metadata without dominating the row. */
 .count {
-  /* Same footprint as .addBtn (20px) so the count digit sits dead
-     center under the section's "+" button instead of drifting right. */
-  display: inline-block;
-  width: 20px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  margin-left: 2px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  color: inherit;
-  opacity: 0.55;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.item.active .count {
+  background: rgba(255, 255, 255, 0.20);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .dot {
