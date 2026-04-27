@@ -74,6 +74,9 @@
   display: inline-flex;
   align-items: center;
   padding: 1px 7px;
+  /* Negative margin to pull the pill close to the title, partially
+     cancelling .left's 12px gap. */
+  margin-left: -6px;
   background: rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   font-family: var(--font-mono);
