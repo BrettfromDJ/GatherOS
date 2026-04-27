@@ -1076,21 +1076,6 @@ export default function App() {
                   if (view.type === 'trash') return 'Trash';
                   return null;
                 })()}
-                {...(view.type === 'collection' && collections.length > 1
-                  ? (() => {
-                      const idx = collections.findIndex((c) => c.id === view.id);
-                      const prev = idx > 0
-                        ? collections[idx - 1]
-                        : collections[collections.length - 1];
-                      const next = idx < collections.length - 1
-                        ? collections[idx + 1]
-                        : collections[0];
-                      return {
-                        onPrevBucket: () => handleViewChange({ type: 'collection', id: prev.id }),
-                        onNextBucket: () => handleViewChange({ type: 'collection', id: next.id }),
-                      };
-                    })()
-                  : {})}
               />
               <div className="grid-scroll">
                 {view.type === 'all' && collections.length > 0 && (

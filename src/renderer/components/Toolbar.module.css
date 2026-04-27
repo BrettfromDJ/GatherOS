@@ -70,42 +70,6 @@
   -webkit-app-region: no-drag;
 }
 
-/* Title with prev / next bare-icon arrows. No background, just the
-   icon — same style as the FocusedView back button. */
-.viewTitleGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  -webkit-app-region: no-drag;
-}
-
-.viewNavBtn {
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-  transition: color 100ms ease, transform 80ms ease;
-}
-
-.viewNavBtn:hover {
-  color: var(--text-primary);
-}
-
-.viewNavBtn:active {
-  transform: scale(0.92);
-}
-
-.viewNavBtn svg {
-  width: 12px;
-  height: 12px;
-}
 
 .layoutToggle {
   display: inline-flex;

@@ -50,21 +50,32 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
     return () => { cancelled = true; };
   }, [collections]);
 
-  // Toggle compact based on whether a 1px sentinel sitting above
-  // the row is visible inside the scroll container. IntersectionObserver
-  // doesn't oscillate the way a scrollTop check did — the sentinel
-  // is above the row and never moves when the row shrinks/grows,
-  // so there's no feedback loop.
+  // Toggle compact based on whether a 1px sentinel sitting above the
+  // row is visible inside the scroll container. The collapse → pill
+  // direction is debounced ~180ms so a quick scroll-and-back near
+  // the threshold doesn't flicker; expand is immediate so the cards
+  // come back the instant you scroll up to the top.
   useEffect(() => {
     const sc = document.querySelector('.grid-scroll');
     const sentinel = sentinelRef.current;
     if (!sc || !sentinel || typeof IntersectionObserver === 'undefined') return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setCompact(!entry.isIntersecting),
-      { root: sc, threshold: 0 },
-    );
+    let collapseTimer = null;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (collapseTimer) {
+        clearTimeout(collapseTimer);
+        collapseTimer = null;
+      }
+      if (entry.isIntersecting) {
+        setCompact(false);
+      } else {
+        collapseTimer = setTimeout(() => setCompact(true), 180);
+      }
+    }, { root: sc, threshold: 0 });
     obs.observe(sentinel);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      if (collapseTimer) clearTimeout(collapseTimer);
+    };
   }, []);
 
   if (!collections || collections.length === 0) return null;

@@ -51,22 +51,6 @@ function GridSmallIcon() {
   );
 }
 
-function ChevronLeftIcon() {
-  return (
-    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7.5 2.5 L3 6 L7.5 9.5" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4.5 2.5 L9 6 L4.5 9.5" />
-    </svg>
-  );
-}
-
 function MasonryIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -113,8 +97,6 @@ export default function Toolbar({
   onClearColorFilter,
   searchInputRef,
   viewTitle = null,
-  onPrevBucket,
-  onNextBucket,
   layout = 'masonry',
   onLayoutChange,
   onOpenQuickSwitcher,
@@ -135,31 +117,7 @@ export default function Toolbar({
           </button>
         )}
         {viewTitle && (
-          <div className={styles.viewTitleGroup}>
-            {onPrevBucket && (
-              <button
-                type="button"
-                className={styles.viewNavBtn}
-                onClick={onPrevBucket}
-                title="Previous bucket"
-                aria-label="Previous bucket"
-              >
-                <ChevronLeftIcon />
-              </button>
-            )}
-            <span className={styles.viewTitle} title={viewTitle}>{viewTitle}</span>
-            {onNextBucket && (
-              <button
-                type="button"
-                className={styles.viewNavBtn}
-                onClick={onNextBucket}
-                title="Next bucket"
-                aria-label="Next bucket"
-              >
-                <ChevronRightIcon />
-              </button>
-            )}
-          </div>
+          <span className={styles.viewTitle} title={viewTitle}>{viewTitle}</span>
         )}
       </div>
 
