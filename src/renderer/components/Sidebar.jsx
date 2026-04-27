@@ -103,6 +103,7 @@ export default function Sidebar({
   onRenameCollection,
   onDeleteCollection,
   onReorderCollections,
+  onAddSavesToBucket,
   onToggleCollapse,
   onUpload,
   onOpenSettings,
@@ -247,6 +248,42 @@ export default function Sidebar({
     await onReorderCollections(reordered);
   }
 
+  // ── Drag-saves-into-bucket ───────────────────────────────────────────────
+  // The grid cards drag with the SAVE_DROP_MIME payload (a JSON array
+  // of save ids). These handlers light up a bucket on hover and call
+  // back to App on drop so the addSave + flyToCollection happens once.
+  const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
+  const [saveDropTargetId, setSaveDropTargetId] = useState(null);
+
+  function isSaveDrag(e) {
+    return e.dataTransfer.types.includes(SAVE_DROP_MIME);
+  }
+
+  function handleSaveDragOver(e, bucketId) {
+    if (!isSaveDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if (saveDropTargetId !== bucketId) setSaveDropTargetId(bucketId);
+  }
+
+  function handleSaveDragLeave(e) {
+    // dragleave fires when entering child elements too — only reset if
+    // we really left the row.
+    if (!e.currentTarget.contains(e.relatedTarget)) setSaveDropTargetId(null);
+  }
+
+  async function handleSaveDrop(e, bucketId) {
+    if (!isSaveDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setSaveDropTargetId(null);
+    let ids;
+    try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
+    catch { return; }
+    if (!Array.isArray(ids) || ids.length === 0) return;
+    await onAddSavesToBucket?.(bucketId, ids);
+  }
+
   const ctxItems = ctxMenu
     ? [
         ...(ctxMenu.collection.parent_id
@@ -378,18 +415,34 @@ export default function Sidebar({
                 </div>
               );
             }
+            const isSaveDropTarget = saveDropTargetId === c.id;
+            const itemClassWithDrop = [itemClass, isSaveDropTarget && styles.saveDropTarget]
+              .filter(Boolean).join(' ');
             return (
               <button
                 key={c.id}
                 data-collection-id={c.id}
-                className={itemClass}
+                className={itemClassWithDrop}
                 onClick={() => onViewChange({ type: 'collection', id: c.id })}
                 onContextMenu={(e) => handleCollectionContextMenu(e, c)}
                 draggable={!isChild}
                 onDragStart={!isChild ? (e) => handleDragStart(e, c.id) : undefined}
-                onDragOver={!isChild ? (e) => handleDragOver(e, c.id) : undefined}
+                onDragOver={(e) => {
+                  // Save drag (HTML5 from grid) takes precedence — it
+                  // arrives with our custom MIME. Bucket reorder (only
+                  // for top-level) uses the local draggingId state.
+                  handleSaveDragOver(e, c.id);
+                  if (!isChild) handleDragOver(e, c.id);
+                }}
+                onDragLeave={handleSaveDragLeave}
                 onDragEnd={!isChild ? handleDragEnd : undefined}
-                onDrop={!isChild ? (e) => handleDrop(e, c.id) : undefined}
+                onDrop={(e) => {
+                  if (isSaveDrag(e)) {
+                    handleSaveDrop(e, c.id);
+                  } else if (!isChild) {
+                    handleDrop(e, c.id);
+                  }
+                }}
               >
                 <span
                   className={styles.icon}

@@ -402,20 +402,57 @@ export default function App() {
   }, [buildCardMenuItems]);
 
   // Drag-out: hand the selected files (or just the dragged card if it
-  // isn't part of the selection) over to the OS via Electron's
-  // webContents.startDrag so the user can drop into Figma / Slack /
+  // Default drag is an in-app HTML5 drag with a custom MIME so sidebar
+  // buckets (and any other in-renderer drop target) can accept it.
+  // Hold Alt at drag-start to fall back to the OS drag-out (Electron's
+  // webContents.startDrag), which lets you drop into Figma / Slack /
   // Mail / Finder / etc.
-  const handleCardDragStart = useCallback((record) => {
-    const dragSet = selected.has(record.id) && selected.size > 1
-      ? saves.filter((s) => selected.has(s.id))
-      : [record];
-    const files = dragSet.map((s) => s.file_path).filter(Boolean);
-    if (files.length === 0) return;
-    window.moodmark.drag.start({
-      files,
-      thumbPath: record.thumb_path || record.file_path,
-    });
+  const handleCardDragStart = useCallback((e, record) => {
+    const ids = selected.has(record.id) && selected.size > 1
+      ? [...selected]
+      : [record.id];
+
+    if (e.altKey) {
+      // OS drag-out — suppress the browser's native drag, hand off to
+      // the main process to paint a system drag preview.
+      e.preventDefault();
+      const files = ids
+        .map((id) => saves.find((s) => s.id === id)?.file_path)
+        .filter(Boolean);
+      if (files.length === 0) return;
+      window.moodmark.drag.start({
+        files,
+        thumbPath: record.thumb_path || record.file_path,
+      });
+      return;
+    }
+
+    // HTML5 drag for in-app drops. Drop targets read the JSON payload
+    // back from this MIME.
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('application/x-moodmark-save-ids', JSON.stringify(ids));
   }, [selected, saves]);
+
+  // Drop-onto-bucket from the grid. Sidebar invokes this when a card
+  // (or selection) lands on a bucket row. Mirrors the per-card "Add to
+  // Bucket" context menu behavior — flyToCollection animation,
+  // collection-count refresh, and an Unsorted-view reload if needed.
+  const handleAddSavesToBucket = useCallback(async (bucketId, saveIds) => {
+    if (!bucketId || !Array.isArray(saveIds) || saveIds.length === 0) return;
+    flyToCollection({
+      collectionId: bucketId,
+      items: saveIds.map((id) => {
+        const s = saves.find((x) => x.id === id);
+        return { saveId: id, imageSrc: s ? fileUrl(s.file_path) : null };
+      }),
+    });
+    for (const saveId of saveIds) {
+      await window.moodmark.collections.addSave({ collectionId: bucketId, saveId });
+    }
+    loadCollections();
+    if (view.type === 'unsorted') reload();
+    if (saveIds.length > 1) setSelected(new Set());
+  }, [saves, loadCollections, view, reload]);
 
   const handleCreateCollection = useCallback(async (payload) => {
     await window.moodmark.collections.create(payload);
@@ -782,6 +819,7 @@ export default function App() {
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
+            onAddSavesToBucket={handleAddSavesToBucket}
             onToggleCollapse={toggleSidebar}
             onUpload={handleUploadClick}
             onOpenSettings={() => setSettingsOpen(true)}

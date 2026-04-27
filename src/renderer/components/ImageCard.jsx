@@ -50,10 +50,10 @@ export default function ImageCard({
       }}
       onDragStart={(e) => {
         if (!onDragStart) return;
-        // Suppress the browser's HTML5 drag image — Electron's
-        // startDrag in main paints its own native drag preview.
-        e.preventDefault();
-        onDragStart(record);
+        // The handler decides between HTML5 drag (in-app drops, e.g.
+        // sidebar buckets) and OS drag-out (Alt-drag), and is the
+        // one that calls preventDefault when needed.
+        onDragStart(e, record);
       }}
     >
       <div className={styles.frame} style={{ aspectRatio: aspect }}>

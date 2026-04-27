@@ -258,6 +258,19 @@
   color: var(--text-secondary);
 }
 
+/* Hover state when a grid card is dragged over a bucket. */
+.item.saveDropTarget {
+  background: rgba(0, 122, 255, 0.12);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.item.saveDropTarget * {
+  /* Ignore pointer events on children so dragleave isn't fired by
+     mousing over the inner icon/label spans, which would flicker the
+     highlight off and on. */
+  pointer-events: none;
+}
+
 .newChildForm {
   margin-left: 18px;
 }
