@@ -1,15 +1,13 @@
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  background: rgba(0, 0, 0, 0.20);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 18vh;
   z-index: 10000;
-  animation: scrimIn 140ms ease-out;
+  animation: scrimIn 120ms ease-out;
   -webkit-app-region: no-drag;
 }
 
@@ -25,9 +23,9 @@
   display: flex;
   flex-direction: column;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 100%);
-  backdrop-filter: blur(40px) saturate(1.9);
-  -webkit-backdrop-filter: blur(40px) saturate(1.9);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.45) 100%);
+  backdrop-filter: blur(80px) saturate(2);
+  -webkit-backdrop-filter: blur(80px) saturate(2);
   border: 0.5px solid rgba(0, 0, 0, 0.07);
   border-radius: 14px;
   box-shadow:
