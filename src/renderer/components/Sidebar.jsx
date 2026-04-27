@@ -80,6 +80,26 @@ function TrashIcon() {
   );
 }
 
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 2.5 L13.5 5 L5.5 13 H3 V10.5 Z" />
+      <path d="M9.5 4 L12 6.5" />
+    </svg>
+  );
+}
+
+function AddBucketIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 5 C5 3.5, 9.5 3.5, 9.5 5" />
+      <path d="M3.6 5 L4.4 11.5 a1 1 0 0 0 1 0.9 h3.6" />
+      <line x1="11.5" y1="9" x2="11.5" y2="13" />
+      <line x1="9.5" y1="11" x2="13.5" y2="11" />
+    </svg>
+  );
+}
+
 const SMART_VIEWS = [
   { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
   { id: 'unsorted', label: 'Unsorted', color: 'var(--icon-yellow)', Icon: InboxIcon },
@@ -242,9 +262,13 @@ export default function Sidebar({
     ? [
         ...(ctxMenu.collection.parent_id
           ? []
-          : [{ label: 'Add Child Bucket', onClick: () => startCreatingChild(ctxMenu.collection.id) }]),
-        { label: 'Rename', onClick: () => startRename(ctxMenu.collection) },
-        { label: 'Delete Bucket', danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
+          : [{
+              label: 'Add Child Bucket',
+              icon: <AddBucketIcon />,
+              onClick: () => startCreatingChild(ctxMenu.collection.id),
+            }]),
+        { label: 'Rename', icon: <PencilIcon />, onClick: () => startRename(ctxMenu.collection) },
+        { label: 'Delete Bucket', icon: <TrashIcon />, danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
       ]
     : [];
 

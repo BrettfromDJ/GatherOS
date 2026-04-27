@@ -50,6 +50,15 @@ function RestoreIcon() {
   );
 }
 
+function MinusCircleIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.5" />
+      <line x1="5" y1="8" x2="11" y2="8" />
+    </svg>
+  );
+}
+
 function pickLargestFromSrcset(srcset) {
   if (!srcset) return null;
   let best = null;
@@ -323,6 +332,7 @@ export default function App() {
     if (view.type === 'trash') {
       items.push({
         label: 'Restore',
+        icon: <RestoreIcon />,
         onClick: async () => {
           await restoreSave(saveId);
           showRestoreToast([saveId]);
@@ -330,6 +340,7 @@ export default function App() {
       });
       items.push({
         label: 'Delete Forever',
+        icon: <TrashIcon />,
         danger: true,
         onClick: () => showPermanentDeleteToast([saveId]),
       });
@@ -338,6 +349,7 @@ export default function App() {
     if (view.type === 'collection') {
       items.push({
         label: 'Remove from Bucket',
+        icon: <MinusCircleIcon />,
         danger: true,
         onClick: async () => {
           await window.moodmark.collections.removeSave({ collectionId: view.id, saveId });
@@ -355,6 +367,11 @@ export default function App() {
       for (const col of others) {
         items.push({
           label: col.name,
+          icon: (
+            <span style={{ color: col.color || 'var(--text-secondary)', display: 'inline-flex' }}>
+              <CollectionIcon />
+            </span>
+          ),
           onClick: async () => {
             const sourceSave = saves.find((s) => s.id === saveId);
             flyToCollection({
@@ -552,6 +569,11 @@ export default function App() {
       { type: 'header', label: `Add ${ids.length} to Bucket` },
       ...collections.map((c) => ({
         label: c.name,
+        icon: (
+          <span style={{ color: c.color || 'var(--text-secondary)', display: 'inline-flex' }}>
+            <CollectionIcon />
+          </span>
+        ),
         onClick: async () => {
           flyToCollection({
             collectionId: c.id,

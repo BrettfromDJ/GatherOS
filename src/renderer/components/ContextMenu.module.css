@@ -25,6 +25,45 @@
   cursor: pointer;
 }
 
+.menuWithIcons .item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px 6px 8px;
+}
+
+.itemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.itemIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.item:hover .itemIcon {
+  color: var(--accent);
+}
+
+.danger .itemIcon,
+.danger:hover .itemIcon {
+  color: #c1322a;
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .item:hover {
   background: rgba(0, 122, 255, 0.10);
   color: var(--accent);

@@ -37,10 +37,12 @@ export default function ContextMenu({ x, y, items, onClose }) {
     setPos({ x: nx, y: ny, ready: true });
   }, [x, y, items]);
 
+  const hasIcons = items.some((it) => it && it.icon);
+
   return ReactDOM.createPortal(
     <div
       ref={ref}
-      className={styles.menu}
+      className={[styles.menu, hasIcons && styles.menuWithIcons].filter(Boolean).join(' ')}
       style={{
         position: 'fixed',
         top: pos.y,
@@ -61,7 +63,10 @@ export default function ContextMenu({ x, y, items, onClose }) {
             className={[styles.item, item.danger && styles.danger].filter(Boolean).join(' ')}
             onClick={() => { item.onClick(); onClose(); }}
           >
-            {item.label}
+            {hasIcons && (
+              <span className={styles.itemIcon}>{item.icon || null}</span>
+            )}
+            <span className={styles.itemLabel}>{item.label}</span>
           </button>
         );
       })}
