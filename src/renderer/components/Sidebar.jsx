@@ -106,6 +106,7 @@ export default function Sidebar({
   onRenameCollection,
   onDeleteCollection,
   onReorderCollections,
+  onMoveCollection,
   onAddSavesToBucket,
   onToggleCollapse,
   onUpload,
@@ -320,14 +321,14 @@ export default function Sidebar({
     const fromId = draggingId;
     handleDragEnd();
     if (!fromId || fromId === targetId) return;
-    const ids = collections.map((c) => c.id);
-    const fromIdx = ids.indexOf(fromId);
-    const toIdx = ids.indexOf(targetId);
-    if (fromIdx < 0 || toIdx < 0) return;
-    const reordered = [...ids];
-    reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, fromId);
-    await onReorderCollections(reordered);
+    const target = collections.find((c) => c.id === targetId);
+    if (!target) return;
+    // Drop semantics: drop A onto B → A becomes a child of B's
+    // top-level bucket (i.e. B if B is top-level, B's parent if
+    // B is a child). The DB rejects 3-level nests.
+    const newParentId = target.parent_id ? target.parent_id : target.id;
+    if (newParentId === fromId) return; // no-op / cycle
+    await onMoveCollection?.({ id: fromId, parentId: newParentId });
   }
 
   // ── Drag-saves-into-bucket ───────────────────────────────────────────────
@@ -369,7 +370,11 @@ export default function Sidebar({
   const ctxItems = ctxMenu
     ? [
         ...(ctxMenu.collection.parent_id
-          ? []
+          ? [{
+              label: 'Move to Top Level',
+              icon: <CollectionIcon />,
+              onClick: () => onMoveCollection?.({ id: ctxMenu.collection.id, parentId: null }),
+            }]
           : [{
               label: 'Add Child Bucket',
               icon: <CollectionIcon />,
@@ -516,21 +521,21 @@ export default function Sidebar({
                 onContextMenu={(e) => handleCollectionContextMenu(e, c)}
                 onMouseEnter={(e) => scheduleHoverPreview(c.id, e.currentTarget)}
                 onMouseLeave={cancelHoverPreview}
-                draggable={!isChild}
-                onDragStart={!isChild ? (e) => handleDragStart(e, c.id) : undefined}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c.id)}
                 onDragOver={(e) => {
                   // Save drag (HTML5 from grid) takes precedence — it
-                  // arrives with our custom MIME. Bucket reorder (only
-                  // for top-level) uses the local draggingId state.
+                  // arrives with our custom MIME. Bucket reparent
+                  // (any bucket onto any other) uses draggingId state.
                   handleSaveDragOver(e, c.id);
-                  if (!isChild) handleDragOver(e, c.id);
+                  handleDragOver(e, c.id);
                 }}
                 onDragLeave={handleSaveDragLeave}
-                onDragEnd={!isChild ? handleDragEnd : undefined}
+                onDragEnd={handleDragEnd}
                 onDrop={(e) => {
                   if (isSaveDrag(e)) {
                     handleSaveDrop(e, c.id);
-                  } else if (!isChild) {
+                  } else {
                     handleDrop(e, c.id);
                   }
                 }}

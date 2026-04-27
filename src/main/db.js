@@ -474,6 +474,44 @@ function removeTagFromSave({ saveId, tagId } = {}) {
   return { ok: true };
 }
 
+// Move a bucket: optionally change its parent, and place it in the
+// new sibling group at the end (no fine-grained position control yet).
+// Enforces invariants:
+//   - Can't nest a bucket under itself.
+//   - Can't nest a bucket that has children (would create a 3-level tree).
+//   - If newParentId points at a child bucket, re-target to its parent.
+function moveCollection({ id, newParentId } = {}) {
+  if (!id) return { ok: false, reason: 'no-id' };
+  const db = getDatabase();
+
+  let parentId = newParentId || null;
+  if (parentId === id) return { ok: false, reason: 'self' };
+
+  if (parentId) {
+    const parent = db.prepare('SELECT id, parent_id FROM collections WHERE id = ?').get(parentId);
+    if (!parent) parentId = null;
+    else if (parent.parent_id) parentId = parent.parent_id; // re-target to grandparent
+  }
+  if (parentId === id) return { ok: false, reason: 'self' };
+
+  // Two-level cap: a bucket with its own children can't be nested.
+  if (parentId) {
+    const own = db.prepare('SELECT COUNT(*) AS n FROM collections WHERE parent_id = ?').get(id);
+    if (own.n > 0) return { ok: false, reason: 'has-children' };
+  }
+
+  const txn = db.transaction(() => {
+    db.prepare('UPDATE collections SET parent_id = ? WHERE id = ?').run(parentId, id);
+    // Append to the new sibling group's order.
+    const next = db.prepare(
+      "SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM collections WHERE COALESCE(parent_id, '') = COALESCE(?, '') AND id != ?"
+    ).get(parentId, id);
+    db.prepare('UPDATE collections SET order_index = ? WHERE id = ?').run(next.n, id);
+  });
+  txn();
+  return { ok: true };
+}
+
 function reorderCollections(orderedIds) {
   const db = getDatabase();
   const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
@@ -537,6 +575,7 @@ module.exports = {
   renameCollection,
   deleteCollection,
   reorderCollections,
+  moveCollection,
   addSaveToCollection,
   removeSaveFromCollection,
   getAllTags,
