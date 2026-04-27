@@ -431,6 +431,46 @@ export default function App() {
     // back from this MIME.
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/x-moodmark-save-ids', JSON.stringify(ids));
+
+    // Custom drag image: a small thumbnail offset to the right of the
+    // cursor so the bucket the user is hovering over isn't covered by
+    // the preview. Wrapper has transparent left padding; cursor is
+    // anchored at (0, 0), so the visible image sits to the right.
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+      position: fixed; top: -1000px; left: -1000px;
+      padding: 4px 0 0 24px; pointer-events: none;
+    `;
+    const ghostBox = document.createElement('div');
+    ghostBox.style.position = 'relative';
+    const ghost = document.createElement('img');
+    ghost.src = fileUrl(record.thumb_path || record.file_path);
+    ghost.style.cssText = `
+      display: block; width: 88px; height: auto; max-height: 88px;
+      object-fit: cover; border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    `;
+    ghostBox.appendChild(ghost);
+    if (ids.length > 1) {
+      const badge = document.createElement('div');
+      badge.textContent = `+${ids.length - 1}`;
+      badge.style.cssText = `
+        position: absolute; top: -8px; right: -8px;
+        min-width: 22px; height: 22px; padding: 0 6px;
+        background: #0a84ff; color: #fff;
+        border: 2px solid #fff; border-radius: 999px;
+        font: 600 11px var(--font-ui, system-ui);
+        display: inline-flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-sizing: border-box;
+      `;
+      ghostBox.appendChild(badge);
+    }
+    wrapper.appendChild(ghostBox);
+    document.body.appendChild(wrapper);
+    e.dataTransfer.setDragImage(wrapper, 0, 0);
+    // Browser captures the snapshot synchronously; clean up next tick.
+    setTimeout(() => wrapper.remove(), 0);
   }, [selected, saves]);
 
   // Drop-onto-bucket from the grid. Sidebar invokes this when a card
