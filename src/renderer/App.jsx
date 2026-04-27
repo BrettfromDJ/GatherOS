@@ -730,6 +730,43 @@ export default function App() {
     }
   }, [selected]);
 
+  // Same selection but bundled as a zip rather than copied loose.
+  const handleBulkExportZip = useCallback(async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      const result = await window.moodmark.saves.exportBulkZip(ids);
+      if (result?.ok) {
+        setSelected(new Set());
+      }
+    } catch (err) {
+      console.error('Bulk zip export failed:', err);
+    }
+  }, [selected]);
+
+  // Anchored popover above the Export button with the two destinations.
+  const [exportPicker, setExportPicker] = useState(null); // { x, y } | null
+  const openExportPicker = useCallback((e) => {
+    if (selected.size === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setExportPicker({ x: rect.left, y: rect.top - 4 });
+  }, [selected.size]);
+  const exportPickerItems = useMemo(() => {
+    if (!exportPicker) return [];
+    return [
+      {
+        label: 'Export as Files',
+        icon: <DownloadIcon />,
+        onClick: handleBulkExportFiles,
+      },
+      {
+        label: 'Export as Zip',
+        icon: <DownloadIcon />,
+        onClick: handleBulkExportZip,
+      },
+    ];
+  }, [exportPicker, handleBulkExportFiles, handleBulkExportZip]);
+
   const bulkPickerItems = useMemo(() => {
     if (!bulkPicker) return [];
     const ids = [...selected];
@@ -1103,11 +1140,16 @@ export default function App() {
           <button
             type="button"
             className="selection-btn selection-btn-compact"
-            onClick={handleBulkExportFiles}
-            title="Export selected images to a folder"
+            onClick={openExportPicker}
+            title="Export selected images"
           >
             <span className="selection-btn-icon"><DownloadIcon /></span>
             <span className="selection-btn-label">Export</span>
+            <span className="selection-btn-chevron" aria-hidden="true">
+              <svg width="8" height="6" viewBox="0 0 8 6">
+                <path d="M0 0l4 6 4-6z" fill="currentColor" />
+              </svg>
+            </span>
           </button>
           {selected.size >= 2 && (
             <button
@@ -1192,6 +1234,15 @@ export default function App() {
           y={bulkPicker.y}
           items={bulkPickerItems}
           onClose={() => setBulkPicker(null)}
+        />
+      )}
+
+      {exportPicker && (
+        <ContextMenu
+          x={exportPicker.x}
+          y={exportPicker.y}
+          items={exportPickerItems}
+          onClose={() => setExportPicker(null)}
         />
       )}
 

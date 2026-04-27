@@ -221,6 +221,17 @@ button {
   color: var(--text-secondary);
 }
 
+.selection-btn-chevron {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--text-tertiary);
+}
+
+.selection-btn:hover .selection-btn-chevron {
+  color: var(--text-primary);
+}
+
 .selection-btn-icon svg {
   width: 14px;
   height: 14px;

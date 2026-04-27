@@ -354,6 +354,62 @@ function registerIpcHandlers() {
     return { ok: true, count, targetDir };
   });
 
+  // Same as saves:export-bulk but bundles into a single zip instead of
+  // copying loose files. Uses macOS's `zip` CLI with -j so the archive
+  // is flat (no source paths) and -X to drop extra macOS attrs.
+  ipcMain.handle('saves:export-bulk-zip', async (e, ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return { ok: false, reason: 'no-ids' };
+    const records = ids.map(getSave).filter(Boolean);
+    if (records.length === 0) return { ok: false, reason: 'no-saves' };
+
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const dlg = await dialog.showSaveDialog(owner ?? undefined, {
+      title: 'Export selection as zip',
+      buttonLabel: 'Export',
+      defaultPath: `moodmark-export-${stamp}.zip`,
+      filters: [{ name: 'Zip', extensions: ['zip'] }],
+    });
+    if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
+
+    // Stage in a temp dir so we control filenames and dedupe
+    // collisions before handing them to `zip`.
+    const tmpDir = await fs.promises.mkdtemp(path.join(require('os').tmpdir(), 'moodmark-export-'));
+    const safeName = (s) => (s || '').replace(/[\\/:*?"<>|]/g, '_').trim() || 'image';
+
+    let count = 0;
+    try {
+      for (const r of records) {
+        if (!r.file_path) continue;
+        const ext = (path.extname(r.file_path) || '.png');
+        const stem = safeName(r.title) || safeName(path.basename(r.file_path, path.extname(r.file_path)));
+        let candidate = path.join(tmpDir, `${stem}${ext}`);
+        let n = 1;
+        while (fs.existsSync(candidate)) {
+          candidate = path.join(tmpDir, `${stem} (${n})${ext}`);
+          n++;
+        }
+        await fs.promises.copyFile(r.file_path, candidate);
+        count++;
+      }
+      const result = await new Promise((resolve) => {
+        const args = ['-jXq', dlg.filePath, ...fs.readdirSync(tmpDir).map((f) => path.join(tmpDir, f))];
+        const proc = spawn('zip', args);
+        let stderr = '';
+        proc.stderr.on('data', (d) => { stderr += d.toString(); });
+        proc.on('close', (code) => {
+          if (code === 0) resolve({ ok: true, savedPath: dlg.filePath, count });
+          else resolve({ ok: false, error: `zip exited with code ${code}: ${stderr.trim()}` });
+        });
+        proc.on('error', (err) => resolve({ ok: false, error: err.message }));
+      });
+      return result;
+    } finally {
+      // Best-effort cleanup of the staging dir.
+      try { await fs.promises.rm(tmpDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
   // Full library backup as a single .zip — includes the SQLite DB,
   // images/, and thumbs/. Uses the macOS `zip` CLI (built in) so no
   // new node deps. Returns { ok, savedPath, count? } or { canceled }.

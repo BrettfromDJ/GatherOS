@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     emptyTrash: () => ipcRenderer.invoke('saves:empty-trash'),
     counts: () => ipcRenderer.invoke('saves:counts'),
     exportBulk: (ids) => ipcRenderer.invoke('saves:export-bulk', ids),
+    exportBulkZip: (ids) => ipcRenderer.invoke('saves:export-bulk-zip', ids),
     confirmDelete: (count) => ipcRenderer.invoke('saves:confirm-delete', count),
     dropFile: (file) => {
       // Electron 32+ removed File.path; webUtils.getPathForFile is the
