@@ -41,6 +41,15 @@ function TrashIcon() {
   );
 }
 
+function RestoreIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 8 a5 5 0 1 0 1.6 -3.6" />
+      <path d="M3 2.5 V5 H5.5" />
+    </svg>
+  );
+}
+
 function pickLargestFromSrcset(srcset) {
   if (!srcset) return null;
   let best = null;
@@ -117,8 +126,7 @@ export default function App() {
     reload,
     deleteSave,
     restoreSave,
-    permanentDeleteSave,
-    emptyTrash,
+    hideSavesLocal,
     updateSaveMeta,
   } = useLibrary();
 
@@ -208,27 +216,100 @@ export default function App() {
 
   useEffect(() => { loadAllTags(); }, [loadAllTags]);
 
-  // Inline undo toast for soft-deletes. Single source of truth, so a
-  // bulk delete and a single delete share the same UI surface and timer.
-  const [trashToast, setTrashToast] = useState(null); // { ids, count }
-  const trashToastTimerRef = useRef(null);
+  // Generic action toast: a single bottom-center pill that supports
+  // undo. Works for any reversible-but-deferred action.
+  //   - message: what shows in the toast
+  //   - onUndo:  user clicked "Undo"
+  //   - onCommit: timer expired or another toast replaced this one;
+  //              the action's side-effect (e.g. unlinking files) runs
+  //              here. For already-persisted actions like soft-delete
+  //              this is a noop.
+  const [actionToast, setActionToast] = useState(null);
+  const actionToastTimerRef = useRef(null);
+  const actionToastCommitRef = useRef(null);
+
+  // Run any pending commit synchronously so back-to-back toasts don't
+  // race (and so things still get cleaned up if the toast is replaced).
+  const runPendingCommit = useCallback(() => {
+    if (actionToastTimerRef.current) {
+      clearTimeout(actionToastTimerRef.current);
+      actionToastTimerRef.current = null;
+    }
+    const commit = actionToastCommitRef.current;
+    actionToastCommitRef.current = null;
+    if (commit) commit();
+  }, []);
+
+  const showActionToast = useCallback(({ message, onUndo, onCommit, durationMs = 5000 }) => {
+    runPendingCommit();
+    actionToastCommitRef.current = onCommit || null;
+    setActionToast({ message, onUndo });
+    actionToastTimerRef.current = setTimeout(() => {
+      const commit = actionToastCommitRef.current;
+      actionToastCommitRef.current = null;
+      actionToastTimerRef.current = null;
+      setActionToast(null);
+      if (commit) commit();
+    }, durationMs);
+  }, [runPendingCommit]);
+
+  const handleActionToastUndo = useCallback(() => {
+    if (!actionToast) return;
+    const undo = actionToast.onUndo;
+    // Drop the commit — the undo path will roll back instead.
+    actionToastCommitRef.current = null;
+    if (actionToastTimerRef.current) clearTimeout(actionToastTimerRef.current);
+    actionToastTimerRef.current = null;
+    setActionToast(null);
+    if (undo) undo();
+  }, [actionToast]);
+
+  // If the app unmounts while a commit is pending (window close,
+  // navigation), don't lose the pending file unlinks.
+  useEffect(() => {
+    const onUnload = () => runPendingCommit();
+    window.addEventListener('beforeunload', onUnload);
+    return () => window.removeEventListener('beforeunload', onUnload);
+  }, [runPendingCommit]);
+
   const showTrashToast = useCallback((ids) => {
     if (!ids?.length) return;
-    if (trashToastTimerRef.current) clearTimeout(trashToastTimerRef.current);
-    setTrashToast({ ids, count: ids.length });
-    trashToastTimerRef.current = setTimeout(() => setTrashToast(null), 5000);
-  }, []);
-  const dismissTrashToast = useCallback(() => {
-    if (trashToastTimerRef.current) clearTimeout(trashToastTimerRef.current);
-    setTrashToast(null);
-  }, []);
-  const undoTrashToast = useCallback(async () => {
-    if (!trashToast) return;
-    const ids = trashToast.ids;
-    dismissTrashToast();
-    for (const id of ids) await restoreSave(id);
-    reload();
-  }, [trashToast, restoreSave, reload, dismissTrashToast]);
+    showActionToast({
+      message: ids.length === 1 ? 'Moved to Trash' : `${ids.length} moved to Trash`,
+      onUndo: async () => {
+        for (const id of ids) await restoreSave(id);
+        reload();
+      },
+      // No commit needed: the soft-delete already wrote to the DB.
+    });
+  }, [showActionToast, restoreSave, reload]);
+
+  // Deferred permanent delete. Hides items immediately; only hits the
+  // unlink IPC if the toast's 5s window expires without an Undo.
+  const showPermanentDeleteToast = useCallback((ids) => {
+    if (!ids?.length) return;
+    hideSavesLocal(ids);
+    showActionToast({
+      message: ids.length === 1 ? 'Deleted forever' : `${ids.length} deleted forever`,
+      onUndo: () => reload(), // rows are still in DB with deleted_at set
+      onCommit: () => {
+        // Window passed without Undo — actually unlink files now.
+        for (const id of ids) window.moodmark.saves.permanentDelete(id);
+      },
+    });
+  }, [showActionToast, hideSavesLocal, reload]);
+
+  const showRestoreToast = useCallback((ids) => {
+    if (!ids?.length) return;
+    showActionToast({
+      message: ids.length === 1 ? 'Restored' : `${ids.length} restored`,
+      onUndo: async () => {
+        for (const id of ids) await deleteSave(id);
+        reload();
+      },
+      // restore is already persisted — no commit needed.
+    });
+  }, [showActionToast, deleteSave, reload]);
 
   // Card context menu
   const [cardCtx, setCardCtx] = useState(null); // { saveId, x, y, items }
@@ -242,12 +323,15 @@ export default function App() {
     if (view.type === 'trash') {
       items.push({
         label: 'Restore',
-        onClick: () => restoreSave(saveId),
+        onClick: async () => {
+          await restoreSave(saveId);
+          showRestoreToast([saveId]);
+        },
       });
       items.push({
         label: 'Delete Forever',
         danger: true,
-        onClick: () => permanentDeleteSave(saveId),
+        onClick: () => showPermanentDeleteToast([saveId]),
       });
       return items;
     }
@@ -292,7 +376,7 @@ export default function App() {
       }
     }
     return items;
-  }, [collections, view, reload, loadCollections, restoreSave, permanentDeleteSave]);
+  }, [collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast]);
 
   const handleCardContextMenu = useCallback((saveId, x, y) => {
     const items = buildCardMenuItems(saveId);
@@ -374,6 +458,34 @@ export default function App() {
     setSelected(new Set());
     setFocusedId(id);
   }, []);
+
+  // Bulk Restore (Trash → library) and bulk Delete Forever from the
+  // selection bar when in Trash. Both go through the action toast so
+  // the user can undo within the 5s window.
+  const handleRestoreSelected = useCallback(async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    for (const id of ids) await restoreSave(id);
+    setSelected(new Set());
+    showRestoreToast(ids);
+  }, [selected, restoreSave, showRestoreToast]);
+
+  const handlePermanentDeleteSelected = useCallback(() => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setSelected(new Set());
+    showPermanentDeleteToast(ids);
+  }, [selected, showPermanentDeleteToast]);
+
+  // Empty Trash: same deferred-toast pattern. Operates on every save
+  // currently visible in the Trash view (so search-filtered Empty
+  // Trash means "empty what you see"; an unfiltered view empties all).
+  const handleEmptyTrash = useCallback(() => {
+    const ids = saves.map((s) => s.id);
+    if (ids.length === 0) return;
+    setSelected(new Set());
+    showPermanentDeleteToast(ids);
+  }, [saves, showPermanentDeleteToast]);
 
   const handleOpenInPreview = useCallback((filePath) => {
     window.moodmark.image.openInPreview(filePath);
@@ -692,8 +804,6 @@ export default function App() {
                   if (view.type === 'trash') return 'Trash';
                   return null;
                 })()}
-                isTrash={view.type === 'trash'}
-                onEmptyTrash={emptyTrash}
               />
               <div className="grid-scroll">
                 <Grid
@@ -732,18 +842,51 @@ export default function App() {
         )}
       </div>
 
-      {trashToast && (
+      {actionToast && (
         <div className="trash-toast" role="status">
-          <span className="trash-toast-label">
-            {trashToast.count === 1 ? 'Moved to Trash' : `${trashToast.count} moved to Trash`}
-          </span>
-          <button type="button" className="trash-toast-undo" onClick={undoTrashToast}>
-            Undo
+          <span className="trash-toast-label">{actionToast.message}</span>
+          {actionToast.onUndo && (
+            <button type="button" className="trash-toast-undo" onClick={handleActionToastUndo}>
+              Undo
+            </button>
+          )}
+        </div>
+      )}
+
+      {!focused && selected.size > 0 && view.type === 'trash' && (
+        <div className="selection-bar">
+          <div className="selection-status">
+            <span className="selection-count">{selected.size} selected</span>
+            <button
+              type="button"
+              className="selection-clear-link"
+              onClick={clearSelection}
+            >
+              Clear
+            </button>
+          </div>
+          <button
+            type="button"
+            className="selection-btn selection-btn-compact"
+            onClick={handleRestoreSelected}
+            title="Restore"
+          >
+            <span className="selection-btn-icon"><RestoreIcon /></span>
+            <span className="selection-btn-label">Restore</span>
+          </button>
+          <button
+            type="button"
+            className="selection-btn selection-btn-danger selection-btn-compact"
+            onClick={handlePermanentDeleteSelected}
+            title="Delete Forever"
+          >
+            <span className="selection-btn-icon"><TrashIcon /></span>
+            <span className="selection-btn-label">Delete Forever</span>
           </button>
         </div>
       )}
 
-      {!focused && selected.size > 0 && (
+      {!focused && selected.size > 0 && view.type !== 'trash' && (
         <div className="selection-bar">
           <div className="selection-status">
             <span className="selection-count">
@@ -787,6 +930,25 @@ export default function App() {
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
             <span className="selection-btn-label">Delete</span>
+          </button>
+        </div>
+      )}
+
+      {!focused && view.type === 'trash' && selected.size === 0 && saves.length > 0 && (
+        <div className="selection-bar">
+          <div className="selection-status">
+            <span className="selection-count">
+              {saves.length} in Trash
+            </span>
+          </div>
+          <button
+            type="button"
+            className="selection-btn selection-btn-danger selection-btn-compact"
+            onClick={handleEmptyTrash}
+            title="Empty Trash"
+          >
+            <span className="selection-btn-icon"><TrashIcon /></span>
+            <span className="selection-btn-label">Empty Trash</span>
           </button>
         </div>
       )}

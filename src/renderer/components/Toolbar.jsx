@@ -51,17 +51,6 @@ function GridSmallIcon() {
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 4.5 H13" />
-      <path d="M6.4 4.5 V3.4 a0.8 0.8 0 0 1 0.8 -0.8 h1.6 a0.8 0.8 0 0 1 0.8 0.8 V4.5" />
-      <path d="M4.4 4.5 L5.1 13 a1 1 0 0 0 1 0.9 h3.8 a1 1 0 0 0 1 -0.9 L11.6 4.5" />
-      <path d="M6.8 7 V11.5 M9.2 7 V11.5" />
-    </svg>
-  );
-}
-
 function GridLargeIcon() {
   return (
     <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
@@ -88,8 +77,6 @@ export default function Toolbar({
   onClearColorFilter,
   searchInputRef,
   viewTitle = null,
-  isTrash = false,
-  onEmptyTrash,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -131,17 +118,6 @@ export default function Toolbar({
       </div>
 
       <div className={styles.right}>
-        {isTrash && count > 0 && (
-          <button
-            type="button"
-            className={styles.emptyTrashBtn}
-            onClick={onEmptyTrash}
-            title="Empty Trash"
-          >
-            <TrashIcon />
-            <span>Empty Trash</span>
-          </button>
-        )}
         {colorFilter && (
           <button
             type="button"

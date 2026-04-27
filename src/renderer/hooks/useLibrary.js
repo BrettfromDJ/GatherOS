@@ -80,6 +80,16 @@ export function useLibrary() {
     setSaves([]);
   }, []);
 
+  // Optimistic local removal without firing any IPC. Used by the
+  // deferred Delete-Forever / Empty-Trash flow: we hide the items
+  // immediately so the UI feels snappy, while the actual permanent
+  // delete is held in a 5-second undo window.
+  const hideSavesLocal = useCallback((ids) => {
+    if (!ids?.length) return;
+    const idSet = new Set(ids);
+    setSaves((prev) => prev.filter((s) => !idSet.has(s.id)));
+  }, []);
+
   // Edit title / source_url. DB columns are snake_case, JS API is camelCase,
   // so apply both shapes locally for an optimistic update.
   const updateSaveMeta = useCallback(async (id, meta) => {
@@ -109,6 +119,7 @@ export function useLibrary() {
     restoreSave,
     permanentDeleteSave,
     emptyTrash,
+    hideSavesLocal,
     updateSaveMeta,
   };
 }
