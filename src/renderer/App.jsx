@@ -432,17 +432,72 @@ export default function App() {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/x-moodmark-save-ids', JSON.stringify(ids));
 
-    // Drag image: use the card's already-rendered image (so it's
-    // guaranteed loaded — building a fresh off-screen wrapper was
-    // unreliable, the snapshot would come back blank on second+ drag
-    // if the new img hadn't finished loading/painting). Cursor is
-    // anchored at the image's LEFT edge, vertically centered, so the
-    // preview trails to the right of the cursor and the bucket
-    // underneath stays visible.
+    // Drag image: paint the card's already-loaded <img> into a small
+    // canvas, then use that canvas as the drag image. Canvases have
+    // their pixels available synchronously after drawImage, unlike a
+    // freshly-created <img>, so the preview is reliable on every drag.
+    // Wrapped in a div with transparent left padding so the cursor
+    // anchors to the LEFT of the visible thumbnail (bucket under the
+    // cursor stays visible).
     const cardImg = e.currentTarget.querySelector?.('img');
-    if (cardImg) {
-      const rect = cardImg.getBoundingClientRect();
-      e.dataTransfer.setDragImage(cardImg, 0, rect.height / 2);
+    if (cardImg && cardImg.naturalWidth > 0) {
+      const PREVIEW_W = 72;
+      const aspect = cardImg.naturalWidth / cardImg.naturalHeight;
+      const previewH = Math.max(40, Math.min(72, Math.round(PREVIEW_W / aspect)));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = PREVIEW_W;
+      canvas.height = previewH;
+      const ctx = canvas.getContext('2d');
+      // Round corners by clipping to a rounded path before drawing.
+      const r = 6;
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.arcTo(PREVIEW_W, 0, PREVIEW_W, previewH, r);
+      ctx.arcTo(PREVIEW_W, previewH, 0, previewH, r);
+      ctx.arcTo(0, previewH, 0, 0, r);
+      ctx.arcTo(0, 0, PREVIEW_W, 0, r);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(cardImg, 0, 0, PREVIEW_W, previewH);
+
+      // Multi-select: paint a +N pill in the top-right corner.
+      if (ids.length > 1) {
+        const label = `+${ids.length - 1}`;
+        ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
+        const textW = ctx.measureText(label).width;
+        const pillH = 17;
+        const pillW = Math.max(pillH, textW + 10);
+        const px = PREVIEW_W - pillW - 4;
+        const py = 4;
+        // White outline ring
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.roundRect(px - 1.5, py - 1.5, pillW + 3, pillH + 3, (pillH + 3) / 2);
+        ctx.fill();
+        // Blue pill
+        ctx.fillStyle = '#0a84ff';
+        ctx.beginPath();
+        ctx.roundRect(px, py, pillW, pillH, pillH / 2);
+        ctx.fill();
+        // Number
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, px + pillW / 2, py + pillH / 2 + 0.5);
+      }
+
+      // Wrapper carries the transparent left gap; cursor anchors at
+      // the wrapper's top-left so the canvas trails to the right.
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `
+        position: fixed; top: 0; left: -3000px;
+        padding-left: 22px; pointer-events: none;
+      `;
+      wrapper.appendChild(canvas);
+      document.body.appendChild(wrapper);
+      e.dataTransfer.setDragImage(wrapper, 0, 0);
+      setTimeout(() => wrapper.remove(), 0);
     }
   }, [selected, saves]);
 
