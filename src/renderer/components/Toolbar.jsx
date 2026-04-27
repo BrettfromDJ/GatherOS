@@ -76,6 +76,9 @@ export default function Toolbar({
   colorFilter = null,
   onClearColorFilter,
   searchInputRef,
+  viewTitle = null,
+  isTrash = false,
+  onEmptyTrash,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -91,6 +94,9 @@ export default function Toolbar({
           >
             <SidebarIcon />
           </button>
+        )}
+        {viewTitle && (
+          <span className={styles.viewTitle} title={viewTitle}>{viewTitle}</span>
         )}
       </div>
 
@@ -114,6 +120,16 @@ export default function Toolbar({
       </div>
 
       <div className={styles.right}>
+        {isTrash && count > 0 && (
+          <button
+            type="button"
+            className={styles.emptyTrashBtn}
+            onClick={onEmptyTrash}
+            title="Empty Trash"
+          >
+            Empty Trash
+          </button>
+        )}
         {colorFilter && (
           <button
             type="button"

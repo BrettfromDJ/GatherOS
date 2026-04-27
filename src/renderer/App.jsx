@@ -116,6 +116,9 @@ export default function App() {
     setColorFilter,
     reload,
     deleteSave,
+    restoreSave,
+    permanentDeleteSave,
+    emptyTrash,
     updateSaveMeta,
   } = useLibrary();
 
@@ -212,9 +215,23 @@ export default function App() {
 
   const buildCardMenuItems = useCallback((saveId) => {
     const items = [];
+    // Trash view gets a different menu — restore / delete forever.
+    // No bucket actions, since trashed saves aren't "in the library".
+    if (view.type === 'trash') {
+      items.push({
+        label: 'Restore',
+        onClick: () => restoreSave(saveId),
+      });
+      items.push({
+        label: 'Delete Forever',
+        danger: true,
+        onClick: () => permanentDeleteSave(saveId),
+      });
+      return items;
+    }
     if (view.type === 'collection') {
       items.push({
-        label: 'Remove from Collection',
+        label: 'Remove from Bucket',
         danger: true,
         onClick: async () => {
           await window.moodmark.collections.removeSave({ collectionId: view.id, saveId });
@@ -228,7 +245,7 @@ export default function App() {
       : collections;
     if (others.length > 0) {
       if (items.length > 0) items.push({ type: 'separator' });
-      items.push({ type: 'header', label: 'Add to Collection' });
+      items.push({ type: 'header', label: 'Add to Bucket' });
       for (const col of others) {
         items.push({
           label: col.name,
@@ -250,7 +267,7 @@ export default function App() {
       }
     }
     return items;
-  }, [collections, view, reload, loadCollections]);
+  }, [collections, view, reload, loadCollections, restoreSave, permanentDeleteSave]);
 
   const handleCardContextMenu = useCallback((saveId, x, y) => {
     const items = buildCardMenuItems(saveId);
@@ -643,6 +660,16 @@ export default function App() {
                 colorFilter={colorFilter}
                 onClearColorFilter={() => setColorFilter(null)}
                 searchInputRef={searchInputRef}
+                viewTitle={(() => {
+                  if (view.type === 'collection') {
+                    return collections.find((c) => c.id === view.id)?.name ?? null;
+                  }
+                  if (view.type === 'unsorted') return 'Unsorted';
+                  if (view.type === 'trash') return 'Trash';
+                  return null;
+                })()}
+                isTrash={view.type === 'trash'}
+                onEmptyTrash={emptyTrash}
               />
               <div className="grid-scroll">
                 <Grid
@@ -700,10 +727,10 @@ export default function App() {
               type="button"
               className="selection-btn selection-btn-compact"
               onClick={openBulkPicker}
-              title="Add to Collection"
+              title="Add to Bucket"
             >
               <span className="selection-btn-icon"><CollectionIcon /></span>
-              <span className="selection-btn-label">Add to Collection</span>
+              <span className="selection-btn-label">Add to Bucket</span>
             </button>
           )}
           {selected.size >= 2 && (

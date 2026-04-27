@@ -54,6 +54,37 @@
   justify-content: flex-end;
 }
 
+.viewTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-app-region: no-drag;
+}
+
+.emptyTrashBtn {
+  height: 26px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+.emptyTrashBtn:hover {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--titlebar-bg);
+}
+
 .searchWrap {
   position: relative;
   flex: 0 1 380px;

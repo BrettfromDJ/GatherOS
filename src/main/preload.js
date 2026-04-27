@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),
     update: (payload) => ipcRenderer.invoke('saves:update', payload),
     delete: (id) => ipcRenderer.invoke('saves:delete', id),
+    restore: (id) => ipcRenderer.invoke('saves:restore', id),
+    permanentDelete: (id) => ipcRenderer.invoke('saves:permanent-delete', id),
+    emptyTrash: () => ipcRenderer.invoke('saves:empty-trash'),
     confirmDelete: (count) => ipcRenderer.invoke('saves:confirm-delete', count),
     dropFile: (file) => {
       // Electron 32+ removed File.path; webUtils.getPathForFile is the

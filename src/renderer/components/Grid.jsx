@@ -18,6 +18,8 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
   if (saves.length === 0) {
     const trimmedSearch = (search || '').trim();
     const isCollection = view?.type === 'collection';
+    const isUnsorted = view?.type === 'unsorted';
+    const isTrash = view?.type === 'trash';
 
     let title = 'Nothing saved yet';
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
@@ -31,8 +33,14 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
       title = 'No saves match that color';
       hint = 'Click the chip in the toolbar to clear the filter.';
     } else if (isCollection) {
-      title = 'Collection is empty';
-      hint = 'Right-click any image and choose "Add to Collection"';
+      title = 'Bucket is empty';
+      hint = 'Right-click any image and choose "Add to Bucket"';
+    } else if (isUnsorted) {
+      title = 'Nothing unsorted';
+      hint = 'Every save belongs to at least one bucket.';
+    } else if (isTrash) {
+      title = 'Trash is empty';
+      hint = 'Deleted saves land here. Empty Trash to remove for good.';
     }
 
     return (

@@ -86,6 +86,9 @@ function migrate() {
   if (!saveCols.find((c) => c.name === 'ai_prompt')) {
     db.exec('ALTER TABLE saves ADD COLUMN ai_prompt TEXT');
   }
+  if (!saveCols.find((c) => c.name === 'deleted_at')) {
+    db.exec('ALTER TABLE saves ADD COLUMN deleted_at INTEGER');
+  }
 }
 
 function getDatabase() {
@@ -199,10 +202,21 @@ function filterByColor(saves, hex, threshold = 22, paletteLimit = null) {
   });
 }
 
-function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorHex = null } = {}) {
+// view: 'all' (default — excludes trashed), 'unsorted' (no bucket
+// membership, excludes trashed), or 'trash' (only trashed).
+function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorHex = null, view = 'all' } = {}) {
   const db = getDatabase();
   const conditions = [];
   const params = [];
+
+  if (view === 'trash') {
+    conditions.push('deleted_at IS NOT NULL');
+  } else {
+    conditions.push('deleted_at IS NULL');
+    if (view === 'unsorted') {
+      conditions.push('id NOT IN (SELECT save_id FROM collection_items)');
+    }
+  }
 
   if (collectionId) {
     conditions.push(`id IN (SELECT save_id FROM collection_items WHERE collection_id = ?)`);
@@ -235,12 +249,44 @@ function getSave(id) {
   return getDatabase().prepare('SELECT * FROM saves WHERE id = ?').get(id);
 }
 
+// Soft delete: marks the row as trashed. The image and thumbnail
+// files stay on disk until the user permanently deletes from Trash
+// (or empties Trash).
 function deleteSave(id) {
+  const db = getDatabase();
+  const save = db.prepare('SELECT id FROM saves WHERE id = ?').get(id);
+  if (!save) return { ok: false };
+  db.prepare('UPDATE saves SET deleted_at = ? WHERE id = ?').run(Date.now(), id);
+  return { ok: true };
+}
+
+function restoreSave(id) {
+  const db = getDatabase();
+  db.prepare('UPDATE saves SET deleted_at = NULL WHERE id = ?').run(id);
+  return { ok: true };
+}
+
+// Hard delete: removes the DB row and returns the file paths so the
+// caller (ipc.js) can unlink the underlying files.
+function permanentlyDeleteSave(id) {
   const db = getDatabase();
   const save = db.prepare('SELECT file_path, thumb_path FROM saves WHERE id = ?').get(id);
   if (!save) return { ok: false };
   db.prepare('DELETE FROM saves WHERE id = ?').run(id);
   return { ok: true, filePath: save.file_path, thumbPath: save.thumb_path };
+}
+
+function emptyTrash() {
+  const db = getDatabase();
+  const rows = db
+    .prepare('SELECT id, file_path, thumb_path FROM saves WHERE deleted_at IS NOT NULL')
+    .all();
+  if (rows.length === 0) return { ok: true, files: [] };
+  db.prepare('DELETE FROM saves WHERE deleted_at IS NOT NULL').run();
+  return {
+    ok: true,
+    files: rows.map((r) => ({ filePath: r.file_path, thumbPath: r.thumb_path })),
+  };
 }
 
 function updateSave({ id, title, sourceUrl, aiDescription, ocrText, aiPrompt, embedding } = {}) {
@@ -426,6 +472,9 @@ module.exports = {
   getAllSaves,
   getSave,
   deleteSave,
+  restoreSave,
+  permanentlyDeleteSave,
+  emptyTrash,
   updateSave,
   getSaveEmbeddings,
   getSavesByIds,

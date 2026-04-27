@@ -2,7 +2,8 @@ const { ipcMain, shell, dialog, BrowserWindow, nativeImage } = require('electron
 const fs = require('node:fs');
 const path = require('node:path');
 const {
-  getAllSaves, getSave, deleteSave, updateSave, insertSave,
+  getAllSaves, getSave, deleteSave, restoreSave, permanentlyDeleteSave,
+  emptyTrash, updateSave, insertSave,
   getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount,
   filterByColor,
   getAllCollections, getCollectionsForSave, createCollection, renameCollection,
@@ -179,10 +180,25 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('saves:delete', (_e, id) => {
-    const result = deleteSave(id);
+  // Soft delete — sends the save to Trash. Files stay on disk until the
+  // user permanently deletes or empties Trash.
+  ipcMain.handle('saves:delete', (_e, id) => deleteSave(id));
+
+  ipcMain.handle('saves:restore', (_e, id) => restoreSave(id));
+
+  // Hard delete from Trash: also removes the underlying image + thumb.
+  ipcMain.handle('saves:permanent-delete', (_e, id) => {
+    const result = permanentlyDeleteSave(id);
     if (result.ok) deleteImageFiles(result.filePath, result.thumbPath);
     return result;
+  });
+
+  ipcMain.handle('saves:empty-trash', () => {
+    const result = emptyTrash();
+    if (result.ok) {
+      for (const f of result.files) deleteImageFiles(f.filePath, f.thumbPath);
+    }
+    return { ok: true, count: result.files.length };
   });
 
   ipcMain.handle('saves:confirm-delete', async (e, count) => {

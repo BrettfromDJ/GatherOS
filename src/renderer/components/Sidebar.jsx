@@ -46,18 +46,44 @@ function KeyboardIcon() {
   );
 }
 
+// Bucket icon — trapezoid pail with a handle. Used for every bucket
+// entry in the sidebar (the colored swatch comes from the bucket's
+// own color setting and tints the icon via currentColor).
 export function CollectionIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="9" height="6" rx="1.4" opacity="0.45" />
-      <rect x="4.5" y="5" width="9" height="6" rx="1.4" opacity="0.7" />
-      <rect x="2.5" y="7" width="11" height="6.4" rx="1.5" fill="currentColor" stroke="none" opacity="0.9" />
+      {/* handle */}
+      <path d="M5 5.4 C5 3.5, 11 3.5, 11 5.4" />
+      {/* pail body */}
+      <path d="M3.6 5.6 L4.6 13 a1 1 0 0 0 1 0.9 h4.8 a1 1 0 0 0 1 -0.9 L12.4 5.6 Z" fill="currentColor" fillOpacity="0.18" />
+    </svg>
+  );
+}
+
+function InboxIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.4 9.5 L4 3.5 a1 1 0 0 1 1 -0.7 h6 a1 1 0 0 1 1 0.7 L13.6 9.5" />
+      <path d="M2.4 9.5 H6 l1 1.5 h2 l1 -1.5 h3.6 V12.6 a1 1 0 0 1 -1 1 H3.4 a1 1 0 0 1 -1 -1 Z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 4.5 H13" />
+      <path d="M6.4 4.5 V3.4 a0.8 0.8 0 0 1 0.8 -0.8 h1.6 a0.8 0.8 0 0 1 0.8 0.8 V4.5" />
+      <path d="M4.4 4.5 L5.1 13 a1 1 0 0 0 1 0.9 h3.8 a1 1 0 0 0 1 -0.9 L11.6 4.5" />
+      <path d="M6.8 7 V11.5 M9.2 7 V11.5" />
     </svg>
   );
 }
 
 const SMART_VIEWS = [
-  { id: 'all', label: 'All', color: 'var(--icon-blue)', Icon: GridIcon },
+  { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
+  { id: 'unsorted', label: 'Unsorted', color: 'var(--icon-yellow)', Icon: InboxIcon },
+  { id: 'trash',    label: 'Trash',    color: 'var(--text-tertiary)', Icon: TrashIcon },
 ];
 
 export default function Sidebar({
@@ -181,7 +207,7 @@ export default function Sidebar({
   const ctxItems = ctxMenu
     ? [
         { label: 'Rename', onClick: () => startRename(ctxMenu.collection) },
-        { label: 'Delete Collection', danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
+        { label: 'Delete Bucket', danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
       ]
     : [];
 
@@ -233,11 +259,11 @@ export default function Sidebar({
       </nav>
 
       <div className={styles.sectionHeaderRow}>
-        <span className={styles.sectionHeaderLabel}>Collections</span>
+        <span className={styles.sectionHeaderLabel}>Buckets</span>
         <button
           className={styles.addBtn}
           onClick={startCreating}
-          title="New Collection"
+          title="New Bucket"
         >
           +
         </button>
@@ -251,7 +277,7 @@ export default function Sidebar({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleCreateKeyDown}
-            placeholder="Collection name"
+            placeholder="Bucket name"
           />
           <div className={styles.newCollectionBtns}>
             <button className={styles.formBtn} onClick={cancelCreating}>Cancel</button>
@@ -267,7 +293,7 @@ export default function Sidebar({
 
       <nav className={styles.section}>
         {collections.length === 0 && !creating ? (
-          <div className={styles.empty}>No collections yet</div>
+          <div className={styles.empty}>No buckets yet</div>
         ) : (
           collections.map((c) => {
             const active = view.type === 'collection' && view.id === c.id;

@@ -28,9 +28,13 @@ export function useLibrary() {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
+      const backendView = view.type === 'unsorted' || view.type === 'trash'
+        ? view.type
+        : 'all';
       const data = await window.moodmark.saves.getAll({
         search: debouncedSearch,
         sort: 'newest',
+        view: backendView,
         collectionId: view.type === 'collection' ? view.id : undefined,
         colorHex: colorFilter || undefined,
       });
@@ -61,6 +65,21 @@ export function useLibrary() {
     setSaves((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  const restoreSave = useCallback(async (id) => {
+    await window.moodmark.saves.restore(id);
+    setSaves((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const permanentDeleteSave = useCallback(async (id) => {
+    await window.moodmark.saves.permanentDelete(id);
+    setSaves((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const emptyTrash = useCallback(async () => {
+    await window.moodmark.saves.emptyTrash();
+    setSaves([]);
+  }, []);
+
   // Edit title / source_url. DB columns are snake_case, JS API is camelCase,
   // so apply both shapes locally for an optimistic update.
   const updateSaveMeta = useCallback(async (id, meta) => {
@@ -87,6 +106,9 @@ export function useLibrary() {
     setColorFilter,
     reload: load,
     deleteSave,
+    restoreSave,
+    permanentDeleteSave,
+    emptyTrash,
     updateSaveMeta,
   };
 }
