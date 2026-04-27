@@ -51,9 +51,9 @@ function bufferToFloat32(buf) {
 function registerIpcHandlers() {
   // Merges saves whose extracted palette is perceptually similar to a
   // named color in the query (e.g. "orange", "navy") into the existing
-  // result set. Same view filters (favorites/recent/collection/explicit
-  // colorHex) get applied so semantic + LIKE + name-color-match all
-  // honor the active context.
+  // result set. Same view filters (collection/explicit colorHex) get
+  // applied so semantic + LIKE + name-color-match all honor the active
+  // context.
   function mergeColorNameMatches(results, opts, queryText) {
     const detectedHex = detectColorName(queryText);
     if (!detectedHex) return results;
@@ -155,18 +155,14 @@ function registerIpcHandlers() {
       // Apply the same filters as the LIKE path so view/collection
       // toggles still work in semantic mode. (LIKE matches are already
       // filtered, but semantic candidates aren't.)
-      const filter = opts.filter || 'all';
       const collectionId = opts.collectionId || null;
       const collectionMembers = collectionId
         ? new Set(
             getAllSaves({ collectionId }).map((s) => s.id),
           )
         : null;
-      const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
       let filtered = merged.filter((s) => {
-        if (filter === 'favorites' && !s.favorited) return false;
-        if (filter === 'recent' && s.created_at <= recentCutoff) return false;
         if (collectionId && !collectionMembers.has(s.id)) return false;
         return true;
       });

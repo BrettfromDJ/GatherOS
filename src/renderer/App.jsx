@@ -115,7 +115,6 @@ export default function App() {
     colorFilter,
     setColorFilter,
     reload,
-    toggleFavorite,
     deleteSave,
     updateSaveMeta,
   } = useLibrary();
@@ -627,7 +626,6 @@ export default function App() {
               onNext={goNext}
               hasPrev={focusedIndex > 0}
               hasNext={focusedIndex < saves.length - 1}
-              onToggleFavorite={toggleFavorite}
               onOpenInPreview={handleOpenInPreview}
               onDelete={handleDelete}
               onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}

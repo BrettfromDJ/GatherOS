@@ -15,21 +15,6 @@ function SidebarIcon() {
   );
 }
 
-function HeartIcon({ filled }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 14.4l-0.97-0.88C3.6 10.24 1.33 8.19 1.33 5.67 1.33 3.61 2.95 2 5 2c1.16 0 2.27 0.54 3 1.39C8.73 2.54 9.84 2 11 2c2.05 0 3.67 1.61 3.67 3.67 0 2.52-2.27 4.57-5.7 7.86L8 14.4z" />
-    </svg>
-  );
-}
-
 function PreviewIcon() {
   return (
     <svg
@@ -100,14 +85,12 @@ export default function FocusedView({
   onNext,
   hasPrev,
   hasNext,
-  onToggleFavorite,
   onOpenInPreview,
   onDelete,
   onToggleSidebar,
 }) {
   const [zoom, setZoom] = useState(1);
   const stageRef = useRef(null);
-  const favorited = !!record.favorited;
 
   // Reset zoom whenever the user moves to a different image.
   useEffect(() => {
@@ -200,16 +183,6 @@ export default function FocusedView({
           </div>
 
           <span className={styles.divider} aria-hidden="true" />
-
-          <button
-            type="button"
-            className={[styles.iconBtn, favorited && styles.iconBtnFavorited].filter(Boolean).join(' ')}
-            title={favorited ? 'Favorited' : 'Favorite'}
-            onClick={() => onToggleFavorite(record.id, !favorited)}
-            aria-pressed={favorited}
-          >
-            <HeartIcon filled={favorited} />
-          </button>
 
           <button
             type="button"

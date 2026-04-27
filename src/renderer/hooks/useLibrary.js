@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-function filterFor(view) {
-  if (view.type === 'favorites') return 'favorites';
-  if (view.type === 'recent') return 'recent';
-  return 'all';
-}
-
 const SEARCH_DEBOUNCE_MS = 180;
 
 export function useLibrary() {
@@ -36,7 +30,6 @@ export function useLibrary() {
     try {
       const data = await window.moodmark.saves.getAll({
         search: debouncedSearch,
-        filter: filterFor(view),
         sort: 'newest',
         collectionId: view.type === 'collection' ? view.id : undefined,
         colorHex: colorFilter || undefined,
@@ -62,15 +55,6 @@ export function useLibrary() {
       setSaves((prev) => prev.map((s) => (s.id === record.id ? { ...s, ...record } : s)));
     }),
   []);
-
-  const toggleFavorite = useCallback(async (id, favorited) => {
-    await window.moodmark.saves.update({ id, favorited });
-    // Optimistic local update so the star flips instantly.
-    setSaves((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, favorited: favorited ? 1 : 0 } : s)),
-    );
-    if (view.type === 'favorites') load();
-  }, [load, view.type]);
 
   const deleteSave = useCallback(async (id) => {
     await window.moodmark.saves.delete(id);
@@ -102,7 +86,6 @@ export function useLibrary() {
     colorFilter,
     setColorFilter,
     reload: load,
-    toggleFavorite,
     deleteSave,
     updateSaveMeta,
   };

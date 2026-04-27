@@ -70,11 +70,6 @@
   background: rgba(0, 0, 0, 0.08);
 }
 
-.iconBtnFavorited,
-.iconBtnFavorited:hover {
-  color: var(--icon-pink);
-}
-
 .iconBtnDanger:hover {
   background: rgba(193, 50, 42, 0.08);
   color: #c1322a;

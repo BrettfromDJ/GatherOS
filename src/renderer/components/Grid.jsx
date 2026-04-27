@@ -18,7 +18,6 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
   if (saves.length === 0) {
     const trimmedSearch = (search || '').trim();
     const isCollection = view?.type === 'collection';
-    const isFavorites = view?.type === 'favorites';
 
     let title = 'Nothing saved yet';
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
@@ -34,9 +33,6 @@ export default function Grid({ saves, selected, onSelect, onOpen, onContextMenu,
     } else if (isCollection) {
       title = 'Collection is empty';
       hint = 'Right-click any image and choose "Add to Collection"';
-    } else if (isFavorites) {
-      title = 'No favorites yet';
-      hint = 'Click the heart on any image to favorite it';
     }
 
     return (

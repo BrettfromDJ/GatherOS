@@ -46,23 +46,6 @@ function KeyboardIcon() {
   );
 }
 
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M8 14.4l-0.97-0.88C3.6 10.24 1.33 8.19 1.33 5.67 1.33 3.61 2.95 2 5 2c1.16 0 2.27 0.54 3 1.39C8.73 2.54 9.84 2 11 2c2.05 0 3.67 1.61 3.67 3.67 0 2.52-2.27 4.57-5.7 7.86L8 14.4z" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M8 1.5a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 8 1.5zm0 1.4a5.1 5.1 0 1 1 0 10.2A5.1 5.1 0 0 1 8 2.9z" />
-      <path d="M7.3 4.4h1.4v3.9l2.7 1.55-.7 1.2-3.4-1.97V4.4z" />
-    </svg>
-  );
-}
-
 export function CollectionIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
@@ -75,8 +58,6 @@ export function CollectionIcon() {
 
 const SMART_VIEWS = [
   { id: 'all', label: 'All', color: 'var(--icon-blue)', Icon: GridIcon },
-  { id: 'favorites', label: 'Favorites', color: 'var(--icon-pink)', Icon: HeartIcon },
-  { id: 'recent', label: 'Recent', color: 'var(--icon-yellow)', Icon: ClockIcon },
 ];
 
 export default function Sidebar({

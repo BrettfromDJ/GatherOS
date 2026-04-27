@@ -14,12 +14,10 @@ CREATE TABLE IF NOT EXISTS saves (
   height      INTEGER,
   file_size   INTEGER,
   palette     TEXT,
-  created_at  INTEGER NOT NULL,
-  favorited   INTEGER DEFAULT 0
+  created_at  INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_saves_created_at ON saves (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_saves_favorited  ON saves (favorited);
 
 CREATE TABLE IF NOT EXISTS collections (
   id          TEXT PRIMARY KEY,
@@ -125,13 +123,12 @@ function insertSave({
     file_size: fileSize || null,
     palette: Array.isArray(palette) && palette.length ? JSON.stringify(palette) : null,
     created_at: Date.now(),
-    favorited: 0,
   };
   db.prepare(`
     INSERT INTO saves
-      (id, file_path, thumb_path, title, source_url, width, height, file_size, palette, created_at, favorited)
+      (id, file_path, thumb_path, title, source_url, width, height, file_size, palette, created_at)
     VALUES
-      (@id, @file_path, @thumb_path, @title, @source_url, @width, @height, @file_size, @palette, @created_at, @favorited)
+      (@id, @file_path, @thumb_path, @title, @source_url, @width, @height, @file_size, @palette, @created_at)
   `).run(record);
   return record;
 }
@@ -202,7 +199,7 @@ function filterByColor(saves, hex, threshold = 22, paletteLimit = null) {
   });
 }
 
-function getAllSaves({ search = '', filter = 'all', sort = 'newest', collectionId = null, colorHex = null } = {}) {
+function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorHex = null } = {}) {
   const db = getDatabase();
   const conditions = [];
   const params = [];
@@ -223,11 +220,6 @@ function getAllSaves({ search = '', filter = 'all', sort = 'newest', collectionI
       WHERE tags.name LIKE ?
     ))`);
     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-  }
-  if (filter === 'favorites') conditions.push('favorited = 1');
-  if (filter === 'recent') {
-    conditions.push('created_at > ?');
-    params.push(Date.now() - 7 * 24 * 60 * 60 * 1000);
   }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
@@ -251,12 +243,11 @@ function deleteSave(id) {
   return { ok: true, filePath: save.file_path, thumbPath: save.thumb_path };
 }
 
-function updateSave({ id, title, favorited, sourceUrl, aiDescription, ocrText, aiPrompt, embedding } = {}) {
+function updateSave({ id, title, sourceUrl, aiDescription, ocrText, aiPrompt, embedding } = {}) {
   const db = getDatabase();
   const fields = [];
   const params = [];
   if (title !== undefined) { fields.push('title = ?'); params.push(title); }
-  if (favorited !== undefined) { fields.push('favorited = ?'); params.push(favorited ? 1 : 0); }
   if (sourceUrl !== undefined) { fields.push('source_url = ?'); params.push(sourceUrl); }
   if (aiDescription !== undefined) { fields.push('ai_description = ?'); params.push(aiDescription); }
   if (ocrText !== undefined) { fields.push('ocr_text = ?'); params.push(ocrText); }
