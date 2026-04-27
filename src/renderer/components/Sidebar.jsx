@@ -82,6 +82,14 @@ function TrashIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 8.5 L6.5 12 L13 4.5" />
+    </svg>
+  );
+}
+
 function PencilIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -102,6 +110,7 @@ export default function Sidebar({
   view,
   onViewChange,
   collections = [],
+  unsortedCount = 0,
   onCreateCollection,
   onRenameCollection,
   onDeleteCollection,
@@ -330,11 +339,14 @@ export default function Sidebar({
       <nav className={styles.section}>
         {SMART_VIEWS.map(({ id, label, Icon }) => {
           const active = view.type === id;
+          const showInbox = id === 'unsorted';
+          const inboxZero = showInbox && unsortedCount === 0;
           return (
             <button
               key={id}
               className={`${styles.item} ${active ? styles.active : ''}`}
               onClick={() => onViewChange({ type: id })}
+              title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
             >
               <span
                 className={styles.icon}
@@ -343,6 +355,18 @@ export default function Sidebar({
                 <Icon />
               </span>
               <span className={styles.label}>{label}</span>
+              {showInbox && (
+                inboxZero ? (
+                  <span
+                    className={`${styles.inboxZero}${active ? ' ' + styles.inboxZeroActive : ''}`}
+                    aria-label="Inbox zero"
+                  >
+                    <CheckIcon />
+                  </span>
+                ) : (
+                  <span className={styles.smartCount}>{unsortedCount}</span>
+                )
+              )}
             </button>
           );
         })}

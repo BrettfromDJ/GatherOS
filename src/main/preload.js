@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     restore: (id) => ipcRenderer.invoke('saves:restore', id),
     permanentDelete: (id) => ipcRenderer.invoke('saves:permanent-delete', id),
     emptyTrash: () => ipcRenderer.invoke('saves:empty-trash'),
+    unsortedCount: () => ipcRenderer.invoke('saves:unsorted-count'),
     exportBulk: (ids) => ipcRenderer.invoke('saves:export-bulk', ids),
     confirmDelete: (count) => ipcRenderer.invoke('saves:confirm-delete', count),
     dropFile: (file) => {

@@ -385,6 +385,48 @@
   opacity: 0.55;
 }
 
+/* Smart-view (Unsorted) digit count — same footprint as .count for
+   alignment consistency with the bucket section below. */
+.smartCount {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  opacity: 0.55;
+  margin-left: auto;
+}
+
+/* Inbox-zero badge: a small green check that replaces the unsorted
+   count when it hits 0. Subtle, just enough to register without
+   shouting. */
+.inboxZero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  margin-left: auto;
+  color: #34c759;
+  animation: inboxZeroIn 220ms ease-out;
+}
+
+.inboxZero svg {
+  width: 12px;
+  height: 12px;
+}
+
+.inboxZeroActive {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@keyframes inboxZeroIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 .dot {
   width: 10px;
   height: 10px;

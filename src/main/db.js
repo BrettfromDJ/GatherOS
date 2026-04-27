@@ -330,6 +330,19 @@ function updateSave({ id, title, sourceUrl, aiDescription, ocrText, aiPrompt, em
 // Returns id + embedding (BLOB) for every save that has one. Used by
 // the semantic-search ranker to compute cosine sim in JS — fine up to
 // a few thousand saves; revisit if that scales out.
+// Count of saves that are not deleted AND not in any bucket. Used by
+// the sidebar's Unsorted "inbox" badge.
+function getUnsortedCount() {
+  const row = getDatabase()
+    .prepare(`
+      SELECT COUNT(*) AS n FROM saves
+      WHERE deleted_at IS NULL
+        AND id NOT IN (SELECT save_id FROM collection_items)
+    `)
+    .get();
+  return row?.n ?? 0;
+}
+
 function getSaveEmbeddings() {
   return getDatabase()
     .prepare('SELECT id, embedding FROM saves WHERE embedding IS NOT NULL')
@@ -500,6 +513,7 @@ module.exports = {
   emptyTrash,
   updateSave,
   getSaveEmbeddings,
+  getUnsortedCount,
   getSavesByIds,
   getUnindexedSaves,
   getUnindexedCount,

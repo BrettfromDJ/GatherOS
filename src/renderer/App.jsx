@@ -220,10 +220,17 @@ export default function App() {
 
   // Collections state
   const [collections, setCollections] = useState([]);
+  // Saves not in any bucket and not trashed. Drives the sidebar's
+  // Unsorted "inbox-zero" badge. Refreshed alongside collections.
+  const [unsortedCount, setUnsortedCount] = useState(0);
 
   const loadCollections = useCallback(async () => {
-    const data = await window.moodmark.collections.getAll();
-    setCollections(data);
+    const [cols, count] = await Promise.all([
+      window.moodmark.collections.getAll(),
+      window.moodmark.saves.unsortedCount(),
+    ]);
+    setCollections(cols);
+    setUnsortedCount(typeof count === 'number' ? count : 0);
   }, []);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
@@ -925,6 +932,7 @@ export default function App() {
             view={view}
             onViewChange={handleViewChange}
             collections={collections}
+            unsortedCount={unsortedCount}
             onCreateCollection={handleCreateCollection}
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
