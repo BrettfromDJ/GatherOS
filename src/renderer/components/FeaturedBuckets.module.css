@@ -2,6 +2,13 @@
    itself is transparent — the cards / pills carry their own
    surface. Snaps to pill row when scrolled (no morph transition,
    the in-between frames looked janky). */
+/* Invisible 1px line that sits above the row in normal flow. The
+   IntersectionObserver toggles compact mode based on its visibility
+   in the .grid-scroll viewport. */
+.sentinel {
+  height: 1px;
+}
+
 .row {
   position: sticky;
   top: 0;

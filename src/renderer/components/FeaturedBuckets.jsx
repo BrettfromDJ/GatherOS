@@ -4,15 +4,12 @@ import { CollectionIcon } from './Sidebar.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
 const PREVIEW_COUNT = 4;
-// Hysteresis so we don't flip back-and-forth right at the threshold
-// when the row's height change feeds back into scrollTop.
-const ENTER_COMPACT_PX = 90;
-const EXIT_COMPACT_PX = 20;
 
 export default function FeaturedBuckets({ collections, onPickBucket }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
   const [compact, setCompact] = useState(false);
   const containerRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   // Pre-fetch up to N preview images per bucket. One IPC per bucket;
   // fine for sidebars with a handful of buckets, would want a single
@@ -37,26 +34,30 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
     return () => { cancelled = true; };
   }, [collections]);
 
-  // Watch the grid's scroll container. Two thresholds so the toggle
-  // is hysteretic — once compact, you have to scroll most of the
-  // way back up to expand again. Without this, the row's collapse
-  // shrinks layout under the user's mouse and scrollTop oscillates
-  // around a single threshold, flashing the row back and forth.
+  // Toggle compact based on whether a 1px sentinel sitting above
+  // the row is visible inside the scroll container. IntersectionObserver
+  // doesn't oscillate the way a scrollTop check did — the sentinel
+  // is above the row and never moves when the row shrinks/grows,
+  // so there's no feedback loop.
   useEffect(() => {
     const sc = document.querySelector('.grid-scroll');
-    if (!sc) return;
-    function onScroll() {
-      const top = sc.scrollTop;
-      setCompact((cur) => (cur ? top > EXIT_COMPACT_PX : top > ENTER_COMPACT_PX));
-    }
-    onScroll();
-    sc.addEventListener('scroll', onScroll, { passive: true });
-    return () => sc.removeEventListener('scroll', onScroll);
+    const sentinel = sentinelRef.current;
+    if (!sc || !sentinel || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setCompact(!entry.isIntersecting),
+      { root: sc, threshold: 0 },
+    );
+    obs.observe(sentinel);
+    return () => obs.disconnect();
   }, []);
 
   if (!collections || collections.length === 0) return null;
 
   return (
+    <>
+      {/* IntersectionObserver target — when this 1px line above the
+          row scrolls out of view, the row collapses. */}
+      <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
     <div
       ref={containerRef}
       className={[styles.row, compact && styles.compact].filter(Boolean).join(' ')}
@@ -102,5 +103,6 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
         })}
       </div>
     </div>
+    </>
   );
 }
