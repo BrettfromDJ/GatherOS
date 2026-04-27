@@ -54,8 +54,10 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
   });
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [dropOver, setDropOver] = useState(false);
-  const [tool, setTool] = useState('select'); // 'select' | 'text'
+  const [tool, setTool] = useState('select'); // 'select' | 'hand' | 'text'
   const [editingTextId, setEditingTextId] = useState(null);
+  // Marquee (rubber-band) selection rectangle in world coords.
+  const [marquee, setMarquee] = useState(null);
 
   const viewportRef = useRef(null);
   // Throttle viewport persistence — many micro-updates while panning.
@@ -102,8 +104,10 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
     };
   }, [viewport]);
 
-  // ── Pan / click-to-place text ──────────────────────────────────────────
+  // ── Viewport pointer (pan / marquee / drop text) ──────────────────────
   const panState = useRef(null);
+  const marqueeRef = useRef(null);
+
   const handleViewportPointerDown = useCallback(async (e) => {
     if (e.button !== 0) return;
     if (e.target !== viewportRef.current && !e.target.classList?.contains(styles.world)) {
@@ -134,32 +138,87 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
       return;
     }
 
-    setSelectedIds(new Set());
+    if (tool === 'hand') {
+      // Pan the canvas — no selection changes.
+      panState.current = {
+        startScreenX: e.clientX,
+        startScreenY: e.clientY,
+        startVx: viewport.x,
+        startVy: viewport.y,
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      return;
+    }
+
+    // Select tool: start a marquee. Without shift we clear the existing
+    // selection up front; with shift we preserve it as a baseline that
+    // the marquee adds to.
     setEditingTextId(null);
-    panState.current = {
-      startScreenX: e.clientX,
-      startScreenY: e.clientY,
-      startVx: viewport.x,
-      startVy: viewport.y,
+    if (!e.shiftKey) setSelectedIds(new Set());
+    const start = screenToWorld(e.clientX, e.clientY);
+    marqueeRef.current = {
+      startX: start.x,
+      startY: start.y,
+      shift: e.shiftKey,
+      baseSelection: new Set(selectedIds),
     };
+    setMarquee({ x: start.x, y: start.y, width: 0, height: 0 });
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [tool, viewport, board.id, screenToWorld]);
+  }, [tool, viewport, board.id, screenToWorld, selectedIds]);
 
   const handleViewportPointerMove = useCallback((e) => {
-    if (!panState.current) return;
-    const { startScreenX, startScreenY, startVx, startVy } = panState.current;
-    setViewport((v) => ({
-      ...v,
-      x: startVx + (e.clientX - startScreenX),
-      y: startVy + (e.clientY - startScreenY),
-    }));
-  }, []);
+    if (panState.current) {
+      const { startScreenX, startScreenY, startVx, startVy } = panState.current;
+      setViewport((v) => ({
+        ...v,
+        x: startVx + (e.clientX - startScreenX),
+        y: startVy + (e.clientY - startScreenY),
+      }));
+      return;
+    }
+    if (marqueeRef.current) {
+      const m = marqueeRef.current;
+      const cur = screenToWorld(e.clientX, e.clientY);
+      setMarquee({
+        x: Math.min(m.startX, cur.x),
+        y: Math.min(m.startY, cur.y),
+        width: Math.abs(cur.x - m.startX),
+        height: Math.abs(cur.y - m.startY),
+      });
+    }
+  }, [screenToWorld]);
 
   const handleViewportPointerUp = useCallback((e) => {
-    if (!panState.current) return;
-    panState.current = null;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-  }, []);
+    if (panState.current) {
+      panState.current = null;
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      return;
+    }
+    if (marqueeRef.current) {
+      const m = marqueeRef.current;
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      // Resolve final marquee bounds and select everything that
+      // intersects. Sub-2px boxes are treated as a click — no items.
+      setMarquee((cur) => {
+        if (cur && (cur.width > 2 || cur.height > 2)) {
+          const hit = items.filter((it) => {
+            const b = getItemBounds(it);
+            return !(b.x + b.width < cur.x
+                  || b.x > cur.x + cur.width
+                  || b.y + b.height < cur.y
+                  || b.y > cur.y + cur.height);
+          });
+          setSelectedIds(() => {
+            const next = m.shift ? new Set(m.baseSelection) : new Set();
+            for (const it of hit) next.add(it.id);
+            return next;
+          });
+        }
+        return null;
+      });
+      marqueeRef.current = null;
+    }
+  }, [items]);
 
   // ── Wheel: pan (no modifier) / zoom (cmd or ctrl) ──────────────────────
   // Magic Mouse + trackpad two-finger gestures fire wheel events with
@@ -288,11 +347,10 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
   const handleResizeStart = useCallback((e, corner, item) => {
     e.stopPropagation();
     e.preventDefault();
-    // Measure the rendered box at drag-start. Text items auto-size to
-    // content so the stored width isn't authoritative; for images it
-    // matches but reading from the DOM is uniform either way.
-    const itemEl = e.currentTarget.parentElement;
-    const rect = itemEl.getBoundingClientRect();
+    // Handles now live on the SelectionFrame layer, not inside the item,
+    // so we use the item's logical bounds directly (image: stored
+    // width/height; text: approximation from font_size + content).
+    const b = getItemBounds(item);
     resizeState.current = {
       itemId: item.id,
       type: item.type,
@@ -301,12 +359,12 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
       startMouseY: e.clientY,
       startX: item.x,
       startY: item.y,
-      startWidth: rect.width / viewport.z,
-      startHeight: rect.height / viewport.z,
+      startWidth: b.width,
+      startHeight: b.height,
       startFontSize: item.font_size || 16,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [viewport.z]);
+  }, []);
 
   const handleResizeMove = useCallback((e) => {
     const s = resizeState.current;
@@ -614,6 +672,16 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
         setTool((t) => (t === 'text' ? 'select' : 'text'));
         return;
       }
+      if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        setTool('select');
+        return;
+      }
+      if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        setTool('hand');
+        return;
+      }
 
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size > 0) {
         e.preventDefault();
@@ -636,6 +704,8 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
     styles.viewport,
     dropOver && styles.viewportDropOver,
     tool === 'text' && styles.viewportText,
+    tool === 'hand' && styles.viewportHand,
+    tool === 'select' && styles.viewportSelect,
   ].filter(Boolean).join(' ');
 
   // The text-formatting toolbar follows whichever text item is active —
@@ -656,6 +726,24 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
       <div className={styles.toolbar}>
         <div className={styles.toolbarTitle}>{board.name}</div>
         <div className={styles.toolbarActions}>
+          <button
+            type="button"
+            className={[styles.toolbarBtn, tool === 'select' && styles.toolbarBtnActive]
+              .filter(Boolean).join(' ')}
+            onClick={() => setTool('select')}
+            title="Select (V)"
+          >
+            V
+          </button>
+          <button
+            type="button"
+            className={[styles.toolbarBtn, tool === 'hand' && styles.toolbarBtnActive]
+              .filter(Boolean).join(' ')}
+            onClick={() => setTool('hand')}
+            title="Hand — pan (H)"
+          >
+            H
+          </button>
           <button
             type="button"
             className={[styles.toolbarBtn, tool === 'text' && styles.toolbarBtnActive]
@@ -707,8 +795,6 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
               <BoardItem
                 key={item.id}
                 item={item}
-                selected={selectedIds.has(item.id)}
-                multi={selectedIds.size > 1}
                 editing={editingTextId === item.id}
                 onPointerDown={handleItemPointerDown}
                 onPointerMove={handleItemPointerMove}
@@ -716,37 +802,40 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
                 onDoubleClick={handleItemDoubleClick}
                 onTextChange={handleTextChange}
                 onTextCommit={handleTextCommit}
-                onResizeStart={handleResizeStart}
-                onResizeMove={handleResizeMove}
-                onResizeEnd={handleResizeEnd}
               />
             ))}
-            {selectedIds.size > 1 && (() => {
+            {(() => {
+              if (selectedIds.size === 0) return null;
               const sel = items.filter((it) => selectedIds.has(it.id));
-              const u = unionBounds(sel);
-              if (!u) return null;
+              const isGroup = sel.length > 1;
+              const bbox = isGroup
+                ? unionBounds(sel)
+                : (sel[0] ? getItemBounds(sel[0]) : null);
+              if (!bbox) return null;
+              const onCornerDown = isGroup
+                ? (e, corner) => handleGroupResizeStart(e, corner)
+                : (e, corner) => handleResizeStart(e, corner, sel[0]);
+              const onCornerMove = isGroup ? handleGroupResizeMove : handleResizeMove;
+              const onCornerUp   = isGroup ? handleGroupResizeEnd  : handleResizeEnd;
               return (
-                <div
-                  className={styles.groupBox}
-                  style={{
-                    transform: `translate(${u.x}px, ${u.y}px)`,
-                    width: `${u.width}px`,
-                    height: `${u.height}px`,
-                  }}
-                >
-                  {['tl', 'tr', 'bl', 'br'].map((corner) => (
-                    <div
-                      key={corner}
-                      className={[styles.resizeHandle, styles[`handle_${corner}`]].join(' ')}
-                      onPointerDown={(e) => handleGroupResizeStart(e, corner)}
-                      onPointerMove={handleGroupResizeMove}
-                      onPointerUp={handleGroupResizeEnd}
-                      onPointerCancel={handleGroupResizeEnd}
-                    />
-                  ))}
-                </div>
+                <SelectionFrame
+                  bounds={bbox}
+                  onCornerDown={onCornerDown}
+                  onCornerMove={onCornerMove}
+                  onCornerUp={onCornerUp}
+                />
               );
             })()}
+            {marquee && (
+              <div
+                className={styles.marquee}
+                style={{
+                  transform: `translate(${marquee.x}px, ${marquee.y}px)`,
+                  width: `${marquee.width}px`,
+                  height: `${marquee.height}px`,
+                }}
+              />
+            )}
             {items.length === 0 && (
               <div className={styles.emptyHint}>
                 Drag images from the library on the left, or press T to add text.
@@ -768,10 +857,9 @@ export default function BoardCanvas({ board, allSaves, collections = [] }) {
 }
 
 function BoardItem({
-  item, selected, multi, editing,
+  item, editing,
   onPointerDown, onPointerMove, onPointerUp,
   onDoubleClick, onTextChange, onTextCommit,
-  onResizeStart, onResizeMove, onResizeEnd,
 }) {
   if (item.type === 'image') {
     const style = {
@@ -780,11 +868,10 @@ function BoardItem({
       height: `${item.height}px`,
       zIndex: item.z_index || 0,
     };
-    const cls = [styles.item, selected && styles.itemSelected].filter(Boolean).join(' ');
     const src = item.save_file_path ? fileUrl(item.save_file_path) : null;
     return (
       <div
-        className={cls}
+        className={styles.item}
         style={style}
         onPointerDown={(e) => onPointerDown(e, item)}
         onPointerMove={onPointerMove}
@@ -796,20 +883,6 @@ function BoardItem({
         ) : (
           <div className={styles.itemPlaceholder}>image deleted</div>
         )}
-        {selected && !multi && (
-          <>
-            {['tl', 'tr', 'bl', 'br'].map((corner) => (
-              <div
-                key={corner}
-                className={[styles.resizeHandle, styles[`handle_${corner}`]].join(' ')}
-                onPointerDown={(e) => onResizeStart(e, corner, item)}
-                onPointerMove={onResizeMove}
-                onPointerUp={onResizeEnd}
-                onPointerCancel={onResizeEnd}
-              />
-            ))}
-          </>
-        )}
       </div>
     );
   }
@@ -818,8 +891,6 @@ function BoardItem({
     return (
       <TextItem
         item={item}
-        selected={selected}
-        multi={multi}
         editing={editing}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -827,9 +898,6 @@ function BoardItem({
         onDoubleClick={onDoubleClick}
         onTextChange={onTextChange}
         onTextCommit={onTextCommit}
-        onResizeStart={onResizeStart}
-        onResizeMove={onResizeMove}
-        onResizeEnd={onResizeEnd}
       />
     );
   }
@@ -838,10 +906,9 @@ function BoardItem({
 }
 
 function TextItem({
-  item, selected, multi, editing,
+  item, editing,
   onPointerDown, onPointerMove, onPointerUp,
   onDoubleClick, onTextChange, onTextCommit,
-  onResizeStart, onResizeMove, onResizeEnd,
 }) {
   const textareaRef = useRef(null);
 
@@ -861,7 +928,6 @@ function TextItem({
   };
   const cls = [
     styles.textItem,
-    selected && styles.textItemSelected,
     editing && styles.textItemEditing,
   ].filter(Boolean).join(' ');
 
@@ -910,20 +976,33 @@ function TextItem({
             : <span className={styles.textPlaceholder}>Add Text</span>}
         </div>
       )}
-      {selected && !editing && !multi && (
-        <>
-          {['tl', 'tr', 'bl', 'br'].map((corner) => (
-            <div
-              key={corner}
-              className={[styles.resizeHandle, styles[`handle_${corner}`]].join(' ')}
-              onPointerDown={(e) => onResizeStart(e, corner, item)}
-              onPointerMove={onResizeMove}
-              onPointerUp={onResizeEnd}
-              onPointerCancel={onResizeEnd}
-            />
-          ))}
-        </>
-      )}
+    </div>
+  );
+}
+
+// Selection chrome: blue outline + four corner resize handles. Lives
+// on a top layer in the world container so it always renders above
+// items, regardless of their z-index.
+function SelectionFrame({ bounds, onCornerDown, onCornerMove, onCornerUp }) {
+  return (
+    <div
+      className={styles.selectionFrame}
+      style={{
+        transform: `translate(${bounds.x}px, ${bounds.y}px)`,
+        width: `${bounds.width}px`,
+        height: `${bounds.height}px`,
+      }}
+    >
+      {['tl', 'tr', 'bl', 'br'].map((corner) => (
+        <div
+          key={corner}
+          className={[styles.resizeHandle, styles[`handle_${corner}`]].join(' ')}
+          onPointerDown={(e) => onCornerDown(e, corner)}
+          onPointerMove={onCornerMove}
+          onPointerUp={onCornerUp}
+          onPointerCancel={onCornerUp}
+        />
+      ))}
     </div>
   );
 }

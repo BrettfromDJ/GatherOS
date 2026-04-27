@@ -176,6 +176,14 @@
   cursor: crosshair;
 }
 
+.viewport.viewportSelect,
+.viewport.viewportSelect:active {
+  cursor: default;
+}
+
+.viewport.viewportHand        { cursor: grab; }
+.viewport.viewportHand:active { cursor: grabbing; }
+
 .world {
   position: absolute;
   inset: 0;
@@ -220,10 +228,7 @@
 
 .item:active { cursor: grabbing; }
 
-.item.itemSelected {
-  outline: calc(2px / var(--zoom, 1)) solid var(--accent);
-  outline-offset: calc(1px / var(--zoom, 1));
-}
+/* Image selection chrome moved to .selectionFrame on a top layer. */
 
 .item img {
   width: 100%;
@@ -260,10 +265,8 @@
 
 .textItem:active { cursor: grabbing; }
 
-.textItem.textItemSelected {
-  outline: calc(2px / var(--zoom, 1)) solid var(--accent);
-  outline-offset: calc(2px / var(--zoom, 1));
-}
+/* Text selection chrome moved to .selectionFrame on a top layer. The
+   editing outline below is its own state and stays on the item. */
 
 .textItem.textItemEditing {
   cursor: text;
@@ -329,19 +332,33 @@
 .handle_bl { bottom: calc(-6px / var(--zoom, 1)); left: calc(-6px / var(--zoom, 1)); cursor: nesw-resize; }
 .handle_br { bottom: calc(-6px / var(--zoom, 1)); right: calc(-6px / var(--zoom, 1)); cursor: nwse-resize; }
 
-/* Group bounding box for multi-selection. Outline + handles only —
-   the box itself is transparent so items inside still get clicks. */
-.groupBox {
+/* Selection chrome: blue outline + corner handles drawn on a top layer
+   inside the world container. Always above items regardless of their
+   z-index, so the selection is never hidden by overlapping content.
+   The box itself is click-through; only the handles capture pointers. */
+.selectionFrame {
   position: absolute;
   top: 0;
   left: 0;
   outline: calc(2px / var(--zoom, 1)) solid var(--accent);
   outline-offset: calc(2px / var(--zoom, 1));
   pointer-events: none;
+  z-index: 999999;
 }
 
-.groupBox > .resizeHandle {
+.selectionFrame > .resizeHandle {
   pointer-events: auto;
+}
+
+/* Rubber-band marquee while dragging in Select mode. */
+.marquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(10, 132, 255, 0.10);
+  border: calc(1px / var(--zoom, 1)) solid var(--accent);
+  pointer-events: none;
+  z-index: 999998;
 }
 
 /* ── Text formatting toolbar ──────────────────────────────────────────── */
