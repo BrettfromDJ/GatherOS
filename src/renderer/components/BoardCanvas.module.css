@@ -321,7 +321,7 @@
   width: calc(10px / var(--zoom, 1));
   height: calc(10px / var(--zoom, 1));
   background: #fff;
-  border: calc(1.5px / var(--zoom, 1)) solid var(--accent);
+  border: calc(1px / var(--zoom, 1)) solid var(--accent);
   border-radius: calc(2px / var(--zoom, 1));
   z-index: 2;
   box-shadow: 0 calc(1px / var(--zoom, 1)) calc(2px / var(--zoom, 1)) rgba(0, 0, 0, 0.15);
@@ -340,7 +340,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  outline: calc(2px / var(--zoom, 1)) solid var(--accent);
+  outline: calc(1px / var(--zoom, 1)) solid var(--accent);
   outline-offset: calc(2px / var(--zoom, 1));
   pointer-events: none;
   z-index: 999999;
