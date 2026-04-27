@@ -160,7 +160,7 @@ export default function Sidebar({
   view,
   onViewChange,
   collections = [],
-  unsortedCount = 0,
+  smartCounts = { all: 0, unsorted: 0, trash: 0 },
   onCreateCollection,
   onRenameCollection,
   onDeleteCollection,
@@ -241,14 +241,13 @@ export default function Sidebar({
   }
 
   // ── Inbox-zero confetti ───────────────────────────────────────────────
-  // Fire a one-shot burst when unsortedCount transitions from > 0 to 0.
-  // Anchored on the right edge of the Unsorted row so pieces emerge
-  // from where the green check appears.
+  // Fire a one-shot burst when smartCounts.unsorted transitions from
+  // > 0 to 0. Anchored on the right edge of the Unsorted row so pieces
+  // emerge from where the green check appears.
   const [confetti, setConfetti] = useState(null); // { id, x, y } | null
-  const prevUnsortedRef = useRef(unsortedCount);
+  const prevUnsortedRef = useRef(smartCounts.unsorted);
   useEffect(() => {
-    if (prevUnsortedRef.current > 0 && unsortedCount === 0) {
-      // Defer one frame so the row has rendered with the check visible.
+    if (prevUnsortedRef.current > 0 && smartCounts.unsorted === 0) {
       requestAnimationFrame(() => {
         const row = document.querySelector('[data-smart-view="unsorted"]');
         if (!row) return;
@@ -260,8 +259,8 @@ export default function Sidebar({
         });
       });
     }
-    prevUnsortedRef.current = unsortedCount;
-  }, [unsortedCount]);
+    prevUnsortedRef.current = smartCounts.unsorted;
+  }, [smartCounts.unsorted]);
 
   // ── Hover preview ────────────────────────────────────────────────────────
   // Brief 2×2 mosaic preview when hovering a bucket row. Fetched lazily
@@ -412,8 +411,8 @@ export default function Sidebar({
       <nav className={styles.section}>
         {SMART_VIEWS.map(({ id, label, Icon }) => {
           const active = view.type === id;
-          const showInbox = id === 'unsorted';
-          const inboxZero = showInbox && unsortedCount === 0;
+          const count = smartCounts[id] ?? 0;
+          const inboxZero = id === 'unsorted' && count === 0;
           return (
             <button
               key={id}
@@ -429,17 +428,15 @@ export default function Sidebar({
                 <Icon />
               </span>
               <span className={styles.label}>{label}</span>
-              {showInbox && (
-                inboxZero ? (
-                  <span
-                    className={`${styles.inboxZero}${active ? ' ' + styles.inboxZeroActive : ''}`}
-                    aria-label="Inbox zero"
-                  >
-                    <CheckIcon />
-                  </span>
-                ) : (
-                  <span className={styles.smartCount}>{unsortedCount}</span>
-                )
+              {inboxZero ? (
+                <span
+                  className={`${styles.inboxZero}${active ? ' ' + styles.inboxZeroActive : ''}`}
+                  aria-label="Inbox zero"
+                >
+                  <CheckIcon />
+                </span>
+              ) : (
+                <span className={styles.smartCount}>{count}</span>
               )}
             </button>
           );

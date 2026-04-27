@@ -4,7 +4,7 @@ const path = require('node:path');
 const {
   getAllSaves, getSave, deleteSave, restoreSave, permanentlyDeleteSave,
   emptyTrash, updateSave, insertSave,
-  getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount, getUnsortedCount,
+  getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
   filterByColor,
   getAllCollections, getCollectionsForSave, createCollection, renameCollection,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
@@ -201,7 +201,7 @@ function registerIpcHandlers() {
     return { ok: true, count: result.files.length };
   });
 
-  ipcMain.handle('saves:unsorted-count', () => getUnsortedCount());
+  ipcMain.handle('saves:counts', () => getSmartViewCounts());
 
   ipcMain.handle('saves:confirm-delete', async (e, count) => {
     const owner = BrowserWindow.fromWebContents(e.sender);

@@ -334,17 +334,24 @@ function updateSave({ id, title, sourceUrl, aiDescription, ocrText, aiPrompt, em
 // Returns id + embedding (BLOB) for every save that has one. Used by
 // the semantic-search ranker to compute cosine sim in JS — fine up to
 // a few thousand saves; revisit if that scales out.
-// Count of saves that are not deleted AND not in any bucket. Used by
-// the sidebar's Unsorted "inbox" badge.
-function getUnsortedCount() {
-  const row = getDatabase()
-    .prepare(`
-      SELECT COUNT(*) AS n FROM saves
-      WHERE deleted_at IS NULL
-        AND id NOT IN (SELECT save_id FROM collection_items)
-    `)
-    .get();
-  return row?.n ?? 0;
+// Counts that drive the sidebar's smart-view badges:
+//   all:      all non-trashed saves
+//   unsorted: non-trashed saves that aren't in any bucket
+//   trash:    soft-deleted saves
+function getSmartViewCounts() {
+  const db = getDatabase();
+  const all = db.prepare('SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NULL').get();
+  const unsorted = db.prepare(`
+    SELECT COUNT(*) AS n FROM saves
+    WHERE deleted_at IS NULL
+      AND id NOT IN (SELECT save_id FROM collection_items)
+  `).get();
+  const trash = db.prepare('SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NOT NULL').get();
+  return {
+    all: all?.n ?? 0,
+    unsorted: unsorted?.n ?? 0,
+    trash: trash?.n ?? 0,
+  };
 }
 
 function getSaveEmbeddings() {
@@ -517,7 +524,7 @@ module.exports = {
   emptyTrash,
   updateSave,
   getSaveEmbeddings,
-  getUnsortedCount,
+  getSmartViewCounts,
   getSavesByIds,
   getUnindexedSaves,
   getUnindexedCount,

@@ -220,17 +220,17 @@ export default function App() {
 
   // Collections state
   const [collections, setCollections] = useState([]);
-  // Saves not in any bucket and not trashed. Drives the sidebar's
-  // Unsorted "inbox-zero" badge. Refreshed alongside collections.
-  const [unsortedCount, setUnsortedCount] = useState(0);
+  // Counts that drive the sidebar's smart-view badges (All / Unsorted /
+  // Trash). Refreshed alongside collections.
+  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0 });
 
   const loadCollections = useCallback(async () => {
-    const [cols, count] = await Promise.all([
+    const [cols, counts] = await Promise.all([
       window.moodmark.collections.getAll(),
-      window.moodmark.saves.unsortedCount(),
+      window.moodmark.saves.counts(),
     ]);
     setCollections(cols);
-    setUnsortedCount(typeof count === 'number' ? count : 0);
+    setSmartCounts(counts && typeof counts === 'object' ? counts : { all: 0, unsorted: 0, trash: 0 });
   }, []);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
@@ -932,7 +932,7 @@ export default function App() {
             view={view}
             onViewChange={handleViewChange}
             collections={collections}
-            unsortedCount={unsortedCount}
+            smartCounts={smartCounts}
             onCreateCollection={handleCreateCollection}
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
