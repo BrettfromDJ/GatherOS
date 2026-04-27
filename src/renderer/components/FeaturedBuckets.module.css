@@ -48,11 +48,13 @@
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  /* overflow-y is coerced by the browser to match overflow-x, so
-     hover-shadow on the cards gets clipped at the scroller's edge.
-     Bump bottom padding (and pull the row's edge back up via the
-     row's own padding) to give the shadow clear room. */
-  padding: 4px 0 28px;
+  /* overflow-y is coerced to match overflow-x, so hover-shadow on
+     cards gets clipped at every scroller edge. Inflate the scroller
+     with internal padding on all four sides for shadow clearance,
+     and pull it back with negative margins so the visual position
+     of the cards (and the row's outer padding) is unchanged. */
+  padding: 4px 16px 28px;
+  margin: 0 -16px;
   scroll-behavior: smooth;
   scrollbar-width: none;
 }
