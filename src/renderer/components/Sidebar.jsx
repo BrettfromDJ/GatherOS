@@ -528,17 +528,15 @@ export default function Sidebar({
                   }
                 }}
               >
-                {!isChild && (
+                {hasChildren && (
                   <span
                     className={[
                       styles.bucketChevron,
-                      hasChildren && styles.bucketChevronVisible,
                       isCollapsed && styles.bucketChevronCollapsed,
                     ].filter(Boolean).join(' ')}
-                    role={hasChildren ? 'button' : undefined}
-                    aria-label={hasChildren ? (isCollapsed ? 'Expand sub-buckets' : 'Collapse sub-buckets') : undefined}
+                    role="button"
+                    aria-label={isCollapsed ? 'Expand sub-buckets' : 'Collapse sub-buckets'}
                     onClick={(e) => {
-                      if (!hasChildren) return;
                       e.stopPropagation();
                       e.preventDefault();
                       toggleBucketCollapse(c.id);

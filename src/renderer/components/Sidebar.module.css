@@ -258,9 +258,9 @@
   color: var(--text-secondary);
 }
 
-/* Disclosure chevron on top-level buckets. Always reserves the same
-   space so labels line up even when a bucket has no children — but
-   only becomes visible / clickable when there ARE children. */
+/* Disclosure chevron on top-level buckets that have children. Only
+   rendered when present (no reserved-space placeholder) so buckets
+   without children stay aligned with the smart-view icons above. */
 .bucketChevron {
   width: 11px;
   height: 11px;
@@ -270,18 +270,12 @@
   flex-shrink: 0;
   margin-right: -2px;
   color: var(--text-tertiary);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 150ms ease, color 100ms ease;
-}
-
-.bucketChevron.bucketChevronVisible {
   opacity: 0.85;
-  pointer-events: auto;
   cursor: pointer;
+  transition: transform 150ms ease, color 100ms ease, opacity 100ms ease;
 }
 
-.bucketChevron.bucketChevronVisible:hover {
+.bucketChevron:hover {
   color: var(--text-primary);
   opacity: 1;
 }
