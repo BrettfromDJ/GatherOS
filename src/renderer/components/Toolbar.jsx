@@ -119,6 +119,9 @@ export default function Toolbar({
         {viewTitle && (
           <span className={styles.viewTitle} title={viewTitle}>{viewTitle}</span>
         )}
+        {viewTitle && count != null && (
+          <span className={styles.viewCount}>{count}</span>
+        )}
       </div>
 
       <div className={styles.searchWrap}>
@@ -153,7 +156,7 @@ export default function Toolbar({
             <span className={styles.colorChipX} aria-hidden="true">×</span>
           </button>
         )}
-        {count != null && (
+        {count != null && !viewTitle && (
           <span className={styles.count}>
             {count} {count === 1 ? 'save' : 'saves'}
           </span>

@@ -70,6 +70,21 @@
   -webkit-app-region: no-drag;
 }
 
+.viewCount {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
 .layoutToggle {
   display: inline-flex;
   align-items: center;
