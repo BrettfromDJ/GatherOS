@@ -22,6 +22,16 @@ function BoardExportIcon() {
   );
 }
 
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 2.5 V10.5" />
+      <path d="M4.5 7 L8 10.5 L11.5 7" />
+      <path d="M3 13 H13" />
+    </svg>
+  );
+}
+
 function ClearIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -688,6 +698,22 @@ export default function App() {
     }
   }, [selected]);
 
+  // Bulk file export: copy the selected saves' underlying images into
+  // a folder the user picks. Distinct from the moodboard composite —
+  // this hands you back the original files.
+  const handleBulkExportFiles = useCallback(async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      const result = await window.moodmark.saves.exportBulk(ids);
+      if (result?.ok) {
+        setSelected(new Set());
+      }
+    } catch (err) {
+      console.error('Bulk file export failed:', err);
+    }
+  }, [selected]);
+
   const bulkPickerItems = useMemo(() => {
     if (!bulkPicker) return [];
     const ids = [...selected];
@@ -1049,15 +1075,24 @@ export default function App() {
               <span className="selection-btn-label">Add to Bucket</span>
             </button>
           )}
+          <button
+            type="button"
+            className="selection-btn selection-btn-compact"
+            onClick={handleBulkExportFiles}
+            title="Export selected images to a folder"
+          >
+            <span className="selection-btn-icon"><DownloadIcon /></span>
+            <span className="selection-btn-label">Export</span>
+          </button>
           {selected.size >= 2 && (
             <button
               type="button"
               className="selection-btn selection-btn-compact"
               onClick={handleBulkExportBoard}
-              title="Export as Moodboard"
+              title="Composite the selection into a single moodboard PNG"
             >
               <span className="selection-btn-icon"><BoardExportIcon /></span>
-              <span className="selection-btn-label">Export as Moodboard</span>
+              <span className="selection-btn-label">Generate as a Moodboard</span>
             </button>
           )}
           <button

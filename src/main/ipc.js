@@ -308,6 +308,49 @@ function registerIpcHandlers() {
     }
   });
 
+  // Bulk file export: pick a folder, copy each selected save's
+  // underlying image into it. Names collide with `name (1).png`,
+  // `name (2).png`, ... so nothing in the destination gets overwritten.
+  ipcMain.handle('saves:export-bulk', async (e, ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return { ok: false, reason: 'no-ids' };
+    const records = ids.map(getSave).filter(Boolean);
+    if (records.length === 0) return { ok: false, reason: 'no-saves' };
+
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    const dlg = await dialog.showOpenDialog(owner ?? undefined, {
+      title: 'Export images to…',
+      buttonLabel: 'Export',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (dlg.canceled || !dlg.filePaths?.[0]) return { ok: false, canceled: true };
+    const targetDir = dlg.filePaths[0];
+
+    const fileExists = async (p) => {
+      try { await fs.promises.access(p); return true; } catch { return false; }
+    };
+    const safeName = (s) => (s || '').replace(/[\\/:*?"<>|]/g, '_').trim() || 'image';
+
+    let count = 0;
+    for (const r of records) {
+      if (!r.file_path) continue;
+      const ext = (path.extname(r.file_path) || '.png');
+      const stem = safeName(r.title) || safeName(path.basename(r.file_path, path.extname(r.file_path)));
+      let candidate = path.join(targetDir, `${stem}${ext}`);
+      let n = 1;
+      while (await fileExists(candidate)) {
+        candidate = path.join(targetDir, `${stem} (${n})${ext}`);
+        n++;
+      }
+      try {
+        await fs.promises.copyFile(r.file_path, candidate);
+        count++;
+      } catch (err) {
+        console.error('Bulk export failed for', r.id, err);
+      }
+    }
+    return { ok: true, count, targetDir };
+  });
+
   ipcMain.handle('boards:export', async (e, saveIds) => {
     if (!Array.isArray(saveIds) || saveIds.length === 0) {
       return { ok: false, reason: 'no-ids' };
