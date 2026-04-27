@@ -1092,7 +1092,6 @@ export default function App() {
             onTagsChanged={loadAllTags}
             onUpdateMeta={updateSaveMeta}
             onOpenSettings={() => setSettingsOpen(true)}
-            onColorFilter={handleColorFilter}
           />
         )}
       </div>
