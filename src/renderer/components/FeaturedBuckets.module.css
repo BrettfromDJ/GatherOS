@@ -1,5 +1,7 @@
-/* Sticky featured-buckets row at the top of the All grid. Collapses
-   to a pill row when the grid's been scrolled. */
+/* Sticky featured-buckets row at the top of the All grid. Snaps to
+   a pill row when the grid's been scrolled — no morph transition,
+   since the in-between frames looked janky. Hover/fan transitions
+   inside a single state (expanded or pill) are kept. */
 .row {
   position: sticky;
   top: 0;
@@ -10,9 +12,6 @@
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
   border-bottom: 0.5px solid transparent;
-  transition:
-    padding 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-    border-color 200ms ease;
 }
 
 .row.compact {
@@ -49,10 +48,9 @@
   text-align: left;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Only animate hover lift / shadow — layout (width / padding /
+     border-radius) snaps to its new state, see .row comment above. */
   transition:
-    width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-    padding 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-    border-radius 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
     transform 160ms ease,
     box-shadow 160ms ease;
 }
@@ -74,9 +72,6 @@
   align-items: center;
   justify-content: center;
   perspective: 600px;
-  transition: width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-              height 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-              margin 240ms cubic-bezier(0.18, 0.7, 0.32, 1);
 }
 
 .stack img {
@@ -87,10 +82,10 @@
   object-fit: cover;
   background: rgba(0, 0, 0, 0.04);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
-  transition: transform 320ms cubic-bezier(0.18, 0.7, 0.32, 1),
-              width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-              height 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
-              border-radius 240ms cubic-bezier(0.18, 0.7, 0.32, 1);
+  /* Only the transform is animated (hover fan-out within a state).
+     Layout properties (width / height / border-radius) flip
+     instantly when the row toggles compact, no morph. */
+  transition: transform 320ms cubic-bezier(0.18, 0.7, 0.32, 1);
   will-change: transform;
 }
 
@@ -183,7 +178,7 @@
 .compact .stack img {
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
 }
 
@@ -210,7 +205,7 @@
 .compact .stackEmpty {
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: 50%;
 }
 
 .compact .stackEmptyIcon {
@@ -231,4 +226,9 @@
 
 .compact .count {
   font-size: 10.5px;
+}
+
+/* Pill mode: just the digit, no "saves" / "save" word. */
+.compact .countLabel {
+  display: none;
 }

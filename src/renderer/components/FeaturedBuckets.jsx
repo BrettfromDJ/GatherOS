@@ -86,7 +86,8 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
               <div className={styles.meta}>
                 <span className={styles.name}>{c.name}</span>
                 <span className={styles.count}>
-                  {c.save_count} {c.save_count === 1 ? 'save' : 'saves'}
+                  <span className={styles.countNum}>{c.save_count}</span>
+                  <span className={styles.countLabel}> {c.save_count === 1 ? 'save' : 'saves'}</span>
                 </span>
               </div>
             </button>
