@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playPop } from '../lib/sounds.js';
 
 const SEARCH_DEBOUNCE_MS = 180;
 
@@ -59,6 +60,7 @@ export function useLibrary() {
   useEffect(() =>
     window.moodmark.on('save:created', (record) => {
       load();
+      playPop();
       const id = record?.id;
       if (!id) return;
       setFreshIds((prev) => {
