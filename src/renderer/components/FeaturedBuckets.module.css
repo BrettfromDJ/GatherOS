@@ -1,0 +1,234 @@
+/* Sticky featured-buckets row at the top of the All grid. Collapses
+   to a pill row when the grid's been scrolled. */
+.row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 20px 14px;
+  background:
+    linear-gradient(180deg, rgba(250, 250, 249, 0.92) 0%, rgba(250, 250, 249, 0.82) 100%);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 0.5px solid transparent;
+  transition:
+    padding 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+    border-color 200ms ease;
+}
+
+.row.compact {
+  padding: 6px 20px 6px;
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.scroller {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Expanded card ────────────────────────────────────────────────────── */
+
+.card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 188px;
+  padding: 14px 14px 12px;
+  background: var(--titlebar-bg);
+  border: 0.5px solid rgba(0, 0, 0, 0.07);
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+    padding 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+    border-radius 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 12px 28px rgba(0, 0, 0, 0.10);
+}
+
+/* ── Stack of preview thumbnails ─────────────────────────────────────── */
+
+.stack {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+  transition: width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+              height 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+              margin 240ms cubic-bezier(0.18, 0.7, 0.32, 1);
+}
+
+.stack img {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  border-radius: 9px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transition: transform 320ms cubic-bezier(0.18, 0.7, 0.32, 1),
+              width 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+              height 240ms cubic-bezier(0.18, 0.7, 0.32, 1),
+              border-radius 240ms cubic-bezier(0.18, 0.7, 0.32, 1);
+  will-change: transform;
+}
+
+/* Default stacked-and-tilted positions. nth-child for a static
+   layout; the hover state overrides each individually for a fan. */
+.stack img:nth-child(1) { transform: rotate(-7deg) translate(-10px, 4px); z-index: 1; }
+.stack img:nth-child(2) { transform: rotate(-2deg) translate(-3px, 0px);  z-index: 2; }
+.stack img:nth-child(3) { transform: rotate(3deg)  translate(5px, 0px);   z-index: 3; }
+.stack img:nth-child(4) { transform: rotate(8deg)  translate(12px, 4px);  z-index: 4; }
+
+/* Fan out on hover. */
+.card:hover .stack img:nth-child(1) { transform: rotate(-16deg) translate(-30px, 8px); }
+.card:hover .stack img:nth-child(2) { transform: rotate(-6deg)  translate(-12px, -2px); }
+.card:hover .stack img:nth-child(3) { transform: rotate(7deg)   translate(14px, -2px); }
+.card:hover .stack img:nth-child(4) { transform: rotate(18deg)  translate(32px, 8px); }
+
+.stackEmpty {
+  width: 92px;
+  height: 92px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stackEmptyIcon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+}
+
+.stackEmptyIcon svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ── Meta (name + count) ─────────────────────────────────────────────── */
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Compact pill state ──────────────────────────────────────────────── */
+
+.compact .card {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  height: 32px;
+}
+
+.compact .card:hover {
+  transform: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.compact .stack {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.compact .stack img {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+}
+
+/* In compact mode, show only the front-most thumbnail flat — the
+   stack feel comes back when the user scrolls up. */
+.compact .stack img:nth-child(1),
+.compact .stack img:nth-child(2),
+.compact .stack img:nth-child(3),
+.compact .stack img:nth-child(4) {
+  transform: none;
+}
+
+.compact .card:hover .stack img:nth-child(1),
+.compact .card:hover .stack img:nth-child(2),
+.compact .card:hover .stack img:nth-child(3),
+.compact .card:hover .stack img:nth-child(4) {
+  transform: none;
+}
+
+.compact .stack img:not(:nth-child(1)) {
+  display: none;
+}
+
+.compact .stackEmpty {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.compact .stackEmptyIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.compact .stackEmptyIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.compact .meta {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.compact .count {
+  font-size: 10.5px;
+}

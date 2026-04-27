@@ -5,6 +5,7 @@ import SettingsModal from './components/SettingsModal.jsx';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
+import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
@@ -1077,6 +1078,12 @@ export default function App() {
                 })()}
               />
               <div className="grid-scroll">
+                {view.type === 'all' && collections.length > 0 && (
+                  <FeaturedBuckets
+                    collections={collections}
+                    onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
+                  />
+                )}
                 <Grid
                   saves={saves}
                   selected={selected}
