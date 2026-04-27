@@ -260,7 +260,7 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
           </div>
         </section>
 
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.drawerSection}`}>
           <button
             type="button"
             className={styles.drawerHeader}
@@ -349,7 +349,7 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
           )}
         </section>
 
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.drawerSection}`}>
           <button
             type="button"
             className={styles.drawerHeader}

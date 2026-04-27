@@ -76,6 +76,17 @@
   margin-bottom: 6px;
 }
 
+/* Drawer-style sections sit tighter against each other than the
+   regular .section (which is sized for an always-expanded body). */
+.drawerSection {
+  padding: 2px 18px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+.drawerSection + .drawerSection {
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
 /* Drawer-style section header — clickable row that toggles the
    section's body. The plain .sectionTitle styling carries the
    typography; this row adds the chevron + click affordance. */
@@ -116,7 +127,7 @@
 }
 
 .drawerBody {
-  padding-top: 10px;
+  padding: 6px 0 12px;
   animation: drawerIn 140ms ease-out;
 }
 
