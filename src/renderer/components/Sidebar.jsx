@@ -248,14 +248,14 @@ export default function Sidebar({
     const fromId = draggingId;
     handleDragEnd();
     if (!fromId || fromId === targetId) return;
-    const ids = collections.map((c) => c.id);
-    const fromIdx = ids.indexOf(fromId);
-    const toIdx = ids.indexOf(targetId);
-    if (fromIdx < 0 || toIdx < 0) return;
-    const reordered = [...ids];
-    reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, fromId);
-    await onReorderCollections?.(reordered);
+    // Always "insert before target" — keeps the drop indicator's
+    // position (line above the target row) consistent with the
+    // resulting order regardless of drag direction.
+    const filtered = collections.map((c) => c.id).filter((id) => id !== fromId);
+    const insertIdx = filtered.indexOf(targetId);
+    if (insertIdx < 0) return;
+    filtered.splice(insertIdx, 0, fromId);
+    await onReorderCollections?.(filtered);
   }
 
   // ── Drag-saves-into-bucket ───────────────────────────────────────────────

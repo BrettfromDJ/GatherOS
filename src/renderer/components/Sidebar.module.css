@@ -232,14 +232,13 @@
     0 6px 18px rgba(0, 0, 0, 0.10);
 }
 
-/* Reparent drop target — fills the row with a soft gray so it reads
-   as "drop into this bucket" rather than the older insert-above
-   stripe. Distinct from .saveDropTarget (blue, for card-into-bucket)
-   so the two drop intents don't blur together. */
+/* Reorder drop indicator — a faint 1px line above the target row
+   that sits in the gap between rows, marking where the dragged
+   bucket will land. We use box-shadow so it doesn't affect layout. */
 .dropTarget,
 .item.dropTarget:hover {
-  background: rgba(0, 0, 0, 0.07);
-  box-shadow: none;
+  background: transparent;
+  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.18);
 }
 
 .item {
