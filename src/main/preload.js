@@ -29,7 +29,6 @@ contextBridge.exposeInMainWorld('moodmark', {
     rename: (payload) => ipcRenderer.invoke('collections:rename', payload),
     delete: (id) => ipcRenderer.invoke('collections:delete', id),
     reorder: (ids) => ipcRenderer.invoke('collections:reorder', ids),
-    move: (payload) => ipcRenderer.invoke('collections:move', payload),
     addSave: (payload) => ipcRenderer.invoke('collections:add-save', payload),
     removeSave: (payload) => ipcRenderer.invoke('collections:remove-save', payload),
   },

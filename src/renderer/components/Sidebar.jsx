@@ -106,7 +106,6 @@ export default function Sidebar({
   onRenameCollection,
   onDeleteCollection,
   onReorderCollections,
-  onMoveCollection,
   onAddSavesToBucket,
   onToggleCollapse,
   onUpload,
@@ -121,40 +120,6 @@ export default function Sidebar({
   const [renameValue, setRenameValue] = useState('');
 
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection }
-
-  // Inline "add child bucket" form, anchored under a top-level bucket.
-  const [creatingChildOf, setCreatingChildOf] = useState(null); // parent id
-  const [newChildName, setNewChildName] = useState('');
-  const childInputRef = useRef(null);
-
-  function startCreatingChild(parentId) {
-    setCreatingChildOf(parentId);
-    setNewChildName('');
-    requestAnimationFrame(() => childInputRef.current?.focus());
-  }
-
-  function cancelCreatingChild() {
-    setCreatingChildOf(null);
-    setNewChildName('');
-  }
-
-  async function commitCreateChild() {
-    const name = newChildName.trim();
-    const parentId = creatingChildOf;
-    if (!name || !parentId) { cancelCreatingChild(); return; }
-    try {
-      await onCreateCollection({ name, parentId });
-    } catch (err) {
-      console.error('Create child bucket failed:', err);
-    } finally {
-      cancelCreatingChild();
-    }
-  }
-
-  function handleChildKeyDown(e) {
-    if (e.key === 'Enter') { e.preventDefault(); commitCreateChild(); }
-    if (e.key === 'Escape') cancelCreatingChild();
-  }
 
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
@@ -214,44 +179,6 @@ export default function Sidebar({
   function handleCollectionContextMenu(e, collection) {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, collection });
-  }
-
-  // ── Parent bucket expansion (click to toggle) ────────────────────────────
-  // A parent's children are hidden until the parent is clicked. Click
-  // again to collapse. We also force-expand whenever the active view
-  // is one of this parent's children, so the active row is never
-  // hidden inside a collapsed parent.
-  const EXPAND_KEY = 'moodmark.sidebar.expandedBuckets';
-  const [expandedBuckets, setExpandedBuckets] = useState(() => {
-    try {
-      const raw = localStorage.getItem(EXPAND_KEY);
-      return new Set(raw ? JSON.parse(raw) : []);
-    } catch { return new Set(); }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(EXPAND_KEY, JSON.stringify([...expandedBuckets]));
-    } catch {}
-  }, [expandedBuckets]);
-
-  function isParentExpanded(parentId) {
-    if (expandedBuckets.has(parentId)) return true;
-    // Force-expand if a child of this parent is the active view.
-    if (view.type === 'collection') {
-      const child = collections.find((c) => c.id === view.id);
-      if (child?.parent_id === parentId) return true;
-    }
-    return false;
-  }
-
-  function toggleBucketExpansion(id) {
-    setExpandedBuckets((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   }
 
   // ── Hover preview ────────────────────────────────────────────────────────
@@ -321,14 +248,14 @@ export default function Sidebar({
     const fromId = draggingId;
     handleDragEnd();
     if (!fromId || fromId === targetId) return;
-    const target = collections.find((c) => c.id === targetId);
-    if (!target) return;
-    // Drop semantics: drop A onto B → A becomes a child of B's
-    // top-level bucket (i.e. B if B is top-level, B's parent if
-    // B is a child). The DB rejects 3-level nests.
-    const newParentId = target.parent_id ? target.parent_id : target.id;
-    if (newParentId === fromId) return; // no-op / cycle
-    await onMoveCollection?.({ id: fromId, parentId: newParentId });
+    const ids = collections.map((c) => c.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, fromId);
+    await onReorderCollections?.(reordered);
   }
 
   // ── Drag-saves-into-bucket ───────────────────────────────────────────────
@@ -369,17 +296,6 @@ export default function Sidebar({
 
   const ctxItems = ctxMenu
     ? [
-        ...(ctxMenu.collection.parent_id
-          ? [{
-              label: 'Move to Top Level',
-              icon: <CollectionIcon />,
-              onClick: () => onMoveCollection?.({ id: ctxMenu.collection.id, parentId: null }),
-            }]
-          : [{
-              label: 'Add Child Bucket',
-              icon: <CollectionIcon />,
-              onClick: () => startCreatingChild(ctxMenu.collection.id),
-            }]),
         { label: 'Rename', icon: <PencilIcon />, onClick: () => startRename(ctxMenu.collection) },
         { label: 'Delete Bucket', icon: <TrashIcon />, danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
       ]
@@ -466,19 +382,15 @@ export default function Sidebar({
       )}
 
       <nav className={styles.section}>
-        {(() => {
-          const topLevel = collections.filter((c) => !c.parent_id);
-          const childrenOf = (parentId) => collections.filter((c) => c.parent_id === parentId);
-          if (topLevel.length === 0 && !creating) {
-            return <div className={styles.empty}>No buckets yet</div>;
-          }
-          const renderItem = (c, isChild) => {
+        {collections.length === 0 && !creating ? (
+          <div className={styles.empty}>No buckets yet</div>
+        ) : (
+          collections.map((c) => {
             const active = view.type === 'collection' && view.id === c.id;
             const isDragging = draggingId === c.id;
             const isDropTarget = dropTargetId === c.id && draggingId && draggingId !== c.id;
             const itemClass = [
               styles.item,
-              isChild && styles.itemChild,
               active && styles.active,
               isDragging && styles.dragging,
               isDropTarget && styles.dropTarget,
@@ -510,23 +422,13 @@ export default function Sidebar({
                 key={c.id}
                 data-collection-id={c.id}
                 className={itemClassWithDrop}
-                onClick={() => {
-                  // For top-level buckets that have children, the click
-                  // also toggles their expansion (in addition to navigating).
-                  if (!isChild && childrenOf(c.id).length > 0) {
-                    toggleBucketExpansion(c.id);
-                  }
-                  onViewChange({ type: 'collection', id: c.id });
-                }}
+                onClick={() => onViewChange({ type: 'collection', id: c.id })}
                 onContextMenu={(e) => handleCollectionContextMenu(e, c)}
                 onMouseEnter={(e) => scheduleHoverPreview(c.id, e.currentTarget)}
                 onMouseLeave={cancelHoverPreview}
                 draggable
                 onDragStart={(e) => handleDragStart(e, c.id)}
                 onDragOver={(e) => {
-                  // Save drag (HTML5 from grid) takes precedence — it
-                  // arrives with our custom MIME. Bucket reparent
-                  // (any bucket onto any other) uses draggingId state.
                   handleSaveDragOver(e, c.id);
                   handleDragOver(e, c.id);
                 }}
@@ -552,35 +454,8 @@ export default function Sidebar({
                 )}
               </button>
             );
-          };
-          return topLevel.map((c) => (
-            <React.Fragment key={c.id}>
-              {renderItem(c, false)}
-              {isParentExpanded(c.id) && childrenOf(c.id).map((child) => renderItem(child, true))}
-              {creatingChildOf === c.id && (
-                <div className={`${styles.newCollectionForm} ${styles.newChildForm}`}>
-                  <input
-                    ref={childInputRef}
-                    className={styles.newCollectionInput}
-                    value={newChildName}
-                    onChange={(e) => setNewChildName(e.target.value)}
-                    onKeyDown={handleChildKeyDown}
-                    placeholder="Sub-bucket name"
-                  />
-                  <div className={styles.newCollectionBtns}>
-                    <button className={styles.formBtn} onClick={cancelCreatingChild}>Cancel</button>
-                    <button
-                      className={`${styles.formBtn} ${styles.formBtnPrimary}`}
-                      onClick={commitCreateChild}
-                    >
-                      Create
-                    </button>
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
-          ));
-        })()}
+          })
+        )}
       </nav>
 
       {(onOpenSettings || onOpenShortcuts) && (

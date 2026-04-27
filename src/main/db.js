@@ -235,15 +235,8 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
   }
 
   if (collectionId) {
-    // Viewing a bucket also rolls up any direct child buckets, so a
-    // parent like "Logos" shows everything tagged in B&W / Colored
-    // sub-buckets too. (Max nesting is 2 levels — see createCollection.)
-    conditions.push(`id IN (
-      SELECT save_id FROM collection_items
-      WHERE collection_id = ?
-         OR collection_id IN (SELECT id FROM collections WHERE parent_id = ?)
-    )`);
-    params.push(collectionId, collectionId);
+    conditions.push(`id IN (SELECT save_id FROM collection_items WHERE collection_id = ?)`);
+    params.push(collectionId);
   }
   if (search) {
     // Substring match against title, tags, and OCR text. ai_description
@@ -393,35 +386,20 @@ function getCollectionsForSave(saveId) {
   `).all(saveId);
 }
 
-function createCollection({ name, color, parentId = null } = {}) {
+function createCollection({ name, color } = {}) {
   const db = getDatabase();
-
-  // Enforce the 2-level cap: a parent must itself be top-level. If
-  // someone tries to nest under a child, silently re-target to the
-  // grandparent (which will be the actual top-level bucket).
-  let resolvedParentId = parentId || null;
-  if (resolvedParentId) {
-    const parent = db.prepare('SELECT id, parent_id FROM collections WHERE id = ?').get(resolvedParentId);
-    if (!parent) resolvedParentId = null;
-    else if (parent.parent_id) resolvedParentId = parent.parent_id;
-  }
-
-  // order_index is per-sibling so children sort independently of
-  // top-level buckets.
   const next = db.prepare(
-    "SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM collections WHERE COALESCE(parent_id, '') = COALESCE(?, '')"
-  ).get(resolvedParentId);
-
+    'SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM collections'
+  ).get();
   const record = {
     id: crypto.randomUUID(),
     name: name || 'Untitled',
     color: color || '#007aff',
     created_at: Date.now(),
     order_index: next.n,
-    parent_id: resolvedParentId,
   };
   db.prepare(
-    'INSERT INTO collections (id, name, color, created_at, order_index, parent_id) VALUES (@id, @name, @color, @created_at, @order_index, @parent_id)'
+    'INSERT INTO collections (id, name, color, created_at, order_index) VALUES (@id, @name, @color, @created_at, @order_index)'
   ).run(record);
   return record;
 }
@@ -474,44 +452,6 @@ function removeTagFromSave({ saveId, tagId } = {}) {
   return { ok: true };
 }
 
-// Move a bucket: optionally change its parent, and place it in the
-// new sibling group at the end (no fine-grained position control yet).
-// Enforces invariants:
-//   - Can't nest a bucket under itself.
-//   - Can't nest a bucket that has children (would create a 3-level tree).
-//   - If newParentId points at a child bucket, re-target to its parent.
-function moveCollection({ id, newParentId } = {}) {
-  if (!id) return { ok: false, reason: 'no-id' };
-  const db = getDatabase();
-
-  let parentId = newParentId || null;
-  if (parentId === id) return { ok: false, reason: 'self' };
-
-  if (parentId) {
-    const parent = db.prepare('SELECT id, parent_id FROM collections WHERE id = ?').get(parentId);
-    if (!parent) parentId = null;
-    else if (parent.parent_id) parentId = parent.parent_id; // re-target to grandparent
-  }
-  if (parentId === id) return { ok: false, reason: 'self' };
-
-  // Two-level cap: a bucket with its own children can't be nested.
-  if (parentId) {
-    const own = db.prepare('SELECT COUNT(*) AS n FROM collections WHERE parent_id = ?').get(id);
-    if (own.n > 0) return { ok: false, reason: 'has-children' };
-  }
-
-  const txn = db.transaction(() => {
-    db.prepare('UPDATE collections SET parent_id = ? WHERE id = ?').run(parentId, id);
-    // Append to the new sibling group's order.
-    const next = db.prepare(
-      "SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM collections WHERE COALESCE(parent_id, '') = COALESCE(?, '') AND id != ?"
-    ).get(parentId, id);
-    db.prepare('UPDATE collections SET order_index = ? WHERE id = ?').run(next.n, id);
-  });
-  txn();
-  return { ok: true };
-}
-
 function reorderCollections(orderedIds) {
   const db = getDatabase();
   const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
@@ -528,12 +468,7 @@ function renameCollection({ id, name } = {}) {
 }
 
 function deleteCollection(id) {
-  // Cascade child buckets manually since the column is plain TEXT
-  // (SQLite ALTER TABLE doesn't allow attaching foreign keys after
-  // the fact reliably, so we don't rely on ON DELETE CASCADE here).
-  const db = getDatabase();
-  db.prepare('DELETE FROM collections WHERE parent_id = ?').run(id);
-  db.prepare('DELETE FROM collections WHERE id = ?').run(id);
+  getDatabase().prepare('DELETE FROM collections WHERE id = ?').run(id);
   return { ok: true };
 }
 
@@ -575,7 +510,6 @@ module.exports = {
   renameCollection,
   deleteCollection,
   reorderCollections,
-  moveCollection,
   addSaveToCollection,
   removeSaveFromCollection,
   getAllTags,

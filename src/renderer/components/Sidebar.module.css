@@ -264,12 +264,6 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-.itemChild {
-  padding-left: 26px;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-}
-
 /* Hover preview — 2×2 mosaic that floats to the right of a bucket
    row after a brief delay. Portaled to document.body so it isn't
    clipped by the sidebar's overflow:auto. */
@@ -333,9 +327,6 @@
   pointer-events: none;
 }
 
-.newChildForm {
-  margin-left: 18px;
-}
 
 .active,
 .active:hover {

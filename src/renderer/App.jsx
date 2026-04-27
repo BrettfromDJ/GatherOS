@@ -595,15 +595,6 @@ export default function App() {
     loadCollections();
   }, [loadCollections]);
 
-  // Reparent or unnest a bucket. parentId === null moves it to the top
-  // level. The DB rejects moves that would create a 3-level tree (a
-  // bucket with its own children can't be nested under another).
-  const handleMoveCollection = useCallback(async ({ id, parentId }) => {
-    if (!id) return;
-    await window.moodmark.collections.move({ id, newParentId: parentId ?? null });
-    loadCollections();
-  }, [loadCollections]);
-
   const focusedIndex = useMemo(
     () => (focusedId ? saves.findIndex((s) => s.id === focusedId) : -1),
     [saves, focusedId],
@@ -938,7 +929,6 @@ export default function App() {
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
-            onMoveCollection={handleMoveCollection}
             onAddSavesToBucket={handleAddSavesToBucket}
             onToggleCollapse={toggleSidebar}
             onUpload={handleUploadClick}
