@@ -46,33 +46,6 @@ CREATE TABLE IF NOT EXISTS save_tags (
   PRIMARY KEY (save_id, tag_id)
 );
 
-CREATE TABLE IF NOT EXISTS boards (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL,
-  viewport_x  REAL DEFAULT 0,
-  viewport_y  REAL DEFAULT 0,
-  viewport_z  REAL DEFAULT 1
-);
-
-CREATE TABLE IF NOT EXISTS board_items (
-  id          TEXT PRIMARY KEY,
-  board_id    TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
-  type        TEXT NOT NULL,
-  save_id     TEXT REFERENCES saves(id) ON DELETE SET NULL,
-  x           REAL NOT NULL,
-  y           REAL NOT NULL,
-  width       REAL NOT NULL,
-  height      REAL NOT NULL,
-  rotation    REAL DEFAULT 0,
-  z_index     INTEGER DEFAULT 0,
-  text        TEXT,
-  color       TEXT,
-  created_at  INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_board_items_board ON board_items (board_id);
 `;
 
 let db = null;
@@ -114,23 +87,6 @@ function migrate() {
   }
   if (!saveCols.find((c) => c.name === 'ai_prompt')) {
     db.exec('ALTER TABLE saves ADD COLUMN ai_prompt TEXT');
-  }
-
-  const boardItemCols = db.prepare("PRAGMA table_info(board_items)").all();
-  if (!boardItemCols.find((c) => c.name === 'font_size')) {
-    db.exec('ALTER TABLE board_items ADD COLUMN font_size REAL DEFAULT 16');
-  }
-  if (!boardItemCols.find((c) => c.name === 'bold')) {
-    db.exec('ALTER TABLE board_items ADD COLUMN bold INTEGER DEFAULT 0');
-  }
-  if (!boardItemCols.find((c) => c.name === 'italic')) {
-    db.exec('ALTER TABLE board_items ADD COLUMN italic INTEGER DEFAULT 0');
-  }
-  if (!boardItemCols.find((c) => c.name === 'strike')) {
-    db.exec('ALTER TABLE board_items ADD COLUMN strike INTEGER DEFAULT 0');
-  }
-  if (!boardItemCols.find((c) => c.name === 'align')) {
-    db.exec("ALTER TABLE board_items ADD COLUMN align TEXT DEFAULT 'left'");
   }
 }
 
@@ -436,152 +392,6 @@ function removeTagFromSave({ saveId, tagId } = {}) {
   return { ok: true };
 }
 
-// ── Boards ─────────────────────────────────────────────────────────────────
-
-function getAllBoards() {
-  return getDatabase()
-    .prepare(`
-      SELECT b.*, COUNT(bi.id) AS item_count
-      FROM boards b
-      LEFT JOIN board_items bi ON bi.board_id = b.id
-      GROUP BY b.id
-      ORDER BY b.created_at ASC
-    `)
-    .all();
-}
-
-function getBoard(id) {
-  return getDatabase().prepare('SELECT * FROM boards WHERE id = ?').get(id);
-}
-
-function createBoard({ name } = {}) {
-  const db = getDatabase();
-  const now = Date.now();
-  const record = {
-    id: crypto.randomUUID(),
-    name: name?.trim() || 'Untitled Board',
-    created_at: now,
-    updated_at: now,
-  };
-  db.prepare(
-    'INSERT INTO boards (id, name, created_at, updated_at) VALUES (@id, @name, @created_at, @updated_at)'
-  ).run(record);
-  return record;
-}
-
-function renameBoard({ id, name } = {}) {
-  if (!id || !name?.trim()) return { ok: false };
-  getDatabase()
-    .prepare('UPDATE boards SET name = ?, updated_at = ? WHERE id = ?')
-    .run(name.trim(), Date.now(), id);
-  return { ok: true };
-}
-
-function deleteBoard(id) {
-  getDatabase().prepare('DELETE FROM boards WHERE id = ?').run(id);
-  return { ok: true };
-}
-
-function updateBoardViewport({ id, x, y, z } = {}) {
-  if (!id) return { ok: false };
-  getDatabase()
-    .prepare('UPDATE boards SET viewport_x = ?, viewport_y = ?, viewport_z = ?, updated_at = ? WHERE id = ?')
-    .run(x, y, z, Date.now(), id);
-  return { ok: true };
-}
-
-// Joins board_items with saves so the renderer gets file_path / thumb
-// in one round-trip. board_items rows whose save_id was deleted come
-// through with file_path = null and the renderer renders a placeholder.
-function getBoardItems(boardId) {
-  return getDatabase()
-    .prepare(`
-      SELECT bi.*, s.file_path AS save_file_path, s.thumb_path AS save_thumb_path,
-             s.width AS save_width, s.height AS save_height, s.title AS save_title
-      FROM board_items bi
-      LEFT JOIN saves s ON s.id = bi.save_id
-      WHERE bi.board_id = ?
-      ORDER BY bi.z_index ASC, bi.created_at ASC
-    `)
-    .all(boardId);
-}
-
-function createBoardItem({
-  boardId, type, saveId, x, y, width, height, rotation, zIndex,
-  text, color, fontSize, bold, italic, strike, align,
-} = {}) {
-  if (!boardId || !type) return null;
-  const db = getDatabase();
-  const record = {
-    id: crypto.randomUUID(),
-    board_id: boardId,
-    type,
-    save_id: saveId || null,
-    x: x ?? 0,
-    y: y ?? 0,
-    width: width ?? 200,
-    height: height ?? 200,
-    rotation: rotation ?? 0,
-    z_index: zIndex ?? nextZIndexForBoard(boardId),
-    text: text || null,
-    color: color || null,
-    font_size: fontSize ?? 16,
-    bold: bold ? 1 : 0,
-    italic: italic ? 1 : 0,
-    strike: strike ? 1 : 0,
-    align: align || 'left',
-    created_at: Date.now(),
-  };
-  db.prepare(`
-    INSERT INTO board_items
-      (id, board_id, type, save_id, x, y, width, height, rotation, z_index,
-       text, color, font_size, bold, italic, strike, align, created_at)
-    VALUES
-      (@id, @board_id, @type, @save_id, @x, @y, @width, @height, @rotation, @z_index,
-       @text, @color, @font_size, @bold, @italic, @strike, @align, @created_at)
-  `).run(record);
-  return record;
-}
-
-function nextZIndexForBoard(boardId) {
-  const row = getDatabase()
-    .prepare('SELECT COALESCE(MAX(z_index), 0) + 1 AS n FROM board_items WHERE board_id = ?')
-    .get(boardId);
-  return row?.n ?? 1;
-}
-
-function updateBoardItem({
-  id, x, y, width, height, rotation, zIndex,
-  text, color, fontSize, bold, italic, strike, align,
-} = {}) {
-  if (!id) return { ok: false };
-  const db = getDatabase();
-  const fields = [];
-  const params = [];
-  if (x !== undefined)        { fields.push('x = ?');         params.push(x); }
-  if (y !== undefined)        { fields.push('y = ?');         params.push(y); }
-  if (width !== undefined)    { fields.push('width = ?');     params.push(width); }
-  if (height !== undefined)   { fields.push('height = ?');    params.push(height); }
-  if (rotation !== undefined) { fields.push('rotation = ?');  params.push(rotation); }
-  if (zIndex !== undefined)   { fields.push('z_index = ?');   params.push(zIndex); }
-  if (text !== undefined)     { fields.push('text = ?');      params.push(text); }
-  if (color !== undefined)    { fields.push('color = ?');     params.push(color); }
-  if (fontSize !== undefined) { fields.push('font_size = ?'); params.push(fontSize); }
-  if (bold !== undefined)     { fields.push('bold = ?');      params.push(bold ? 1 : 0); }
-  if (italic !== undefined)   { fields.push('italic = ?');    params.push(italic ? 1 : 0); }
-  if (strike !== undefined)   { fields.push('strike = ?');    params.push(strike ? 1 : 0); }
-  if (align !== undefined)    { fields.push('align = ?');     params.push(align); }
-  if (!fields.length) return { ok: true };
-  params.push(id);
-  db.prepare(`UPDATE board_items SET ${fields.join(', ')} WHERE id = ?`).run(...params);
-  return { ok: true };
-}
-
-function deleteBoardItem(id) {
-  getDatabase().prepare('DELETE FROM board_items WHERE id = ?').run(id);
-  return { ok: true };
-}
-
 function reorderCollections(orderedIds) {
   const db = getDatabase();
   const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
@@ -643,14 +453,4 @@ module.exports = {
   getTagsForSave,
   addTagToSave,
   removeTagFromSave,
-  getAllBoards,
-  getBoard,
-  createBoard,
-  renameBoard,
-  deleteBoard,
-  updateBoardViewport,
-  getBoardItems,
-  createBoardItem,
-  updateBoardItem,
-  deleteBoardItem,
 };

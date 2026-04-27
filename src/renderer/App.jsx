@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
-import BoardCanvas from './components/BoardCanvas.jsx';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
@@ -196,65 +195,6 @@ export default function App() {
   useEffect(() => {
     if (!loading) loadCollections();
   }, [loading, loadCollections]);
-
-  // Boards state — sidebar shows the list, App routes to BoardCanvas
-  // when a board is active.
-  const [boards, setBoards] = useState([]);
-  const loadBoards = useCallback(async () => {
-    const data = await window.moodmark.boards.getAll();
-    setBoards(data || []);
-  }, []);
-  useEffect(() => { loadBoards(); }, [loadBoards]);
-
-  // Unfiltered library list — used by the BoardCanvas drawer so the
-  // user can see / drag every save regardless of any active grid
-  // filter or search. Reloads on save:created so newly captured
-  // images show up in the drawer immediately.
-  const [allSaves, setAllSaves] = useState([]);
-  useEffect(() => {
-    const load = async () => {
-      const data = await window.moodmark.saves.getAll({});
-      setAllSaves(data || []);
-    };
-    load();
-    return window.moodmark.on('save:created', load);
-  }, []);
-
-  const handleCreateBoard = useCallback(async (payload) => {
-    const created = await window.moodmark.boards.create(payload);
-    await loadBoards();
-    if (created?.id) {
-      setView({ type: 'board', id: created.id });
-      setFocusedId(null);
-    }
-  }, [loadBoards, setView]);
-
-  const handleRenameBoard = useCallback(async (payload) => {
-    await window.moodmark.boards.rename(payload);
-    loadBoards();
-  }, [loadBoards]);
-
-  const handleDeleteBoard = useCallback(async (id) => {
-    await window.moodmark.boards.delete(id);
-    if (view.type === 'board' && view.id === id) setView({ type: 'all' });
-    loadBoards();
-  }, [view, setView, loadBoards]);
-
-  // Whenever the user opens / switches to a board view, fetch the
-  // up-to-date board record (the sidebar list might be slightly stale
-  // re: viewport persisted from another session).
-  const [activeBoard, setActiveBoard] = useState(null);
-  useEffect(() => {
-    if (view.type !== 'board' || !view.id) {
-      setActiveBoard(null);
-      return;
-    }
-    let cancelled = false;
-    window.moodmark.boards.get(view.id).then((b) => {
-      if (!cancelled) setActiveBoard(b || null);
-    });
-    return () => { cancelled = true; };
-  }, [view]);
 
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
@@ -668,10 +608,6 @@ export default function App() {
             onRenameCollection={handleRenameCollection}
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
-            boards={boards}
-            onCreateBoard={handleCreateBoard}
-            onRenameBoard={handleRenameBoard}
-            onDeleteBoard={handleDeleteBoard}
             onToggleCollapse={toggleSidebar}
             onUpload={handleUploadClick}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -681,9 +617,7 @@ export default function App() {
         )}
 
         <div className="main-col">
-          {view.type === 'board' && activeBoard ? (
-            <BoardCanvas board={activeBoard} allSaves={allSaves} collections={collections} />
-          ) : focused ? (
+          {focused ? (
             <FocusedView
               record={focused}
               index={focusedIndex}

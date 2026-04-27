@@ -63,18 +63,6 @@ function ClockIcon() {
   );
 }
 
-function BoardIcon() {
-  // A 2x2 frame/grid glyph that reads as "canvas with regions" — distinct
-  // from the layered-stacks CollectionIcon used for collections.
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <rect x="2" y="2" width="12" height="12" rx="1.6" />
-      <line x1="8" y1="2" x2="8" y2="14" />
-      <line x1="2" y1="9" x2="14" y2="9" />
-    </svg>
-  );
-}
-
 export function CollectionIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
@@ -99,10 +87,6 @@ export default function Sidebar({
   onRenameCollection,
   onDeleteCollection,
   onReorderCollections,
-  boards = [],
-  onCreateBoard,
-  onRenameBoard,
-  onDeleteBoard,
   onToggleCollapse,
   onUpload,
   onOpenSettings,
@@ -116,62 +100,6 @@ export default function Sidebar({
   const [renameValue, setRenameValue] = useState('');
 
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection }
-
-  // Boards: parallel state to collections for create/rename UI.
-  const [creatingBoard, setCreatingBoard] = useState(false);
-  const [newBoardName, setNewBoardName] = useState('');
-  const [renamingBoardId, setRenamingBoardId] = useState(null);
-  const [renameBoardValue, setRenameBoardValue] = useState('');
-  const [boardCtxMenu, setBoardCtxMenu] = useState(null);
-  const createBoardInputRef = useRef(null);
-  const renameBoardInputRef = useRef(null);
-
-  function startCreatingBoard() {
-    setCreatingBoard(true);
-    setNewBoardName('');
-    requestAnimationFrame(() => createBoardInputRef.current?.focus());
-  }
-
-  function cancelCreatingBoard() {
-    setCreatingBoard(false);
-    setNewBoardName('');
-  }
-
-  async function commitCreateBoard() {
-    const name = newBoardName.trim();
-    if (!name) { cancelCreatingBoard(); return; }
-    try {
-      await onCreateBoard?.({ name });
-    } catch (err) {
-      console.error('Create board failed:', err);
-    } finally {
-      cancelCreatingBoard();
-    }
-  }
-
-  function startRenameBoard(board) {
-    setRenamingBoardId(board.id);
-    setRenameBoardValue(board.name);
-    requestAnimationFrame(() => renameBoardInputRef.current?.select());
-  }
-
-  async function commitRenameBoard(id) {
-    const name = renameBoardValue.trim();
-    if (name) await onRenameBoard?.({ id, name });
-    setRenamingBoardId(null);
-  }
-
-  function handleBoardContextMenu(e, board) {
-    e.preventDefault();
-    setBoardCtxMenu({ x: e.clientX, y: e.clientY, board });
-  }
-
-  const boardCtxItems = boardCtxMenu
-    ? [
-        { label: 'Rename', onClick: () => startRenameBoard(boardCtxMenu.board) },
-        { label: 'Delete Board', danger: true, onClick: () => onDeleteBoard?.(boardCtxMenu.board.id) },
-      ]
-    : [];
 
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
@@ -417,106 +345,6 @@ export default function Sidebar({
           })
         )}
       </nav>
-
-      {/* ── Boards ───────────────────────────────────────────────────── */}
-      <div className={styles.sectionHeaderRow}>
-        <span className={styles.sectionHeaderLabel}>Boards</span>
-        {onCreateBoard && (
-          <button
-            className={styles.addBtn}
-            onClick={startCreatingBoard}
-            title="New Board"
-          >
-            +
-          </button>
-        )}
-      </div>
-
-      {creatingBoard && (
-        <div className={styles.newCollectionForm}>
-          <input
-            ref={createBoardInputRef}
-            className={styles.newCollectionInput}
-            value={newBoardName}
-            onChange={(e) => setNewBoardName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); commitCreateBoard(); }
-              if (e.key === 'Escape') cancelCreatingBoard();
-            }}
-            placeholder="Board name"
-          />
-          <div className={styles.newCollectionBtns}>
-            <button className={styles.formBtn} onClick={cancelCreatingBoard}>Cancel</button>
-            <button
-              className={`${styles.formBtn} ${styles.formBtnPrimary}`}
-              onClick={commitCreateBoard}
-            >
-              Create
-            </button>
-          </div>
-        </div>
-      )}
-
-      <nav className={styles.section}>
-        {boards.length === 0 && !creatingBoard ? (
-          <div className={styles.empty}>No boards yet</div>
-        ) : (
-          boards.map((b) => {
-            const active = view.type === 'board' && view.id === b.id;
-            const itemClass = [styles.item, active && styles.active].filter(Boolean).join(' ');
-            if (renamingBoardId === b.id) {
-              return (
-                <div key={b.id} className={itemClass}>
-                  <span className={styles.icon} style={{ color: active ? '#fff' : 'var(--text-tertiary)' }}>
-                    <BoardIcon />
-                  </span>
-                  <input
-                    ref={renameBoardInputRef}
-                    className={styles.renameInput}
-                    value={renameBoardValue}
-                    autoFocus
-                    onChange={(e) => setRenameBoardValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); commitRenameBoard(b.id); }
-                      if (e.key === 'Escape') setRenamingBoardId(null);
-                    }}
-                    onBlur={() => commitRenameBoard(b.id)}
-                  />
-                </div>
-              );
-            }
-            return (
-              <button
-                key={b.id}
-                data-board-id={b.id}
-                className={itemClass}
-                onClick={() => onViewChange({ type: 'board', id: b.id })}
-                onContextMenu={(e) => handleBoardContextMenu(e, b)}
-              >
-                <span
-                  className={styles.icon}
-                  style={{ color: active ? '#fff' : 'var(--text-tertiary)' }}
-                >
-                  <BoardIcon />
-                </span>
-                <span className={styles.label}>{b.name}</span>
-                {b.item_count > 0 && (
-                  <span className={styles.count}>{b.item_count}</span>
-                )}
-              </button>
-            );
-          })
-        )}
-      </nav>
-
-      {boardCtxMenu && (
-        <ContextMenu
-          x={boardCtxMenu.x}
-          y={boardCtxMenu.y}
-          items={boardCtxItems}
-          onClose={() => setBoardCtxMenu(null)}
-        />
-      )}
 
       {(onOpenSettings || onOpenShortcuts) && (
         <div className={styles.footer}>

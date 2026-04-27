@@ -29,16 +29,6 @@ contextBridge.exposeInMainWorld('moodmark', {
     removeSave: (payload) => ipcRenderer.invoke('collections:remove-save', payload),
   },
   boards: {
-    getAll: () => ipcRenderer.invoke('boards:get-all'),
-    get: (id) => ipcRenderer.invoke('boards:get', id),
-    create: (payload) => ipcRenderer.invoke('boards:create', payload),
-    rename: (payload) => ipcRenderer.invoke('boards:rename', payload),
-    delete: (id) => ipcRenderer.invoke('boards:delete', id),
-    updateViewport: (payload) => ipcRenderer.invoke('boards:update-viewport', payload),
-    getItems: (boardId) => ipcRenderer.invoke('boards:get-items', boardId),
-    createItem: (payload) => ipcRenderer.invoke('boards:create-item', payload),
-    updateItem: (payload) => ipcRenderer.invoke('boards:update-item', payload),
-    deleteItem: (id) => ipcRenderer.invoke('boards:delete-item', id),
     // Composite-PNG export of selected saves into a moodboard image
     // (used by the multi-select bar's "Export as Moodboard" button).
     export: (saveIds) => ipcRenderer.invoke('boards:export', saveIds),

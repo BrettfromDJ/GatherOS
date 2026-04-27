@@ -8,9 +8,6 @@ const {
   getAllCollections, getCollectionsForSave, createCollection, renameCollection,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
-  getAllBoards, getBoard, createBoard, renameBoard, deleteBoard,
-  updateBoardViewport, getBoardItems, createBoardItem, updateBoardItem,
-  deleteBoardItem,
 } = require('./db');
 const {
   deleteImageFiles,
@@ -249,18 +246,6 @@ function registerIpcHandlers() {
   ipcMain.handle('collections:reorder', (_e, ids) => reorderCollections(ids));
   ipcMain.handle('collections:add-save', (_e, payload) => addSaveToCollection(payload));
   ipcMain.handle('collections:remove-save', (_e, payload) => removeSaveFromCollection(payload));
-
-  // ── Boards ──────────────────────────────────────────────────────────────
-  ipcMain.handle('boards:get-all', () => getAllBoards());
-  ipcMain.handle('boards:get', (_e, id) => getBoard(id));
-  ipcMain.handle('boards:create', (_e, payload) => createBoard(payload));
-  ipcMain.handle('boards:rename', (_e, payload) => renameBoard(payload));
-  ipcMain.handle('boards:delete', (_e, id) => deleteBoard(id));
-  ipcMain.handle('boards:update-viewport', (_e, payload) => updateBoardViewport(payload));
-  ipcMain.handle('boards:get-items', (_e, boardId) => getBoardItems(boardId));
-  ipcMain.handle('boards:create-item', (_e, payload) => createBoardItem(payload));
-  ipcMain.handle('boards:update-item', (_e, payload) => updateBoardItem(payload));
-  ipcMain.handle('boards:delete-item', (_e, id) => deleteBoardItem(id));
 
   ipcMain.handle('tags:get-all', () => getAllTags());
   ipcMain.handle('tags:get-for-save', (_e, saveId) => getTagsForSave(saveId));
