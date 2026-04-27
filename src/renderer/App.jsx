@@ -208,6 +208,28 @@ export default function App() {
 
   useEffect(() => { loadAllTags(); }, [loadAllTags]);
 
+  // Inline undo toast for soft-deletes. Single source of truth, so a
+  // bulk delete and a single delete share the same UI surface and timer.
+  const [trashToast, setTrashToast] = useState(null); // { ids, count }
+  const trashToastTimerRef = useRef(null);
+  const showTrashToast = useCallback((ids) => {
+    if (!ids?.length) return;
+    if (trashToastTimerRef.current) clearTimeout(trashToastTimerRef.current);
+    setTrashToast({ ids, count: ids.length });
+    trashToastTimerRef.current = setTimeout(() => setTrashToast(null), 5000);
+  }, []);
+  const dismissTrashToast = useCallback(() => {
+    if (trashToastTimerRef.current) clearTimeout(trashToastTimerRef.current);
+    setTrashToast(null);
+  }, []);
+  const undoTrashToast = useCallback(async () => {
+    if (!trashToast) return;
+    const ids = trashToast.ids;
+    dismissTrashToast();
+    for (const id of ids) await restoreSave(id);
+    reload();
+  }, [trashToast, restoreSave, reload, dismissTrashToast]);
+
   // Card context menu
   const [cardCtx, setCardCtx] = useState(null); // { saveId, x, y, items }
   // Bulk "Add to Collection" picker, anchored above the selection bar.
@@ -262,6 +284,9 @@ export default function App() {
             });
             await window.moodmark.collections.addSave({ collectionId: col.id, saveId });
             loadCollections();
+            // In Unsorted view the save no longer matches the filter
+            // (it now belongs to a bucket), so refresh to drop it.
+            if (view.type === 'unsorted') reload();
           },
         });
       }
@@ -363,8 +388,6 @@ export default function App() {
 
   const handleDelete = useCallback(
     async (id) => {
-      const ok = await window.moodmark.saves.confirmDelete(1);
-      if (!ok) return;
       await deleteSave(id);
       if (focusedId === id) setFocusedId(null);
       setSelected((prev) => {
@@ -372,6 +395,7 @@ export default function App() {
         next.delete(id);
         return next;
       });
+      showTrashToast([id]);
     },
     [deleteSave, focusedId],
   );
@@ -379,13 +403,12 @@ export default function App() {
   const handleDeleteSelected = useCallback(async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
-    const ok = await window.moodmark.saves.confirmDelete(ids.length);
-    if (!ok) return;
     for (const id of ids) {
       await deleteSave(id);
     }
     setSelected(new Set());
     if (focusedId && ids.includes(focusedId)) setFocusedId(null);
+    showTrashToast(ids);
   }, [selected, deleteSave, focusedId]);
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
@@ -414,7 +437,7 @@ export default function App() {
     if (!bulkPicker) return [];
     const ids = [...selected];
     return [
-      { type: 'header', label: `Add ${ids.length} to Collection` },
+      { type: 'header', label: `Add ${ids.length} to Bucket` },
       ...collections.map((c) => ({
         label: c.name,
         onClick: async () => {
@@ -429,10 +452,11 @@ export default function App() {
             await window.moodmark.collections.addSave({ collectionId: c.id, saveId });
           }
           loadCollections();
+          if (view.type === 'unsorted') reload();
         },
       })),
     ];
-  }, [bulkPicker, selected, collections, saves, loadCollections]);
+  }, [bulkPicker, selected, collections, saves, loadCollections, view, reload]);
 
   const goPrev = useCallback(() => {
     if (focusedIndex > 0) setFocusedId(saves[focusedIndex - 1].id);
@@ -707,6 +731,17 @@ export default function App() {
           />
         )}
       </div>
+
+      {trashToast && (
+        <div className="trash-toast" role="status">
+          <span className="trash-toast-label">
+            {trashToast.count === 1 ? 'Moved to Trash' : `${trashToast.count} moved to Trash`}
+          </span>
+          <button type="button" className="trash-toast-undo" onClick={undoTrashToast}>
+            Undo
+          </button>
+        </div>
+      )}
 
       {!focused && selected.size > 0 && (
         <div className="selection-bar">

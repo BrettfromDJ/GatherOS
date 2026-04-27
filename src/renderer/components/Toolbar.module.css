@@ -66,23 +66,35 @@
 }
 
 .emptyTrashBtn {
-  height: 26px;
-  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 14px;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--text-primary);
   font-family: var(--font-ui);
   font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  flex-shrink: 0;
   -webkit-app-region: no-drag;
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
 }
 
 .emptyTrashBtn:hover {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
-  color: var(--titlebar-bg);
+  background: rgba(193, 50, 42, 0.08);
+  border-color: rgba(193, 50, 42, 0.4);
+  color: rgb(193, 50, 42);
+}
+
+.emptyTrashBtn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .searchWrap {
