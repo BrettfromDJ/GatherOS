@@ -563,8 +563,18 @@ export default function App() {
   // (or selection) lands on a bucket row. Mirrors the per-card "Add to
   // Bucket" context menu behavior — flyToCollection animation,
   // collection-count refresh, and an Unsorted-view reload if needed.
+  //
+  // Move semantics: when the user is currently inside a bucket view
+  // and drops onto a *different* bucket, the drag is treated as
+  // "move from A to B" — we add to the target AND remove from the
+  // source so the save doesn't sit in two buckets at once. Drops
+  // from any non-bucket view (All, Unsorted, etc.) stay as pure
+  // adds, matching the existing right-click → Add to Bucket menu.
   const handleAddSavesToBucket = useCallback(async (bucketId, saveIds) => {
     if (!bucketId || !Array.isArray(saveIds) || saveIds.length === 0) return;
+    const sourceBucketId = (view.type === 'collection' && view.id !== bucketId)
+      ? view.id
+      : null;
     flyToCollection({
       collectionId: bucketId,
       items: saveIds.map((id) => {
@@ -574,6 +584,14 @@ export default function App() {
     });
     for (const saveId of saveIds) {
       await window.moodmark.collections.addSave({ collectionId: bucketId, saveId });
+    }
+    if (sourceBucketId) {
+      for (const saveId of saveIds) {
+        await window.moodmark.collections.removeSave({ collectionId: sourceBucketId, saveId });
+      }
+      // The current bucket view loses these saves — reload so they
+      // disappear from the grid.
+      reload();
     }
     loadCollections();
     if (view.type === 'unsorted') reload();
