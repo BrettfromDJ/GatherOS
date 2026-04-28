@@ -1,0 +1,106 @@
+/* Bottom-center celebration toast that mounts on save-count
+   milestones. Pill-shaped, gradient-glassy, with a confetti burst
+   raining from above. Auto-dismisses via inline animation; the
+   parent unmounts on the onDone callback. */
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px 10px 14px;
+  background: linear-gradient(135deg, #6c63ff 0%, #0a84ff 55%, #34c759 100%);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 12px 36px rgba(108, 99, 255, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  font-family: var(--font-ui);
+  z-index: 1000;
+  pointer-events: none;
+  /* In then out: 380ms enter, hold, 320ms exit at 3.4s. */
+  animation:
+    toastIn 380ms cubic-bezier(0.18, 0.7, 0.32, 1) both,
+    toastOut 320ms ease 3.4s forwards;
+  transform-origin: 50% 100%;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+
+.body {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.heading {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.85;
+  letter-spacing: -0.005em;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 18px) scale(0.94); }
+  to   { opacity: 1; transform: translate(-50%, 0)    scale(1);    }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translate(-50%, 0)    scale(1);    }
+  to   { opacity: 0; transform: translate(-50%, 12px) scale(0.96); }
+}
+
+/* Confetti — anchored to the toast's center top. Particles fly
+   outward via per-piece custom properties (--dx, --dy, --rot). */
+
+.confetti {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 1px;
+  opacity: 0;
+  animation: confettiFly 1.8s cubic-bezier(0.18, 0.65, 0.32, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes confettiFly {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  60%  { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.6);
+  }
+}

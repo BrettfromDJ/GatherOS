@@ -10,6 +10,7 @@ import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
+import MilestoneToast from './components/MilestoneToast.jsx';
 import { useLibrary } from './hooks/useLibrary.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
@@ -264,6 +265,23 @@ export default function App() {
   useEffect(() => {
     if (!loading) loadCollections();
   }, [loading, loadCollections]);
+
+  // Save-count milestones — fire a celebratory toast when the total
+  // crosses one of these thresholds going up. Tracks the previous
+  // value in a ref so the very first render (where prev is null)
+  // doesn't fire on app launch with an existing 100+ library.
+  const MILESTONES = useMemo(() => [10, 25, 50, 75, 100], []);
+  const prevSavesAllRef = useRef(null);
+  const [milestoneToast, setMilestoneToast] = useState(null);
+  useEffect(() => {
+    const prev = prevSavesAllRef.current;
+    const curr = smartCounts.all;
+    if (prev !== null && curr > prev) {
+      const hit = MILESTONES.find((m) => prev < m && curr >= m);
+      if (hit) setMilestoneToast({ id: Date.now(), count: hit });
+    }
+    prevSavesAllRef.current = curr;
+  }, [smartCounts.all, MILESTONES]);
 
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
@@ -1274,6 +1292,14 @@ export default function App() {
         <div className="drop-overlay">
           <span className="drop-message">Drop to save</span>
         </div>
+      )}
+
+      {milestoneToast && (
+        <MilestoneToast
+          key={milestoneToast.id}
+          count={milestoneToast.count}
+          onDone={() => setMilestoneToast(null)}
+        />
       )}
 
       {cardCtx && (
