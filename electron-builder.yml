@@ -20,7 +20,8 @@ mac:
         - x64
   hardenedRuntime: true
   gatekeeperAssess: false
-  notarize: false
+  notarize:
+    teamId: VNAA7DF9TQ
 publish:
   provider: github
   owner: BrettfromDJ
