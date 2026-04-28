@@ -113,7 +113,7 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
               <div className={styles.stack}>
                 {items.length === 0 ? (
                   <div className={styles.stackEmpty}>
-                    <span className={styles.stackEmptyIcon} style={{ color: 'var(--icon-blue)' }}>
+                    <span className={styles.stackEmptyIcon}>
                       <CollectionIcon />
                     </span>
                   </div>

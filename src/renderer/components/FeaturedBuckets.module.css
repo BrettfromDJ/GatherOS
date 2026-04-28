@@ -127,11 +127,11 @@
 .card:hover .stack img:nth-child(3) { transform: rotate(7deg)   translate(14px, -2px); }
 .card:hover .stack img:nth-child(4) { transform: rotate(18deg)  translate(32px, 8px); }
 
+/* Empty bucket — no preview thumbs yet. Bare bucket icon at low
+   opacity, no surrounding tile. Reads as a placeholder, not a card. */
 .stackEmpty {
   width: 92px;
   height: 92px;
-  border-radius: 9px;
-  background: rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,6 +141,7 @@
   display: inline-flex;
   width: 28px;
   height: 28px;
+  color: rgba(0, 0, 0, 0.22);
 }
 
 .stackEmptyIcon svg {
