@@ -1172,19 +1172,19 @@ export default function App() {
             type="button"
             className="selection-btn selection-btn-compact"
             onClick={handleRestoreSelected}
-            title="Restore"
+            data-tooltip="Restore"
+            aria-label="Restore"
           >
             <span className="selection-btn-icon"><RestoreIcon /></span>
-            <span className="selection-btn-label">Restore</span>
           </button>
           <button
             type="button"
             className="selection-btn selection-btn-danger selection-btn-compact"
             onClick={handlePermanentDeleteSelected}
-            title="Delete Forever"
+            data-tooltip="Delete forever"
+            aria-label="Delete forever"
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
-            <span className="selection-btn-label">Delete Forever</span>
           </button>
         </div>
       )}
@@ -1208,20 +1208,20 @@ export default function App() {
               type="button"
               className="selection-btn selection-btn-compact"
               onClick={openBulkPicker}
-              title="Add to Bucket"
+              data-tooltip="Add to bucket"
+              aria-label="Add to bucket"
             >
               <span className="selection-btn-icon"><CollectionIcon /></span>
-              <span className="selection-btn-label">Add to Bucket</span>
             </button>
           )}
           <button
             type="button"
             className="selection-btn selection-btn-compact"
             onClick={openExportPicker}
-            title="Export selected images"
+            data-tooltip="Export"
+            aria-label="Export selected images"
           >
             <span className="selection-btn-icon"><DownloadIcon /></span>
-            <span className="selection-btn-label">Export</span>
             <span className="selection-btn-chevron" aria-hidden="true">
               <svg width="8" height="6" viewBox="0 0 8 6">
                 <path d="M0 0l4 6 4-6z" fill="currentColor" />
@@ -1233,20 +1233,20 @@ export default function App() {
               type="button"
               className="selection-btn selection-btn-compact"
               onClick={handleBulkExportBoard}
-              title="Composite the selection into a single moodboard PNG"
+              data-tooltip="Make moodboard"
+              aria-label="Composite the selection into a single moodboard PNG"
             >
               <span className="selection-btn-icon"><BoardExportIcon /></span>
-              <span className="selection-btn-label">Make Moodboard</span>
             </button>
           )}
           <button
             type="button"
             className="selection-btn selection-btn-danger selection-btn-compact"
             onClick={handleDeleteSelected}
-            title="Delete"
+            data-tooltip="Delete"
+            aria-label="Delete"
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
-            <span className="selection-btn-label">Delete</span>
           </button>
         </div>
       )}
@@ -1262,10 +1262,10 @@ export default function App() {
             type="button"
             className="selection-btn selection-btn-danger selection-btn-compact"
             onClick={handleEmptyTrash}
-            title="Empty Trash"
+            data-tooltip="Empty trash"
+            aria-label="Empty trash"
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
-            <span className="selection-btn-label">Empty Trash</span>
           </button>
         </div>
       )}
