@@ -83,6 +83,11 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
     setDraft('');
     setStatus(STATUS_IDLE);
     setErrorMessage('');
+    // Stale transient feedback (the "Erased X saves" / "Exported to
+    // …" / etc. lines) shouldn't survive a close + reopen — reset
+    // each time the user pops back in.
+    setExportState({ running: false, message: null });
+    setWipeState({ running: false, message: null });
     requestAnimationFrame(() => inputRef.current?.focus());
     return () => { cancelled = true; };
   }, [open]);
