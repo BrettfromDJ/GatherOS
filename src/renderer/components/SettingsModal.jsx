@@ -25,29 +25,9 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
   const [reindexState, setReindexState] = useState({ running: false, processed: 0, total: 0 });
   const [exportState, setExportState] = useState({ running: false, message: null });
   const [wipeState, setWipeState] = useState({ running: false, message: null });
-  const [starterState, setStarterState] = useState({ running: false, message: null });
   const [aiOpen, setAiOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
   const inputRef = useRef(null);
-
-  async function handleRestoreStarter() {
-    if (starterState.running) return;
-    setStarterState({ running: true, message: null });
-    try {
-      const result = await window.moodmark.library.installStarter();
-      if (result?.collectionId) {
-        try { localStorage.setItem('moodmark.starterCollectionId', result.collectionId); } catch {}
-      }
-      const n = result?.installed ?? 0;
-      setStarterState({
-        running: false,
-        message: n > 0 ? `Installed ${n} starter ${n === 1 ? 'card' : 'cards'}` : 'Starter pack already installed',
-      });
-      onLibraryWiped?.();
-    } catch (err) {
-      setStarterState({ running: false, message: err.message || 'Restore failed' });
-    }
-  }
 
   async function handleWipeLibrary() {
     if (wipeState.running) return;
@@ -108,7 +88,6 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
     // each time the user pops back in.
     setExportState({ running: false, message: null });
     setWipeState({ running: false, message: null });
-    setStarterState({ running: false, message: null });
     requestAnimationFrame(() => inputRef.current?.focus());
     return () => { cancelled = true; };
   }, [open]);
@@ -437,29 +416,6 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
           {exportState.message && (
             <div className={styles.sectionHint} style={{ marginTop: 8 }}>
               {exportState.message}
-            </div>
-          )}
-
-          <div className={styles.divider} />
-
-          <p className={styles.sectionHint}>
-            Restore the starter pack — the original "Starter Pack" bucket
-            and its sample images. Useful if you removed it and want it
-            back. No-op if the bucket is already in your library.
-          </p>
-          <div className={styles.actions} style={{ justifyContent: 'flex-start' }}>
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={handleRestoreStarter}
-              disabled={starterState.running}
-            >
-              {starterState.running ? 'Restoring…' : 'Restore Starter Pack'}
-            </button>
-          </div>
-          {starterState.message && (
-            <div className={styles.sectionHint} style={{ marginTop: 8 }}>
-              {starterState.message}
             </div>
           )}
 

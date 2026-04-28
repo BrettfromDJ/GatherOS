@@ -60,8 +60,6 @@ contextBridge.exposeInMainWorld('moodmark', {
   library: {
     exportZip: () => ipcRenderer.invoke('library:export-zip'),
     installStarter: () => ipcRenderer.invoke('library:install-starter'),
-    removeStarter: (collectionId) =>
-      ipcRenderer.invoke('library:remove-starter', { collectionId }),
     wipeAll: () => ipcRenderer.invoke('library:wipe-all'),
   },
   drag: {

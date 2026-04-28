@@ -289,15 +289,8 @@ export default function App() {
     starterInstallStartedRef.current = true;
     (async () => {
       try {
-        const result = await window.moodmark.library.installStarter();
+        await window.moodmark.library.installStarter();
         try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
-        // Persist the freshly-created collection id so right-click
-        // → Delete Bucket on this bucket later can route to the
-        // remove-starter flow (which nukes the saves too) instead
-        // of the generic "orphan to Unsorted" behavior.
-        if (result?.collectionId) {
-          try { localStorage.setItem('moodmark.starterCollectionId', result.collectionId); } catch {}
-        }
         // Pull the new collection + counts in.
         loadCollections();
       } catch (err) {
@@ -332,10 +325,7 @@ export default function App() {
 
   const handleRestoreStarterPack = useCallback(async () => {
     try {
-      const result = await window.moodmark.library.installStarter();
-      if (result?.collectionId) {
-        try { localStorage.setItem('moodmark.starterCollectionId', result.collectionId); } catch {}
-      }
+      await window.moodmark.library.installStarter();
       loadCollections();
       reload();
     } catch (err) {
@@ -723,26 +713,11 @@ export default function App() {
   }, [setView]);
 
   const handleDeleteCollection = useCallback(async (id) => {
-    // Special-case the Starter Pack — deleting it should nuke its
-    // saves too (otherwise the saves would orphan to Unsorted,
-    // which isn't what "remove the starter pack" implies). The id
-    // was stamped into localStorage on install; fall back to a
-    // name match for migrations from before that was wired in.
-    let starterId = null;
-    try { starterId = localStorage.getItem('moodmark.starterCollectionId'); } catch {}
-    const isStarter = id === starterId
-      || (collections.find((c) => c.id === id)?.name === 'Starter Pack');
-    if (isStarter) {
-      await window.moodmark.library.removeStarter(id);
-      try { localStorage.removeItem('moodmark.starterCollectionId'); } catch {}
-    } else {
-      await window.moodmark.collections.delete(id);
-    }
+    await window.moodmark.collections.delete(id);
     // If we were viewing the deleted collection, go back to All
     if (view.type === 'collection' && view.id === id) handleViewChange({ type: 'all' });
     loadCollections();
-    if (isStarter) reload();
-  }, [view, handleViewChange, loadCollections, reload, collections]);
+  }, [view, handleViewChange, loadCollections]);
 
   const handleReorderCollections = useCallback(async (orderedIds) => {
     // Optimistic local reorder so the sidebar doesn't flash back to old order.
