@@ -1,5 +1,6 @@
 appId: com.gatheros.app
 productName: GatherOS
+afterSign: scripts/notarize.js
 directories:
   output: dist/build
   buildResources: build
@@ -20,9 +21,7 @@ mac:
         - x64
   hardenedRuntime: true
   gatekeeperAssess: false
-  notarize:
-    teamId: VNAA7DF9TQ
-    keychainProfile: GatherOS-Notarize
+  notarize: false
 publish:
   provider: github
   owner: BrettfromDJ
