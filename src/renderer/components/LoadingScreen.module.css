@@ -108,10 +108,11 @@
 .stack:hover .card:nth-child(4) { transform: translate(175px, 10px)   rotate(15deg); }
 
 /* Per-card hover wins over the group nudge so the one under the cursor
-   pops a little further. */
+   pops a little further. Layering (z-index) is intentionally left
+   alone — the hovered card stays in its natural depth slot, just
+   nudged up and rotated a bit more. */
 .card:hover {
   transform-origin: 50% 90%;
-  z-index: 10;
 }
 .card:nth-child(1):hover { transform: translate(-180px, 0px)  rotate(-18deg) scale(1.05); }
 .card:nth-child(2):hover { transform: translate(-58px, -22px) rotate(-7deg)  scale(1.05); }
