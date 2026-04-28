@@ -38,6 +38,38 @@
   color: var(--text-primary);
 }
 
+/* Bare back-chevron — matches FocusedView's .backBtn so the bucket
+   view and detail view share the exact same back affordance: 22x22
+   button, 14x14 chevron, no container, color-only hover. */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  transition: color 100ms ease, transform 80ms ease;
+}
+
+.backBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+}
+
+.backBtn:active {
+  transform: scale(0.92);
+}
+
 /* Three-column flex: equal-flex gutters on either side so the centered
    search slot stays put even when the right-side count text shrinks
    from "120 saves" → "5 saves" as the user types. */

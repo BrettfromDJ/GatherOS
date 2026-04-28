@@ -1102,7 +1102,7 @@ export default function App() {
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
               />
               <div className="grid-scroll">
-                {view.type === 'all' && collections.length > 0 && (
+                {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
                     collections={collections}
                     onPickBucket={(id) => handleViewChange({ type: 'collection', id })}

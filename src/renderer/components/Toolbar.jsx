@@ -130,7 +130,7 @@ export default function Toolbar({
         {onBackToAll && (
           <button
             type="button"
-            className={styles.iconBtn}
+            className={styles.backBtn}
             onClick={onBackToAll}
             title="Back to All"
             aria-label="Back to All"
@@ -159,6 +159,16 @@ export default function Toolbar({
           placeholder={semanticSearchActive ? 'Describe what you’re looking for…' : 'Search by title or tag'}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            // Escape always exits the field. When the input is empty
+            // we just blur; when it has content we clear-then-blur on
+            // a single keystroke (native <input type="search"> only
+            // clears, leaving focus behind).
+            if (e.key === 'Escape') {
+              if (search) onSearchChange('');
+              e.currentTarget.blur();
+            }
+          }}
         />
         {onOpenQuickSwitcher && (
           <button
