@@ -10,7 +10,6 @@ import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
-import MilestoneToast from './components/MilestoneToast.jsx';
 import { useLibrary } from './hooks/useLibrary.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
@@ -265,25 +264,6 @@ export default function App() {
   useEffect(() => {
     if (!loading) loadCollections();
   }, [loading, loadCollections]);
-
-  // Save-count milestones + welcome re-arm. Both rely on observing
-  // transitions of smartCounts.all between renders — milestones fire
-  // on upward crossings of [10, 25, 50, 75, 100], and welcome
-  // re-arms whenever the library transitions back to empty so a
-  // user who deletes everything gets the same first-launch flow.
-  const MILESTONES = useMemo(() => [10, 25, 50, 75, 100], []);
-  const prevSavesAllRef = useRef(null);
-  const [milestoneToast, setMilestoneToast] = useState(null);
-
-  useEffect(() => {
-    const prev = prevSavesAllRef.current;
-    const curr = smartCounts.all;
-    if (prev !== null && curr > prev) {
-      const hit = MILESTONES.find((m) => prev < m && curr >= m);
-      if (hit) setMilestoneToast({ id: Date.now(), count: hit });
-    }
-    prevSavesAllRef.current = curr;
-  }, [smartCounts.all, MILESTONES]);
 
   // First-launch starter-pack install. Once the initial library
   // load resolves and we know the user has zero saves AND the
@@ -1390,14 +1370,6 @@ export default function App() {
         <div className="drop-overlay">
           <span className="drop-message">Drop to save</span>
         </div>
-      )}
-
-      {milestoneToast && (
-        <MilestoneToast
-          key={milestoneToast.id}
-          count={milestoneToast.count}
-          onDone={() => setMilestoneToast(null)}
-        />
       )}
 
       {cardCtx && (
