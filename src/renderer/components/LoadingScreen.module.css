@@ -100,17 +100,9 @@
 .card:nth-child(3) { transform: translate(55px, -4px)   rotate(4deg);   z-index: 3; }
 .card:nth-child(4) { transform: translate(165px, 18px)  rotate(12deg);  z-index: 4; }
 
-/* Hover — each card nudges off its resting tilt a hair. Whole-stack
-   hover so moving across cards stays smooth. */
-.stack:hover .card:nth-child(1) { transform: translate(-175px, 10px)  rotate(-15deg); }
-.stack:hover .card:nth-child(2) { transform: translate(-58px, -10px)  rotate(-6deg); }
-.stack:hover .card:nth-child(3) { transform: translate(58px, -10px)   rotate(6deg); }
-.stack:hover .card:nth-child(4) { transform: translate(175px, 10px)   rotate(15deg); }
-
-/* Per-card hover wins over the group nudge so the one under the cursor
-   pops a little further. Layering (z-index) is intentionally left
-   alone — the hovered card stays in its natural depth slot, just
-   nudged up and rotated a bit more. */
+/* Per-card hover — only the card under the cursor moves; the rest of
+   the stack stays put. Layering (z-index) is intentionally left
+   alone so the hovered card stays in its natural depth slot. */
 .card:hover {
   transform-origin: 50% 90%;
 }
