@@ -149,19 +149,20 @@
   border-top-color: rgba(28, 28, 30, 0.92);
 }
 
-/* The leftmost swatch sits flush against the panel's left padding, so the
-   centered tooltip would extend past the panel's left edge and get clipped
-   (overflow-y: auto forces overflow-x: auto per CSS spec). Anchor the
-   tooltip's left edge to the swatch's left and shift the arrow to keep it
-   pointed at the swatch's center. Use a dedicated keyframe so the
-   intro animation doesn't briefly snap to the centered position. */
-.swatch:first-child .swatchTooltip {
+/* The first two swatches sit close enough to the panel's left padding
+   that the centered tooltip extends past the panel's left edge and
+   gets clipped (overflow-y: auto forces overflow-x: auto per CSS
+   spec). Anchor the tooltip's left edge to the swatch's left and
+   shift the arrow to keep it pointed at the swatch's center. Use a
+   dedicated keyframe so the intro animation doesn't briefly snap to
+   the centered position. */
+.swatch:nth-child(-n+2) .swatchTooltip {
   left: 0;
   transform: translateX(0);
   animation: tooltipInLeft 120ms ease;
 }
 
-.swatch:first-child .swatchTooltip::after {
+.swatch:nth-child(-n+2) .swatchTooltip::after {
   left: 9px;
 }
 
