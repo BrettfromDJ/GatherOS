@@ -116,6 +116,7 @@ export default function DetailPanel({
   onTagsChanged,
   onUpdateMeta,
   onOpenSettings,
+  onOpenSave,
 }) {
   const src = fileUrl(record.file_path);
   const typeLabel = fileTypeLabel(record.file_path);
@@ -262,6 +263,26 @@ export default function DetailPanel({
     });
     return () => { cancelled = true; };
   }, [record.id]);
+
+  // "More like this" — pull the top-N visually similar saves from
+  // the existing embeddings table. Anchored to the focused save's
+  // id so it refetches when the user navigates to a different save
+  // (j/k or by clicking another similar thumb). Skipped entirely
+  // when AI isn't configured — embeddings won't be there.
+  const [similar, setSimilar] = useState([]);
+  useEffect(() => {
+    if (!aiConfigured) {
+      setSimilar([]);
+      return undefined;
+    }
+    let cancelled = false;
+    window.moodmark.ai.similarSaves(record.id, 5).then((rows) => {
+      if (!cancelled) setSimilar(rows || []);
+    }).catch(() => {
+      if (!cancelled) setSimilar([]);
+    });
+    return () => { cancelled = true; };
+  }, [record.id, aiConfigured]);
 
   async function refreshTags() {
     const rows = await window.moodmark.tags.getForSave(record.id);
@@ -822,6 +843,32 @@ export default function DetailPanel({
               )}
             </div>
           </label>
+        </div>
+      )}
+
+      {similar.length > 0 && (
+        <div className={styles.similarSection}>
+          <div className={styles.similarLabel}>
+            <span className={styles.sectionLabelIcon}><SparkleIcon /></span>
+            <span>More like this</span>
+          </div>
+          <div className={styles.similarGrid}>
+            {similar.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={styles.similarTile}
+                onClick={() => onOpenSave?.(s.id)}
+                title={s.title || ''}
+              >
+                <img
+                  src={fileUrl(s.thumb_path || s.file_path)}
+                  alt=""
+                  draggable={false}
+                />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

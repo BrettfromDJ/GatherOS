@@ -798,6 +798,61 @@
   color: var(--accent);
 }
 
+/* "More like this" — 5-up row of similar saves pulled from the
+   embeddings table. Each tile is a square button that opens that
+   save in the focused view. */
+.similarSection {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.similarLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.similarTile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transition: transform 100ms ease, box-shadow 120ms ease;
+}
+
+.similarTile:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.10),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.similarTile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .meta {
   display: grid;
   grid-template-columns: 88px 1fr;

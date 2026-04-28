@@ -81,6 +81,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     generatePrompt: (saveId) => ipcRenderer.invoke('ai:generate-prompt', saveId),
     unindexedCount: () => ipcRenderer.invoke('ai:unindexed-count'),
     reindexLibrary: () => ipcRenderer.invoke('ai:reindex-library'),
+    similarSaves: (saveId, limit) => ipcRenderer.invoke('ai:similar-saves', saveId, limit),
   },
   on: (channel, listener) => {
     const allowed = new Set([

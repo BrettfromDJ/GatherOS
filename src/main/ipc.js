@@ -552,6 +552,38 @@ function registerIpcHandlers() {
   // ── AI: auto-tag a save ─────────────────────────────────────────────────
   ipcMain.handle('ai:unindexed-count', () => getUnindexedCount());
 
+  // Returns up to `limit` saves visually most similar to `saveId`,
+  // ranked by cosine over their existing embeddings. No-op (returns
+  // []) if the anchor itself isn't indexed yet — calling code can
+  // skip rendering the section in that case. Trashed saves are
+  // filtered out so the user doesn't get suggestions from the bin.
+  ipcMain.handle('ai:similar-saves', (_e, saveId, limit = 5) => {
+    if (!saveId) return [];
+    const rows = getSaveEmbeddings();
+    const anchor = rows.find((r) => r.id === saveId);
+    if (!anchor) return [];
+    const a = bufferToFloat32(anchor.embedding);
+    const dim = a.length;
+    const scored = rows
+      .filter((r) => r.id !== saveId)
+      .map((row) => ({
+        id: row.id,
+        score: cosineSim(a, bufferToFloat32(row.embedding), dim),
+      }))
+      // 0.30 cutoff — below that the suggestions read as random,
+      // and the calling UI is happier rendering nothing than a row
+      // of unrelated thumbs.
+      .filter((r) => r.score >= 0.30)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, Math.min(limit, 12)));
+    if (scored.length === 0) return [];
+    const ids = scored.map((s) => s.id);
+    const records = getSavesByIds(ids).filter((r) => !r.deleted_at);
+    const orderById = new Map(ids.map((id, i) => [id, i]));
+    records.sort((a, b) => orderById.get(a.id) - orderById.get(b.id));
+    return records;
+  });
+
   // Backfill: process every save that has no embedding yet through the
   // analyze + embed pipeline. Emits ai:reindex-progress events so the
   // UI can show "Indexing N of M" in real time. Sequential to keep
