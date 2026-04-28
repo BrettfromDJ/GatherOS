@@ -50,6 +50,54 @@ export default function ImageCard({
   const [peeking, setPeeking] = useState(false);
   const closeTimerRef = useRef(null);
 
+  // Cursor-parallax tilt. The frame rotates up to 5° toward the
+  // cursor as it crosses the card. We bypass React state on
+  // mousemove and write directly to .frame.style — re-rendering on
+  // every cursor frame would be expensive, especially with hundreds
+  // of cards in a masonry. rAF coalesces the pointer stream to one
+  // update per paint.
+  const frameRef = useRef(null);
+  const tiltRafRef = useRef(null);
+
+  const handleFrameMouseMove = (e) => {
+    if (tiltRafRef.current != null) return;
+    const cx = e.clientX;
+    const cy = e.clientY;
+    tiltRafRef.current = requestAnimationFrame(() => {
+      tiltRafRef.current = null;
+      const frame = frameRef.current;
+      if (!frame) return;
+      const rect = frame.getBoundingClientRect();
+      // Normalize cursor to -1..1 across the frame.
+      const px = ((cx - rect.left) / rect.width) * 2 - 1;
+      const py = ((cy - rect.top) / rect.height) * 2 - 1;
+      const TILT_MAX = 5;
+      const rotateY = px * TILT_MAX;       // cursor right → tilt right
+      const rotateX = -py * TILT_MAX;      // cursor up    → tilt up
+      // No transition during tracking — the cursor IS the timing
+      // function. translateY(-1px) preserves the hover lift that
+      // .card:hover .frame would otherwise provide.
+      frame.style.transition = 'none';
+      frame.style.transform = `perspective(700px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-1px)`;
+    });
+  };
+
+  const handleFrameMouseLeave = () => {
+    if (tiltRafRef.current != null) {
+      cancelAnimationFrame(tiltRafRef.current);
+      tiltRafRef.current = null;
+    }
+    const frame = frameRef.current;
+    if (!frame) return;
+    // Hand back to CSS so the springback to neutral animates cleanly.
+    frame.style.transition = '';
+    frame.style.transform = '';
+  };
+
+  useEffect(() => () => {
+    if (tiltRafRef.current != null) cancelAnimationFrame(tiltRafRef.current);
+  }, []);
+
   const cancelClose = () => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
@@ -93,7 +141,13 @@ export default function ImageCard({
         onDragStart(e, record);
       }}
     >
-      <div className={styles.frame} style={{ aspectRatio: aspect }}>
+      <div
+        ref={frameRef}
+        className={styles.frame}
+        style={{ aspectRatio: aspect }}
+        onMouseMove={handleFrameMouseMove}
+        onMouseLeave={handleFrameMouseLeave}
+      >
         {src && (
           <img
             src={src}
