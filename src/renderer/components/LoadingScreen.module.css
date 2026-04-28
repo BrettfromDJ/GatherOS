@@ -39,8 +39,8 @@
 
 .stack {
   position: relative;
-  width: 720px;
-  height: 320px;
+  width: 760px;
+  height: 380px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +50,8 @@
 
 .card {
   position: absolute;
-  width: 220px;
-  height: 264px;
+  width: 280px;
+  height: 340px;
   border-radius: 22px;
   overflow: hidden;
   background: #fff;
@@ -91,40 +91,42 @@
   height: 56px;
 }
 
-/* Resting fan — alternating tilts, slight horizontal stagger, slight
-   vertical stagger so the row reads as a hand of cards rather than a
-   strip. */
-.card:nth-child(1) { transform: translate(-330px, 14px) rotate(-12deg); z-index: 1; }
-.card:nth-child(2) { transform: translate(-110px, -6px) rotate(-4deg);  z-index: 2; }
-.card:nth-child(3) { transform: translate(110px, -6px)  rotate(4deg);   z-index: 3; }
-.card:nth-child(4) { transform: translate(330px, 14px)  rotate(12deg);  z-index: 4; }
+/* Resting fan — heavy overlap (~55% of each card hidden behind the
+   next) so the row reads as a layered hand of cards, not a spread.
+   Offsets tightened from ±330/±110 down to ±165/±55 against a 280px
+   card. */
+.card:nth-child(1) { transform: translate(-165px, 18px) rotate(-12deg); z-index: 1; }
+.card:nth-child(2) { transform: translate(-55px, -4px)  rotate(-4deg);  z-index: 2; }
+.card:nth-child(3) { transform: translate(55px, -4px)   rotate(4deg);   z-index: 3; }
+.card:nth-child(4) { transform: translate(165px, 18px)  rotate(12deg);  z-index: 4; }
 
 /* Hover — each card nudges off its resting tilt a hair. Whole-stack
    hover so moving across cards stays smooth. */
-.stack:hover .card:nth-child(1) { transform: translate(-340px, 8px)  rotate(-15deg); }
-.stack:hover .card:nth-child(2) { transform: translate(-115px, -12px) rotate(-6deg); }
-.stack:hover .card:nth-child(3) { transform: translate(115px, -12px)  rotate(6deg); }
-.stack:hover .card:nth-child(4) { transform: translate(340px, 8px)   rotate(15deg); }
+.stack:hover .card:nth-child(1) { transform: translate(-175px, 10px)  rotate(-15deg); }
+.stack:hover .card:nth-child(2) { transform: translate(-58px, -10px)  rotate(-6deg); }
+.stack:hover .card:nth-child(3) { transform: translate(58px, -10px)   rotate(6deg); }
+.stack:hover .card:nth-child(4) { transform: translate(175px, 10px)   rotate(15deg); }
 
 /* Per-card hover wins over the group nudge so the one under the cursor
    pops a little further. */
 .card:hover {
   transform-origin: 50% 90%;
+  z-index: 10;
 }
-.card:nth-child(1):hover { transform: translate(-345px, -2px) rotate(-18deg) scale(1.04); }
-.card:nth-child(2):hover { transform: translate(-115px, -22px) rotate(-7deg) scale(1.04); }
-.card:nth-child(3):hover { transform: translate(115px, -22px)  rotate(7deg)  scale(1.04); }
-.card:nth-child(4):hover { transform: translate(345px, -2px)   rotate(18deg) scale(1.04); }
+.card:nth-child(1):hover { transform: translate(-180px, 0px)  rotate(-18deg) scale(1.05); }
+.card:nth-child(2):hover { transform: translate(-58px, -22px) rotate(-7deg)  scale(1.05); }
+.card:nth-child(3):hover { transform: translate(58px, -22px)  rotate(7deg)   scale(1.05); }
+.card:nth-child(4):hover { transform: translate(180px, 0px)   rotate(18deg)  scale(1.05); }
 
 /* Exit animation — each card lifts up and fades out, staggered so the
    leftmost goes first. */
 .overlay.exiting .card {
   transition: transform 540ms cubic-bezier(0.4, 0, 0.6, 1), opacity 360ms ease-out;
 }
-.overlay.exiting .card:nth-child(1) { transform: translate(-330px, -640px) rotate(-30deg); opacity: 0; transition-delay: 0ms; }
-.overlay.exiting .card:nth-child(2) { transform: translate(-110px, -640px) rotate(-12deg); opacity: 0; transition-delay: 60ms; }
-.overlay.exiting .card:nth-child(3) { transform: translate(110px, -640px)  rotate(12deg);  opacity: 0; transition-delay: 120ms; }
-.overlay.exiting .card:nth-child(4) { transform: translate(330px, -640px)  rotate(30deg);  opacity: 0; transition-delay: 180ms; }
+.overlay.exiting .card:nth-child(1) { transform: translate(-200px, -720px) rotate(-30deg); opacity: 0; transition-delay: 0ms; }
+.overlay.exiting .card:nth-child(2) { transform: translate(-70px, -720px)  rotate(-12deg); opacity: 0; transition-delay: 60ms; }
+.overlay.exiting .card:nth-child(3) { transform: translate(70px, -720px)   rotate(12deg);  opacity: 0; transition-delay: 120ms; }
+.overlay.exiting .card:nth-child(4) { transform: translate(200px, -720px)  rotate(30deg);  opacity: 0; transition-delay: 180ms; }
 
 /* ── Counter ────────────────────────────────────────────────────────── */
 

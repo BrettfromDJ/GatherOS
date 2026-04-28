@@ -75,7 +75,10 @@ export default function LoadingScreen({ onDone }) {
             {s ? (
               <img
                 className={styles.cardImg}
-                src={fileUrl(s.thumb_path || s.file_path)}
+                /* file_path first — the splash card is large enough that
+                   the small thumb_path renders soft. Fall back to thumb
+                   only if the original is missing. */
+                src={fileUrl(s.file_path || s.thumb_path)}
                 alt=""
                 draggable={false}
               />
