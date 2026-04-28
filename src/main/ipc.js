@@ -27,6 +27,7 @@ const { notifySaved } = require('./notify');
 const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
 const { buildStarterPack } = require('./starterPack');
+const { quitAndInstall } = require('./updater');
 const {
   testApiKey, autoTagImage, analyzeImage, embedText, generateImagePrompt,
 } = require('./openai');
@@ -446,6 +447,13 @@ function registerIpcHandlers() {
       });
       proc.on('error', (err) => resolve({ ok: false, error: err.message }));
     });
+  });
+
+  // Triggered by the in-app "Restart to update" pill. Closes the
+  // window cleanly and relaunches into the freshly-installed version.
+  ipcMain.handle('updater:install', () => {
+    quitAndInstall();
+    return { ok: true };
   });
 
   // Nuclear "Erase Library" — guarded by a native confirm dialog

@@ -255,6 +255,21 @@ export default function App() {
     return () => { offStart?.(); offEnd?.(); };
   }, []);
 
+  // Auto-update notification — main process emits 'update-ready'
+  // when electron-updater has finished downloading a new version.
+  // We surface a small pill in the bottom-right corner; click ➜
+  // updater:install ➜ quitAndInstall(). If the user ignores it,
+  // autoInstallOnAppQuit kicks in on their next clean quit.
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  useEffect(() => {
+    return window.moodmark.on('update-ready', (info) => {
+      setPendingUpdate(info || { version: null });
+    });
+  }, []);
+  const handleApplyUpdate = useCallback(() => {
+    window.moodmark.updater.install();
+  }, []);
+
   // Collections state
   const [collections, setCollections] = useState([]);
   // Counts that drive the sidebar's smart-view badges (All / Unsorted /
@@ -1472,6 +1487,23 @@ export default function App() {
           target={compostBurst.target}
           onDone={() => setCompostBurst(null)}
         />
+      )}
+
+      {pendingUpdate && (
+        <button
+          type="button"
+          className="update-pill"
+          onClick={handleApplyUpdate}
+          title="Restart to apply the downloaded update"
+        >
+          <span className="update-pill-dot" aria-hidden="true" />
+          <span>
+            <strong>
+              {pendingUpdate.version ? `v${pendingUpdate.version} ready` : 'Update ready'}
+            </strong>
+            {' · Restart'}
+          </span>
+        </button>
       )}
 
       {/* Floating action — pinned bottom-right. Only shows when the

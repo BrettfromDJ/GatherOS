@@ -30,6 +30,7 @@ const {
 } = require('./capture');
 const { showToast, destroyToastWindow } = require('./toast-window');
 const { setSaveNotifier } = require('./notify');
+const { initUpdater } = require('./updater');
 
 const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
@@ -257,6 +258,7 @@ app.whenReady().then(() => {
   createMainWindow();
   createTray();
   registerCaptureHotkey();
+  initUpdater(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

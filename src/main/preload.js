@@ -83,6 +83,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     reindexLibrary: () => ipcRenderer.invoke('ai:reindex-library'),
     similarSaves: (saveId, limit) => ipcRenderer.invoke('ai:similar-saves', saveId, limit),
   },
+  updater: {
+    install: () => ipcRenderer.invoke('updater:install'),
+  },
   on: (channel, listener) => {
     const allowed = new Set([
       'save:created',
