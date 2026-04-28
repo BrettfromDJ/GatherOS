@@ -319,6 +319,44 @@ export default function App() {
     })();
   }, [loading, smartCounts.all, collections.length, loadCollections]);
 
+  // Post-wipe restore-starter toast. Surfaces a "Restore starter
+  // pack?" pill if the user has already onboarded (starterInstalled
+  // is set) AND the library is currently empty AND they haven't
+  // permanently dismissed the toast via its X. Dismiss is persisted
+  // in localStorage so the toast goes away forever on that device.
+  const [starterToastDismissed, setStarterToastDismissed] = useState(() => {
+    try { return localStorage.getItem('moodmark.starterToastDismissed') === '1'; }
+    catch { return false; }
+  });
+  // Re-read the starterInstalled flag whenever it might change. We
+  // don't observe localStorage directly; instead we just refresh on
+  // the same triggers the auto-install effect uses.
+  const starterInstalled = (() => {
+    try { return localStorage.getItem('moodmark.starterInstalled') === '1'; }
+    catch { return false; }
+  })();
+  const showStarterToast = !loading
+    && starterInstalled
+    && !starterToastDismissed
+    && smartCounts.all === 0
+    && collections.length === 0
+    && !focusedId;
+
+  const handleRestoreStarterPack = useCallback(async () => {
+    try {
+      await window.moodmark.library.installStarter();
+      loadCollections();
+      reload();
+    } catch (err) {
+      console.error('Restore starter pack failed:', err);
+    }
+  }, [loadCollections, reload]);
+
+  const handleDismissStarterToast = useCallback(() => {
+    try { localStorage.setItem('moodmark.starterToastDismissed', '1'); } catch {}
+    setStarterToastDismissed(true);
+  }, []);
+
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
 
@@ -1320,6 +1358,30 @@ export default function App() {
             aria-label="Empty trash"
           >
             <span className="selection-btn-icon"><TrashIcon /></span>
+          </button>
+        </div>
+      )}
+
+      {showStarterToast && (
+        <div className="selection-bar" role="status">
+          <div className="selection-status">
+            <span className="selection-count">Restore the starter pack?</span>
+          </div>
+          <button
+            type="button"
+            className="selection-btn"
+            onClick={handleRestoreStarterPack}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="selection-bar-close"
+            onClick={handleDismissStarterToast}
+            data-tooltip="Dismiss forever"
+            aria-label="Dismiss forever"
+          >
+            ×
           </button>
         </div>
       )}

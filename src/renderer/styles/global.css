@@ -202,6 +202,31 @@ button {
   border-radius: 2px;
 }
 
+/* Dismiss-X for the post-wipe starter-restore toast. Sits inside the
+   .selection-bar pill at the right edge. Tooltip lives on the
+   element via [data-tooltip]. */
+.selection-bar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 100ms ease, background 100ms ease;
+}
+
+.selection-bar-close:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .selection-btn {
   display: inline-flex;
   align-items: center;
