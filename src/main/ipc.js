@@ -468,6 +468,34 @@ function registerIpcHandlers() {
     return { ok: true, removed: result.files.length };
   });
 
+  // Remove starter pack — meant for when the user wants the
+  // starter cards gone entirely (not just the bucket; the saves
+  // too). Generic Delete Bucket on a normal bucket would orphan
+  // its saves to Unsorted, but that's not the spirit of "remove
+  // the starter pack." The IPC is idempotent: if the bucket no
+  // longer exists, it just no-ops.
+  ipcMain.handle('library:remove-starter', async (_e, { collectionId } = {}) => {
+    if (!collectionId) return { ok: false, reason: 'no-id' };
+    const allCollections = getAllCollections();
+    if (!allCollections.find((c) => c.id === collectionId)) {
+      return { ok: true, removed: 0, alreadyGone: true };
+    }
+    // Pull every save in the bucket (across All / Unsorted / Trash —
+    // the user wants them gone). Then permanently delete each so
+    // the files come off disk too.
+    const saves = getAllSaves({ collectionId });
+    let removed = 0;
+    for (const s of saves) {
+      const result = permanentlyDeleteSave(s.id);
+      if (result?.ok) {
+        deleteImageFiles(result.filePath, result.thumbPath);
+        removed += 1;
+      }
+    }
+    deleteCollection(collectionId);
+    return { ok: true, removed };
+  });
+
   // First-launch starter pack: rasterizes 6 bundled SVG cards into
   // PNGs, runs them through the standard save pipeline (so palette
   // extraction + thumbnails happen as for any real save), creates a
