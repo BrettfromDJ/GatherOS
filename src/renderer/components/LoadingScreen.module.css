@@ -40,7 +40,7 @@
 .stack {
   position: relative;
   width: 760px;
-  height: 380px;
+  height: 340px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +51,7 @@
 .card {
   position: absolute;
   width: 280px;
-  height: 340px;
+  height: 280px;
   border-radius: 22px;
   overflow: hidden;
   background: #fff;
