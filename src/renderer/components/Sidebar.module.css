@@ -275,33 +275,21 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-/* Hover preview — fanned stack of up to four thumbnails that floats
-   to the right of a bucket row after a brief delay. Portaled to
-   document.body so it isn't clipped by the sidebar's overflow:auto.
-   Mirrors the same stacked-card language as the FeaturedBuckets
-   row at the top of the All grid: tilted, overlapping, with each
-   thumb dealing in on a slight stagger. */
+/* Hover preview — bare fanned stack of up to four thumbnails that
+   pops out next to the bucket row. No container, no glass plate;
+   the cards float free with their own shadows. Portaled to
+   document.body so it isn't clipped by the sidebar's overflow:auto. */
 .bucketPreview {
   position: fixed;
   transform: translateY(-50%);
   z-index: 100;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 0.5px solid rgba(0, 0, 0, 0.10);
-  border-radius: 12px;
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 14px 32px rgba(0, 0, 0, 0.16);
   pointer-events: none;
-  animation: bucketPreviewIn 140ms ease-out;
 }
 
 .bucketPreviewStack {
   position: relative;
-  width: 132px;
-  height: 84px;
+  width: 84px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,52 +297,43 @@
 
 .bucketPreviewStack img {
   position: absolute;
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
   object-fit: cover;
   background: rgba(0, 0, 0, 0.04);
+  /* Stronger shadow than the contained version — the cards need to
+     read as floating now that they don't have a parent plate. */
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    0 6px 14px rgba(0, 0, 0, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-  /* Default fade-in animation; per-child overrides below set the
-     keyframe pair so each card lands in its own fanned position. */
-  animation: bucketStackDeal 320ms cubic-bezier(0.18, 0.7, 0.32, 1) both;
+  animation: bucketStackDeal 280ms cubic-bezier(0.18, 0.7, 0.32, 1) both;
 }
 
 /* Each card has its own keyframes so the resting transform (rotate +
    translate) lives on the keyframe's `to` state — that lets us
    animate from a stacked-and-flat starting state into the fan. */
 .bucketPreviewStack img:nth-child(1) { z-index: 1; animation-name: bucketStackDeal1; animation-delay: 0ms; }
-.bucketPreviewStack img:nth-child(2) { z-index: 2; animation-name: bucketStackDeal2; animation-delay: 50ms; }
-.bucketPreviewStack img:nth-child(3) { z-index: 3; animation-name: bucketStackDeal3; animation-delay: 100ms; }
-.bucketPreviewStack img:nth-child(4) { z-index: 4; animation-name: bucketStackDeal4; animation-delay: 150ms; }
+.bucketPreviewStack img:nth-child(2) { z-index: 2; animation-name: bucketStackDeal2; animation-delay: 40ms; }
+.bucketPreviewStack img:nth-child(3) { z-index: 3; animation-name: bucketStackDeal3; animation-delay: 80ms; }
+.bucketPreviewStack img:nth-child(4) { z-index: 4; animation-name: bucketStackDeal4; animation-delay: 120ms; }
 
 @keyframes bucketStackDeal1 {
-  from { opacity: 0; transform: rotate(0deg)  translate(0, 14px) scale(0.92); }
-  to   { opacity: 1; transform: rotate(-10deg) translate(-22px, 4px); }
+  from { opacity: 0; transform: rotate(0deg)  translate(-12px, 0) scale(0.86); }
+  to   { opacity: 1; transform: rotate(-9deg) translate(-14px, 3px); }
 }
 @keyframes bucketStackDeal2 {
-  from { opacity: 0; transform: rotate(0deg)  translate(0, 14px) scale(0.92); }
-  to   { opacity: 1; transform: rotate(-3deg) translate(-7px, 0); }
+  from { opacity: 0; transform: rotate(0deg)  translate(-8px, 0) scale(0.86); }
+  to   { opacity: 1; transform: rotate(-3deg) translate(-5px, 0); }
 }
 @keyframes bucketStackDeal3 {
-  from { opacity: 0; transform: rotate(0deg)  translate(0, 14px) scale(0.92); }
-  to   { opacity: 1; transform: rotate(4deg)  translate(8px, 0); }
+  from { opacity: 0; transform: rotate(0deg)  translate(-4px, 0) scale(0.86); }
+  to   { opacity: 1; transform: rotate(4deg)  translate(5px, 0); }
 }
 @keyframes bucketStackDeal4 {
-  from { opacity: 0; transform: rotate(0deg)  translate(0, 14px) scale(0.92); }
-  to   { opacity: 1; transform: rotate(11deg) translate(23px, 4px); }
-}
-
-@keyframes bucketStackDeal {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes bucketPreviewIn {
-  from { opacity: 0; transform: translate(-4px, -50%); }
-  to   { opacity: 1; transform: translate(0, -50%); }
+  from { opacity: 0; transform: rotate(0deg)  translate(0, 0) scale(0.86); }
+  to   { opacity: 1; transform: rotate(10deg) translate(15px, 3px); }
 }
 
 /* Hover state when a grid card is dragged over a bucket. */
