@@ -82,6 +82,92 @@
   background: rgba(255, 255, 255, 0.8);
 }
 
+/* Peek trigger — bottom-right counterpart to the checkbox. Same
+   liquid-glass surface; reveals on card hover, opens a lightbox on
+   icon hover. */
+.peekBtn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  padding: 0;
+  transition: opacity 120ms ease, background 120ms ease, transform 120ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.peekBtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.card:hover .peekBtn {
+  opacity: 1;
+}
+
+.peekBtn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.06);
+}
+
+/* ── Lightbox preview ────────────────────────────────────────────────
+   Spotlight focus view — full-viewport dim/blur backdrop with the
+   image floated centered above it. Portaled to document.body so it
+   escapes the card's overflow:hidden frame. */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.45);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  pointer-events: none;
+  animation: lightboxIn 160ms ease-out;
+}
+
+.lightboxImage {
+  /* Capped at 80vw / 80vh so the image always sits inside the
+     viewport with breathing room around it, regardless of aspect. */
+  max-width: 80vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 30px 80px rgba(0, 0, 0, 0.45);
+  /* The backdrop is non-interactive so it can't intercept the leave
+     event; the image itself is the hover target that keeps the
+     lightbox open. */
+  pointer-events: auto;
+  animation: lightboxImageIn 200ms cubic-bezier(0.18, 0.7, 0.32, 1);
+}
+
+@keyframes lightboxIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes lightboxImageIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 /* "Just arrived" affordance — runs once when a save lands in the
    grid. A soft white sheen sweeps diagonally across the frame, with
    a brief accent-color ring fading out around it. */

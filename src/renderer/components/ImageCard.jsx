@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -17,6 +18,18 @@ function CheckIcon() {
   );
 }
 
+// Four-corner brackets — reads as "expand to fill" / "open peek".
+function PeekIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6 V3 H6" />
+      <path d="M13 6 V3 H10" />
+      <path d="M3 10 V13 H6" />
+      <path d="M13 10 V13 H10" />
+    </svg>
+  );
+}
+
 export default function ImageCard({
   record,
   selected,
@@ -30,6 +43,28 @@ export default function ImageCard({
   const src = fileUrl(record.file_path);
   const aspect =
     record.width && record.height ? record.width / record.height : 4 / 3;
+
+  // Hover-triggered lightbox preview. Open while either the peek
+  // icon or the lightbox image itself is hovered; a brief grace
+  // window lets the cursor travel between them without dismissing.
+  const [peeking, setPeeking] = useState(false);
+  const closeTimerRef = useRef(null);
+
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+  const scheduleClose = (delay) => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => {
+      setPeeking(false);
+      closeTimerRef.current = null;
+    }, delay);
+  };
+
+  useEffect(() => () => cancelClose(), []);
 
   return (
     <button
@@ -81,7 +116,37 @@ export default function ImageCard({
         >
           {selected && <CheckIcon />}
         </span>
+        <span
+          className={styles.peekBtn}
+          title="Peek"
+          aria-label="Peek"
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => { cancelClose(); setPeeking(true); }}
+          onMouseLeave={() => scheduleClose(150)}
+        >
+          <PeekIcon />
+        </span>
       </div>
+
+      {peeking && src && createPortal(
+        <div
+          className={styles.lightbox}
+          // Cursor can pass over the dim backdrop on its way to the
+          // image without dismissing — the close decision lives on
+          // the image's own enter/leave below.
+          aria-hidden="true"
+        >
+          <img
+            src={src}
+            alt=""
+            className={styles.lightboxImage}
+            onMouseEnter={cancelClose}
+            onMouseLeave={() => setPeeking(false)}
+            draggable={false}
+          />
+        </div>,
+        document.body,
+      )}
     </button>
   );
 }
