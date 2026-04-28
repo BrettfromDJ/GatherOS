@@ -15,6 +15,7 @@ const {
   deleteImageFiles,
   saveImageFromFile,
   saveImageFromUrl,
+  saveImageFromBuffer,
   composeMoodBoard,
 } = require('./storage');
 const {
@@ -25,6 +26,7 @@ const {
 const { notifySaved } = require('./notify');
 const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
+const { buildStarterPack } = require('./starterPack');
 const {
   testApiKey, autoTagImage, analyzeImage, embedText, generateImagePrompt,
 } = require('./openai');
@@ -444,6 +446,30 @@ function registerIpcHandlers() {
       });
       proc.on('error', (err) => resolve({ ok: false, error: err.message }));
     });
+  });
+
+  // First-launch starter pack: rasterizes 6 bundled SVG cards into
+  // PNGs, runs them through the standard save pipeline (so palette
+  // extraction + thumbnails happen as for any real save), creates a
+  // "Welcome" bucket, and adds them all to it. Idempotent guard at
+  // the renderer side via localStorage; this handler still installs
+  // unconditionally if invoked, so pair with that flag.
+  ipcMain.handle('library:install-starter', async () => {
+    const cards = await buildStarterPack();
+    const collection = createCollection({ name: 'Welcome', color: '#af52de' });
+    let installed = 0;
+    for (const card of cards) {
+      try {
+        const imgData = await saveImageFromBuffer(card.buffer, card.ext);
+        const record = insertSave({ ...imgData, title: card.title });
+        addSaveToCollection({ collectionId: collection.id, saveId: record.id });
+        notifySaved(record);
+        installed += 1;
+      } catch (err) {
+        console.error('Starter card failed:', card.title, err);
+      }
+    }
+    return { ok: true, collectionId: collection.id, installed };
   });
 
   ipcMain.handle('boards:export', async (e, saveIds) => {

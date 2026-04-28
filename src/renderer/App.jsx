@@ -11,7 +11,6 @@ import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import MilestoneToast from './components/MilestoneToast.jsx';
-import WelcomeView from './components/WelcomeView.jsx';
 import { useLibrary } from './hooks/useLibrary.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
@@ -276,26 +275,49 @@ export default function App() {
   const prevSavesAllRef = useRef(null);
   const [milestoneToast, setMilestoneToast] = useState(null);
 
-  // Welcome is session-only state — no localStorage persistence so
-  // an empty library on any future launch (or after a wipe in the
-  // current session) brings the welcome back automatically.
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
-  const dismissWelcome = useCallback(() => setWelcomeDismissed(true), []);
-
   useEffect(() => {
     const prev = prevSavesAllRef.current;
     const curr = smartCounts.all;
-    if (prev !== null) {
-      if (curr > prev) {
-        const hit = MILESTONES.find((m) => prev < m && curr >= m);
-        if (hit) setMilestoneToast({ id: Date.now(), count: hit });
-      }
-      // > 0 → 0 transition — re-arm the welcome so deleting the
-      // last item lands the user back in the onboarding flow.
-      if (prev > 0 && curr === 0) setWelcomeDismissed(false);
+    if (prev !== null && curr > prev) {
+      const hit = MILESTONES.find((m) => prev < m && curr >= m);
+      if (hit) setMilestoneToast({ id: Date.now(), count: hit });
     }
     prevSavesAllRef.current = curr;
   }, [smartCounts.all, MILESTONES]);
+
+  // First-launch starter-pack install. Once the initial library
+  // load resolves and we know the user has zero saves AND the
+  // localStorage flag isn't set, kick off the install. The save:
+  // created notifications fired by the main-process handler stream
+  // in via the existing save:created listener and refresh the grid.
+  const starterInstallStartedRef = useRef(false);
+  useEffect(() => {
+    if (starterInstallStartedRef.current) return;
+    if (loading) return; // wait for the first saves.getAll to resolve
+    let installed = false;
+    try { installed = localStorage.getItem('moodmark.starterInstalled') === '1'; }
+    catch {}
+    if (installed) return;
+    if (smartCounts.all > 0 || collections.length > 0) {
+      // The user already has data — they migrated in or the install
+      // ran on a prior launch before the flag was written. Mark the
+      // flag and skip.
+      try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
+      return;
+    }
+    starterInstallStartedRef.current = true;
+    (async () => {
+      try {
+        await window.moodmark.library.installStarter();
+        try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
+        // Pull the new collection + counts in.
+        loadCollections();
+      } catch (err) {
+        console.error('Starter pack install failed:', err);
+        starterInstallStartedRef.current = false;
+      }
+    })();
+  }, [loading, smartCounts.all, collections.length, loadCollections]);
 
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
@@ -1134,47 +1156,28 @@ export default function App() {
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
               />
               <div className="grid-scroll">
-                {(() => {
-                  // First-run welcome: empty library, on the All
-                  // view, and the user hasn't dismissed it yet.
-                  const showWelcome = !welcomeDismissed
-                    && view.type === 'all'
-                    && smartCounts.all === 0;
-                  if (showWelcome) {
-                    return (
-                      <WelcomeView
-                        dragging={dragging}
-                        onSkip={dismissWelcome}
-                      />
-                    );
-                  }
-                  return (
-                    <>
-                      {view.type === 'all' && collections.length > 0 && !search && (
-                        <FeaturedBuckets
-                          collections={collections}
-                          onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
-                        />
-                      )}
-                      <Grid
-                        saves={saves}
-                        selected={selected}
-                        onSelect={handleSelect}
-                        onOpen={handleOpenFromCard}
-                        onContextMenu={handleCardContextMenu}
-                        onDragStart={handleCardDragStart}
-                        columns={gridColumns}
-                        loading={loading}
-                        view={view}
-                        search={search}
-                        semanticSearchActive={semanticSearchActive}
-                        colorFilter={colorFilter}
-                        freshIds={freshIds}
-                        layout={gridLayout}
-                      />
-                    </>
-                  );
-                })()}
+                {view.type === 'all' && collections.length > 0 && !search && (
+                  <FeaturedBuckets
+                    collections={collections}
+                    onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
+                  />
+                )}
+                <Grid
+                  saves={saves}
+                  selected={selected}
+                  onSelect={handleSelect}
+                  onOpen={handleOpenFromCard}
+                  onContextMenu={handleCardContextMenu}
+                  onDragStart={handleCardDragStart}
+                  columns={gridColumns}
+                  loading={loading}
+                  view={view}
+                  search={search}
+                  semanticSearchActive={semanticSearchActive}
+                  colorFilter={colorFilter}
+                  freshIds={freshIds}
+                  layout={gridLayout}
+                />
               </div>
             </>
           )}

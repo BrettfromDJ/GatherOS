@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   },
   library: {
     exportZip: () => ipcRenderer.invoke('library:export-zip'),
+    installStarter: () => ipcRenderer.invoke('library:install-starter'),
   },
   drag: {
     // Fire-and-forget IPC because webContents.startDrag must run
