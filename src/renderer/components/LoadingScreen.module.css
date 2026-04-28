@@ -1,6 +1,7 @@
-/* Full-screen splash that covers the app while it boots. Counts up
-   0→100, then plays an exit animation that lifts the cards off the
-   top and fades the backdrop, revealing the app underneath. */
+/* Full-screen splash that covers the app while it boots. A spinning
+   sphere of image tiles fills the viewport; the counter sits over
+   it center-stage. At 100% the sphere bursts outward and fades. */
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -9,19 +10,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 56px;
+  gap: 0;
   background: var(--content-bg);
-  /* Subtle off-white wash so the cards don't sit on a flat slab. */
   background-image:
     radial-gradient(ellipse 80% 60% at 50% 30%, rgba(10, 132, 255, 0.05), transparent 70%),
     radial-gradient(ellipse 70% 50% at 50% 80%, rgba(255, 149, 0, 0.04), transparent 70%);
   -webkit-app-region: drag;
   user-select: none;
+  overflow: hidden;
   animation: overlayIn 240ms ease-out both;
 }
 
 .overlay.exiting {
-  animation: overlayOut 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: overlayOut 720ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none;
 }
 
@@ -35,36 +36,55 @@
   to   { opacity: 0; }
 }
 
-/* ── Stacked card row ───────────────────────────────────────────────── */
+/* ── Sphere ───────────────────────────────────────────────────────── */
 
-.stack {
-  position: relative;
-  width: 760px;
-  height: 340px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  perspective: 1200px;
-  -webkit-app-region: no-drag;
+/* Sphere is anchored at viewport center; each tile's transform is
+   computed from the rAF loop and translates outward from this 0,0
+   origin. transform-style flat is intentional — we already do the
+   3D math in JS and write 2D transforms, so we don't need GPU 3D. */
+.sphere {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  /* Soft sphere-edge fade so tiles near the silhouette gracefully
+     dissolve into the background instead of clipping at the
+     viewport. */
+  mask-image: radial-gradient(ellipse 50vw 55vh at center, #000 60%, transparent 92%);
+  -webkit-mask-image: radial-gradient(ellipse 50vw 55vh at center, #000 60%, transparent 92%);
+  animation: sphereIn 800ms cubic-bezier(0.18, 0.7, 0.32, 1) both;
 }
 
-.card {
+@keyframes sphereIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Each tile is a square image card centered on the sphere origin.
+   The rAF loop writes translate(x, y) + rotate(tilt) + scale(s) on
+   it every frame; the resting CSS only owns the box itself. */
+.tile {
   position: absolute;
-  width: 280px;
-  height: 280px;
-  border-radius: 22px;
+  top: 0;
+  left: 0;
+  width: 110px;
+  height: 110px;
+  margin-top: -55px;
+  margin-left: -55px;
+  border-radius: 16px;
   overflow: hidden;
-  background: #fff;
+  background: rgba(0, 0, 0, 0.04);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.06),
-    0 18px 40px rgba(0, 0, 0, 0.16),
-    0 28px 80px rgba(0, 0, 0, 0.10);
-  transform-origin: 50% 90%;
-  transition: transform 360ms cubic-bezier(0.18, 0.7, 0.32, 1);
-  will-change: transform;
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  will-change: transform, opacity;
+  /* Smooth out per-frame transform writes on slower paints. */
+  transition: filter 220ms ease;
 }
 
-.cardImg {
+.tileImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -73,62 +93,53 @@
   -webkit-user-drag: none;
 }
 
-/* Empty fallback — used when the user has fewer than 4 saves so the
-   stack still has its full silhouette while we boot. */
-.cardEmpty {
+.tileEmpty {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    linear-gradient(180deg, #f5f5f4 0%, #ebeae8 100%);
-  color: rgba(0, 0, 0, 0.18);
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.12), rgba(10, 132, 255, 0.12));
 }
 
-.cardEmpty svg {
-  width: 56px;
-  height: 56px;
+/* Exit — burst the sphere outward. We can't easily target individual
+   tile transforms from CSS (rAF owns them), so we explode the parent:
+   scale up 1.5x, fade out, blur slightly. Reads as the sphere
+   rushing toward / past the camera. */
+.overlay.exiting .sphere {
+  animation: sphereOut 720ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Resting fan — heavy overlap (~55% of each card hidden behind the
-   next) so the row reads as a layered hand of cards, not a spread.
-   Offsets tightened from ±330/±110 down to ±165/±55 against a 280px
-   card. */
-.card:nth-child(1) { transform: translate(-165px, 18px) rotate(-12deg); z-index: 1; }
-.card:nth-child(2) { transform: translate(-55px, -4px)  rotate(-4deg);  z-index: 2; }
-.card:nth-child(3) { transform: translate(55px, -4px)   rotate(4deg);   z-index: 3; }
-.card:nth-child(4) { transform: translate(165px, 18px)  rotate(12deg);  z-index: 4; }
-
-/* Per-card hover — only the card under the cursor moves; the rest of
-   the stack stays put. Layering (z-index) is intentionally left
-   alone so the hovered card stays in its natural depth slot. */
-.card:hover {
-  transform-origin: 50% 90%;
+@keyframes sphereOut {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to   { opacity: 0; transform: scale(1.6); filter: blur(8px); }
 }
-.card:nth-child(1):hover { transform: translate(-180px, 0px)  rotate(-18deg) scale(1.05); }
-.card:nth-child(2):hover { transform: translate(-58px, -22px) rotate(-7deg)  scale(1.05); }
-.card:nth-child(3):hover { transform: translate(58px, -22px)  rotate(7deg)   scale(1.05); }
-.card:nth-child(4):hover { transform: translate(180px, 0px)   rotate(18deg)  scale(1.05); }
 
-/* Exit animation — each card lifts up and fades out, staggered so the
-   leftmost goes first. */
-.overlay.exiting .card {
-  transition: transform 540ms cubic-bezier(0.4, 0, 0.6, 1), opacity 360ms ease-out;
-}
-.overlay.exiting .card:nth-child(1) { transform: translate(-200px, -720px) rotate(-30deg); opacity: 0; transition-delay: 0ms; }
-.overlay.exiting .card:nth-child(2) { transform: translate(-70px, -720px)  rotate(-12deg); opacity: 0; transition-delay: 60ms; }
-.overlay.exiting .card:nth-child(3) { transform: translate(70px, -720px)   rotate(12deg);  opacity: 0; transition-delay: 120ms; }
-.overlay.exiting .card:nth-child(4) { transform: translate(200px, -720px)  rotate(30deg);  opacity: 0; transition-delay: 180ms; }
-
-/* ── Counter ────────────────────────────────────────────────────────── */
+/* ── Counter ────────────────────────────────────────────────────────
+   Sits center-stage on top of the sphere. Glassy plate so the
+   spinning tiles behind read clearly as background, not foreground. */
 
 .counter {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  padding: 26px 36px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 18px 50px rgba(0, 0, 0, 0.08);
   -webkit-app-region: no-drag;
+  animation: counterIn 600ms cubic-bezier(0.18, 0.7, 0.32, 1) both;
+}
+
+@keyframes counterIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .percent {
