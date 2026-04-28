@@ -215,11 +215,15 @@ async function buildStarterPack() {
 
   const out = [];
   for (const card of STARTER_CARDS) {
-    out.push({
-      title: card.title,
-      ext: 'png',
-      buffer: await rasterize(card.svg),
-    });
+    try {
+      out.push({
+        title: card.title,
+        ext: 'png',
+        buffer: await rasterize(card.svg),
+      });
+    } catch (err) {
+      console.error('[starterPack] rasterize failed for', card.title, err.message);
+    }
   }
   return out;
 }

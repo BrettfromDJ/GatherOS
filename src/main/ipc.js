@@ -483,7 +483,16 @@ function registerIpcHandlers() {
   // the renderer side via localStorage; this handler still installs
   // unconditionally if invoked, so pair with that flag.
   ipcMain.handle('library:install-starter', async () => {
-    const cards = await buildStarterPack();
+    let cards;
+    try {
+      cards = await buildStarterPack();
+    } catch (err) {
+      console.error('[install-starter] buildStarterPack failed:', err);
+      return { ok: false, reason: 'build-failed', error: err.message };
+    }
+    if (!cards || cards.length === 0) {
+      return { ok: false, reason: 'no-cards' };
+    }
     const collection = createCollection({ name: 'Starter Pack', color: '#af52de' });
     let installed = 0;
     for (const card of cards) {
@@ -496,6 +505,9 @@ function registerIpcHandlers() {
       } catch (err) {
         console.error('Starter card failed:', card.title, err);
       }
+    }
+    if (installed === 0) {
+      return { ok: false, reason: 'all-cards-failed' };
     }
     return { ok: true, collectionId: collection.id, installed };
   });

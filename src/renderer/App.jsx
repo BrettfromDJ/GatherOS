@@ -335,6 +335,7 @@ export default function App() {
     try { return localStorage.getItem('moodmark.starterToastDismissed') === '1'; }
     catch { return false; }
   });
+  const [starterRestoreError, setStarterRestoreError] = useState(false);
   // Re-read the starterInstalled flag whenever it might change. We
   // don't observe localStorage directly; instead we just refresh on
   // the same triggers the auto-install effect uses.
@@ -350,12 +351,18 @@ export default function App() {
     && !focusedId;
 
   const handleRestoreStarterPack = useCallback(async () => {
+    setStarterRestoreError(false);
     try {
-      await window.moodmark.library.installStarter();
+      const result = await window.moodmark.library.installStarter();
+      if (!result?.ok) {
+        setStarterRestoreError(true);
+        return;
+      }
       loadCollections();
       reload();
     } catch (err) {
       console.error('Restore starter pack failed:', err);
+      setStarterRestoreError(true);
     }
   }, [loadCollections, reload]);
 
@@ -1453,15 +1460,19 @@ export default function App() {
       {showStarterToast && (
         <div className="selection-bar" role="status">
           <div className="selection-status">
-            <span className="selection-count">Restore the starter pack?</span>
+            <span className="selection-count">
+              {starterRestoreError ? 'Restore failed — try restarting the app' : 'Restore the starter pack?'}
+            </span>
           </div>
-          <button
-            type="button"
-            className="selection-btn"
-            onClick={handleRestoreStarterPack}
-          >
-            Restore
-          </button>
+          {!starterRestoreError && (
+            <button
+              type="button"
+              className="selection-btn"
+              onClick={handleRestoreStarterPack}
+            >
+              Restore
+            </button>
+          )}
           <button
             type="button"
             className="selection-bar-close"
