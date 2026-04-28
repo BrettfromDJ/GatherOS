@@ -1,8 +1,53 @@
-// Starter pack — six procedural SVG cards installed into a "Welcome"
-// bucket on the user's very first launch. Pure SVG strings (no
-// bundled binaries) so the repo stays text-only; sharp rasterizes
-// them to PNG at install time and the saves go through the normal
-// pipeline (palette extraction, thumbnail, fresh-shimmer flag, etc).
+// Starter pack — six cards installed into a "Welcome" bucket on the
+// user's very first launch.
+//
+// Two sources, in priority order:
+//   1. Real image files dropped into src/main/assets/welcome/ —
+//      iterated alphabetically. Filename (minus extension) becomes
+//      the save title, so name them e.g. "01 Sunrise.jpg" /
+//      "02 Wave.png" if you want a deterministic order.
+//   2. Bundled procedural SVGs below — used as a fallback so a clone
+//      with no welcome assets still ships a populated first-run.
+//
+// Either way the saves go through the standard saveImageFromBuffer
+// pipeline (palette extraction, thumbnail, fresh-shimmer flag).
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ASSETS_DIR = path.join(__dirname, 'assets', 'welcome');
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.bmp']);
+
+function titleFromFilename(filename) {
+  // "01 sunrise.jpg" → "Sunrise"; "ocean-wave.PNG" → "Ocean Wave".
+  // Strip a leading numeric/whitespace prefix so users can sort with
+  // "01-foo.jpg" without that ordinal leaking into the title.
+  const base = filename.slice(0, filename.lastIndexOf('.')) || filename;
+  const stripped = base.replace(/^[\s_\-0-9]+/, '');
+  const cleaned = stripped.replace(/[-_]+/g, ' ').trim();
+  if (!cleaned) return base;
+  return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function readFileCards() {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(ASSETS_DIR);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((name) => IMAGE_EXTS.has(path.extname(name).toLowerCase()))
+    .sort()
+    .map((name) => {
+      const ext = path.extname(name).slice(1).toLowerCase();
+      return {
+        title: titleFromFilename(name),
+        ext: ext === 'jpeg' ? 'jpg' : ext,
+        buffer: fs.readFileSync(path.join(ASSETS_DIR, name)),
+      };
+    });
+}
 
 const STARTER_CARDS = [
   {
@@ -150,9 +195,9 @@ const STARTER_CARDS = [
   },
 ];
 
-// Renders a single SVG → 1200×900 PNG buffer via sharp. Density of 2
-// gives crisp text without ballooning the file size — sharp's SVG
-// renderer otherwise rasterizes at 1× viewBox dimensions.
+// Renders a single SVG → 1200×900 PNG buffer via sharp. Density of
+// 144 gives crisp text without ballooning the file size — sharp's
+// SVG renderer otherwise rasterizes at 1× viewBox dimensions.
 async function rasterize(svg) {
   const sharp = require('sharp');
   return sharp(Buffer.from(svg), { density: 144 })
@@ -162,8 +207,12 @@ async function rasterize(svg) {
 }
 
 // Returns an array of { title, buffer, ext } ready to feed through
-// the existing saveImageFromBuffer / insertSave pipeline.
+// the existing saveImageFromBuffer / insertSave pipeline. Prefers
+// real files in src/main/assets/welcome/ over the procedural SVGs.
 async function buildStarterPack() {
+  const fileCards = readFileCards();
+  if (fileCards.length > 0) return fileCards;
+
   const out = [];
   for (const card of STARTER_CARDS) {
     out.push({
@@ -176,3 +225,4 @@ async function buildStarterPack() {
 }
 
 module.exports = { buildStarterPack };
+
