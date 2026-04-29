@@ -74,6 +74,18 @@
   letter-spacing: 0.04em;
   color: var(--text-tertiary);
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* When the section title is the OpenAI logo instead of text, give it
+   a slightly bolder color than the muted tertiary used for headings. */
+.openaiLogo {
+  width: 18px;
+  height: 18px;
+  color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 /* Drawer-style sections sit tighter against each other than the
