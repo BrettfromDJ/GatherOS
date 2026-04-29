@@ -52,7 +52,7 @@ function EraseIcon() {
   );
 }
 
-export default function SettingsModal({ open, onClose, onConfiguredChange, onPrefsChange, onLibraryWiped }) {
+export default function SettingsModal({ open, onClose, onConfiguredChange, onPrefsChange, onLibraryWiped, onKeySaved }) {
   const [hasKey, setHasKey] = useState(false);
   const [draft, setDraft] = useState('');
   const [status, setStatus] = useState(STATUS_IDLE);
@@ -190,9 +190,13 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
       ]);
       onPrefsChange?.(enabled);
       onConfiguredChange?.(true);
-      // Brief success state then close
+      // Brief success state, then close settings and hand off to the
+      // celebration modal. Two-stage timeout so the unlocked modal's
+      // entrance doesn't visually overlap the settings exit.
       setTimeout(() => {
-        if (status !== STATUS_ERROR) onClose();
+        if (status === STATUS_ERROR) return;
+        onClose();
+        setTimeout(() => onKeySaved?.(), 140);
       }, 700);
     } else {
       setStatus(STATUS_ERROR);

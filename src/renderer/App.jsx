@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
+import AIUnlockedModal from './components/AIUnlockedModal.jsx';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
@@ -196,6 +197,7 @@ export default function App() {
   // once on mount and is updated whenever the user saves/clears via
   // SettingsModal's onConfiguredChange callback.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aiUnlockedOpen, setAiUnlockedOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
   const [prefs, setPrefs] = useState({ autoNameOnSave: true, semanticSearch: false });
@@ -1609,6 +1611,7 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         onConfiguredChange={setAiConfigured}
         onPrefsChange={setPrefs}
+        onKeySaved={() => setAiUnlockedOpen(true)}
         onLibraryWiped={() => {
           // Reset focus + selection in case the user was viewing a
           // save mid-wipe, then re-pull collections/saves so the UI
@@ -1625,6 +1628,11 @@ export default function App() {
       <ShortcutsModal
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
+      />
+
+      <AIUnlockedModal
+        open={aiUnlockedOpen}
+        onClose={() => setAiUnlockedOpen(false)}
       />
     </div>
   );
