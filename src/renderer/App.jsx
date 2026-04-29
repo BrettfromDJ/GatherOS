@@ -3,6 +3,7 @@ import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
+import WelcomeModal from './components/WelcomeModal.jsx';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
@@ -198,6 +199,7 @@ export default function App() {
   // SettingsModal's onConfiguredChange callback.
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiUnlockedOpen, setAiUnlockedOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
   const [prefs, setPrefs] = useState({ autoNameOnSave: true, semanticSearch: false });
@@ -324,6 +326,16 @@ export default function App() {
         if (result?.ok) {
           try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
           loadCollections();
+          // Show the welcome walkthrough once on first successful
+          // install. The flag is written *before* opening the modal
+          // so a re-render mid-flow doesn't re-trigger it.
+          let alreadyShown = false;
+          try { alreadyShown = localStorage.getItem('moodmark.welcomeShown') === '1'; }
+          catch {}
+          if (!alreadyShown) {
+            try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
+            setWelcomeOpen(true);
+          }
         } else {
           // Don't pin the flag — leave room for a retry on next launch
           // (or via the Restore toast) instead of locking the user into
@@ -1633,6 +1645,11 @@ export default function App() {
       <AIUnlockedModal
         open={aiUnlockedOpen}
         onClose={() => setAiUnlockedOpen(false)}
+      />
+
+      <WelcomeModal
+        open={welcomeOpen}
+        onClose={() => setWelcomeOpen(false)}
       />
     </div>
   );
