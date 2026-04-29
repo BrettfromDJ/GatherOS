@@ -113,27 +113,6 @@
   -webkit-app-region: no-drag;
 }
 
-/* Brand logo at the top-left of the sidebar, above the Library
-   header. Source SVG has heavy drop-shadow padding at the bottom
-   (146 tall vs 91 of visible artwork) — negative bottom margin
-   absorbs it so the next row doesn't sit too far below. */
-.brand {
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  -webkit-app-region: no-drag;
-}
-
-.brandLogo {
-  display: block;
-  width: 36px;
-  height: auto;
-  margin: -4px 0 -10px;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
 .sectionHeaderRow {
   display: flex;
   align-items: center;
