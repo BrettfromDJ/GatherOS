@@ -31,11 +31,16 @@ export default function FeaturedBuckets({ collections, onPickBucket }) {
     }
     let exitTimer = null;
     let enterTimer = null;
+    console.log('[FeaturedBuckets] phase: exit (target compact=', compact, ')');
     setPhase('exit');
     exitTimer = setTimeout(() => {
+      console.log('[FeaturedBuckets] phase: enter');
       setRenderCompact(compact);
       setPhase('enter');
-      enterTimer = setTimeout(() => setPhase('idle'), 260);
+      enterTimer = setTimeout(() => {
+        console.log('[FeaturedBuckets] phase: idle');
+        setPhase('idle');
+      }, 260);
     }, 360);
     return () => {
       if (exitTimer) clearTimeout(exitTimer);
