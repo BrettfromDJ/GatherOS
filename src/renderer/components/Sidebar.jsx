@@ -182,12 +182,12 @@ const SMART_VIEWS = [
 
 // Walk the (already order_index-sorted) collections list and emit a
 // flat render queue: each top-level bucket immediately followed by its
-// children. Orphaned children (parent_id pointing at a deleted bucket)
-// are promoted to top-level so they don't disappear from the sidebar.
-// `creatingForParent`, when set, injects a `newChild` sentinel after
-// that parent's children block — that's where the inline child-create
-// input renders.
-function flattenCollections(collections, creatingForParent) {
+// children (when expanded). Orphaned children (parent_id pointing at a
+// deleted bucket) are promoted to top-level so they don't disappear
+// from the sidebar. `creatingForParent`, when set, injects a
+// `newChild` sentinel after that parent's children block — that's
+// where the inline child-create input renders.
+function flattenCollections(collections, creatingForParent, expandedBuckets) {
   const ids = new Set(collections.map((c) => c.id));
   const childrenByParent = new Map();
   const tops = [];
@@ -202,16 +202,47 @@ function flattenCollections(collections, creatingForParent) {
   }
   const out = [];
   for (const t of tops) {
-    out.push({ kind: 'collection', collection: t, depth: 0 });
     const kids = childrenByParent.get(t.id) || [];
-    for (const k of kids) {
-      out.push({ kind: 'collection', collection: k, depth: 1 });
-    }
-    if (creatingForParent === t.id) {
-      out.push({ kind: 'newChild', parentId: t.id });
+    const hasChildren = kids.length > 0 || creatingForParent === t.id;
+    // Default to expanded (null sentinel from caller). Once the user
+    // toggles anything, expandedBuckets is a real Set and we honor it.
+    const isExpanded = !expandedBuckets || expandedBuckets.has(t.id);
+    out.push({
+      kind: 'collection',
+      collection: t,
+      depth: 0,
+      hasChildren,
+      isExpanded,
+    });
+    if (isExpanded) {
+      for (const k of kids) {
+        out.push({ kind: 'collection', collection: k, depth: 1, hasChildren: false });
+      }
+      if (creatingForParent === t.id) {
+        out.push({ kind: 'newChild', parentId: t.id });
+      }
     }
   }
   return out;
+}
+
+function DisclosureChevron({ expanded }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      width="10"
+      height="10"
+      style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 140ms ease' }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 2.5L8 6L4 9.5" />
+    </svg>
+  );
 }
 
 export default function Sidebar({
@@ -245,6 +276,42 @@ export default function Sidebar({
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
 
+  // Which top-level buckets are currently expanded. `null` is the
+  // first-render sentinel meaning "default to all expanded" — once
+  // the user toggles anything we hydrate it with a real Set and from
+  // then on persist explicit expand/collapse decisions.
+  const [expandedBuckets, setExpandedBuckets] = useState(() => {
+    try {
+      const raw = localStorage.getItem('moodmark.expandedBuckets');
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    if (!expandedBuckets) return;
+    try {
+      localStorage.setItem(
+        'moodmark.expandedBuckets',
+        JSON.stringify([...expandedBuckets]),
+      );
+    } catch {}
+  }, [expandedBuckets]);
+
+  function toggleBucketExpanded(id) {
+    setExpandedBuckets((prev) => {
+      // First explicit toggle: seed from "all parents expanded" so the
+      // user's first click only affects the bucket they clicked.
+      const seed = prev || new Set(
+        collections.filter((c) => !c.parent_id).map((c) => c.id),
+      );
+      const next = new Set(seed);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   const createInputRef = useRef(null);
   const renameInputRef = useRef(null);
 
@@ -256,10 +323,19 @@ export default function Sidebar({
   }
 
   // Inline child-bucket creation, anchored under a specific parent.
+  // Auto-expands the parent if it was collapsed so the user sees the
+  // input + the eventual child appear in place.
   function startCreatingChild(parentId) {
     setCreating(true);
     setCreatingForParent(parentId);
     setNewName('');
+    if (expandedBuckets && !expandedBuckets.has(parentId)) {
+      setExpandedBuckets((prev) => {
+        const next = new Set(prev);
+        next.add(parentId);
+        return next;
+      });
+    }
     requestAnimationFrame(() => createInputRef.current?.focus());
   }
 
@@ -545,6 +621,7 @@ export default function Sidebar({
               onClick={() => onViewChange({ type: id })}
               title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
             >
+              <span className={styles.disclosureSpacer} aria-hidden="true" />
               <span
                 className={styles.icon}
                 style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
@@ -604,7 +681,7 @@ export default function Sidebar({
         {collections.length === 0 && !creating ? (
           <div className={styles.empty}>No buckets yet</div>
         ) : (
-          flattenCollections(collections, creatingForParent).map((entry) => {
+          flattenCollections(collections, creatingForParent, expandedBuckets).map((entry) => {
             // Inline sentinel: the inline create-child input that
             // belongs under a specific parent.
             if (entry.kind === 'newChild') {
@@ -649,6 +726,7 @@ export default function Sidebar({
             if (renamingId === c.id) {
               return (
                 <div key={c.id} className={itemClass}>
+                  <span className={styles.disclosureSpacer} aria-hidden="true" />
                   <span className={styles.icon}>
                     <CollectionIcon />
                   </span>
@@ -699,6 +777,27 @@ export default function Sidebar({
                   }
                 }}
               >
+                {entry.depth === 0 && entry.hasChildren ? (
+                  <span
+                    className={styles.disclosure}
+                    role="button"
+                    aria-label={entry.isExpanded ? 'Collapse' : 'Expand'}
+                    aria-expanded={entry.isExpanded}
+                    onMouseDown={(e) => {
+                      // Stop the parent button from receiving focus /
+                      // firing its onClick when the chevron is hit.
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBucketExpanded(c.id);
+                    }}
+                  >
+                    <DisclosureChevron expanded={entry.isExpanded} />
+                  </span>
+                ) : (
+                  <span className={styles.disclosureSpacer} aria-hidden="true" />
+                )}
                 <span
                   className={styles.icon}
                   style={{ color: active ? '#fff' : 'var(--icon-blue)' }}

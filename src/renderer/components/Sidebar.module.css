@@ -271,29 +271,43 @@
   transition: background 100ms ease, box-shadow 100ms ease;
 }
 
-/* Child bucket — indented under its parent with a small connector
-   tick to suggest the parent relationship. Active/hover states stay
-   consistent with top-level items. */
+/* Disclosure column on the left of every bucket row. Width is fixed
+   so labels stay aligned whether the row has a chevron, a spacer, or
+   nothing. */
+.disclosure,
+.disclosureSpacer {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.disclosure {
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.disclosure:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+/* Child bucket — indented under its parent. The disclosure spacer
+   already takes 14px on the left (matching the parent's chevron
+   column); padding-left adds the extra indent to make the child
+   visually nest beneath the parent's label. */
 .itemChild {
-  padding-left: 24px;
-  position: relative;
+  padding-left: 18px;
 }
 
-.itemChild::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  width: 6px;
-  height: 0.5px;
-  background: rgba(0, 0, 0, 0.18);
-}
-
-/* Inline child-create form, anchored under its parent. Uses the same
-   surface as the top-of-section form but indented to align with the
-   indented child rows so the new entry visually nests. */
+/* Inline child-create form, anchored under its parent. Indented to
+   align with child rows so the new entry visually nests. */
 .childForm {
-  margin-left: 18px;
+  margin-left: 28px;
 }
 
 .item:hover {
