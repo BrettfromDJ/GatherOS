@@ -3,6 +3,7 @@ const {
   BrowserWindow,
   Tray,
   Menu,
+  ipcMain,
   nativeImage,
   nativeTheme,
   protocol,
@@ -247,6 +248,13 @@ function createTray() {
     }
   });
 }
+
+// Sync handler so the renderer can read app.getVersion() synchronously
+// from the preload (used to surface the version on the loading screen
+// without an extra async round-trip).
+ipcMain.on('app:get-version', (event) => {
+  event.returnValue = app.getVersion();
+});
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin') nativeTheme.themeSource = 'light';

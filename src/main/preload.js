@@ -1,6 +1,16 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+// Pulled once at preload time so it's available synchronously to the
+// renderer (loading screen reads it during first paint).
+const appVersion = (() => {
+  try { return ipcRenderer.sendSync('app:get-version'); }
+  catch { return ''; }
+})();
+
 contextBridge.exposeInMainWorld('moodmark', {
+  app: {
+    version: appVersion,
+  },
   saves: {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),
     update: (payload) => ipcRenderer.invoke('saves:update', payload),

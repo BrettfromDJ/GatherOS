@@ -31,6 +31,24 @@
   to   { opacity: 0; }
 }
 
+/* Version chip in the top-right. Sits above the sphere and outside the
+   draggable region so the trailing whitespace of the title bar still
+   moves the window. */
+.version {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.32);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  -webkit-app-region: no-drag;
+  user-select: text;
+  pointer-events: auto;
+}
+
 /* ── Sphere ───────────────────────────────────────────────────────── */
 
 /* Sphere container fills the viewport so the per-tile absolute

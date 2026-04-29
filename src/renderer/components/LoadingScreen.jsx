@@ -169,8 +169,11 @@ export default function LoadingScreen({ onDone }) {
     ? Array.from({ length: SPHERE_COUNT }, (_, i) => images[i % images.length])
     : Array.from({ length: SPHERE_COUNT }, () => null);
 
+  const appVersion = window.moodmark?.app?.version || '';
+
   return (
     <div className={[styles.overlay, exiting && styles.exiting].filter(Boolean).join(' ')}>
+      {appVersion && <div className={styles.version}>v{appVersion}</div>}
       <div className={styles.sphere} aria-hidden="true">
         {tiles.map((s, i) => (
           <div
