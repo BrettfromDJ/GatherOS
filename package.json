@@ -1,7 +1,7 @@
 {
   "name": "moodmark",
   "productName": "GatherOS",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A local-first macOS app for saving, browsing, and organizing visual inspiration.",
   "private": true,
   "main": "src/main/index.js",
