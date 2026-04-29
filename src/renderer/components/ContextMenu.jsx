@@ -13,6 +13,15 @@ function ChevronRightIcon() {
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
   const submenuRef = useRef(null);
+  // Index of the submenu item whose children are currently inline-
+  // expanded. Used by the "Add to Bucket" picker to surface nested
+  // child buckets only when the user hovers their parent.
+  const [hoveredSubIdx, setHoveredSubIdx] = useState(null);
+  // Reset whenever the active submenu changes — opening a different
+  // submenu shouldn't carry a stale expanded child block over.
+  useEffect(() => {
+    setHoveredSubIdx(null);
+  }, [openSubmenu?.idx]);
   const [pos, setPos] = useState({ x, y, ready: false });
   // The currently-open submenu, including its anchor coords (in
   // viewport space — we portal it to body so backdrop-filter isn't
@@ -162,29 +171,48 @@ export default function ContextMenu({ x, y, items, onClose }) {
             left: openSubmenu.x,
           }}
         >
-          {activeSub.submenu.map((sub, j) => {
+          {activeSub.submenu.flatMap((sub, j) => {
             if (sub.type === 'separator') {
-              return <div key={j} className={styles.separator} />;
+              return [<div key={j} className={styles.separator} />];
             }
             if (sub.type === 'header') {
-              return <div key={j} className={styles.header}>{sub.label}</div>;
+              return [<div key={j} className={styles.header}>{sub.label}</div>];
             }
-            return (
+            const hasChildren = Array.isArray(sub.children) && sub.children.length > 0;
+            const expanded = hasChildren && hoveredSubIdx === j;
+            const rendered = [
               <button
                 key={j}
-                className={[
-                  styles.item,
-                  sub.danger && styles.danger,
-                  sub.depth > 0 && styles.itemIndent,
-                ].filter(Boolean).join(' ')}
+                className={[styles.item, sub.danger && styles.danger]
+                  .filter(Boolean)
+                  .join(' ')}
+                onMouseEnter={() => setHoveredSubIdx(j)}
                 onClick={() => { sub.onClick(); onClose(); }}
               >
                 {subHasIcons && (
                   <span className={styles.itemIcon}>{sub.icon || null}</span>
                 )}
                 <span className={styles.itemLabel}>{sub.label}</span>
-              </button>
-            );
+              </button>,
+            ];
+            if (expanded) {
+              for (let k = 0; k < sub.children.length; k++) {
+                const child = sub.children[k];
+                rendered.push(
+                  <button
+                    key={`${j}-${k}`}
+                    className={[styles.item, styles.itemIndent].join(' ')}
+                    onClick={() => { child.onClick(); onClose(); }}
+                  >
+                    {subHasIcons && (
+                      <span className={styles.itemIcon}>{child.icon || null}</span>
+                    )}
+                    <span className={styles.itemLabel}>{child.label}</span>
+                  </button>,
+                );
+              }
+            }
+            return rendered;
           })}
         </div>,
         document.body,

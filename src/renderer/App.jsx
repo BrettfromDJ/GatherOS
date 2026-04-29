@@ -610,10 +610,10 @@ export default function App() {
     ).filter((c) => !memberSet.has(c.id));
     if (others.length > 0) {
       if (items.length > 0) items.push({ type: 'separator' });
-      // Mirror the sidebar's parent → child ordering. Children whose
+      // Group children under their top-level parent. Children whose
       // parent is missing from `others` (e.g. the save is already in
       // the parent, so the parent was filtered out) are promoted to
-      // top-level so they don't disappear.
+      // top-level so they don't disappear from the picker.
       const otherIds = new Set(others.map((c) => c.id));
       const childrenByParent = new Map();
       const tops = [];
@@ -626,16 +626,8 @@ export default function App() {
           tops.push(c);
         }
       }
-      const orderedOthers = [];
-      for (const t of tops) {
-        orderedOthers.push({ col: t, depth: 0 });
-        for (const k of (childrenByParent.get(t.id) || [])) {
-          orderedOthers.push({ col: k, depth: 1 });
-        }
-      }
-      const submenu = orderedOthers.map(({ col, depth }) => ({
+      const buildAddItem = (col) => ({
         label: col.name,
-        depth,
         icon: (
           <span style={{ color: 'var(--icon-blue)', display: 'inline-flex' }}>
             <CollectionIcon />
@@ -655,7 +647,11 @@ export default function App() {
           // (they now belong to a bucket), so refresh to drop them.
           if (view.type === 'unsorted') reload();
         },
-      }));
+      });
+      const submenu = tops.map((parent) => {
+        const childItems = (childrenByParent.get(parent.id) || []).map(buildAddItem);
+        return { ...buildAddItem(parent), children: childItems };
+      });
       items.push({
         label: `Add to Bucket${suffix}`,
         icon: <CollectionIcon />,
