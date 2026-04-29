@@ -315,10 +315,17 @@ export default function App() {
     starterInstallStartedRef.current = true;
     (async () => {
       try {
-        await window.moodmark.library.installStarter();
-        try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
-        // Pull the new collection + counts in.
-        loadCollections();
+        const result = await window.moodmark.library.installStarter();
+        if (result?.ok) {
+          try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
+          loadCollections();
+        } else {
+          // Don't pin the flag — leave room for a retry on next launch
+          // (or via the Restore toast) instead of locking the user into
+          // a permanently-empty library.
+          console.error('Starter pack install returned not-ok:', result);
+          starterInstallStartedRef.current = false;
+        }
       } catch (err) {
         console.error('Starter pack install failed:', err);
         starterInstallStartedRef.current = false;
