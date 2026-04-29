@@ -750,7 +750,17 @@ export default function Sidebar({
                 key={c.id}
                 data-collection-id={c.id}
                 className={itemClassWithDrop}
-                onClick={() => onViewChange({ type: 'collection', id: c.id })}
+                onClick={() => {
+                  // Click a collapsed parent → expand it as well as
+                  // filtering. We don't auto-collapse on a second
+                  // click because that would conflict with the row's
+                  // primary "filter to this bucket" action — collapse
+                  // is reachable via the chevron.
+                  if (entry.depth === 0 && entry.hasChildren && !entry.isExpanded) {
+                    toggleBucketExpanded(c.id);
+                  }
+                  onViewChange({ type: 'collection', id: c.id });
+                }}
                 onDoubleClick={(e) => {
                   // In-place rename — same flow as Right-click → Rename.
                   // preventDefault stops the OS text-select that double-

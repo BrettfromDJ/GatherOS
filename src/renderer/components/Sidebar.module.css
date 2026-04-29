@@ -273,7 +273,8 @@
 
 /* Disclosure column on the left of every bucket row. Width is fixed
    so labels stay aligned whether the row has a chevron, a spacer, or
-   nothing. */
+   nothing. Negative margin-right tightens the gap to the icon — the
+   row's flex `gap` stays at 8px for everything else. */
 .disclosure,
 .disclosureSpacer {
   flex-shrink: 0;
@@ -282,6 +283,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: -4px;
 }
 
 .disclosure {
