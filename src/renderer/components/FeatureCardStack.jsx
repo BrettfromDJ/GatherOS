@@ -48,8 +48,10 @@ export default function FeatureCardStack({
               <span className={styles.iconChip}>
                 <Icon />
               </span>
-              <span className={styles.cardTitle}>{f.title}</span>
-              <span className={styles.cardDesc}>{f.description}</span>
+              <span className={styles.cardText}>
+                <span className={styles.cardTitle}>{f.title}</span>
+                <span className={styles.cardDesc}>{f.description}</span>
+              </span>
             </button>
           );
         })}
