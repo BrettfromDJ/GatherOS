@@ -632,9 +632,6 @@ export default function Sidebar({
               onClick={() => onViewChange({ type: id })}
               title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
             >
-              {showDisclosureColumn && (
-                <span className={styles.disclosureSpacer} aria-hidden="true" />
-              )}
               <span
                 className={styles.icon}
                 style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
