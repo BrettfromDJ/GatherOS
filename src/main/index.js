@@ -32,6 +32,7 @@ const {
 const { showToast, destroyToastWindow } = require('./toast-window');
 const { setSaveNotifier } = require('./notify');
 const { initUpdater } = require('./updater');
+const { getInitialOptions: getWindowInitialOptions, track: trackWindowState } = require('./window-state');
 
 const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
@@ -171,9 +172,12 @@ async function maybeAIIndexInBackground(record) {
 }
 
 function createMainWindow() {
+  const winState = getWindowInitialOptions();
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    x: winState.x,
+    y: winState.y,
+    width: winState.width,
+    height: winState.height,
     minWidth: 960,
     minHeight: 600,
     show: false,
@@ -190,6 +194,13 @@ function createMainWindow() {
       sandbox: false,
     },
   });
+
+  // Re-apply maximized / fullscreen flags after construction (they
+  // can't be passed to the BrowserWindow constructor on macOS).
+  if (winState.isFullScreen) mainWindow.setFullScreen(true);
+  else if (winState.isMaximized) mainWindow.maximize();
+
+  trackWindowState(mainWindow);
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => {
