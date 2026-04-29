@@ -287,10 +287,13 @@ export default function App() {
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
 
-  // Refresh collection counts whenever the grid refreshes
+  // Refresh collection counts whenever the grid refreshes — and also
+  // whenever the local saves array shrinks/grows from an optimistic
+  // mutation (delete, restore, empty-trash). Without the saves.length
+  // dep, sidebar count badges go stale until the next full reload.
   useEffect(() => {
     if (!loading) loadCollections();
-  }, [loading, loadCollections]);
+  }, [loading, saves.length, loadCollections]);
 
   // First-launch starter-pack install. Once the initial library
   // load resolves and we know the user has zero saves AND the
