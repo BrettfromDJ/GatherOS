@@ -18,6 +18,7 @@ export default defineConfig({
         main: resolve(__dirname, 'src/renderer/index.html'),
         overlay: resolve(__dirname, 'src/renderer/overlay.html'),
         toast: resolve(__dirname, 'src/renderer/toast.html'),
+        traySearch: resolve(__dirname, 'src/renderer/tray-search.html'),
       },
     },
   },

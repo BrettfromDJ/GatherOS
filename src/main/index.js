@@ -14,6 +14,7 @@ const { Readable } = require('node:stream');
 
 const {
   initDatabase, closeDatabase, insertSave, getSave, updateSave, getTagsForSave,
+  getAllSaves,
 } = require('./db');
 const { hasOpenAIKey, getOpenAIKey, getPref } = require('./settings');
 const { analyzeImage, embedText } = require('./openai');
@@ -33,6 +34,12 @@ const { showToast, destroyToastWindow } = require('./toast-window');
 const { setSaveNotifier } = require('./notify');
 const { initUpdater } = require('./updater');
 const { getInitialOptions: getWindowInitialOptions, track: trackWindowState } = require('./window-state');
+const {
+  showPopover: showTraySearch,
+  hidePopover: hideTraySearch,
+  destroyPopover: destroyTraySearch,
+  isVisible: isTraySearchVisible,
+} = require('./tray-search-window');
 
 const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
@@ -242,9 +249,11 @@ function createTray() {
   ]);
   tray.setContextMenu(menu);
 
+  // Left-click toggles the quick-search popover. Right-click still
+  // shows the context menu (Open / Capture / Quit).
   tray.on('click', () => {
-    if (mainWindow) mainWindow.focus();
-    else createMainWindow();
+    if (isTraySearchVisible()) hideTraySearch();
+    else showTraySearch(tray);
   });
 
   tray.on('drop-files', async (_e, files) => {
@@ -265,6 +274,75 @@ function createTray() {
 // without an extra async round-trip).
 ipcMain.on('app:get-version', (event) => {
   event.returnValue = app.getVersion();
+});
+
+// ── Tray quick-search IPC ───────────────────────────────────────────
+// These live up here (rather than in ipc.js) because they need direct
+// access to mainWindow + the tray-search popover handle.
+
+ipcMain.handle('tray-search:query', async (_e, text) => {
+  // Reuse the existing library search. Top hits only — the popover
+  // shows ~14 rows max anyway.
+  return getAllSaves({ search: text || '', sort: 'newest', view: 'all' });
+});
+
+ipcMain.handle('tray-search:copy', async (_e, saveId) => {
+  const { clipboard, nativeImage } = require('electron');
+  const save = getSave(saveId);
+  if (!save?.file_path) return false;
+  try {
+    const img = nativeImage.createFromPath(save.file_path);
+    if (img.isEmpty()) return false;
+    clipboard.writeImage(img);
+    return true;
+  } catch (err) {
+    console.error('[tray-search] copy failed:', err.message);
+    return false;
+  }
+});
+
+ipcMain.handle('tray-search:reveal', async (_e, saveId) => {
+  hideTraySearch();
+  if (!mainWindow) createMainWindow();
+  if (!mainWindow) return false;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  // Ask the renderer to focus the requested save in the detail panel.
+  mainWindow.webContents.send('tray-search:focus-save', saveId);
+  return true;
+});
+
+ipcMain.handle('tray-search:close', () => {
+  hideTraySearch();
+  return true;
+});
+
+// Drag-out from the popover. Must run synchronously off the popover's
+// dragstart event — that's why this is `ipcMain.on`, not `.handle`.
+// Mirrors the icon-building behavior of the main grid's drag:start
+// handler so the OS gets a real drag preview.
+ipcMain.on('tray-search:drag', (event, saveId) => {
+  const save = getSave(saveId);
+  if (!save?.file_path) return;
+  let icon = null;
+  try {
+    const source = save.thumb_path || save.file_path;
+    const img = nativeImage.createFromPath(source);
+    if (!img.isEmpty()) icon = img.resize({ width: 80, quality: 'best' });
+    else {
+      const fallback = nativeImage.createFromPath(save.file_path);
+      if (!fallback.isEmpty()) icon = fallback.resize({ width: 80, quality: 'best' });
+    }
+  } catch (err) {
+    console.error('[tray-search] drag icon load failed:', err.message);
+  }
+  if (!icon) icon = nativeImage.createEmpty();
+  try {
+    event.sender.startDrag({ file: save.file_path, icon });
+  } catch (err) {
+    console.error('[tray-search] startDrag failed:', err.message);
+  }
 });
 
 app.whenReady().then(() => {
@@ -297,6 +375,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
 
 app.on('before-quit', () => {
   destroyToastWindow();
+  destroyTraySearch();
 });
 
 app.on('will-quit', () => {
