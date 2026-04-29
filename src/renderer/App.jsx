@@ -182,18 +182,6 @@ export default function App() {
     try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
   }, [gridLayout]);
   const [focusedId, setFocusedId] = useState(null);
-  // The tray quick-search popover sends a save id when the user picks
-  // "Open in app". Lift focus + clear search so the save lands on
-  // screen even if it's filtered out by the current view.
-  useEffect(() => {
-    return window.moodmark.on('tray-search:focus-save', (saveId) => {
-      if (!saveId) return;
-      setSearch('');
-      setView({ type: 'all' });
-      setFocusedId(saveId);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

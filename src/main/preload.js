@@ -104,7 +104,6 @@ contextBridge.exposeInMainWorld('moodmark', {
       'save:indexing-end',
       'update-ready',
       'ai:reindex-progress',
-      'tray-search:focus-save',
     ]);
     if (!allowed.has(channel)) return () => {};
     const wrapped = (_event, ...args) => listener(...args);
