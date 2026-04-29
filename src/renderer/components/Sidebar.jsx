@@ -488,12 +488,22 @@ export default function Sidebar({
     const fromId = draggingId;
     handleDragEnd();
     if (!fromId || fromId === targetId) return;
-    // Always "insert before target" — keeps the drop indicator's
-    // position (line above the target row) consistent with the
-    // resulting order regardless of drag direction.
-    const filtered = collections.map((c) => c.id).filter((id) => id !== fromId);
-    const insertIdx = filtered.indexOf(targetId);
-    if (insertIdx < 0) return;
+    const ids = collections.map((c) => c.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    // Dragging downward (from above the target) → insert *after* the
+    // target. Dragging upward (from below) → insert *before*. The
+    // earlier "always insert before" rule meant dragging the first of
+    // two items onto the second was a no-op (it filtered out the
+    // dragged id, then reinserted it before the target — its original
+    // position).
+    const filtered = ids.filter((id) => id !== fromId);
+    const targetIdxAfterRemove = filtered.indexOf(targetId);
+    if (targetIdxAfterRemove < 0) return;
+    const insertIdx = fromIdx < toIdx
+      ? targetIdxAfterRemove + 1
+      : targetIdxAfterRemove;
     filtered.splice(insertIdx, 0, fromId);
     await onReorderCollections?.(filtered);
   }
