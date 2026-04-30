@@ -123,6 +123,46 @@ function migrateLegacyData() {
   }
 }
 
+// Sweeps every library's DB and rewrites saves rows whose file_path /
+// thumb_path are still under the legacy userData/images or
+// userData/thumbs roots — the case where a prior multi-library
+// upgrade moved the files but not the rows. Idempotent: rows whose
+// paths are already correct don't match the LIKE filter and aren't
+// touched. Cheap to run on every boot.
+function healLegacyPaths(reg) {
+  if (!reg || !Array.isArray(reg.libraries)) return;
+  const userData = app.getPath('userData');
+  const oldImagesPrefix = path.join(userData, 'images');
+  const oldThumbsPrefix = path.join(userData, 'thumbs');
+  let Database;
+  try {
+    Database = require('better-sqlite3');
+  } catch {
+    return;
+  }
+  for (const lib of reg.libraries) {
+    const dbPath = path.join(libraryRoot(lib.id), 'moodmark.db');
+    if (!fs.existsSync(dbPath)) continue;
+    const newImagesPrefix = path.join(libraryRoot(lib.id), 'images');
+    const newThumbsPrefix = path.join(libraryRoot(lib.id), 'thumbs');
+    try {
+      const db = new Database(dbPath);
+      try {
+        db.prepare(
+          'UPDATE saves SET file_path = REPLACE(file_path, ?, ?) WHERE file_path LIKE ?'
+        ).run(oldImagesPrefix, newImagesPrefix, `${oldImagesPrefix}%`);
+        db.prepare(
+          'UPDATE saves SET thumb_path = REPLACE(thumb_path, ?, ?) WHERE thumb_path LIKE ?'
+        ).run(oldThumbsPrefix, newThumbsPrefix, `${oldThumbsPrefix}%`);
+      } finally {
+        db.close();
+      }
+    } catch (err) {
+      console.error('[library-registry] heal paths in', lib.id, 'failed:', err.message);
+    }
+  }
+}
+
 // Idempotent. Call once at app start before opening the database.
 function bootstrap() {
   const existing = readRegistry();
@@ -132,6 +172,7 @@ function bootstrap() {
     for (const lib of existing.libraries) {
       fs.mkdirSync(libraryRoot(lib.id), { recursive: true });
     }
+    healLegacyPaths(existing);
     return existing;
   }
 
@@ -153,6 +194,7 @@ function bootstrap() {
     ],
   };
   writeRegistry(reg);
+  healLegacyPaths(reg);
   return reg;
 }
 

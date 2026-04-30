@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from './LibrarySwitcher.module.css';
 import ContextMenu from './ContextMenu.jsx';
 
-function ChevronIcon() {
+// Stacked up/down chevrons — the typical macOS picker / switcher
+// glyph. Sits on the left of the library name to signal "click to
+// pick a different one" without needing a label.
+function SwitcherIcon() {
   return (
-    <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+    <svg viewBox="0 0 10 12" width="10" height="12" aria-hidden="true">
       <path
-        d="M2 3.5l3 3 3-3"
+        d="M2 4l3-3 3 3M2 8l3 3 3-3"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
@@ -204,10 +207,10 @@ export default function LibrarySwitcher({
             aria-expanded={open}
             title={active.name}
           >
-            <span className={styles.triggerLabel}>{active.name}</span>
-            <span className={styles.triggerChevron}>
-              <ChevronIcon />
+            <span className={styles.triggerSwitcher}>
+              <SwitcherIcon />
             </span>
+            <span className={styles.triggerLabel}>{active.name}</span>
           </button>
         )}
         <button

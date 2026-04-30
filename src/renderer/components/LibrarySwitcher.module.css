@@ -15,7 +15,6 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
   background: transparent;
@@ -29,6 +28,14 @@
   text-align: left;
   cursor: pointer;
   transition: background 100ms ease, border-color 100ms ease;
+}
+
+.triggerSwitcher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
 }
 
 .triggerRenameInput {
@@ -82,11 +89,6 @@
   text-overflow: ellipsis;
 }
 
-.triggerChevron {
-  display: inline-flex;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
 
 .dropdown {
   position: absolute;
