@@ -1394,6 +1394,8 @@ export default function App() {
             onCreateLibrary={handleCreateLibrary}
             onRenameLibrary={handleRenameLibrary}
             onDeleteLibrary={handleDeleteLibrary}
+            search={search}
+            onSearchChange={setSearch}
             view={view}
             onViewChange={handleViewChange}
             collections={collections}

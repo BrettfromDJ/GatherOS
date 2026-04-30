@@ -113,6 +113,11 @@
   -webkit-app-region: no-drag;
 }
 
+.searchSlot {
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+}
+
 .sectionHeaderRow {
   display: flex;
   align-items: center;

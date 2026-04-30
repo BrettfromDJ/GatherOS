@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import styles from './Sidebar.module.css';
 import ContextMenu from './ContextMenu.jsx';
 import LibrarySwitcher from './LibrarySwitcher.jsx';
+import SidebarSearch from './SidebarSearch.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
 function GridIcon() {
@@ -253,6 +254,8 @@ export default function Sidebar({
   onCreateLibrary,
   onRenameLibrary,
   onDeleteLibrary,
+  search,
+  onSearchChange,
   view,
   onViewChange,
   collections = [],
@@ -631,6 +634,11 @@ export default function Sidebar({
           onRename={onRenameLibrary}
           onDelete={onDeleteLibrary}
         />
+      )}
+      {typeof onSearchChange === 'function' && (
+        <div className={styles.searchSlot}>
+          <SidebarSearch value={search} onChange={onSearchChange} />
+        </div>
       )}
       <div className={styles.sectionHeaderRow}>
         <span className={styles.sectionHeaderLabel}>Library</span>
