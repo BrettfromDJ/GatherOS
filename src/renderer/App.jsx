@@ -893,8 +893,24 @@ export default function App() {
 
   const handleDeleteLibrary = useCallback(async (id) => {
     const res = await window.moodmark.libraries.delete(id);
-    if (res?.ok) refreshLibraries();
-  }, [refreshLibraries]);
+    if (!res?.ok) return;
+    await refreshLibraries();
+    // If the deleted library was the active one, the registry has
+    // auto-promoted another library to active and the main process
+    // has already reopened the DB against it. Reset every piece of
+    // view state and refetch so the grid + sidebar reflect the
+    // promoted library, not the one we just removed.
+    if (res.wasActive) {
+      setActiveLibraryId(res.newActiveId);
+      setView({ type: 'all' });
+      setFocusedId(null);
+      setSelected(new Set());
+      setSearch('');
+      setColorFilter(null);
+      await loadCollections();
+      await reload();
+    }
+  }, [refreshLibraries, loadCollections, reload, setColorFilter, setSearch, setView]);
 
   const handleCreateCollection = useCallback(async (payload) => {
     await window.moodmark.collections.create(payload);

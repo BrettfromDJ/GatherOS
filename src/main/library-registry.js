@@ -242,17 +242,26 @@ function renameLibrary(id, newName) {
 function deleteLibrary(id) {
   const reg = readRegistry() || bootstrap();
   if (reg.libraries.length <= 1) return { ok: false, reason: 'last-library' };
-  if (reg.active === id) return { ok: false, reason: 'active' };
   const idx = reg.libraries.findIndex((l) => l.id === id);
   if (idx < 0) return { ok: false, reason: 'not-found' };
+
+  // If the library being deleted is also the active one, transfer
+  // active to the next remaining library *before* removing the row,
+  // so callers can hand off the open DB handle cleanly.
+  const wasActive = reg.active === id;
+  if (wasActive) {
+    const next = reg.libraries.find((l) => l.id !== id);
+    reg.active = next.id;
+  }
   reg.libraries.splice(idx, 1);
   writeRegistry(reg);
+
   try {
     fs.rmSync(libraryRoot(id), { recursive: true, force: true });
   } catch (err) {
     console.error('[library-registry] remove dir failed:', err.message);
   }
-  return { ok: true };
+  return { ok: true, wasActive, newActiveId: reg.active };
 }
 
 function setActiveLibrary(id) {

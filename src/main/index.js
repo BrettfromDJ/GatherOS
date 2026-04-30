@@ -286,7 +286,18 @@ ipcMain.handle('library:rename', (_e, payload = {}) => {
 });
 
 ipcMain.handle('library:delete', (_e, id) => {
-  return libraryRegistry.deleteLibrary(id);
+  const result = libraryRegistry.deleteLibrary(id);
+  if (!result.ok) return result;
+  if (result.wasActive) {
+    // The DB handle was open against the now-deleted folder. Reopen
+    // against the auto-promoted active library and notify the
+    // renderer so it can clear its view + refetch.
+    reopenDatabase();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('library:switched', { activeId: result.newActiveId });
+    }
+  }
+  return result;
 });
 
 ipcMain.handle('library:switch', (_e, id) => {
