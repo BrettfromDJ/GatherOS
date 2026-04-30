@@ -139,7 +139,9 @@
    leaving the rim visible as a faux stroke. The icon stacks on
    top via z-index. */
 .layoutBtn.layoutBtnActive {
-  border-radius: 10px;
+  /* Outer radius is parent's 7px minus the 2px container padding,
+     so the button's corners sit concentric with the tab. */
+  border-radius: 5px;
   background:
     linear-gradient(180deg, #E2E2E2 0%, #B2B2B2 24.5%, #DADADA 58.47%, #DADADA 100%);
   color: #000;
@@ -156,7 +158,9 @@
   content: '';
   position: absolute;
   inset: 2px;
-  border-radius: 8px;
+  /* Inner radius = outer (5) − 2px stroke = 3, so the rim is a
+     constant 2px wide all the way around. */
+  border-radius: 3px;
   background:
     linear-gradient(180deg, #D9D9D9 0%, #CBCBCB 100%);
   pointer-events: none;
