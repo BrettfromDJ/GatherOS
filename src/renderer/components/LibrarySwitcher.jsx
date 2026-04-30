@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 import styles from './LibrarySwitcher.module.css';
 import ContextMenu from './ContextMenu.jsx';
 
@@ -47,10 +46,21 @@ function PlusIcon() {
   );
 }
 
+function DotsIcon() {
+  return (
+    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="currentColor">
+      <circle cx="2.5" cy="6" r="1" />
+      <circle cx="6" cy="6" r="1" />
+      <circle cx="9.5" cy="6" r="1" />
+    </svg>
+  );
+}
+
 // Top-of-sidebar dropdown that shows the active library and lets
-// the user switch between, create, rename, or delete libraries.
-// Right-click on a library row opens a context menu with rename /
-// delete (delete is gated for the active and last-remaining lib).
+// the user switch between libraries. The "···" button to the right
+// of the trigger opens a menu with rename / delete actions for the
+// active library — to manage a non-active library, switch to it
+// first.
 export default function LibrarySwitcher({
   libraries,
   activeId,
@@ -60,38 +70,35 @@ export default function LibrarySwitcher({
   onDelete,
 }) {
   const [open, setOpen] = useState(false);
-  const [renamingId, setRenamingId] = useState(null);
+  const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
   const [creating, setCreating] = useState(false);
   const [createDraft, setCreateDraft] = useState('');
-  const [ctxMenu, setCtxMenu] = useState(null); // { x, y, library }
-  const triggerRef = useRef(null);
+  const [actionsMenu, setActionsMenu] = useState(null); // { x, y }
+  const triggerRowRef = useRef(null);
   const dropdownRef = useRef(null);
   const renameInputRef = useRef(null);
   const createInputRef = useRef(null);
+  const actionsBtnRef = useRef(null);
 
   const active = libraries.find((l) => l.id === activeId) || libraries[0];
+  const canDelete = libraries.length > 1;
 
   useEffect(() => {
     if (!open) return undefined;
     function onMouseDown(e) {
-      // Stay open if click landed on the trigger, dropdown, or our
-      // context menu portal.
-      const inTrigger = triggerRef.current && triggerRef.current.contains(e.target);
+      const inTriggerRow = triggerRowRef.current && triggerRowRef.current.contains(e.target);
       const inDropdown = dropdownRef.current && dropdownRef.current.contains(e.target);
-      if (inTrigger || inDropdown) return;
-      // Context menu lives at document.body via its own portal — let
-      // its own outside-click handler manage closing.
+      if (inTriggerRow || inDropdown) return;
+      // The actions context menu portals to body — let its own
+      // outside-click handler manage closing.
       const inCtx = e.target.closest('[role="menu"]');
       if (inCtx) return;
       setOpen(false);
     }
     function onKey(e) {
       if (e.key === 'Escape') {
-        if (renamingId) {
-          setRenamingId(null);
-          setRenameDraft('');
-        } else if (creating) {
+        if (creating) {
           setCreating(false);
           setCreateDraft('');
         } else {
@@ -105,24 +112,22 @@ export default function LibrarySwitcher({
       document.removeEventListener('mousedown', onMouseDown, true);
       document.removeEventListener('keydown', onKey, true);
     };
-  }, [open, renamingId, creating]);
+  }, [open, creating]);
 
-  function startRename(library) {
-    setRenamingId(library.id);
-    setRenameDraft(library.name);
-    setCtxMenu(null);
+  function startRenameActive() {
+    if (!active) return;
+    setRenaming(true);
+    setRenameDraft(active.name);
+    setActionsMenu(null);
     requestAnimationFrame(() => renameInputRef.current?.select());
   }
 
   async function commitRename() {
-    const id = renamingId;
     const next = renameDraft.trim();
-    setRenamingId(null);
+    setRenaming(false);
     setRenameDraft('');
-    if (!id || !next) return;
-    const original = libraries.find((l) => l.id === id);
-    if (!original || next === original.name) return;
-    await onRename?.(id, next);
+    if (!next || !active || next === active.name) return;
+    await onRename?.(active.id, next);
   }
 
   function startCreating() {
@@ -139,54 +144,83 @@ export default function LibrarySwitcher({
     await onCreate?.(name);
   }
 
-  function handleLibraryContextMenu(e, library) {
-    e.preventDefault();
-    setCtxMenu({ x: e.clientX, y: e.clientY, library });
+  function openActionsMenu() {
+    if (!actionsBtnRef.current) return;
+    const rect = actionsBtnRef.current.getBoundingClientRect();
+    setActionsMenu({ x: rect.left, y: rect.bottom + 4 });
   }
 
-  async function handleDelete(library) {
-    setCtxMenu(null);
+  async function handleDeleteActive() {
+    setActionsMenu(null);
+    if (!active) return;
     const confirmed = window.confirm(
-      `Delete the library "${library.name}"? Every save, bucket, and image inside it will be permanently removed.`,
+      `Delete the library "${active.name}"? Every save, bucket, and image inside it will be permanently removed.`,
     );
     if (!confirmed) return;
-    await onDelete?.(library.id);
+    await onDelete?.(active.id);
   }
 
   if (!active) return null;
 
-  const ctxItems = ctxMenu
-    ? [
-        {
-          label: 'Rename',
-          onClick: () => startRename(ctxMenu.library),
-        },
-        {
-          label: 'Delete library',
-          danger: true,
-          onClick: () => handleDelete(ctxMenu.library),
-        },
-      ]
-    : [];
+  // Hide Delete when there's only one library — that's the
+  // last-remaining-library guard, enforced server-side too.
+  const actionItems = [
+    { label: 'Rename', onClick: startRenameActive },
+    ...(canDelete
+      ? [{ label: 'Delete library', danger: true, onClick: handleDeleteActive }]
+      : []),
+  ];
 
   return (
     <div className={styles.wrap}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className={[styles.trigger, open && styles.triggerOpen]
-          .filter(Boolean)
-          .join(' ')}
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        title={active.name}
-      >
-        <span className={styles.triggerLabel}>{active.name}</span>
-        <span className={styles.triggerChevron}>
-          <ChevronIcon />
-        </span>
-      </button>
+      <div ref={triggerRowRef} className={styles.triggerRow}>
+        {renaming ? (
+          <input
+            ref={renameInputRef}
+            autoFocus
+            className={styles.triggerRenameInput}
+            value={renameDraft}
+            onChange={(e) => setRenameDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commitRename();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setRenaming(false);
+                setRenameDraft('');
+              }
+            }}
+            onBlur={commitRename}
+          />
+        ) : (
+          <button
+            type="button"
+            className={[styles.trigger, open && styles.triggerOpen]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            title={active.name}
+          >
+            <span className={styles.triggerLabel}>{active.name}</span>
+            <span className={styles.triggerChevron}>
+              <ChevronIcon />
+            </span>
+          </button>
+        )}
+        <button
+          ref={actionsBtnRef}
+          type="button"
+          className={styles.actionsBtn}
+          onClick={openActionsMenu}
+          aria-label={`${active.name} actions`}
+          title="Library actions"
+        >
+          <DotsIcon />
+        </button>
+      </div>
 
       {open && (
         <div
@@ -197,52 +231,25 @@ export default function LibrarySwitcher({
         >
           {libraries.map((lib) => {
             const isActive = lib.id === active.id;
-            const isRenaming = renamingId === lib.id;
             return (
-              <div
+              <button
                 key={lib.id}
+                type="button"
                 className={[styles.row, isActive && styles.rowActive]
                   .filter(Boolean)
                   .join(' ')}
-                onContextMenu={(e) => handleLibraryContextMenu(e, lib)}
                 role="option"
                 aria-selected={isActive}
+                onClick={() => {
+                  if (!isActive) onSwitch?.(lib.id);
+                  setOpen(false);
+                }}
               >
                 <span className={styles.rowCheck}>
                   {isActive ? <CheckIcon /> : null}
                 </span>
-                {isRenaming ? (
-                  <input
-                    ref={renameInputRef}
-                    autoFocus
-                    className={styles.rowRenameInput}
-                    value={renameDraft}
-                    onChange={(e) => setRenameDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        commitRename();
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        setRenamingId(null);
-                        setRenameDraft('');
-                      }
-                    }}
-                    onBlur={commitRename}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.rowLabel}
-                    onClick={() => {
-                      if (!isActive) onSwitch?.(lib.id);
-                      setOpen(false);
-                    }}
-                  >
-                    {lib.name}
-                  </button>
-                )}
-              </div>
+                <span className={styles.rowLabel}>{lib.name}</span>
+              </button>
             );
           })}
 
@@ -288,12 +295,12 @@ export default function LibrarySwitcher({
         </div>
       )}
 
-      {ctxMenu && (
+      {actionsMenu && (
         <ContextMenu
-          x={ctxMenu.x}
-          y={ctxMenu.y}
-          items={ctxItems}
-          onClose={() => setCtxMenu(null)}
+          x={actionsMenu.x}
+          y={actionsMenu.y}
+          items={actionItems}
+          onClose={() => setActionsMenu(null)}
         />
       )}
     </div>

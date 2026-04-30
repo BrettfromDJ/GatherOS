@@ -93,6 +93,34 @@ function migrateLegacyData() {
       console.error('[library-registry] migrate dir', dir, 'failed:', err.message);
     }
   }
+
+  // Existing saves point at absolute paths under the old userData/
+  // root. Now that the files live one level deeper inside
+  // libraries/<id>/, every file_path / thumb_path needs rewriting
+  // or the grid will look at empty disk.
+  try {
+    const Database = require('better-sqlite3');
+    const dbPath = path.join(target, 'moodmark.db');
+    if (fs.existsSync(dbPath)) {
+      const db = new Database(dbPath);
+      try {
+        const oldImagesPrefix = path.join(userData, 'images');
+        const newImagesPrefix = path.join(target, 'images');
+        const oldThumbsPrefix = path.join(userData, 'thumbs');
+        const newThumbsPrefix = path.join(target, 'thumbs');
+        db.prepare(
+          'UPDATE saves SET file_path = REPLACE(file_path, ?, ?) WHERE file_path LIKE ?'
+        ).run(oldImagesPrefix, newImagesPrefix, `${oldImagesPrefix}%`);
+        db.prepare(
+          'UPDATE saves SET thumb_path = REPLACE(thumb_path, ?, ?) WHERE thumb_path LIKE ?'
+        ).run(oldThumbsPrefix, newThumbsPrefix, `${oldThumbsPrefix}%`);
+      } finally {
+        db.close();
+      }
+    }
+  } catch (err) {
+    console.error('[library-registry] rewrite paths failed:', err.message);
+  }
 }
 
 // Idempotent. Call once at app start before opening the database.

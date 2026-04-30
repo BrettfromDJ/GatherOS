@@ -4,12 +4,19 @@
   -webkit-app-region: no-drag;
 }
 
+.triggerRow {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
 .trigger {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  width: 100%;
   padding: 6px 10px;
   background: transparent;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
@@ -22,6 +29,40 @@
   text-align: left;
   cursor: pointer;
   transition: background 100ms ease, border-color 100ms ease;
+}
+
+.triggerRenameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: #ffffff;
+  border: 0.5px solid rgba(10, 132, 255, 0.45);
+  border-radius: 8px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.15);
+}
+
+.actionsBtn {
+  flex-shrink: 0;
+  width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.actionsBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
 }
 
 .trigger:hover {
