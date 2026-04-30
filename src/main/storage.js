@@ -245,7 +245,7 @@ async function composeMoodBoard(saves, outputPath) {
   const COL_WIDTH = 1200;
   const GAP = 32;
   const PADDING = 64;
-  const BG = { r: 250, g: 250, b: 249, alpha: 1 }; // #FAFAF9 — match the app surface
+  const BG = { r: 235, g: 235, b: 235, alpha: 1 }; // #EBEBEB — match the app surface
 
   const columns = Math.min(
     saves.length,
