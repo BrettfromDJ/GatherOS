@@ -175,26 +175,59 @@ export default function App() {
   // global keydown handler at the end of this component pops & runs.
   const undoStack = useUndoStack();
 
-  // Random-shuffle state for the masonry grid. A seed (not the full
-  // permutation) is enough — seededShuffle is deterministic, so the
-  // order stays stable across every re-render until the seed is
-  // cleared or replaced. Reset whenever the visible view changes
-  // so navigating away always returns to the natural sort.
-  const [shuffleSeed, setShuffleSeed] = useState(null);
+  // Per-view shuffle seeds. Persisted to localStorage so a shuffle
+  // sticks across navigation, search, sort, and full app restarts —
+  // the user's intentional order is treated as a real preference,
+  // not a transient state. Map<viewKey, seed>.
+  const [shuffleSeeds, setShuffleSeeds] = useState(() => {
+    try {
+      const raw = localStorage.getItem('moodmark.shuffleSeeds');
+      if (!raw) return new Map();
+      const arr = JSON.parse(raw);
+      return new Map(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Map();
+    }
+  });
   useEffect(() => {
-    setShuffleSeed(null);
-  }, [view.type, view.id]);
+    try {
+      localStorage.setItem(
+        'moodmark.shuffleSeeds',
+        JSON.stringify([...shuffleSeeds]),
+      );
+    } catch {}
+  }, [shuffleSeeds]);
+  const viewKey = (v) =>
+    v && v.type === 'collection' ? `collection:${v.id}` : v?.type || 'all';
+  const shuffleSeed = shuffleSeeds.get(viewKey(view)) || null;
   const handleShuffleView = useCallback((targetView) => {
+    const target = targetView || view;
     if (targetView) {
       setView(targetView);
       setFocusedId(null);
     }
-    const previous = shuffleSeed;
+    const key = targetView
+      ? (target.type === 'collection' ? `collection:${target.id}` : target.type)
+      : viewKey(view);
+    const previous = shuffleSeeds.get(key) || null;
     // Math.random() yields [0,1) and we want a 32-bit-ish int seed.
     const seed = Math.floor(Math.random() * 0x7fffffff) || 1;
-    setShuffleSeed(seed);
-    undoStack.push('shuffle', () => setShuffleSeed(previous));
-  }, [shuffleSeed, setView, undoStack]);
+    setShuffleSeeds((prev) => {
+      const next = new Map(prev);
+      next.set(key, seed);
+      return next;
+    });
+    undoStack.push('shuffle', () => {
+      setShuffleSeeds((prev) => {
+        const next = new Map(prev);
+        if (previous) next.set(key, previous);
+        else next.delete(key);
+        return next;
+      });
+    });
+  // viewKey is a stable inline closure, no need to add as dep.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shuffleSeeds, view, setView, undoStack]);
 
   // Wrap useLibrary's updateSaveMeta so renames / URL / notes edits
   // are undoable. Captures the previous values from the live saves
@@ -959,6 +992,9 @@ export default function App() {
     setSelected(new Set());
     setSearch('');
     setColorFilter(null);
+    // Saved shuffle seeds are keyed by view id, which means bucket
+    // ids from the prior library. Clear so we don't carry them over.
+    setShuffleSeeds(new Map());
     await loadCollections();
     await reload();
   }, [activeLibraryId, loadCollections, reload, setColorFilter, setSearch, setView]);
@@ -1034,6 +1070,14 @@ export default function App() {
     await window.moodmark.collections.delete(id);
     // If we were viewing the deleted collection, go back to All
     if (view.type === 'collection' && view.id === id) handleViewChange({ type: 'all' });
+    // Drop any saved shuffle seed for that bucket — it won't match
+    // anything anymore but wastes localStorage space.
+    setShuffleSeeds((prev) => {
+      if (!prev.has(`collection:${id}`)) return prev;
+      const next = new Map(prev);
+      next.delete(`collection:${id}`);
+      return next;
+    });
     loadCollections();
   }, [view, handleViewChange, loadCollections]);
 
