@@ -18,7 +18,7 @@
   gap: 8px;
   padding: 6px 10px;
   background: transparent;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border: none;
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
@@ -27,7 +27,7 @@
   letter-spacing: -0.005em;
   text-align: left;
   cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease;
+  transition: background 100ms ease;
 }
 
 .triggerSwitcher {
@@ -60,7 +60,7 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border: none;
   border-radius: 8px;
   color: var(--text-tertiary);
   cursor: pointer;
@@ -78,7 +78,6 @@
 
 .triggerOpen {
   background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.14);
 }
 
 .triggerLabel {
