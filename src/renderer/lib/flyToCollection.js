@@ -36,7 +36,7 @@ function animateOne({ saveId, collectionId, imageSrc, fallbackBg }) {
     zIndex: '2147483647',
     isolation: 'isolate',
     willChange: 'transform, opacity',
-    backgroundColor: fallbackBg || '#FAFAF9',
+    backgroundColor: fallbackBg || '#EBEBEB',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     overflow: 'hidden',
