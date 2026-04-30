@@ -115,7 +115,7 @@
 
 .layoutBtn {
   position: relative;
-  width: 26px;
+  width: 22px;
   height: 22px;
   display: inline-flex;
   align-items: center;
@@ -155,7 +155,7 @@
 .layoutBtn.layoutBtnActive::before {
   content: '';
   position: absolute;
-  inset: 1px;
+  inset: 2px;
   border-radius: 8px;
   background:
     linear-gradient(180deg, #D9D9D9 0%, #CBCBCB 100%);
