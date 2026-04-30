@@ -717,10 +717,7 @@ export default function Sidebar({
               onContextMenu={(e) => handleSmartViewContextMenu(e, id)}
               title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
             >
-              <span
-                className={styles.icon}
-                style={{ color: 'var(--text-secondary)' }}
-              >
+              <span className={styles.icon}>
                 <Icon />
               </span>
               <span className={styles.label}>{label}</span>
@@ -907,10 +904,7 @@ export default function Sidebar({
                     <span className={styles.disclosureSpacer} aria-hidden="true" />
                   )
                 )}
-                <span
-                  className={styles.icon}
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <span className={styles.icon}>
                   <CollectionIcon />
                 </span>
                 <span className={styles.label}>{c.name}</span>

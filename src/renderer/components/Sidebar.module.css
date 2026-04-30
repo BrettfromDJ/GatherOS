@@ -419,12 +419,18 @@
 }
 
 
-/* Active row — flat #E8E8E8 fill, no shadow, no glass. */
+/* Active row — flat #E8E8E8 fill, no shadow, no glass. Label and
+   icon flip to true black so the selected item reads with extra
+   weight against the otherwise grayscale list. */
 .active,
 .active:hover {
   background: #E8E8E8;
-  color: var(--text-primary);
+  color: #000;
   box-shadow: none;
+}
+
+.active .icon {
+  color: #000;
 }
 
 .icon {
@@ -434,6 +440,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .icon svg {
