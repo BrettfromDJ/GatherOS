@@ -644,7 +644,7 @@ export default function Sidebar({
             >
               <span
                 className={styles.icon}
-                style={{ color: active ? '#fff' : 'var(--text-secondary)' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 <Icon />
               </span>
@@ -834,7 +834,7 @@ export default function Sidebar({
                 )}
                 <span
                   className={styles.icon}
-                  style={{ color: active ? '#fff' : 'var(--icon-blue)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <CollectionIcon />
                 </span>
