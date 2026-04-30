@@ -87,6 +87,24 @@ function normalizeUrl(input) {
   return /^https?:\/\//i.test(s) ? s : `https://${s}`;
 }
 
+function EyedropperIcon() {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 2l3 3" />
+      <path d="M10.5 0.5l3 3" />
+      <path d="M9.5 3.5L4 9v3h3l5.5-5.5" />
+    </svg>
+  );
+}
+
 function ExternalLinkIcon() {
   return (
     <svg
@@ -121,6 +139,73 @@ export default function DetailPanel({
   const src = fileUrl(record.file_path);
   const typeLabel = fileTypeLabel(record.file_path);
   const [copiedColor, setCopiedColor] = useState(null);
+  // Eyedropper / pixel picker. When `picking` is true the preview's
+  // cursor turns into a crosshair; the next click on the image
+  // samples the pixel under it, copies the hex to the clipboard,
+  // and surfaces it briefly in the preview overlay.
+  const [picking, setPicking] = useState(false);
+  const [pickedHex, setPickedHex] = useState(null);
+  const imageRef = useRef(null);
+  const pickedTimerRef = useRef(null);
+
+  // Always cancel the picker when the user navigates to a different
+  // save — a stuck-on crosshair across records would be confusing.
+  useEffect(() => {
+    setPicking(false);
+    setPickedHex(null);
+  }, [record.id]);
+
+  // Escape exits picking mode without sampling.
+  useEffect(() => {
+    if (!picking) return undefined;
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPicking(false);
+      }
+    }
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [picking]);
+
+  function flashPicked(hex) {
+    setPickedHex(hex);
+    if (pickedTimerRef.current) clearTimeout(pickedTimerRef.current);
+    pickedTimerRef.current = setTimeout(() => {
+      setPickedHex(null);
+      pickedTimerRef.current = null;
+    }, 1800);
+  }
+
+  async function handleImageClick(e) {
+    if (!picking) return;
+    const img = imageRef.current;
+    if (!img || !img.naturalWidth) return;
+    const rect = img.getBoundingClientRect();
+    const sx = ((e.clientX - rect.left) * (img.naturalWidth / rect.width)) | 0;
+    const sy = ((e.clientY - rect.top) * (img.naturalHeight / rect.height)) | 0;
+    if (sx < 0 || sy < 0 || sx >= img.naturalWidth || sy >= img.naturalHeight) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(sx, sy, 1, 1).data;
+      const hex =
+        '#' +
+        [data[0], data[1], data[2]]
+          .map((c) => c.toString(16).padStart(2, '0'))
+          .join('');
+      await navigator.clipboard.writeText(hex);
+      flashPicked(hex);
+    } catch (err) {
+      console.error('Eyedropper failed:', err);
+      flashPicked('error');
+    } finally {
+      setPicking(false);
+    }
+  }
   const [autoTagging, setAutoTagging] = useState(false);
   const [autoTagError, setAutoTagError] = useState('');
   const [promptGenerating, setPromptGenerating] = useState(false);
@@ -482,14 +567,58 @@ export default function DetailPanel({
 
       <div className={styles.preview}>
         {src && (
-          <div className={styles.imageWrap}>
+          <div
+            className={[styles.imageWrap, picking && styles.imageWrapPicking]
+              .filter(Boolean)
+              .join(' ')}
+          >
             <img
+              ref={imageRef}
               src={src}
               className={styles.image}
               alt={record.title || ''}
               draggable={false}
+              crossOrigin="anonymous"
+              onClick={handleImageClick}
             />
             {typeLabel && <div className={styles.typeBadge}>{typeLabel}</div>}
+            <button
+              type="button"
+              className={[styles.eyedropperBtn, picking && styles.eyedropperBtnActive]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPicking((v) => !v);
+              }}
+              title={picking ? 'Cancel eyedropper (Esc)' : 'Pick a color from this image'}
+              aria-pressed={picking}
+            >
+              <EyedropperIcon />
+            </button>
+            {pickedHex && (
+              <div
+                className={[styles.pickedPill, pickedHex === 'error' && styles.pickedPillError]
+                  .filter(Boolean)
+                  .join(' ')}
+                role="status"
+              >
+                {pickedHex === 'error' ? (
+                  <span>Couldn’t read pixel</span>
+                ) : (
+                  <>
+                    <span
+                      className={styles.pickedSwatch}
+                      style={{ background: pickedHex }}
+                    />
+                    <span className={styles.pickedHex}>
+                      {pickedHex.toUpperCase()}
+                    </span>
+                    <span className={styles.pickedCopied}>· Copied</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
