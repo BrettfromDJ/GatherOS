@@ -38,6 +38,7 @@ export default function FeaturedBuckets({
   onPickBucket,
   onRenameCollection,
   onDeleteCollection,
+  onShuffleView,
 }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
   const [pillsVisible, setPillsVisible] = useState(false);
@@ -265,6 +266,19 @@ export default function FeaturedBuckets({
           x={ctxMenu.x}
           y={ctxMenu.y}
           items={[
+            ...(typeof onShuffleView === 'function' ? [{
+              label: 'Shuffle',
+              icon: (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2.5 4.5h2.3l6.4 7h2.3" />
+                  <path d="M2.5 11.5h2.3l3-3.5" />
+                  <path d="M8.2 7l3-3.5h2.3" />
+                  <path d="M12 2.5l1.5 2-1.5 2" />
+                  <path d="M12 9.5l1.5 2-1.5 2" />
+                </svg>
+              ),
+              onClick: () => onShuffleView({ type: 'collection', id: ctxMenu.collection.id }),
+            }] : []),
             {
               label: 'Rename',
               icon: <PencilIcon />,

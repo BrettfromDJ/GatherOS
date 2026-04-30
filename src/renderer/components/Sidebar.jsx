@@ -176,6 +176,26 @@ function PencilIcon() {
 }
 
 
+function ShuffleIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 4.5h2.3l6.4 7h2.3" />
+      <path d="M2.5 11.5h2.3l3-3.5" />
+      <path d="M8.2 7l3-3.5h2.3" />
+      <path d="M12 2.5l1.5 2-1.5 2" />
+      <path d="M12 9.5l1.5 2-1.5 2" />
+    </svg>
+  );
+}
+
 const SMART_VIEWS = [
   { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
   { id: 'unsorted', label: 'Unsorted', color: 'var(--icon-yellow)', Icon: InboxIcon },
@@ -256,6 +276,7 @@ export default function Sidebar({
   onDeleteLibrary,
   search,
   onSearchChange,
+  onShuffleView,
   view,
   onViewChange,
   collections = [],
@@ -282,6 +303,10 @@ export default function Sidebar({
   const [renameValue, setRenameValue] = useState('');
 
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection }
+  // Smart-view context menu (All / Unsorted / Trash). All gets a
+  // Shuffle entry; the others currently render no items but the
+  // hook is kept open for future actions.
+  const [smartCtx, setSmartCtx] = useState(null); // { x, y, viewId }
 
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
@@ -602,6 +627,11 @@ export default function Sidebar({
 
   const ctxItems = ctxMenu
     ? [
+        ...(typeof onShuffleView === 'function' ? [{
+          label: 'Shuffle',
+          icon: <ShuffleIcon />,
+          onClick: () => onShuffleView({ type: 'collection', id: ctxMenu.collection.id }),
+        }] : []),
         { label: 'Rename', icon: <PencilIcon />, onClick: () => startRename(ctxMenu.collection) },
         // Only top-level buckets can have children — single level cap.
         ...(ctxMenu.collection.parent_id ? [] : [{
@@ -612,6 +642,25 @@ export default function Sidebar({
         { label: 'Delete Bucket', icon: <TrashIcon />, danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
       ]
     : [];
+
+  // Smart-view context menu items. All / Unsorted both support
+  // shuffle; Trash gets none (it's already random and this surface
+  // shouldn't add noise).
+  const smartCtxItems = smartCtx && (smartCtx.viewId === 'all' || smartCtx.viewId === 'unsorted')
+    ? [
+        ...(typeof onShuffleView === 'function' ? [{
+          label: 'Shuffle',
+          icon: <ShuffleIcon />,
+          onClick: () => onShuffleView({ type: smartCtx.viewId }),
+        }] : []),
+      ]
+    : [];
+
+  function handleSmartViewContextMenu(e, viewId) {
+    if (viewId === 'trash') return; // no menu items defined for trash
+    e.preventDefault();
+    setSmartCtx({ x: e.clientX, y: e.clientY, viewId });
+  }
 
   return (
     <aside className={styles.sidebar}>
@@ -665,6 +714,7 @@ export default function Sidebar({
               data-smart-view={id}
               className={`${styles.item} ${active ? styles.active : ''}`}
               onClick={() => onViewChange({ type: id })}
+              onContextMenu={(e) => handleSmartViewContextMenu(e, id)}
               title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
             >
               <span
@@ -939,6 +989,14 @@ export default function Sidebar({
           y={ctxMenu.y}
           items={ctxItems}
           onClose={() => setCtxMenu(null)}
+        />
+      )}
+      {smartCtx && smartCtxItems.length > 0 && (
+        <ContextMenu
+          x={smartCtx.x}
+          y={smartCtx.y}
+          items={smartCtxItems}
+          onClose={() => setSmartCtx(null)}
         />
       )}
       {hoverPreview && ReactDOM.createPortal(

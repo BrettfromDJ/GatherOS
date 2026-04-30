@@ -20,6 +20,7 @@ import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
+import { seededShuffle } from './lib/shuffle.js';
 
 function BoardExportIcon() {
   return (
@@ -173,6 +174,27 @@ export default function App() {
   // Cmd+Z undo stack. Mutations push a label + reversal closure; the
   // global keydown handler at the end of this component pops & runs.
   const undoStack = useUndoStack();
+
+  // Random-shuffle state for the masonry grid. A seed (not the full
+  // permutation) is enough — seededShuffle is deterministic, so the
+  // order stays stable across every re-render until the seed is
+  // cleared or replaced. Reset whenever the visible view changes
+  // so navigating away always returns to the natural sort.
+  const [shuffleSeed, setShuffleSeed] = useState(null);
+  useEffect(() => {
+    setShuffleSeed(null);
+  }, [view.type, view.id]);
+  const handleShuffleView = useCallback((targetView) => {
+    if (targetView) {
+      setView(targetView);
+      setFocusedId(null);
+    }
+    const previous = shuffleSeed;
+    // Math.random() yields [0,1) and we want a 32-bit-ish int seed.
+    const seed = Math.floor(Math.random() * 0x7fffffff) || 1;
+    setShuffleSeed(seed);
+    undoStack.push('shuffle', () => setShuffleSeed(previous));
+  }, [shuffleSeed, setView, undoStack]);
 
   // Wrap useLibrary's updateSaveMeta so renames / URL / notes edits
   // are undoable. Captures the previous values from the live saves
@@ -1038,11 +1060,19 @@ export default function App() {
     }
   }, [collections, loadCollections, undoStack]);
 
-  const focusedIndex = useMemo(
-    () => (focusedId ? saves.findIndex((s) => s.id === focusedId) : -1),
-    [saves, focusedId],
+  // Apply the shuffle seed to the IPC-sourced saves list. When the
+  // seed is null this is a no-op; the same seed always produces the
+  // same permutation so the order stays stable across re-renders.
+  const displaySaves = useMemo(
+    () => (shuffleSeed ? seededShuffle(saves, shuffleSeed) : saves),
+    [saves, shuffleSeed],
   );
-  const focused = focusedIndex >= 0 ? saves[focusedIndex] : null;
+
+  const focusedIndex = useMemo(
+    () => (focusedId ? displaySaves.findIndex((s) => s.id === focusedId) : -1),
+    [displaySaves, focusedId],
+  );
+  const focused = focusedIndex >= 0 ? displaySaves[focusedIndex] : null;
 
   if (focusedId && !focused) {
     setFocusedId(null);
@@ -1303,14 +1333,14 @@ export default function App() {
   }, [bulkPicker, bulkAlreadyIn, selected, collections, saves, loadCollections, view, reload]);
 
   const goPrev = useCallback(() => {
-    if (focusedIndex > 0) setFocusedId(saves[focusedIndex - 1].id);
-  }, [focusedIndex, saves]);
+    if (focusedIndex > 0) setFocusedId(displaySaves[focusedIndex - 1].id);
+  }, [focusedIndex, displaySaves]);
 
   const goNext = useCallback(() => {
-    if (focusedIndex >= 0 && focusedIndex < saves.length - 1) {
-      setFocusedId(saves[focusedIndex + 1].id);
+    if (focusedIndex >= 0 && focusedIndex < displaySaves.length - 1) {
+      setFocusedId(displaySaves[focusedIndex + 1].id);
     }
-  }, [focusedIndex, saves]);
+  }, [focusedIndex, displaySaves]);
 
   // ── Global keyboard shortcuts ──────────────────────────────────────────
   // ⌘F focus search · ⌘N new collection · Delete on selection ·
@@ -1511,6 +1541,7 @@ export default function App() {
             onDeleteLibrary={handleDeleteLibrary}
             search={search}
             onSearchChange={setSearch}
+            onShuffleView={handleShuffleView}
             view={view}
             onViewChange={handleViewChange}
             collections={collections}
@@ -1575,10 +1606,11 @@ export default function App() {
                     onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
                     onRenameCollection={handleRenameCollection}
                     onDeleteCollection={handleDeleteCollection}
+                    onShuffleView={handleShuffleView}
                   />
                 )}
                 <Grid
-                  saves={saves}
+                  saves={displaySaves}
                   selected={selected}
                   onSelect={handleSelect}
                   onOpen={handleOpenFromCard}
