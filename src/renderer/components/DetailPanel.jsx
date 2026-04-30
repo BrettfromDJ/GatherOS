@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
-import { useEyedropper } from '../hooks/useEyedropper.js';
 import TagSuggestions from './TagSuggestions.jsx';
 import { CollectionIcon } from './Sidebar.jsx';
 
@@ -89,24 +87,6 @@ function normalizeUrl(input) {
   return /^https?:\/\//i.test(s) ? s : `https://${s}`;
 }
 
-function EyedropperIcon() {
-  return (
-    <svg
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9 2l3 3" />
-      <path d="M10.4 0.6l3 3" />
-      <path d="M9.5 3.5L4 9v3h3l5.5-5.5z" />
-    </svg>
-  );
-}
-
 function ExternalLinkIcon() {
   return (
     <svg
@@ -142,15 +122,6 @@ export default function DetailPanel({
   const typeLabel = fileTypeLabel(record.file_path);
   const [copiedColor, setCopiedColor] = useState(null);
   const imageRef = useRef(null);
-  const {
-    picking,
-    togglePicking,
-    handleImageClick,
-    handleImageMouseMove,
-    hoverHex,
-    hoverPos,
-    justCopied,
-  } = useEyedropper(imageRef, record.id);
   const [autoTagging, setAutoTagging] = useState(false);
   const [autoTagError, setAutoTagError] = useState('');
   const [promptGenerating, setPromptGenerating] = useState(false);
@@ -512,19 +483,13 @@ export default function DetailPanel({
 
       <div className={styles.preview}>
         {src && (
-          <div
-            className={[styles.imageWrap, picking && styles.imageWrapPicking]
-              .filter(Boolean)
-              .join(' ')}
-          >
+          <div className={styles.imageWrap}>
             <img
               ref={imageRef}
               src={src}
               className={styles.image}
               alt={record.title || ''}
               draggable={false}
-              onClick={handleImageClick}
-              onMouseMove={handleImageMouseMove}
             />
             {typeLabel && <div className={styles.typeBadge}>{typeLabel}</div>}
           </div>
@@ -690,48 +655,7 @@ export default function DetailPanel({
             )}
           </button>
         ))}
-        <button
-          type="button"
-          className={[
-            styles.pickerBtn,
-            picking && styles.pickerBtnActive,
-          ].filter(Boolean).join(' ')}
-          onClick={togglePicking}
-          title={
-            picking
-              ? 'Click the image to sample a color (Esc to cancel)'
-              : 'Pick a color from the image'
-          }
-          aria-pressed={picking}
-          aria-label="Pick a color from the image"
-        >
-          <EyedropperIcon />
-        </button>
       </div>
-
-      {picking && hoverHex && ReactDOM.createPortal(
-        <div
-          className={[
-            styles.cursorTooltip,
-            justCopied && styles.cursorTooltipCopied,
-          ].filter(Boolean).join(' ')}
-          style={{ left: hoverPos.x, top: hoverPos.y }}
-          aria-hidden="true"
-        >
-          {justCopied ? (
-            <span>Copied</span>
-          ) : (
-            <>
-              <span
-                className={styles.cursorTooltipSwatch}
-                style={{ background: hoverHex }}
-              />
-              <span>{hoverHex}</span>
-            </>
-          )}
-        </div>,
-        document.body,
-      )}
 
       <div className={styles.collectionsSection}>
         <div className={styles.collectionsLabel}>
