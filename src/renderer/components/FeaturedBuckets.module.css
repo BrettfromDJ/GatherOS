@@ -87,6 +87,10 @@
 
 /* ── Expanded card ────────────────────────────────────────────────────── */
 
+/* Same container recipe the sidebar uses — #F3F3F3 fill, 12px
+   radius, no border, soft outer halo + inner highlight via
+   box-shadow. Cards on top of the masonry feel like miniature
+   sidebars rather than discrete tiles. */
 .card {
   flex-shrink: 0;
   display: flex;
@@ -94,15 +98,15 @@
   gap: 12px;
   width: 188px;
   padding: 14px 14px 12px;
-  background: var(--titlebar-bg);
-  border: 0.5px solid rgba(0, 0, 0, 0.07);
-  border-radius: 14px;
+  background: #F3F3F3;
+  border: none;
+  border-radius: 12px;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease;
+  box-shadow:
+    0 4px 34px 20px rgba(0, 0, 0, 0.02),
+    0 0 1px 1px #FFF inset;
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .card:hover {
