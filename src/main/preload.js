@@ -78,6 +78,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     rename: (id, name) => ipcRenderer.invoke('library:rename', { id, name }),
     delete: (id) => ipcRenderer.invoke('library:delete', id),
     switch: (id) => ipcRenderer.invoke('library:switch', id),
+    previews: (id, limit) => ipcRenderer.invoke('library:previews', { id, limit }),
   },
   drag: {
     // Fire-and-forget IPC because webContents.startDrag must run

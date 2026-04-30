@@ -277,6 +277,12 @@ ipcMain.on('app:get-version', (event) => {
 
 ipcMain.handle('library:list', () => libraryRegistry.listLibraries());
 
+ipcMain.handle('library:previews', (_e, payload = {}) => {
+  const id = typeof payload === 'string' ? payload : payload.id;
+  const limit = (typeof payload === 'object' && payload.limit) || 4;
+  return libraryRegistry.getLibraryPreviews(id, limit);
+});
+
 ipcMain.handle('library:create', (_e, name) => {
   return libraryRegistry.createLibrary(name);
 });

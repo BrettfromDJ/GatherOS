@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './LibrarySwitcher.module.css';
 import ContextMenu from './ContextMenu.jsx';
+import { CollectionIcon } from './Sidebar.jsx';
+import { fileUrl } from '../lib/fileUrl.js';
 
 // Stacked up/down chevrons — the typical macOS picker / switcher
 // glyph. Sits on the left of the library name to signal "click to
@@ -59,6 +61,35 @@ function DotsIcon() {
   );
 }
 
+// Mini fanned thumbnail stack for each library row in the dropdown.
+// Up to three images peek out at gentle tilts; on hover they fan out
+// a little so the row feels alive. Empty libraries get a neutral
+// outlined card with the bucket icon centered, sized identically so
+// the layout doesn't shift between empty and populated rows.
+function ThumbStack({ items }) {
+  const populated = Array.isArray(items) && items.length > 0;
+  return (
+    <div className={styles.thumbStack} aria-hidden="true">
+      {populated ? (
+        items.slice(0, 3).map((s, i) => (
+          <img
+            key={s.id || i}
+            className={styles.thumbStackImg}
+            src={fileUrl(s.thumb_path || s.file_path)}
+            alt=""
+            draggable={false}
+            style={{ '--idx': i }}
+          />
+        ))
+      ) : (
+        <div className={styles.thumbEmpty}>
+          <CollectionIcon />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Top-of-sidebar dropdown that shows the active library and lets
 // the user switch between libraries. The "···" button to the right
 // of the trigger opens a menu with rename / delete actions for the
@@ -78,6 +109,8 @@ export default function LibrarySwitcher({
   const [creating, setCreating] = useState(false);
   const [createDraft, setCreateDraft] = useState('');
   const [actionsMenu, setActionsMenu] = useState(null); // { x, y }
+  // { libId: [{ id, file_path, thumb_path }] }
+  const [previews, setPreviews] = useState({});
   const triggerRowRef = useRef(null);
   const dropdownRef = useRef(null);
   const renameInputRef = useRef(null);
@@ -86,6 +119,30 @@ export default function LibrarySwitcher({
 
   const active = libraries.find((l) => l.id === activeId) || libraries[0];
   const canDelete = libraries.length > 1;
+
+  // Fetch thumbnail previews for every library when the dropdown
+  // opens. Cheap — read-only DB peek per library, returns at most
+  // 4 rows. Refetched if the library list changes while open
+  // (e.g. user creates one without closing).
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    (async () => {
+      const next = {};
+      await Promise.all(
+        libraries.map(async (lib) => {
+          try {
+            const items = await window.moodmark.libraries.previews(lib.id, 4);
+            next[lib.id] = Array.isArray(items) ? items : [];
+          } catch {
+            next[lib.id] = [];
+          }
+        }),
+      );
+      if (!cancelled) setPreviews(next);
+    })();
+    return () => { cancelled = true; };
+  }, [open, libraries]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -232,7 +289,7 @@ export default function LibrarySwitcher({
           role="listbox"
           aria-label="Libraries"
         >
-          {libraries.map((lib) => {
+          {libraries.map((lib, idx) => {
             const isActive = lib.id === active.id;
             return (
               <button
@@ -247,11 +304,13 @@ export default function LibrarySwitcher({
                   if (!isActive) onSwitch?.(lib.id);
                   setOpen(false);
                 }}
+                style={{ '--idx': idx }}
               >
+                <ThumbStack items={previews[lib.id]} />
+                <span className={styles.rowLabel}>{lib.name}</span>
                 <span className={styles.rowCheck}>
                   {isActive ? <CheckIcon /> : null}
                 </span>
-                <span className={styles.rowLabel}>{lib.name}</span>
               </button>
             );
           })}

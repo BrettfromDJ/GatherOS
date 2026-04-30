@@ -274,6 +274,40 @@ function setActiveLibrary(id) {
   return { ok: true };
 }
 
+// Read-only peek at a (possibly inactive) library's most recent
+// saves, used to render thumbnail previews in the switcher dropdown.
+// Opens a fresh read-only DB handle so it never collides with the
+// active library's writeable connection.
+function getLibraryPreviews(id, limit = 4) {
+  const dbPath = path.join(libraryRoot(id), 'moodmark.db');
+  if (!fs.existsSync(dbPath)) return [];
+  let Database;
+  try {
+    Database = require('better-sqlite3');
+  } catch {
+    return [];
+  }
+  let db;
+  try {
+    db = new Database(dbPath, { readonly: true });
+    // The deleted_at column was added in a later migration. On
+    // first run it might not exist yet — handle either case.
+    const cols = db.prepare("PRAGMA table_info(saves)").all();
+    const hasDeletedAt = cols.some((c) => c.name === 'deleted_at');
+    const where = hasDeletedAt ? 'WHERE deleted_at IS NULL' : '';
+    return db.prepare(
+      `SELECT id, file_path, thumb_path FROM saves ${where} ORDER BY created_at DESC LIMIT ?`
+    ).all(Math.max(1, Math.min(limit, 12)));
+  } catch (err) {
+    console.error('[library-registry] previews failed for', id, ':', err.message);
+    return [];
+  } finally {
+    if (db) {
+      try { db.close(); } catch {}
+    }
+  }
+}
+
 module.exports = {
   bootstrap,
   getActiveLibrary,
@@ -283,4 +317,5 @@ module.exports = {
   renameLibrary,
   deleteLibrary,
   setActiveLibrary,
+  getLibraryPreviews,
 };
