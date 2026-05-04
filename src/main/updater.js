@@ -36,8 +36,18 @@ function initUpdater(window) {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
+  // Diagnostic: print where the running .app actually lives. If this
+  // is anywhere outside /Applications (e.g. a dev-built bundle in
+  // ~/GatherOS/dist/build/...), electron-updater's atomic swap will
+  // silently fail at install time on macOS.
+  console.log(
+    `[updater] running from: ${app.getAppPath()} | exec: ${app.getPath('exe')} | version: ${app.getVersion()}`,
+  );
+
   autoUpdater.on('error', (err) => {
-    console.error('[updater] error:', err?.message || err);
+    const message = err?.message || String(err);
+    console.error('[updater] error:', message);
+    send('update-error', { message });
   });
 
   autoUpdater.on('update-downloaded', (info) => {
@@ -63,10 +73,16 @@ function initUpdater(window) {
 
 function quitAndInstall() {
   if (!app.isPackaged) return;
+  console.log('[updater] quitAndInstall: starting install handoff');
   // (isSilent=false) so the user sees the brief installer dialog,
   // (isForceRunAfter=true) so the new version comes back up
   // immediately instead of leaving them on a dead Dock icon.
-  autoUpdater.quitAndInstall(false, true);
+  try {
+    autoUpdater.quitAndInstall(false, true);
+  } catch (err) {
+    console.error('[updater] quitAndInstall threw:', err?.message || err);
+    send('update-error', { message: err?.message || String(err) });
+  }
 }
 
 module.exports = { initUpdater, quitAndInstall };

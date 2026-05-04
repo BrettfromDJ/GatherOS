@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld('moodmark', {
       'save:indexing-start',
       'save:indexing-end',
       'update-ready',
+      'update-error',
       'ai:reindex-progress',
       'library:switched',
     ]);

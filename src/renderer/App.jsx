@@ -627,6 +627,19 @@ export default function App() {
     }, durationMs);
   }, [runPendingCommit]);
 
+  // Surface updater errors so a wedged install no longer fails
+  // silently. Most common cause: the running .app bundle is in a
+  // non-/Applications path (dev build, dragged out of a DMG to the
+  // Desktop, etc.) and macOS rejects the atomic swap.
+  useEffect(() => {
+    return window.moodmark.on('update-error', ({ message } = {}) => {
+      showActionToast({
+        message: `Update failed: ${message || 'unknown error'}`,
+        durationMs: 8000,
+      });
+    });
+  }, [showActionToast]);
+
   const handleActionToastUndo = useCallback(() => {
     if (!actionToast) return;
     const undo = actionToast.onUndo;
