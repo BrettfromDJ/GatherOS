@@ -59,7 +59,7 @@ function EyedropperIcon() {
       viewBox="-1 -1 30 30"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
