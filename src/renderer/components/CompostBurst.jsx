@@ -134,7 +134,7 @@ export default function CompostBurst({ sources, target, onDone }) {
         position: 'fixed',
         inset: 0,
         pointerEvents: 'none',
-        zIndex: 1100,
+        zIndex: 999,
       }}
       aria-hidden="true"
     />,
