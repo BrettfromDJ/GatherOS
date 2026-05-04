@@ -17,89 +17,35 @@ import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import CompostBurst from './components/CompostBurst.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
+import {
+  LayoutDashboard,
+  Download,
+  X,
+  Trash2,
+  RotateCcw,
+  Copy,
+  MinusCircle,
+  ArrowRightFromLine,
+} from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
 
-function BoardExportIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="2" width="5" height="6" rx="1" />
-      <rect x="9" y="2" width="5" height="4" rx="1" />
-      <rect x="2" y="10" width="5" height="4" rx="1" />
-      <rect x="9" y="8" width="5" height="6" rx="1" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 2.5 V10.5" />
-      <path d="M4.5 7 L8 10.5 L11.5 7" />
-      <path d="M3 13 H13" />
-    </svg>
-  );
-}
-
-function ClearIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-      <path d="M4 4l8 8M12 4l-8 8" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2.5 4h11" />
-      <path d="M5.5 4V2.5a0.75 0.75 0 0 1 0.75 -0.75h3.5a0.75 0.75 0 0 1 0.75 0.75V4" />
-      <path d="M3.75 4v9a0.75 0.75 0 0 0 0.75 0.75h7a0.75 0.75 0 0 0 0.75 -0.75V4" />
-      <path d="M6.5 7v4M9.5 7v4" />
-    </svg>
-  );
-}
-
-function RestoreIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 8 a5 5 0 1 0 1.6 -3.6" />
-      <path d="M3 2.5 V5 H5.5" />
-    </svg>
-  );
-}
-
-function SimilarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="2" width="6" height="6" rx="1.2" />
-      <rect x="9" y="9" width="5" height="5" rx="1" />
-      <path d="M11.5 4.5L9.5 2.5M9.5 4.5l2-2" />
-    </svg>
-  );
-}
-
-function MinusCircleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.5" />
-      <line x1="5" y1="8" x2="11" y2="8" />
-    </svg>
-  );
-}
-
-function SortFabIcon() {
-  // Card-with-arrow — reads as "move this card somewhere".
-  return (
-    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2.5" y="3" width="9" height="11" rx="1.4" />
-      <path d="M11 8.5 H16 M13.5 6 L16 8.5 L13.5 11" />
-    </svg>
-  );
-}
+// Lucide-backed icon shims. Component names are kept identical to
+// the previous inline SVG defs so every existing call site (right-
+// click menus, selection bar, focused-view toolbar, etc.) keeps
+// working without a sweep.
+const ICON = { strokeWidth: 1.6, 'aria-hidden': true };
+const BoardExportIcon = () => <LayoutDashboard {...ICON} />;
+const DownloadIcon = () => <Download {...ICON} />;
+const ClearIcon = () => <X {...ICON} strokeWidth={2} />;
+const TrashIcon = () => <Trash2 {...ICON} />;
+const RestoreIcon = () => <RotateCcw {...ICON} />;
+const SimilarIcon = () => <Copy {...ICON} />;
+const MinusCircleIcon = () => <MinusCircle {...ICON} />;
+const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
 
 function pickLargestFromSrcset(srcset) {
   if (!srcset) return null;

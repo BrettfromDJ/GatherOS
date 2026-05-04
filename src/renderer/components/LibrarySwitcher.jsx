@@ -1,65 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ChevronsUpDown, Check, Plus, MoreHorizontal } from 'lucide-react';
 import styles from './LibrarySwitcher.module.css';
 import ContextMenu from './ContextMenu.jsx';
 import { CollectionIcon } from './Sidebar.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
-// Stacked up/down chevrons — the typical macOS picker / switcher
-// glyph. Sits on the left of the library name to signal "click to
-// pick a different one" without needing a label.
-function SwitcherIcon() {
-  return (
-    <svg viewBox="0 0 10 12" width="10" height="12" aria-hidden="true">
-      <path
-        d="M2 4l3-3 3 3M2 8l3 3 3-3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-      <path
-        d="M2.5 6L5 8.5L9.5 3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-      <path
-        d="M6 2v8M2 6h8"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function DotsIcon() {
-  return (
-    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="currentColor">
-      <circle cx="2.5" cy="6" r="1" />
-      <circle cx="6" cy="6" r="1" />
-      <circle cx="9.5" cy="6" r="1" />
-    </svg>
-  );
-}
+const SwitcherIcon = () => <ChevronsUpDown size={12} strokeWidth={1.6} aria-hidden="true" />;
+const CheckIcon = () => <Check size={11} strokeWidth={1.8} aria-hidden="true" />;
+const PlusIcon = () => <Plus size={11} strokeWidth={1.8} aria-hidden="true" />;
+const DotsIcon = () => <MoreHorizontal size={12} strokeWidth={2} aria-hidden="true" />;
 
 // Mini fanned thumbnail stack for each library row in the dropdown.
 // Up to three images peek out at gentle tilts; on hover they fan out

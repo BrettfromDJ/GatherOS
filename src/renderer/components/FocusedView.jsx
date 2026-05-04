@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
+import {
+  PanelLeft,
+  ExternalLink,
+  Download,
+  Pipette,
+  Trash2,
+} from 'lucide-react';
 import styles from './FocusedView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import { useEyedropper } from '../hooks/useEyedropper.js';
@@ -8,86 +15,13 @@ const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.05;
 
-function SidebarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <rect x="2" y="3" width="12" height="10" rx="1.6" />
-      <line x1="6" y1="3" x2="6" y2="13" />
-    </svg>
-  );
-}
-
-function PreviewIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9.75 2.5h4v4" />
-      <path d="M13.75 2.5L8 8.25" />
-      <path d="M13 9.5v3.5a0.5 0.5 0 0 1 -0.5 0.5H3.5a0.5 0.5 0 0 1 -0.5 -0.5V4a0.5 0.5 0 0 1 0.5 -0.5H6.5" />
-    </svg>
-  );
-}
-
-function ExportIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 1.5v8.5" />
-      <path d="M4.5 5L8 1.5 11.5 5" />
-      <path d="M2.75 10v3a0.5 0.5 0 0 0 0.5 0.5h9.5a0.5 0.5 0 0 0 0.5 -0.5v-3" />
-    </svg>
-  );
-}
-
-function EyedropperIcon() {
-  return (
-    <svg
-      viewBox="-1 -1 30 30"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M24.832 3.16716c-0.6492 -0.6551 -1.422 -1.175104 -2.2734 -1.529974 -0.8514 -0.354868 -1.7646 -0.537576 -2.68702 -0.537576 -0.92238 0 -1.83564 0.182708 -2.68704 0.537576 -0.8514 0.35487 -1.62408 0.874874 -2.27342 1.529974L5.8037 12.27458c-0.90234 0.9009 -1.49156 2.06772 -1.68088 3.32866 -0.18932 1.26096 0.03126 2.54936 0.62926 3.67552L1.676596 22.3542c-0.369556 0.3718 -0.576986 0.8748 -0.576986 1.399 0 0.524 0.20743 1.027 0.576986 1.3988l1.170664 1.1706c0.37176 0.3696 0.87466 0.577 1.39886 0.577s1.02708 -0.2074 1.39884 -0.577l3.0755 -3.0754c1.12616 0.598 2.41456 0.8186 3.67552 0.6292 1.26094 -0.1894 2.42776 -0.7786 3.32866 -1.6808L24.832 13.0881c0.6552 -0.64934 1.1752 -1.42202 1.53 -2.27342 0.3548 -0.8514 0.5376 -1.76466 0.5376 -2.68704 0 -0.9224 -0.1828 -1.83566 -0.5376 -2.68706 -0.3548 -0.8514 -0.8748 -1.62408 -1.53 -2.27342v0Z" />
-      <path d="m9.03808 3.0879 15.87352 15.87348" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2.5 4h11" />
-      <path d="M5.5 4V2.5a0.75 0.75 0 0 1 0.75 -0.75h3.5a0.75 0.75 0 0 1 0.75 0.75V4" />
-      <path d="M3.75 4v9a0.75 0.75 0 0 0 0.75 0.75h7a0.75 0.75 0 0 0 0.75 -0.75V4" />
-      <path d="M6.5 7v4M9.5 7v4" />
-    </svg>
-  );
-}
+const FV_ICON = { strokeWidth: 1.6, 'aria-hidden': true };
+const SidebarIcon = () => <PanelLeft {...FV_ICON} />;
+const PreviewIcon = () => <ExternalLink {...FV_ICON} />;
+const ExportIcon = () => <Download {...FV_ICON} />;
+// Lucide's Pipette is the canonical eyedropper.
+const EyedropperIcon = () => <Pipette {...FV_ICON} strokeWidth={2} />;
+const TrashIcon = () => <Trash2 {...FV_ICON} />;
 
 function defaultExportName(record) {
   const ext = (record.file_path.split('.').pop() || 'png').toLowerCase();

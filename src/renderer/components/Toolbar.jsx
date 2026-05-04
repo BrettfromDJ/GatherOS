@@ -1,99 +1,30 @@
 import React from 'react';
+import {
+  Search,
+  Sparkles,
+  PanelLeft,
+  ChevronLeft,
+  Grid3x3,
+  LayoutGrid,
+  AlignJustify,
+  LayoutDashboard,
+} from 'lucide-react';
 import styles from './Toolbar.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
-import SfSymbol from './SfSymbol.jsx';
 
-function SearchIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <circle cx="7" cy="7" r="4.5" />
-      <line x1="10.4" y1="10.4" x2="13.5" y2="13.5" />
-    </svg>
-  );
-}
-
-function SearchSparkleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path d="M8 1.5l1.2 3.3L12.5 6 9.2 7.2 8 10.5 6.8 7.2 3.5 6l3.3-1.2z" />
-      <path d="M12.8 9.4l0.55 1.5 1.45 0.55-1.45 0.55-0.55 1.5-0.55-1.5-1.45-0.55 1.45-0.55z" opacity="0.7" />
-    </svg>
-  );
-}
-
-function SidebarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <rect x="2" y="3" width="12" height="10" rx="1.6" />
-      <line x1="6" y1="3" x2="6" y2="13" />
-    </svg>
-  );
-}
-
-// Tall, narrow chevron — width:height ≈ 1:2 so it doesn't read as
-// horizontally stretched the way the previous flat chevron did.
-function BackChevronIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9.5 3 L4.5 8 L9.5 13" />
-    </svg>
-  );
-}
-
-function GridSmallIcon() {
-  return (
-    <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-      <rect x="2"  y="2"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="6"  y="2"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="10" y="2"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="2"  y="6"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="6"  y="6"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="10" y="6"  width="2.5" height="2.5" rx="0.5" />
-      <rect x="2"  y="10" width="2.5" height="2.5" rx="0.5" />
-      <rect x="6"  y="10" width="2.5" height="2.5" rx="0.5" />
-      <rect x="10" y="10" width="2.5" height="2.5" rx="0.5" />
-    </svg>
-  );
-}
-
-function MasonryIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <rect x="2"  y="2"  width="5.5" height="7"   rx="1" />
-      <rect x="8.5" y="2"  width="5.5" height="4.5" rx="1" />
-      <rect x="2"  y="10.5" width="5.5" height="3.5" rx="1" />
-      <rect x="8.5" y="8"  width="5.5" height="6"   rx="1" />
-    </svg>
-  );
-}
-
-function ListViewIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
-      <line x1="2.5" y1="4"  x2="13.5" y2="4" />
-      <line x1="2.5" y1="8"  x2="13.5" y2="8" />
-      <line x1="2.5" y1="12" x2="13.5" y2="12" />
-    </svg>
-  );
-}
-
-function GridLargeIcon() {
-  return (
-    <svg className={styles.zoomIcon} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-      <rect x="2" y="2" width="4.5" height="4.5" rx="0.75" />
-      <rect x="7.5" y="2" width="4.5" height="4.5" rx="0.75" />
-      <rect x="2" y="7.5" width="4.5" height="4.5" rx="0.75" />
-      <rect x="7.5" y="7.5" width="4.5" height="4.5" rx="0.75" />
-    </svg>
-  );
-}
+// Lucide-backed icon shims. Wrapping each Lucide component in a tiny
+// named function keeps every existing call site untouched and lets
+// the existing CSS (.iconBtn svg, .layoutBtn svg, etc.) size them
+// without per-call `size={...}` props.
+const ICON = { strokeWidth: 1.6, 'aria-hidden': true };
+const SearchIcon = () => <Search {...ICON} />;
+const SearchSparkleIcon = () => <Sparkles {...ICON} fill="currentColor" />;
+const SidebarIcon = () => <PanelLeft {...ICON} />;
+const BackChevronIcon = () => <ChevronLeft {...ICON} strokeWidth={2} />;
+const GridSmallIcon = () => <Grid3x3 className={styles.zoomIcon} {...ICON} />;
+const MasonryIcon = () => <LayoutDashboard {...ICON} />;
+const ListViewIcon = () => <AlignJustify {...ICON} />;
+const GridLargeIcon = () => <LayoutGrid className={styles.zoomIcon} {...ICON} />;
 
 const COLS_MIN = 2;
 const COLS_MAX = 8;
@@ -154,7 +85,7 @@ export default function Toolbar({
             .join(' ')}
           title={semanticSearchActive ? 'Visual search (AI)' : undefined}
         >
-          {semanticSearchActive ? <SearchSparkleIcon /> : <SfSymbol name="search" size={14} weight={500} />}
+          {semanticSearchActive ? <SearchSparkleIcon /> : <SearchIcon />}
         </span>
         <input
           ref={searchInputRef}

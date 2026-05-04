@@ -6,83 +6,31 @@ import LibrarySwitcher from './LibrarySwitcher.jsx';
 import SidebarSearch from './SidebarSearch.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
-function GridIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <rect x="2" y="2" width="5.5" height="5.5" rx="1.2" />
-      <rect x="8.5" y="2" width="5.5" height="5.5" rx="1.2" />
-      <rect x="2" y="8.5" width="5.5" height="5.5" rx="1.2" />
-      <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" />
-    </svg>
-  );
-}
+import {
+  LayoutGrid,
+  PanelLeft,
+  Settings,
+  Keyboard,
+  FolderClosed,
+  Inbox,
+  Trash2,
+  Check as LucideCheck,
+  Pencil,
+  Shuffle,
+  ChevronRight,
+} from 'lucide-react';
 
-function CollapseSidebarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <rect x="2" y="3" width="12" height="10" rx="1.6" />
-      <line x1="6" y1="3" x2="6" y2="13" />
-    </svg>
-  );
-}
-
-function SettingsGearIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="2.2" />
-      <path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4M12.6 12.6l-1.4-1.4M4.8 4.8L3.4 3.4" />
-    </svg>
-  );
-}
-
-function KeyboardIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="1.6" y="4.4" width="12.8" height="7.2" rx="1.4" />
-      <line x1="3.6" y1="6.7" x2="3.7" y2="6.7" />
-      <line x1="6" y1="6.7" x2="6.1" y2="6.7" />
-      <line x1="8.4" y1="6.7" x2="8.5" y2="6.7" />
-      <line x1="10.8" y1="6.7" x2="10.9" y2="6.7" />
-      <line x1="3.6" y1="9" x2="3.7" y2="9" />
-      <line x1="12.4" y1="9" x2="12.5" y2="9" />
-      <line x1="5.2" y1="9.6" x2="10.8" y2="9.6" />
-    </svg>
-  );
-}
-
-// Bucket icon — trapezoid pail with a handle. Used for every bucket
-// entry in the sidebar. Tinted blue (var(--icon-blue)) everywhere via
-// currentColor — buckets don't have per-bucket colors anymore.
-export function CollectionIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
-      {/* handle */}
-      <path d="M5 5.4 C5 3.5, 11 3.5, 11 5.4" />
-      {/* pail body */}
-      <path d="M3.6 5.6 L4.6 13 a1 1 0 0 0 1 0.9 h4.8 a1 1 0 0 0 1 -0.9 L12.4 5.6 Z" fill="currentColor" fillOpacity="0.18" />
-    </svg>
-  );
-}
-
-function InboxIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2.4 9.5 L4 3.5 a1 1 0 0 1 1 -0.7 h6 a1 1 0 0 1 1 0.7 L13.6 9.5" />
-      <path d="M2.4 9.5 H6 l1 1.5 h2 l1 -1.5 h3.6 V12.6 a1 1 0 0 1 -1 1 H3.4 a1 1 0 0 1 -1 -1 Z" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 4.5 H13" />
-      <path d="M6.4 4.5 V3.4 a0.8 0.8 0 0 1 0.8 -0.8 h1.6 a0.8 0.8 0 0 1 0.8 0.8 V4.5" />
-      <path d="M4.4 4.5 L5.1 13 a1 1 0 0 0 1 0.9 h3.8 a1 1 0 0 0 1 -0.9 L11.6 4.5" />
-      <path d="M6.8 7 V11.5 M9.2 7 V11.5" />
-    </svg>
-  );
-}
+const SIDEBAR_ICON = { strokeWidth: 1.6, 'aria-hidden': true };
+const GridIcon = () => <LayoutGrid {...SIDEBAR_ICON} />;
+const CollapseSidebarIcon = () => <PanelLeft {...SIDEBAR_ICON} />;
+const SettingsGearIcon = () => <Settings {...SIDEBAR_ICON} />;
+const KeyboardIcon = () => <Keyboard {...SIDEBAR_ICON} />;
+// Buckets read as folders in the sidebar — the previous bespoke
+// pail icon doesn't have a clean Lucide equivalent, FolderClosed is
+// the closest semantic match.
+export const CollectionIcon = () => <FolderClosed {...SIDEBAR_ICON} />;
+const InboxIcon = () => <Inbox {...SIDEBAR_ICON} />;
+const TrashIcon = () => <Trash2 {...SIDEBAR_ICON} />;
 
 // Inline count badge that briefly slide-fades on every change. The
 // effect skips the first render — opening the app shouldn't fire a
@@ -108,43 +56,9 @@ function AnimatedCount({ value, className }) {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 8.5 L6.5 12 L13 4.5" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11 2.5 L13.5 5 L5.5 13 H3 V10.5 Z" />
-      <path d="M9.5 4 L12 6.5" />
-    </svg>
-  );
-}
-
-
-function ShuffleIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2.5 4.5h2.3l6.4 7h2.3" />
-      <path d="M2.5 11.5h2.3l3-3.5" />
-      <path d="M8.2 7l3-3.5h2.3" />
-      <path d="M12 2.5l1.5 2-1.5 2" />
-      <path d="M12 9.5l1.5 2-1.5 2" />
-    </svg>
-  );
-}
+const CheckIcon = () => <LucideCheck size={16} strokeWidth={2} aria-hidden="true" />;
+const PencilIcon = () => <Pencil {...SIDEBAR_ICON} />;
+const ShuffleIcon = () => <Shuffle {...SIDEBAR_ICON} />;
 
 const SMART_VIEWS = [
   { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
@@ -200,20 +114,12 @@ function flattenCollections(collections, creatingForParent, expandedBuckets) {
 
 function DisclosureChevron({ expanded }) {
   return (
-    <svg
-      viewBox="0 0 12 12"
-      width="10"
-      height="10"
+    <ChevronRight
+      size={10}
+      strokeWidth={1.6}
       style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 140ms ease' }}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       aria-hidden="true"
-    >
-      <path d="M4 2.5L8 6L4 9.5" />
-    </svg>
+    />
   );
 }
 
