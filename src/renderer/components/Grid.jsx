@@ -29,7 +29,11 @@ export default function Grid({
   const columnBuckets = useMemo(() => {
     const buckets = Array.from({ length: columns }, () => []);
     saves.forEach((save, i) => {
-      buckets[i % columns].push(save);
+      // Stagger delay piggy-backed on the bucket entry: 50ms per
+      // card, capped so a 100-image library doesn't take 5s. The
+      // global index gives a left-to-right top-to-bottom wave even
+      // though we're round-robining into columns.
+      buckets[i % columns].push({ save, staggerMs: Math.min(i * 50, 600) });
     });
     return buckets;
   }, [saves, columns]);
@@ -138,7 +142,7 @@ export default function Grid({
     >
       {columnBuckets.map((bucket, colIdx) => (
         <div key={colIdx} className={styles.column}>
-          {bucket.map((s) => (
+          {bucket.map(({ save: s, staggerMs }) => (
             <ImageCard
               key={s.id}
               record={s}
@@ -149,6 +153,7 @@ export default function Grid({
               onContextMenu={onContextMenu}
               onDragStart={onDragStart}
               fresh={freshIds?.has(s.id)}
+              staggerMs={staggerMs}
             />
           ))}
         </div>

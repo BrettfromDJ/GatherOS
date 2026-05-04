@@ -39,6 +39,7 @@ export default function ImageCard({
   onContextMenu,
   onDragStart,
   fresh,
+  staggerMs = 0,
 }) {
   const src = fileUrl(record.file_path);
   const aspect =
@@ -95,6 +96,7 @@ export default function ImageCard({
         selectionActive && styles.showSelectables,
         fresh && styles.fresh,
       ].filter(Boolean).join(' ')}
+      style={staggerMs ? { '--card-stagger': `${staggerMs}ms` } : undefined}
       onClick={(e) => onSelect(record.id, e.metaKey || e.ctrlKey || e.shiftKey)}
       onDoubleClick={() => onOpen(record)}
       onContextMenu={(e) => {
