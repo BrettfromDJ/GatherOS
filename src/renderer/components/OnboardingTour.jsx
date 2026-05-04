@@ -83,47 +83,48 @@ const STEPS = [
 const TIP_W = 280;
 const TIP_GAP = 14;
 
-function place(rect, placement) {
+function place(rect, placement, tipH) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   if (placement === 'center' || !rect) {
     return {
       tipLeft: Math.max(16, (vw - TIP_W) / 2),
-      tipTop: Math.max(16, vh / 2 - 70),
+      tipTop: Math.max(16, vh / 2 - tipH / 2),
     };
   }
-
-  // Estimate tooltip height (we don't measure since text is short
-  // and the layout is stable enough for a one-pass anchor).
-  const TIP_H = 130;
 
   let tipLeft;
   let tipTop;
   if (placement === 'right') {
     tipLeft = rect.right + TIP_GAP;
-    tipTop = rect.top + rect.height / 2 - TIP_H / 2;
+    tipTop = rect.top + rect.height / 2 - tipH / 2;
   } else if (placement === 'left') {
     tipLeft = rect.left - TIP_W - TIP_GAP;
-    tipTop = rect.top + rect.height / 2 - TIP_H / 2;
+    tipTop = rect.top + rect.height / 2 - tipH / 2;
   } else if (placement === 'bottom') {
     tipLeft = rect.left + rect.width / 2 - TIP_W / 2;
     tipTop = rect.bottom + TIP_GAP;
   } else {
     // 'top'
     tipLeft = rect.left + rect.width / 2 - TIP_W / 2;
-    tipTop = rect.top - TIP_H - TIP_GAP;
+    tipTop = rect.top - tipH - TIP_GAP;
   }
 
   // Clamp inside the viewport with a small margin so the tooltip
   // never gets clipped by a window resize.
   tipLeft = Math.max(12, Math.min(vw - TIP_W - 12, tipLeft));
-  tipTop = Math.max(12, Math.min(vh - TIP_H - 12, tipTop));
+  tipTop = Math.max(12, Math.min(vh - tipH - 12, tipTop));
   return { tipLeft, tipTop };
 }
 
 export default function OnboardingTour({ active, onDone }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [anchor, setAnchor] = useState({ rect: null, ready: false });
+  // Real tooltip height, measured from the DOM after each render so
+  // long-body steps (e.g. the Settings step) reposition tight against
+  // the anchor instead of clipping at the viewport edge.
+  const [tipH, setTipH] = useState(150);
+  const tipRef = useRef(null);
   const rafRef = useRef(null);
 
   // Recompute the anchor rect whenever the step changes or the
@@ -175,6 +176,19 @@ export default function OnboardingTour({ active, onDone }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [active]);
 
+  // Sync the measured tooltip height after every render. The first
+  // pass uses the seed (150px) so the initial position is roughly
+  // right; the second pass kicks in once the DOM resolves the real
+  // height and reposition catches up — fast enough that the user
+  // doesn't see a flash on a normal-speed machine.
+  useLayoutEffect(() => {
+    if (!active || !tipRef.current) return;
+    const next = tipRef.current.offsetHeight;
+    if (next && Math.abs(next - tipH) > 1) {
+      setTipH(next);
+    }
+  });
+
   if (!active || !anchor.ready) return null;
 
   function finish() {
@@ -192,7 +206,7 @@ export default function OnboardingTour({ active, onDone }) {
 
   const step = STEPS[stepIdx];
   const { rect } = anchor;
-  const { tipLeft, tipTop } = place(rect, step.placement);
+  const { tipLeft, tipTop } = place(rect, step.placement, tipH);
 
   const spotlight = rect
     ? {
@@ -218,7 +232,11 @@ export default function OnboardingTour({ active, onDone }) {
           }}
         />
       )}
-      <div className={styles.tooltip} style={{ left: tipLeft, top: tipTop, width: TIP_W }}>
+      <div
+        ref={tipRef}
+        className={styles.tooltip}
+        style={{ left: tipLeft, top: tipTop, width: TIP_W }}
+      >
         <h3 className={styles.title}>{step.title}</h3>
         <p className={styles.body}>{step.body}</p>
         <div className={styles.row}>
