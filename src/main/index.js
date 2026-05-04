@@ -235,66 +235,13 @@ function createMainWindow() {
   return mainWindow;
 }
 
-// Cache the base + dot variants so we're not re-reading PNG bytes
-// on every refreshTray() (which fires on every save / delete).
-let baseTrayIconCache = null;
-let dotTrayIconCache = null;
-
 function buildTrayIcon() {
-  if (baseTrayIconCache) return baseTrayIconCache;
   const iconPath = path.join(__dirname, '..', '..', 'build', 'tray-icon.png');
   const icon = nativeImage.createFromPath(iconPath);
   if (icon.isEmpty()) {
     console.error('Tray icon not found at', iconPath);
   }
-  baseTrayIconCache = icon;
   return icon;
-}
-
-// Tray icon variant with a small red dot in the top-right — fired
-// when Unsorted > 0 so the menu bar nudges the user without being
-// noisy. Composed via sharp at runtime so we don't need a second
-// asset on disk.
-async function buildTrayIconWithDot() {
-  if (dotTrayIconCache) return dotTrayIconCache;
-  try {
-    const sharp = require('sharp');
-    const iconPath = path.join(__dirname, '..', '..', 'build', 'tray-icon.png');
-    const baseBuffer = fs.readFileSync(iconPath);
-    const { width = 44, height = 44 } = await sharp(baseBuffer).metadata();
-    const dotSize = Math.max(8, Math.round(width * 0.32));
-    const r = dotSize / 2 - 1;
-    const dotSvg =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${dotSize}" height="${dotSize}">` +
-      `<circle cx="${dotSize / 2}" cy="${dotSize / 2}" r="${r}" ` +
-      `fill="#ff3b30" stroke="#ffffff" stroke-width="1.2"/>` +
-      `</svg>`;
-    const composited = await sharp(baseBuffer)
-      .composite([{ input: Buffer.from(dotSvg), top: 0, left: width - dotSize }])
-      .png()
-      .toBuffer();
-    const img = nativeImage.createFromBuffer(composited);
-    dotTrayIconCache = img;
-    return img;
-  } catch (err) {
-    console.error('[gatheros] failed to build tray-icon-with-dot:', err);
-    return buildTrayIcon();
-  }
-}
-
-// Pull the live Unsorted count and swap the tray icon accordingly.
-// Errors are swallowed — tray nudge is a nice-to-have, never block.
-async function refreshTrayIcon() {
-  if (!tray) return;
-  try {
-    const { getSmartViewCounts } = require('./db');
-    const counts = getSmartViewCounts();
-    const wantsDot = (counts?.unsorted || 0) > 0;
-    const next = wantsDot ? await buildTrayIconWithDot() : buildTrayIcon();
-    tray.setImage(next);
-  } catch (err) {
-    console.error('[gatheros] refreshTrayIcon failed:', err);
-  }
 }
 
 // Click handler for a recent-save tray entry: bring the main window
@@ -393,18 +340,12 @@ function rebuildTrayMenu() {
   } catch (err) {
     console.error('[gatheros] rebuildTrayMenu failed:', err);
   }
-  // Pair every menu refresh with an icon refresh so the dot badge
-  // always reflects the current Unsorted count.
-  refreshTrayIcon();
 }
 
 function createTray() {
   tray = new Tray(buildTrayIcon());
   tray.setToolTip('GatherOS');
   tray.setContextMenu(Menu.buildFromTemplate(buildTrayMenuTemplate()));
-  // Initial dot-badge state so users with stale Unsorted from the
-  // previous session see the nudge immediately on launch.
-  refreshTrayIcon();
 
   tray.on('click', () => {
     if (mainWindow) mainWindow.focus();
