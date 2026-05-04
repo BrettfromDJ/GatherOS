@@ -191,10 +191,149 @@ function handleOverlayCancel() {
   }
 }
 
+// Capture the entire primary display in one shot — no overlay,
+// no picker. Saves straight to the active library.
+async function captureFullscreen() {
+  const ok = await ensureScreenRecordingPermission();
+  if (!ok) return;
+
+  const display = screen.getPrimaryDisplay();
+  const sf = display.scaleFactor || 1;
+  const targetWidth = Math.round(display.size.width * sf);
+  const targetHeight = Math.round(display.size.height * sf);
+
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: { width: targetWidth, height: targetHeight },
+  });
+  const source =
+    sources.find((s) => Number(s.display_id) === display.id) || sources[0];
+  if (!source) return;
+
+  try {
+    const { saveImageFromBuffer } = require('./storage');
+    const { insertSave } = require('./db');
+    const { notifySaved } = require('./notify');
+    const imgData = await saveImageFromBuffer(source.thumbnail.toPNG(), 'png');
+    const record = insertSave(imgData);
+    notifySaved(record);
+  } catch (err) {
+    console.error('Failed to capture fullscreen:', err);
+  }
+}
+
+let windowPickerWin = null;
+
+// Window capture: pop a small picker BrowserWindow listing every
+// available window with a live thumbnail. User clicks one, we save
+// the thumbnail as a PNG. desktopCapturer is the source of truth —
+// the picker just renders what it returns.
+async function captureWindow() {
+  if (windowPickerWin) {
+    windowPickerWin.focus();
+    return;
+  }
+
+  const ok = await ensureScreenRecordingPermission();
+  if (!ok) return;
+
+  const display = screen.getPrimaryDisplay();
+  const { x, y, width, height } = display.workArea;
+  const PICKER_W = 560;
+  const PICKER_H = 460;
+
+  windowPickerWin = new BrowserWindow({
+    x: x + Math.round((width - PICKER_W) / 2),
+    y: y + Math.round((height - PICKER_H) / 2),
+    width: PICKER_W,
+    height: PICKER_H,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    movable: true,
+    hasShadow: true,
+    skipTaskbar: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload-windowpicker.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  windowPickerWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  windowPickerWin.setAlwaysOnTop(true, 'screen-saver');
+  windowPickerWin.on('closed', () => { windowPickerWin = null; });
+
+  if (isDev) {
+    windowPickerWin.loadURL(`${DEV_URL}/windowpicker.html`);
+  } else {
+    windowPickerWin.loadFile(
+      path.join(__dirname, '..', '..', 'dist', 'renderer', 'windowpicker.html'),
+    );
+  }
+}
+
+async function listCaptureWindows() {
+  const sources = await desktopCapturer.getSources({
+    types: ['window'],
+    thumbnailSize: { width: 320, height: 200 },
+  });
+  return sources
+    .filter((s) => s.thumbnail && !s.thumbnail.isEmpty())
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      thumbnail: s.thumbnail.toDataURL(),
+    }));
+}
+
+async function handleWindowPickerPick(sourceId) {
+  if (!sourceId) return;
+  const win = windowPickerWin;
+  windowPickerWin = null;
+  if (win) win.hide();
+
+  // Re-pull the source at full resolution so we save a sharp PNG
+  // rather than the 320×200 picker thumbnail.
+  const sources = await desktopCapturer.getSources({
+    types: ['window'],
+    thumbnailSize: { width: 3000, height: 3000 },
+  });
+  const source = sources.find((s) => s.id === sourceId);
+
+  try {
+    if (!source) throw new Error('Window source not found');
+    const { saveImageFromBuffer } = require('./storage');
+    const { insertSave } = require('./db');
+    const { notifySaved } = require('./notify');
+    const imgData = await saveImageFromBuffer(source.thumbnail.toPNG(), 'png');
+    const record = insertSave(imgData);
+    notifySaved(record);
+  } catch (err) {
+    console.error('Failed to capture window:', err);
+  } finally {
+    if (win && !win.isDestroyed()) win.close();
+  }
+}
+
+function handleWindowPickerCancel() {
+  if (windowPickerWin && !windowPickerWin.isDestroyed()) {
+    windowPickerWin.close();
+  }
+}
+
 module.exports = {
   registerCaptureHotkey,
   unregisterCaptureHotkey,
   startScreenshotCapture,
   handleOverlayComplete,
   handleOverlayCancel,
+  captureFullscreen,
+  captureWindow,
+  listCaptureWindows,
+  handleWindowPickerPick,
+  handleWindowPickerCancel,
 };

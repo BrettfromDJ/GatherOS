@@ -28,6 +28,8 @@ const {
   registerCaptureHotkey,
   unregisterCaptureHotkey,
   startScreenshotCapture,
+  captureFullscreen,
+  captureWindow,
 } = require('./capture');
 const { showToast, destroyToastWindow } = require('./toast-window');
 const { setSaveNotifier } = require('./notify');
@@ -238,7 +240,10 @@ function createTray() {
       if (mainWindow) mainWindow.focus();
       else createMainWindow();
     }},
-    { label: 'Capture Screenshot  ⌘⇧S', click: startScreenshotCapture },
+    { type: 'separator' },
+    { label: 'Capture Area  ⌘⇧S', click: startScreenshotCapture },
+    { label: 'Capture Fullscreen', click: captureFullscreen },
+    { label: 'Capture Window…', click: captureWindow },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]);

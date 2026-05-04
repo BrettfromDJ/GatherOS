@@ -22,6 +22,11 @@ const {
   handleOverlayComplete,
   handleOverlayCancel,
   startScreenshotCapture,
+  captureFullscreen,
+  captureWindow,
+  listCaptureWindows,
+  handleWindowPickerPick,
+  handleWindowPickerCancel,
 } = require('./capture');
 const { notifySaved } = require('./notify');
 const { setToastInteractive, onToastsEmpty } = require('./toast-window');
@@ -283,6 +288,24 @@ function registerIpcHandlers() {
 
   ipcMain.handle('overlay:cancel', () => {
     handleOverlayCancel();
+    return { ok: true };
+  });
+
+  ipcMain.handle('capture:fullscreen', () => {
+    captureFullscreen();
+    return { ok: true };
+  });
+  ipcMain.handle('capture:window', () => {
+    captureWindow();
+    return { ok: true };
+  });
+  ipcMain.handle('windowpicker:list', () => listCaptureWindows());
+  ipcMain.handle('windowpicker:pick', (_e, sourceId) => {
+    handleWindowPickerPick(sourceId);
+    return { ok: true };
+  });
+  ipcMain.handle('windowpicker:cancel', () => {
+    handleWindowPickerCancel();
     return { ok: true };
   });
 
