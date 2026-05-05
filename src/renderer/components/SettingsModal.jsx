@@ -484,20 +484,6 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
             </div>
           )}
 
-          <p className={styles.sectionHint} style={{ marginTop: 14 }}>
-            Open the active library's folder in Finder to inspect or back
-            up the database, image files, and thumbnails directly.
-          </p>
-          <div className={styles.actions} style={{ justifyContent: 'flex-start' }}>
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={() => window.moodmark.library.revealActive()}
-            >
-              Reveal Library in Finder
-            </button>
-          </div>
-
           <div className={styles.divider} />
 
           <p className={styles.sectionHint}>

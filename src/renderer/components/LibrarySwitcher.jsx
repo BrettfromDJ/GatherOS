@@ -175,6 +175,10 @@ export default function LibrarySwitcher({
   // last-remaining-library guard, enforced server-side too.
   const actionItems = [
     { label: 'Rename', onClick: startRenameActive },
+    {
+      label: 'Reveal in Finder',
+      onClick: () => window.moodmark.library.revealActive(),
+    },
     ...(canDelete
       ? [{ label: 'Delete library', danger: true, onClick: handleDeleteActive }]
       : []),
