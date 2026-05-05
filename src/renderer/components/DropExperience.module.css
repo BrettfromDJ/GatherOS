@@ -1,0 +1,128 @@
+/* Top-level layer: full-window, pointer-events:none so the user's
+   actual drag isn't intercepted. Children opt back in only when
+   they need to (none currently — this is a purely visual layer). */
+.layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8000;
+}
+
+/* Color wash — soft radial that follows the pointer. Eased in/out
+   via the inline opacity transition driven from JSX. */
+.colorWash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  mix-blend-mode: multiply;
+}
+
+/* Generic card silhouette during the drag. Browsers don't expose
+   the dropped file's bytes until the drop event, so this stands in
+   for the image with a card-shaped, aspirational, slightly-tilted
+   surface. Transforms are applied inline so the wrapper handles
+   only the static surface styling. */
+.silhouette {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 176px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.78) 100%);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 12px 32px rgba(0, 0, 0, 0.16),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 80ms cubic-bezier(0.18, 0.7, 0.18, 1);
+  animation: silhouetteIn 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.silhouetteHint {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+@keyframes silhouetteIn {
+  from { opacity: 0; transform: translate3d(var(--from-x, 0), var(--from-y, 0), 0) scale(0.9); }
+  to   { opacity: 1; }
+}
+
+/* Landing image — anchored at the cursor on drop, then animated to
+   the grid's landing target. CSS variables defined inline by the
+   renderer; the keyframe interpolates between them. */
+.landingImg {
+  position: fixed;
+  left: var(--start-x);
+  top: var(--start-y);
+  width: var(--start-w);
+  height: var(--start-h);
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.22),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  will-change: transform, left, top, width, height, opacity, border-radius;
+  animation: landingFly 600ms cubic-bezier(0.18, 0.7, 0.18, 1.04) forwards;
+}
+
+/* Tween position + size + radius from the cursor to the grid slot.
+   The 1.04 control point in the bezier gives a tiny overshoot so
+   the image "settles" rather than docking. Opacity holds full
+   through 80% then fades the last 20% so the real card underneath
+   takes over without a hard cut. */
+@keyframes landingFly {
+  0%   {
+    opacity: 1;
+    left: var(--start-x);
+    top: var(--start-y);
+    width: var(--start-w);
+    height: var(--start-h);
+    border-radius: 10px;
+    transform: scale(1);
+  }
+  80%  {
+    opacity: 1;
+    left: var(--end-x);
+    top: var(--end-y);
+    width: var(--end-w);
+    height: var(--end-h);
+    border-radius: 8px;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    left: var(--end-x);
+    top: var(--end-y);
+    width: var(--end-w);
+    height: var(--end-h);
+    border-radius: 8px;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .silhouette { animation: none; transition: none; }
+  .colorWash { transition: opacity 100ms; }
+  .landingImg { animation: landingFlyReduced 240ms ease-out forwards; }
+}
+
+@keyframes landingFlyReduced {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
