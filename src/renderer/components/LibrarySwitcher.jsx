@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronsUpDown, Check, Plus, MoreHorizontal } from 'lucide-react';
+import { ChevronsUpDown, Check, Plus, MoreHorizontal, Pencil, FolderOpen, Trash2 } from 'lucide-react';
 import styles from './LibrarySwitcher.module.css';
 import ContextMenu from './ContextMenu.jsx';
 import { CollectionIcon } from './Sidebar.jsx';
@@ -173,14 +173,25 @@ export default function LibrarySwitcher({
 
   // Hide Delete when there's only one library — that's the
   // last-remaining-library guard, enforced server-side too.
+  const ACTION_ICON = { size: 14, strokeWidth: 1.6, 'aria-hidden': true };
   const actionItems = [
-    { label: 'Rename', onClick: startRenameActive },
+    {
+      label: 'Rename',
+      icon: <Pencil {...ACTION_ICON} />,
+      onClick: startRenameActive,
+    },
     {
       label: 'Reveal in Finder',
+      icon: <FolderOpen {...ACTION_ICON} />,
       onClick: () => window.moodmark.library.revealActive(),
     },
     ...(canDelete
-      ? [{ label: 'Delete library', danger: true, onClick: handleDeleteActive }]
+      ? [{
+          label: 'Delete library',
+          icon: <Trash2 {...ACTION_ICON} />,
+          danger: true,
+          onClick: handleDeleteActive,
+        }]
       : []),
   ];
 
