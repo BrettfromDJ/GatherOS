@@ -26,6 +26,7 @@ import {
   Copy,
   MinusCircle,
   ArrowRightFromLine,
+  ArrowUp,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -1236,6 +1237,42 @@ export default function App() {
   // and there's at least one save to sort + at least one bucket.
   const [focusedSortOpen, setFocusedSortOpen] = useState(false);
 
+  // Scroll-to-top FAB. Tracks the .grid-scroll element via a callback
+  // ref so we re-attach the scroll listener whenever the grid mounts
+  // (after a view change, after exiting the focused view, etc.).
+  // 720px threshold = ~3-4 rows of cards before the button appears.
+  const gridScrollRef = useRef(null);
+  const scrollHandlerRef = useRef(null);
+  const [scrolledFar, setScrolledFar] = useState(false);
+  const setGridScrollNode = useCallback((node) => {
+    if (scrollHandlerRef.current) {
+      scrollHandlerRef.current.node.removeEventListener(
+        'scroll', scrollHandlerRef.current.fn,
+      );
+      scrollHandlerRef.current = null;
+    }
+    gridScrollRef.current = node;
+    if (!node) {
+      setScrolledFar(false);
+      return;
+    }
+    let ticking = false;
+    const fn = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setScrolledFar(node.scrollTop > 720);
+        ticking = false;
+      });
+    };
+    scrollHandlerRef.current = { node, fn };
+    node.addEventListener('scroll', fn, { passive: true });
+    setScrolledFar(node.scrollTop > 720);
+  }, []);
+  const scrollGridToTop = useCallback(() => {
+    gridScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const focusedSortAssign = useCallback(async (saveId, collectionId) => {
     await window.moodmark.collections.addSave({ collectionId, saveId });
     // The save just became sorted, so the Unsorted view should drop
@@ -1724,7 +1761,7 @@ export default function App() {
                 })()}
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
               />
-              <div className="grid-scroll">
+              <div className="grid-scroll" ref={setGridScrollNode}>
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
                     collections={collections}
@@ -1990,6 +2027,29 @@ export default function App() {
           <span className="sort-fab-icon"><SortFabIcon /></span>
           <span>Sort one by one</span>
           <span className="sort-fab-count">{saves.length}</span>
+        </button>
+      )}
+
+      {/* Scroll-to-top — shows once the masonry has been scrolled past
+          ~720px. Stacks above the sort-fab via --scroll-top-offset
+          when both are visible at the same time. */}
+      {scrolledFar && !focused && !focusedSortOpen && (
+        <button
+          type="button"
+          className="scroll-top-fab"
+          onClick={scrollGridToTop}
+          title="Scroll to top"
+          aria-label="Scroll to top"
+          style={{
+            '--scroll-top-offset':
+              view.type === 'unsorted'
+                && saves.length > 0
+                && collections.length > 0
+                ? '60px'
+                : '0px',
+          }}
+        >
+          <ArrowUp aria-hidden="true" />
         </button>
       )}
 
