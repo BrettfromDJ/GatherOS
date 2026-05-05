@@ -170,6 +170,12 @@ export default function Sidebar({
 
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
+  // 'reorder' | 'nest' — which gesture the current dragOver maps to.
+  // Three-zone hit test: top 30% / bottom 30% = reorder above/below
+  // (we only render the existing top line for either since the
+  // reorder handler doesn't distinguish), middle 40% = nest under
+  // the target.
+  const [dropMode, setDropMode] = useState('reorder');
 
   // Which top-level buckets are currently expanded. `null` is the
   // first-render sentinel meaning "default to all expanded" — once
@@ -347,20 +353,67 @@ export default function Sidebar({
     if (!draggingId) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+
+    // Three-zone hit test based on cursor Y within the row.
+    // Middle 40% = nest as child; top/bottom 30% each = reorder.
+    // Restrictions on nesting:
+    //  - target can't be the row being dragged
+    //  - target can't be a child folder (one-level cap)
+    //  - dragging folder can't host children when it has its own
+    //    children (the setParent helper promotes them, but we hide
+    //    the affordance for visual honesty).
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientY - rect.top) / Math.max(1, rect.height);
+    const target = collections.find((c) => c.id === id);
+    const dragging = collections.find((c) => c.id === draggingId);
+    const targetIsChild = !!target?.parent_id;
+    const draggingHasChildren = dragging
+      && collections.some((c) => c.parent_id === dragging.id);
+    const canNest = !!target
+      && id !== draggingId
+      && !targetIsChild
+      && !draggingHasChildren
+      && dragging?.parent_id !== id; // already nested under this parent
+    const mode = canNest && ratio > 0.3 && ratio < 0.7 ? 'nest' : 'reorder';
+
     if (dropTargetId !== id) setDropTargetId(id);
+    if (dropMode !== mode) setDropMode(mode);
   }
 
   function handleDragEnd() {
     setDraggingId(null);
     setDropTargetId(null);
+    setDropMode('reorder');
   }
 
   async function handleDrop(e, targetId) {
     e.preventDefault();
     e.stopPropagation();
     const fromId = draggingId;
+    const mode = dropMode;
     handleDragEnd();
     if (!fromId || fromId === targetId) return;
+
+    if (mode === 'nest') {
+      // Move under the target as a child. Server-side helper rejects
+      // invalid nesting (cycles, two-level chains).
+      try {
+        const res = await window.moodmark.collections.setParent(fromId, targetId);
+        if (res?.ok) {
+          // Auto-expand the new parent so the child is visible.
+          setExpandedBuckets((prev) => {
+            const next = new Set(prev || []);
+            next.add(targetId);
+            return next;
+          });
+          await onReorderCollections?.(collections.map((c) => c.id));
+        }
+      } catch (err) {
+        console.error('[gatheros] setParent failed:', err);
+      }
+      return;
+    }
+
     const ids = collections.map((c) => c.id);
     const fromIdx = ids.indexOf(fromId);
     const toIdx = ids.indexOf(targetId);
@@ -645,11 +698,13 @@ export default function Sidebar({
             const active = view.type === 'collection' && view.id === c.id;
             const isDragging = draggingId === c.id;
             const isDropTarget = dropTargetId === c.id && draggingId && draggingId !== c.id;
+            const isNestTarget = isDropTarget && dropMode === 'nest';
             const itemClass = [
               styles.item,
               active && styles.active,
               isDragging && styles.dragging,
-              isDropTarget && styles.dropTarget,
+              isDropTarget && !isNestTarget && styles.dropTarget,
+              isNestTarget && styles.dropTargetNest,
               depth > 0 && styles.itemChild,
             ].filter(Boolean).join(' ');
 

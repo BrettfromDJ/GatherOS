@@ -752,6 +752,30 @@ function renameCollection({ id, name } = {}) {
   return { ok: true };
 }
 
+// Move a folder under a different parent — or back to the top level
+// when parentId is null. Enforces the schema's one-level cap by
+// rejecting moves that would create a grandparent-grandchild chain
+// (i.e. trying to nest under a folder that's itself nested) and by
+// preventing self-parenting / cycles.
+function setCollectionParent({ id, parentId } = {}) {
+  if (!id || id === parentId) return { ok: false, reason: 'invalid' };
+  const db = getDatabase();
+  if (parentId) {
+    const parent = db
+      .prepare('SELECT id, parent_id FROM collections WHERE id = ?')
+      .get(parentId);
+    if (!parent) return { ok: false, reason: 'parent-missing' };
+    if (parent.parent_id) return { ok: false, reason: 'too-deep' };
+    // If the moving folder already has children, demoting it under
+    // a parent would create a 3-level chain. Promote its children
+    // to the top level first.
+    db.prepare('UPDATE collections SET parent_id = NULL WHERE parent_id = ?').run(id);
+  }
+  db.prepare('UPDATE collections SET parent_id = ? WHERE id = ?')
+    .run(parentId || null, id);
+  return { ok: true };
+}
+
 function deleteCollection(id) {
   const db = getDatabase();
   // Promote any children to top-level rather than cascading the
@@ -806,6 +830,7 @@ module.exports = {
   getCollectionsContainingAll,
   createCollection,
   renameCollection,
+  setCollectionParent,
   deleteCollection,
   reorderCollections,
   addSaveToCollection,

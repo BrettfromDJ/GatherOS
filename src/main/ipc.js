@@ -7,7 +7,7 @@ const {
   emptyTrash, wipeLibrary, updateSave, insertSave,
   getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
   filterByColor, findSimilarByPalette,
-  getAllCollections, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection,
+  getAllCollections, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionParent,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
 } = require('./db');
@@ -281,6 +281,7 @@ function registerIpcHandlers() {
   ipcMain.handle('collections:containing-all', (_e, saveIds) => getCollectionsContainingAll(saveIds));
   ipcMain.handle('collections:create', (_e, payload) => createCollection(payload));
   ipcMain.handle('collections:rename', (_e, payload) => renameCollection(payload));
+  ipcMain.handle('collections:set-parent', (_e, payload) => setCollectionParent(payload));
   ipcMain.handle('collections:delete', (_e, id) => deleteCollection(id));
   ipcMain.handle('collections:reorder', (_e, ids) => reorderCollections(ids));
   ipcMain.handle('collections:add-save', (_e, payload) => addSaveToCollection(payload));
