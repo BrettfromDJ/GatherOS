@@ -9,6 +9,19 @@ files:
   - dist/renderer/**/*
   - build/tray-icon*.png
   - package.json
+  # Drop node_modules cruft from the bundled production deps —
+  # READMEs, changelogs, test fixtures, examples, source maps,
+  # TypeScript .ts.map / .d.ts.map files, .github metadata. None
+  # of these are needed at runtime; keeping them in the asar
+  # bloats the DMG by 15–25MB depending on the dep tree.
+  - '!**/node_modules/*/{*.md,*.markdown,LICENSE.txt,license,LICENSE-*,changelog*,CHANGELOG*,CHANGES*,history*,HISTORY*,readme*,Readme*,README*}'
+  - '!**/node_modules/*/{test,tests,__tests__,example,examples,docs,doc,benchmark,benchmarks,coverage,.github,.vscode}'
+  - '!**/node_modules/**/*.map'
+  - '!**/node_modules/**/*.d.ts'
+  - '!**/node_modules/**/*.flow'
+  - '!**/node_modules/**/.eslintrc*'
+  - '!**/node_modules/**/.prettierrc*'
+  - '!**/node_modules/**/tsconfig*.json'
 asarUnpack:
   - node_modules/better-sqlite3/**/*
   - node_modules/sharp/**/*
