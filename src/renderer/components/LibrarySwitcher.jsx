@@ -5,7 +5,7 @@ import ContextMenu from './ContextMenu.jsx';
 import { CollectionIcon } from './Sidebar.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
-const SwitcherIcon = () => <ChevronsUpDown size={12} strokeWidth={1.6} aria-hidden="true" />;
+const SwitcherIcon = () => <ChevronsUpDown size={15} strokeWidth={2} aria-hidden="true" />;
 const CheckIcon = () => <Check size={11} strokeWidth={1.8} aria-hidden="true" />;
 const PlusIcon = () => <Plus size={11} strokeWidth={1.8} aria-hidden="true" />;
 const DotsIcon = () => <MoreHorizontal size={12} strokeWidth={2} aria-hidden="true" />;
