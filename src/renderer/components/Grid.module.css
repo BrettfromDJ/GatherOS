@@ -3,7 +3,11 @@
   gap: 10px;
   padding: 20px;
   align-items: start;
-  background: var(--content-bg);
+  /* No own background — the parent .grid-scroll already paints
+     var(--content-bg). A solid background here was covering the
+     bottom of FeaturedBuckets in the negative-margin overlap zone,
+     visible as a hard horizontal line through the rounded corner. */
+  background: transparent;
 }
 
 .column {
