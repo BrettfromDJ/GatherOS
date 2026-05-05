@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { InboxIcon, TrashIcon } from './Sidebar.jsx';
+
+const EMPTY_ICON = { size: 24, strokeWidth: 1.6, 'aria-hidden': true };
 
 // Lightweight loading shimmer — masonry-shaped placeholders that
 // only fade in after a 150ms grace period, so flash-fast loads
@@ -87,6 +90,8 @@ export default function Grid({
 
     let title = 'Nothing saved yet';
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
+    let EmptyIcon = null;
+    let emptyIconColor = null;
     if (trimmedSearch) {
       title = `No matches for "${trimmedSearch}"`;
       hint = semanticSearchActive
@@ -101,13 +106,22 @@ export default function Grid({
     } else if (isUnsorted) {
       title = 'Nothing unsorted';
       hint = 'Every save belongs to at least one folder.';
+      EmptyIcon = InboxIcon;
+      emptyIconColor = 'var(--icon-yellow)';
     } else if (isTrash) {
       title = 'Trash is empty';
       hint = 'Deleted saves land here. Empty Trash to remove for good.';
+      EmptyIcon = TrashIcon;
+      emptyIconColor = 'var(--text-tertiary)';
     }
 
     return (
       <div className={styles.state}>
+        {EmptyIcon && (
+          <div className={styles.emptyIcon} style={{ color: emptyIconColor }}>
+            <EmptyIcon {...EMPTY_ICON} />
+          </div>
+        )}
         <div className={styles.emptyTitle}>{title}</div>
         <div className={styles.emptyHint}>{hint}</div>
       </div>

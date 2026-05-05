@@ -29,8 +29,8 @@ const KeyboardIcon = () => <Keyboard {...SIDEBAR_ICON} />;
 // pail icon doesn't have a clean Lucide equivalent, FolderClosed is
 // the closest semantic match.
 export const CollectionIcon = () => <FolderClosed {...SIDEBAR_ICON} />;
-const InboxIcon = () => <Inbox {...SIDEBAR_ICON} />;
-const TrashIcon = () => <Trash2 {...SIDEBAR_ICON} />;
+export const InboxIcon = () => <Inbox {...SIDEBAR_ICON} />;
+export const TrashIcon = () => <Trash2 {...SIDEBAR_ICON} />;
 
 // Inline count badge that briefly slide-fades on every change. The
 // effect skips the first render — opening the app shouldn't fire a
