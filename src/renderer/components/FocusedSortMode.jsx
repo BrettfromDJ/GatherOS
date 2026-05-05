@@ -244,7 +244,7 @@ export default function FocusedSortMode({ saves, collections, onAssign, onClose 
           <div className={styles.done}>
             <span className={styles.doneCheck}><CheckIcon /></span>
             <h1>All sorted.</h1>
-            <p>Inbox zero. {total === 1 ? '1 save' : `${total} saves`} bucketed.</p>
+            <p>Inbox zero. {total === 1 ? '1 save' : `${total} saves`} sorted.</p>
           </div>
         </>
       )}

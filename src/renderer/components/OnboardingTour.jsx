@@ -22,12 +22,12 @@ const STEPS = [
     target: '[data-onboarding="buckets"]',
     placement: 'right',
     pad: 6,
-    title: 'Organize with buckets',
+    title: 'Organize with folders',
     body: (
       <>
-        Buckets are how you group references — moodboards, color studies,
+        Folders are how you group references — moodboards, color studies,
         type explorations, anything. Drop saves into one with the +
-        button, drag them between buckets, or right-click any image to
+        button, drag them between folders, or right-click any image to
         sort it from the grid.
       </>
     ),

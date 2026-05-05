@@ -144,7 +144,7 @@ export default function QuickSwitcher({
             ref={inputRef}
             className={styles.input}
             type="text"
-            placeholder="Search buckets, tags, saves…"
+            placeholder="Search folders, tags, saves…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -156,7 +156,7 @@ export default function QuickSwitcher({
           <div className={styles.results} ref={listRef}>
             {bucketResults.length > 0 && (
               <div className={styles.group}>
-                <div className={styles.groupLabel}>Buckets</div>
+                <div className={styles.groupLabel}>Folders</div>
                 {bucketResults.map((b) => {
                   const idx = nextIdx();
                   return (

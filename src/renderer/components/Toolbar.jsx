@@ -110,7 +110,7 @@ export default function Toolbar({
             type="button"
             className={styles.qkChip}
             onClick={onOpenQuickSwitcher}
-            title="Quick switcher — jump to any bucket, tag, or save"
+            title="Quick switcher — jump to any folder, tag, or save"
           >
             <span className={styles.qkChipKey}>⌘</span>
             <span className={styles.qkChipKey}>K</span>

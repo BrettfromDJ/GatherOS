@@ -96,11 +96,11 @@ export default function Grid({
       title = 'No saves match that color';
       hint = 'Click the chip in the toolbar to clear the filter.';
     } else if (isCollection) {
-      title = 'Bucket is empty';
+      title = 'Folder is empty';
       hint = 'Drop an image, paste a URL, or ⌘⇧S to capture.';
     } else if (isUnsorted) {
       title = 'Nothing unsorted';
-      hint = 'Every save belongs to at least one bucket.';
+      hint = 'Every save belongs to at least one folder.';
     } else if (isTrash) {
       title = 'Trash is empty';
       hint = 'Deleted saves land here. Empty Trash to remove for good.';

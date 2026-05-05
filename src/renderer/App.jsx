@@ -690,7 +690,7 @@ export default function App() {
     }
     if (view.type === 'collection') {
       items.push({
-        label: `Remove from Bucket${suffix}`,
+        label: `Remove from Folder${suffix}`,
         icon: <MinusCircleIcon />,
         danger: true,
         onClick: async () => {
@@ -752,7 +752,7 @@ export default function App() {
           // In Unsorted view the saves no longer match the filter
           // (they now belong to a bucket), so refresh to drop them.
           if (view.type === 'unsorted') reload();
-          undoStack.push('add to bucket', async () => {
+          undoStack.push('add to folder', async () => {
             for (const id of targetIds) {
               await window.moodmark.collections.removeSave({ collectionId: col.id, saveId: id });
             }
@@ -766,7 +766,7 @@ export default function App() {
         return { ...buildAddItem(parent), children: childItems };
       });
       items.push({
-        label: `Add to Bucket${suffix}`,
+        label: `Add to Folder${suffix}`,
         icon: <CollectionIcon />,
         submenu,
       });
@@ -966,7 +966,7 @@ export default function App() {
     // a move-from-A-to-B reverses with remove-from-target plus
     // re-add to the source bucket.
     undoStack.push(
-      saveIds.length === 1 ? 'add to bucket' : 'add to bucket',
+      saveIds.length === 1 ? 'add to folder' : 'add to folder',
       async () => {
         for (const saveId of saveIds) {
           await window.moodmark.collections.removeSave({ collectionId: bucketId, saveId });
@@ -1054,7 +1054,7 @@ export default function App() {
     const created = await window.moodmark.collections.create(payload);
     loadCollections();
     if (created?.id) {
-      undoStack.push('new bucket', async () => {
+      undoStack.push('new folder', async () => {
         await window.moodmark.collections.delete(created.id);
         loadCollections();
       });
@@ -1400,10 +1400,10 @@ export default function App() {
     // adding again would be a no-op for all of them.
     const offer = collections.filter((c) => !bulkAlreadyIn.has(c.id));
     if (offer.length === 0) {
-      return [{ type: 'header', label: 'Already in every bucket' }];
+      return [{ type: 'header', label: 'Already in every folder' }];
     }
     return [
-      { type: 'header', label: `Add ${ids.length} to Bucket` },
+      { type: 'header', label: `Add ${ids.length} to Folder` },
       ...offer.map((c) => ({
         label: c.name,
         icon: (
@@ -1824,8 +1824,8 @@ export default function App() {
               type="button"
               className="selection-btn selection-btn-compact"
               onClick={openBulkPicker}
-              data-tooltip="Add to bucket"
-              aria-label="Add to bucket"
+              data-tooltip="Add to folder"
+              aria-label="Add to folder"
             >
               <span className="selection-btn-icon"><CollectionIcon /></span>
             </button>

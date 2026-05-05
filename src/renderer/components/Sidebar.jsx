@@ -469,11 +469,11 @@ export default function Sidebar({
         { label: 'Rename', icon: <PencilIcon />, onClick: () => startRename(ctxMenu.collection) },
         // Only top-level buckets can have children — single level cap.
         ...(ctxMenu.collection.parent_id ? [] : [{
-          label: 'Add Child Bucket',
+          label: 'Add Child Folder',
           icon: <CollectionIcon />,
           onClick: () => startCreatingChild(ctxMenu.collection.id),
         }]),
-        { label: 'Delete Bucket', icon: <TrashIcon />, danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
+        { label: 'Delete Folder', icon: <TrashIcon />, danger: true, onClick: () => onDeleteCollection(ctxMenu.collection.id) },
       ]
     : [];
 
@@ -549,7 +549,7 @@ export default function Sidebar({
               className={`${styles.item} ${active ? styles.active : ''}`}
               onClick={() => onViewChange({ type: id })}
               onContextMenu={(e) => handleSmartViewContextMenu(e, id)}
-              title={inboxZero ? 'Inbox zero — every save is in a bucket' : undefined}
+              title={inboxZero ? 'Inbox zero — every save is in a folder' : undefined}
             >
               <span className={styles.icon}>
                 <Icon />
@@ -571,11 +571,11 @@ export default function Sidebar({
       </nav>
 
       <div className={styles.sectionHeaderRow} data-onboarding="buckets">
-        <span className={styles.sectionHeaderLabel}>Buckets</span>
+        <span className={styles.sectionHeaderLabel}>Folders</span>
         <button
           className={styles.addBtn}
           onClick={startCreating}
-          title="New Bucket"
+          title="New Folder"
         >
           +
         </button>
@@ -589,7 +589,7 @@ export default function Sidebar({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleCreateKeyDown}
-            placeholder="Bucket name"
+            placeholder="Folder name"
           />
           <div className={styles.newCollectionBtns}>
             <button className={styles.formBtn} onClick={cancelCreating}>Cancel</button>
@@ -622,7 +622,7 @@ export default function Sidebar({
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={handleCreateKeyDown}
-                    placeholder="Child bucket name"
+                    placeholder="Child folder name"
                   />
                   <div className={styles.newCollectionBtns}>
                     <button className={styles.formBtn} onClick={cancelCreating}>Cancel</button>

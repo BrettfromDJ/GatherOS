@@ -285,7 +285,7 @@ export default function FeaturedBuckets({
               onClick: () => startRename(ctxMenu.collection),
             },
             {
-              label: 'Delete Bucket',
+              label: 'Delete Folder',
               icon: <TrashIcon />,
               danger: true,
               onClick: () => onDeleteCollection?.(ctxMenu.collection.id),

@@ -163,7 +163,7 @@ export default function LibrarySwitcher({
     setActionsMenu(null);
     if (!active) return;
     const confirmed = window.confirm(
-      `Delete the library "${active.name}"? Every save, bucket, and image inside it will be permanently removed.`,
+      `Delete the library "${active.name}"? Every save, folder, and image inside it will be permanently removed.`,
     );
     if (!confirmed) return;
     await onDelete?.(active.id);

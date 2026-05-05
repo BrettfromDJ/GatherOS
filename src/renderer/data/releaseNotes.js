@@ -29,7 +29,7 @@ export const RELEASE_NOTES = [
       },
       {
         Icon: CardsIcon,
-        title: 'Smoother bucket transitions',
+        title: 'Smoother folder transitions',
         description: 'The cards at the top of the grid now glide out cleanly when you scroll.',
       },
       {

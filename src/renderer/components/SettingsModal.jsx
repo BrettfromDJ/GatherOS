@@ -487,7 +487,7 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
           <div className={styles.divider} />
 
           <p className={styles.sectionHint}>
-            Erase your entire library — every save, bucket, and tag. The
+            Erase your entire library — every save, folder, and tag. The
             underlying image files are deleted from disk. This cannot be
             undone.
           </p>

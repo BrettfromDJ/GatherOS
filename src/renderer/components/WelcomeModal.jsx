@@ -90,7 +90,7 @@ const FEATURES = [
   },
   {
     Icon: BucketIcon,
-    title: 'Organize with Buckets',
+    title: 'Organize with Folders',
     description: 'Create collections in the sidebar to group references by project, brief, or vibe.',
   },
 ];
