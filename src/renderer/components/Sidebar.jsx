@@ -5,6 +5,7 @@ import ContextMenu from './ContextMenu.jsx';
 import LibrarySwitcher from './LibrarySwitcher.jsx';
 import SidebarSearch from './SidebarSearch.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
+import { extractDropImageUrls } from '../lib/dropUrls.js';
 
 import {
   LayoutGrid,
@@ -144,6 +145,7 @@ export default function Sidebar({
   onDeleteCollection,
   onReorderCollections,
   onAddSavesToBucket,
+  onExternalDropToBucket,
   onToggleCollapse,
   onUpload,
   onOpenSettings,
@@ -476,16 +478,28 @@ export default function Sidebar({
     return e.dataTransfer.types.includes(SAVE_DROP_MIME);
   }
 
+  function isExternalImageDrag(e) {
+    const types = e.dataTransfer?.types;
+    if (!types) return false;
+    const arr = Array.from(types);
+    return arr.includes('Files')
+      || arr.includes('text/uri-list')
+      || arr.includes('text/html');
+  }
+
   function handleSaveDragOver(e, bucketId) {
-    if (!isSaveDrag(e)) return;
+    const internal = isSaveDrag(e);
+    const external = !internal && isExternalImageDrag(e);
+    if (!internal && !external) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     if (saveDropTargetId !== bucketId) setSaveDropTargetId(bucketId);
 
-    // Restart the spring-load timer when we land on a different
-    // bucket. Skip if we're already viewing this bucket — no point
-    // springing into the view we're already on.
-    if (springTargetRef.current !== bucketId) {
+    // Spring-load (auto-switch view after a hover) only fires for
+    // in-app save drags. External file drops arrive without the
+    // user having committed to a folder yet — auto-switching the
+    // view mid-drag would be jarring.
+    if (internal && springTargetRef.current !== bucketId) {
       springTargetRef.current = bucketId;
       if (springTimerRef.current) clearTimeout(springTimerRef.current);
       const isAlreadyActive = view.type === 'collection' && view.id === bucketId;
@@ -510,16 +524,38 @@ export default function Sidebar({
   }
 
   async function handleSaveDrop(e, bucketId) {
-    if (!isSaveDrag(e)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setSaveDropTargetId(null);
-    clearSpringLoad();
-    let ids;
-    try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
-    catch { return; }
-    if (!Array.isArray(ids) || ids.length === 0) return;
-    await onAddSavesToBucket?.(bucketId, ids);
+    if (isSaveDrag(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSaveDropTargetId(null);
+      clearSpringLoad();
+      let ids;
+      try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
+      catch { return; }
+      if (!Array.isArray(ids) || ids.length === 0) return;
+      await onAddSavesToBucket?.(bucketId, ids);
+      return;
+    }
+
+    if (isExternalImageDrag(e)) {
+      // External file or URL dropped directly onto a folder row.
+      // Save through the standard pipeline (dedup-aware), then drop
+      // the resulting save ids into this folder. stopPropagation
+      // prevents the .app-shell drop handler from running and
+      // double-saving.
+      e.preventDefault();
+      e.stopPropagation();
+      setSaveDropTargetId(null);
+      clearSpringLoad();
+
+      // dataTransfer is invalidated after the synchronous portion
+      // of the drop handler returns, so capture everything we need
+      // here — File objects + parsed URLs — and hand a plain object
+      // off to the parent.
+      const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'));
+      const urls = files.length === 0 ? extractDropImageUrls(e.dataTransfer) : [];
+      onExternalDropToBucket?.(bucketId, { files, urls });
+    }
   }
 
   // Drag-end anywhere should also cancel a pending spring-load — if

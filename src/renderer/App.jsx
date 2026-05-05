@@ -32,6 +32,7 @@ import {
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
 import { useRecentSearches } from './hooks/useRecentSearches.js';
+import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
@@ -50,69 +51,6 @@ const SimilarIcon = () => <Copy {...ICON} />;
 const MinusCircleIcon = () => <MinusCircle {...ICON} />;
 const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
 const ClipboardIcon = () => <Clipboard {...ICON} />;
-
-function pickLargestFromSrcset(srcset) {
-  if (!srcset) return null;
-  let best = null;
-  let bestWidth = -1;
-  for (const part of srcset.split(',')) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-    const [url, descriptor] = trimmed.split(/\s+/);
-    const w = descriptor && descriptor.endsWith('w')
-      ? parseFloat(descriptor)
-      : descriptor && descriptor.endsWith('x')
-        ? parseFloat(descriptor) * 1000
-        : 0;
-    if (url && w > bestWidth) {
-      best = url;
-      bestWidth = w;
-    }
-  }
-  return best;
-}
-
-function extractDropImageUrls(dataTransfer) {
-  const seen = new Set();
-  const candidates = [];
-  const add = (url) => {
-    if (!url) return;
-    const u = url.trim();
-    if (!u || seen.has(u)) return;
-    if (!/^(https?:|data:)/i.test(u)) return;
-    seen.add(u);
-    candidates.push(u);
-  };
-
-  const html = dataTransfer.getData('text/html');
-  if (html) {
-    try {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      for (const img of doc.querySelectorAll('img')) {
-        add(pickLargestFromSrcset(img.getAttribute('srcset')));
-        add(img.getAttribute('src'));
-        add(img.getAttribute('data-src'));
-        add(img.getAttribute('data-original'));
-      }
-    } catch {
-      const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-      if (m) add(m[1]);
-    }
-  }
-
-  const uriList = dataTransfer.getData('text/uri-list');
-  if (uriList) {
-    for (const line of uriList.split(/\r?\n/)) {
-      const t = line.trim();
-      if (t && !t.startsWith('#')) add(t);
-    }
-  }
-
-  const text = dataTransfer.getData('text/plain');
-  if (text) add(text);
-
-  return candidates;
-}
 
 export default function App() {
   const {
@@ -1044,6 +982,40 @@ export default function App() {
     if (saveIds.length > 1) setSelected(new Set());
   }, [saves, loadCollections, view, reload, undoStack]);
 
+  // External file/URL dropped directly onto a sidebar folder row.
+  // Saves through the standard pipeline (so dedup, palette, AI all
+  // run as usual), then attaches each resulting save id to the
+  // target folder. Returns the saved record ids so callers can
+  // chain follow-up work if needed.
+  const handleExternalDropToBucket = useCallback(async (bucketId, payload) => {
+    if (!bucketId || !payload) return;
+    const { files = [], urls = [] } = payload;
+    const ids = [];
+    for (const file of files) {
+      try {
+        const record = await window.moodmark.saves.dropFile(file);
+        if (record?.id) ids.push(record.id);
+      } catch (err) {
+        console.error('External drop save failed:', err);
+      }
+    }
+    if (files.length === 0 && urls.length > 0) {
+      try {
+        const record = await window.moodmark.saves.dropUrl(urls);
+        if (record?.id) ids.push(record.id);
+      } catch (err) {
+        console.error('External URL drop save failed:', err);
+      }
+    }
+    if (ids.length > 0) {
+      for (const id of ids) {
+        await window.moodmark.collections.addSave({ collectionId: bucketId, saveId: id });
+      }
+      loadCollections();
+      if (view.type === 'collection' && view.id === bucketId) reload();
+    }
+  }, [loadCollections, view, reload]);
+
   // Library switch: closes the renderer's current view state and
   // re-fetches everything against the now-active library. The main
   // process has already closed + reopened the DB by the time we
@@ -1746,6 +1718,7 @@ export default function App() {
             onDeleteCollection={handleDeleteCollection}
             onReorderCollections={handleReorderCollections}
             onAddSavesToBucket={handleAddSavesToBucket}
+            onExternalDropToBucket={handleExternalDropToBucket}
             onToggleCollapse={toggleSidebar}
             onUpload={handleUploadClick}
             onOpenSettings={() => setSettingsOpen(true)}
