@@ -1780,6 +1780,7 @@ export default function App() {
                   saves={displaySaves}
                   selected={selected}
                   onSelect={handleSelect}
+                  onSetSelection={(ids) => setSelected(new Set(ids))}
                   onOpen={handleOpenFromCard}
                   onContextMenu={handleCardContextMenu}
                   onDragStart={handleCardDragStart}

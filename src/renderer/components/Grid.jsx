@@ -62,10 +62,89 @@ function hostnameOf(url) {
 }
 
 export default function Grid({
-  saves, selected, onSelect, onOpen, onContextMenu, onDragStart,
+  saves, selected, onSelect, onSetSelection, onOpen, onContextMenu, onDragStart,
   columns, loading, view, search, semanticSearchActive, colorFilter,
   freshIds, layout = 'masonry',
 }) {
+  const marqueeRef = useRef(null);
+  const [marqueeRect, setMarqueeRect] = useState(null);
+
+  // Lasso/marquee selection. Mousedown on the masonry grid (but not
+  // on a card or any interactive control inside it) starts a drag-
+  // select. Cards intersecting the rectangle live-update the
+  // selection; shift-drag adds to whatever was already selected.
+  // List view skips this — the rectangle math doesn't translate to
+  // a flat list and selection there is single-row anyway.
+  function startMarquee(e) {
+    if (e.button !== 0) return;
+    if (layout !== 'masonry') return;
+    if (!onSetSelection) return;
+    const target = e.target;
+    if (target.closest && target.closest('[data-save-id], button, input, a, [role="button"], .scroll-top-fab, .sort-fab')) {
+      return;
+    }
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    const baseline = additive ? new Set(selected) : new Set();
+    marqueeRef.current = { startX, startY, baseline, additive };
+
+    const onMove = (ev) => {
+      const m = marqueeRef.current;
+      if (!m) return;
+      const left = Math.min(m.startX, ev.clientX);
+      const top = Math.min(m.startY, ev.clientY);
+      const right = Math.max(m.startX, ev.clientX);
+      const bottom = Math.max(m.startY, ev.clientY);
+      setMarqueeRect({ left, top, width: right - left, height: bottom - top });
+
+      // Suppress hit-testing until the cursor's traveled a few px so
+      // a sloppy click doesn't flicker the selection.
+      if (Math.abs(ev.clientX - m.startX) < 4 && Math.abs(ev.clientY - m.startY) < 4) return;
+
+      const hits = [];
+      document.querySelectorAll('[data-save-id]').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.left < right && r.right > left && r.top < bottom && r.bottom > top) {
+          const id = el.getAttribute('data-save-id');
+          if (id) hits.push(id);
+        }
+      });
+      const next = new Set(m.baseline);
+      for (const id of hits) next.add(id);
+      onSetSelection([...next]);
+    };
+
+    const onUp = (ev) => {
+      const m = marqueeRef.current;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setMarqueeRect(null);
+      marqueeRef.current = null;
+      // Bare empty-area click (no meaningful drag) clears selection,
+      // matching the Finder convention. Shift-click preserves it.
+      if (!m) return;
+      const moved = ev
+        && (Math.abs(ev.clientX - m.startX) >= 4 || Math.abs(ev.clientY - m.startY) >= 4);
+      if (!moved && !m.additive) {
+        onSetSelection([]);
+      }
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  // Defensive cleanup — if the grid unmounts mid-drag (view change,
+  // focused view enter), drop the global listeners.
+  useEffect(() => () => {
+    if (marqueeRef.current) {
+      marqueeRef.current = null;
+      setMarqueeRect(null);
+    }
+  }, []);
+
   const columnBuckets = useMemo(() => {
     const buckets = Array.from({ length: columns }, () => []);
     saves.forEach((save, i) => {
@@ -190,7 +269,20 @@ export default function Grid({
     <div
       className={styles.grid}
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      onMouseDown={startMarquee}
     >
+      {marqueeRect && (
+        <div
+          className={styles.marquee}
+          style={{
+            left: marqueeRect.left,
+            top: marqueeRect.top,
+            width: marqueeRect.width,
+            height: marqueeRect.height,
+          }}
+          aria-hidden="true"
+        />
+      )}
       {columnBuckets.map((bucket, colIdx) => (
         <div key={colIdx} className={styles.column}>
           {bucket.map(({ save: s, staggerMs }) => (

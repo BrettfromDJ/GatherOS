@@ -17,6 +17,19 @@
   min-width: 0;
 }
 
+/* Lasso/marquee rectangle drawn while the user drag-selects on the
+   empty grid background. Fixed position so it follows the cursor in
+   viewport coords; pointer-events: none so cards under it still
+   receive hover / hit-test for the live selection update. */
+.marquee {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(10, 132, 255, 0.10);
+  border: 1px solid rgba(10, 132, 255, 0.55);
+  border-radius: 2px;
+  z-index: 50;
+}
+
 /* Loading skeleton — masonry-aspect placeholders with a soft
    shimmer that runs while the library data resolves. Keeps the
    user-visible layout stable so the eventual image grid doesn't
