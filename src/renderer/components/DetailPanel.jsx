@@ -593,17 +593,16 @@ export default function DetailPanel({
               onChange={(e) => setNotesDraft(e.target.value)}
               onBlur={commitNotes}
               onKeyDown={(e) => {
-                // Enter inserts a newline (default textarea behavior).
-                // Cmd/Ctrl-Enter is the explicit commit. Stop propagation
-                // on Enter so no global handler can hijack the keystroke
-                // and prematurely blur the field.
+                // Chat-app convention: Enter commits the note and
+                // exits the field; Shift-Enter inserts a newline.
                 if (e.key === 'Enter') {
-                  if (e.metaKey || e.ctrlKey) {
-                    e.preventDefault();
-                    e.currentTarget.blur();
+                  if (e.shiftKey) {
+                    // Default textarea behavior — newline.
+                    e.stopPropagation();
                     return;
                   }
-                  e.stopPropagation();
+                  e.preventDefault();
+                  e.currentTarget.blur();
                   return;
                 }
                 if (e.key === 'Escape') {
