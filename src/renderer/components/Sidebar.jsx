@@ -414,6 +414,25 @@ export default function Sidebar({
       return;
     }
 
+    // Reorder mode. If the dragged folder ends up positioned among
+    // a different parent's siblings (or at the top level), update
+    // its parent_id to match the target's. This is the inverse of
+    // the nest gesture: drag a child folder up to a top-level row's
+    // reorder zone and drop → it gets promoted to top-level. Drop a
+    // top-level folder onto a child's reorder zone → it joins that
+    // parent's children. setParent server-side enforces the schema's
+    // one-level cap so we don't have to re-validate here.
+    const draggedItem = collections.find((c) => c.id === fromId);
+    const targetItem = collections.find((c) => c.id === targetId);
+    const desiredParentId = targetItem?.parent_id || null;
+    if (draggedItem && (draggedItem.parent_id || null) !== desiredParentId) {
+      try {
+        await window.moodmark.collections.setParent(fromId, desiredParentId);
+      } catch (err) {
+        console.error('[gatheros] setParent failed during reorder:', err);
+      }
+    }
+
     const ids = collections.map((c) => c.id);
     const fromIdx = ids.indexOf(fromId);
     const toIdx = ids.indexOf(targetId);
@@ -828,12 +847,24 @@ export default function Sidebar({
             onDragLeave={() => {
               if (dropTargetId === '__end__') setDropTargetId(null);
             }}
-            onDrop={(e) => {
+            onDrop={async (e) => {
               if (!draggingId || isSaveDrag(e)) return;
               e.preventDefault();
               e.stopPropagation();
               const fromId = draggingId;
               handleDragEnd();
+              // Tail dropzone always lands at top-level. If the
+              // dragged folder is currently nested, promote it
+              // first so the order-only reorder doesn't leave it
+              // visually inside its old parent.
+              const draggedItem = collections.find((c) => c.id === fromId);
+              if (draggedItem?.parent_id) {
+                try {
+                  await window.moodmark.collections.setParent(fromId, null);
+                } catch (err) {
+                  console.error('[gatheros] tail-drop promote failed:', err);
+                }
+              }
               const ids = collections.map((c) => c.id).filter((id) => id !== fromId);
               ids.push(fromId);
               onReorderCollections?.(ids);
