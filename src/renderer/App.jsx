@@ -15,7 +15,6 @@ import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
-import DropExperience from './components/DropExperience.jsx';
 import CompostBurst from './components/CompostBurst.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
 import {
@@ -47,6 +46,69 @@ const RestoreIcon = () => <RotateCcw {...ICON} />;
 const SimilarIcon = () => <Copy {...ICON} />;
 const MinusCircleIcon = () => <MinusCircle {...ICON} />;
 const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
+
+function pickLargestFromSrcset(srcset) {
+  if (!srcset) return null;
+  let best = null;
+  let bestWidth = -1;
+  for (const part of srcset.split(',')) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const [url, descriptor] = trimmed.split(/\s+/);
+    const w = descriptor && descriptor.endsWith('w')
+      ? parseFloat(descriptor)
+      : descriptor && descriptor.endsWith('x')
+        ? parseFloat(descriptor) * 1000
+        : 0;
+    if (url && w > bestWidth) {
+      best = url;
+      bestWidth = w;
+    }
+  }
+  return best;
+}
+
+function extractDropImageUrls(dataTransfer) {
+  const seen = new Set();
+  const candidates = [];
+  const add = (url) => {
+    if (!url) return;
+    const u = url.trim();
+    if (!u || seen.has(u)) return;
+    if (!/^(https?:|data:)/i.test(u)) return;
+    seen.add(u);
+    candidates.push(u);
+  };
+
+  const html = dataTransfer.getData('text/html');
+  if (html) {
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      for (const img of doc.querySelectorAll('img')) {
+        add(pickLargestFromSrcset(img.getAttribute('srcset')));
+        add(img.getAttribute('src'));
+        add(img.getAttribute('data-src'));
+        add(img.getAttribute('data-original'));
+      }
+    } catch {
+      const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (m) add(m[1]);
+    }
+  }
+
+  const uriList = dataTransfer.getData('text/uri-list');
+  if (uriList) {
+    for (const line of uriList.split(/\r?\n/)) {
+      const t = line.trim();
+      if (t && !t.startsWith('#')) add(t);
+    }
+  }
+
+  const text = dataTransfer.getData('text/plain');
+  if (text) add(text);
+
+  return candidates;
+}
 
 export default function App() {
   const {
@@ -177,6 +239,7 @@ export default function App() {
   }, [gridLayout]);
   const [focusedId, setFocusedId] = useState(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Multi-library state. Loaded once on mount; refreshed whenever
@@ -1461,6 +1524,23 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [undoStack, showActionToast]);
 
+  const onDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const items = [...e.dataTransfer.items];
+    const couldBeImage = items.some(
+      (i) =>
+        (i.kind === 'file' && i.type.startsWith('image/')) ||
+        (i.kind === 'string' &&
+          (i.type === 'text/uri-list' || i.type === 'text/html')),
+    );
+    if (couldBeImage) setDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback((e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false);
+  }, []);
+
   // After a successful drop / paste / upload we used to push the user
   // straight into the detail view, but that hides the new card behind
   // the focused-view overlay — including the shimmer animation that
@@ -1472,48 +1552,38 @@ export default function App() {
     setSelected(new Set());
   }, [view, setView]);
 
-  // Drop persistence callbacks for <DropExperience>. The component
-  // owns the dragenter / dragover / drop window listeners and the
-  // visual landing animation; we just persist the dropped bytes via
-  // the existing IPCs and switch to the All view so the new save is
-  // visible by the time the landing animation finishes.
-  const handleDropFile = useCallback(async (file) => {
-    try {
-      const record = await window.moodmark.saves.dropFile(file);
-      if (record?.id) focusAfterDrop();
-    } catch (err) {
-      console.error('Drop failed:', err);
-    }
-  }, [focusAfterDrop]);
+  const onDrop = useCallback(async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
 
-  const handleDropUrl = useCallback(async (urls) => {
+    const files = [...e.dataTransfer.files].filter((f) =>
+      f.type.startsWith('image/'),
+    );
+    if (files.length > 0) {
+      let lastId = null;
+      for (const file of files) {
+        try {
+          const record = await window.moodmark.saves.dropFile(file);
+          if (record?.id) lastId = record.id;
+        } catch (err) {
+          console.error('Drop failed:', err);
+        }
+      }
+      if (lastId) focusAfterDrop();
+      return;
+    }
+
+    const candidates = extractDropImageUrls(e.dataTransfer);
+    if (candidates.length === 0) return;
+
     try {
-      const record = await window.moodmark.saves.dropUrl(urls);
+      const record = await window.moodmark.saves.dropUrl(candidates);
       if (record?.id) focusAfterDrop();
     } catch (err) {
       console.error('URL drop failed:', err);
     }
   }, [focusAfterDrop]);
-
-  // Where the dropped image should land. New saves sort newest-first
-  // so they appear at the top-left of the masonry; aim at the rect
-  // of the current first card (the new one slots in just above it
-  // and the visual offset is well within the animation's tolerance).
-  // If the grid is empty we fall back to the top-left of the grid-
-  // scroll container.
-  const getLandingTarget = useCallback(() => {
-    const firstCard = document.querySelector('[data-save-id]');
-    if (firstCard) {
-      const r = firstCard.getBoundingClientRect();
-      return { x: r.left, y: r.top, w: r.width, h: r.height };
-    }
-    const scroller = document.querySelector('.grid-scroll');
-    if (scroller) {
-      const r = scroller.getBoundingClientRect();
-      return { x: r.left + 24, y: r.top + 24, w: 180, h: 140 };
-    }
-    return { x: window.innerWidth * 0.25, y: 220, w: 180, h: 140 };
-  }, []);
 
   // Hidden file picker — triggered by the "+" button on the All Saves
   // sidebar row. Routes the chosen files through the same dropFile +
@@ -1541,7 +1611,12 @@ export default function App() {
   }, [focusAfterDrop]);
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${dragging ? ' drag-over' : ''}`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       {booting && <LoadingScreen onDone={() => setBooting(false)} />}
       <input
         ref={fileInputRef}
@@ -1839,11 +1914,11 @@ export default function App() {
         </div>
       )}
 
-      <DropExperience
-        onSaveFile={handleDropFile}
-        onSaveUrl={handleDropUrl}
-        getLandingTarget={getLandingTarget}
-      />
+      {dragging && (
+        <div className="drop-overlay">
+          <span className="drop-message">Drop to save</span>
+        </div>
+      )}
 
       {compostBurst && (
         <CompostBurst
