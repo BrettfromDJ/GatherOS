@@ -107,7 +107,7 @@ export default function Grid({
       title = 'Nothing unsorted';
       hint = 'Every save belongs to at least one folder.';
       EmptyIcon = InboxIcon;
-      emptyIconColor = 'var(--icon-yellow)';
+      emptyIconColor = 'var(--text-tertiary)';
     } else if (isTrash) {
       title = 'Trash is empty';
       hint = 'Deleted saves land here. Empty Trash to remove for good.';
