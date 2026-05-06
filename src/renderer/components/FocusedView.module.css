@@ -250,10 +250,13 @@
 }
 
 .image {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  /* Fill the .imageWrap so zoom scales the image 1:1 with the
+     slider. With width/height: auto + max-width/height: 100%,
+     the image stuck at its natural pixel size once the wrap grew
+     past 100%, so anything not several × the stage didn't appear
+     to zoom at all. */
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   border-radius: 6px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
