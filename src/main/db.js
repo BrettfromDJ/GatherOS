@@ -514,6 +514,14 @@ function deleteSave(id) {
   const tx = db.transaction(() => {
     db.prepare('UPDATE saves SET deleted_at = ? WHERE id = ?').run(Date.now(), id);
     db.prepare('DELETE FROM collection_items WHERE save_id = ?').run(id);
+    // board_items reference saves via a JSON blob (data.saveId) so
+    // there's no FK to cascade — trash any image item that points
+    // at this save so it stops rendering on every board it was on.
+    db.prepare(
+      `DELETE FROM board_items
+       WHERE type = 'image'
+         AND json_extract(data, '$.saveId') = ?`
+    ).run(id);
   });
   tx();
   return { ok: true };
@@ -531,7 +539,15 @@ function permanentlyDeleteSave(id) {
   const db = getDatabase();
   const save = db.prepare('SELECT file_path, thumb_path FROM saves WHERE id = ?').get(id);
   if (!save) return { ok: false };
-  db.prepare('DELETE FROM saves WHERE id = ?').run(id);
+  const tx = db.transaction(() => {
+    db.prepare(
+      `DELETE FROM board_items
+       WHERE type = 'image'
+         AND json_extract(data, '$.saveId') = ?`
+    ).run(id);
+    db.prepare('DELETE FROM saves WHERE id = ?').run(id);
+  });
+  tx();
   return { ok: true, filePath: save.file_path, thumbPath: save.thumb_path };
 }
 
@@ -540,10 +556,25 @@ function emptyTrash() {
   const rows = db
     .prepare('SELECT id, file_path, thumb_path FROM saves WHERE deleted_at IS NOT NULL')
     .all();
-  if (rows.length === 0) return { ok: true, files: [] };
-  db.prepare('DELETE FROM saves WHERE deleted_at IS NOT NULL').run();
+  if (rows.length === 0) return { ok: true, files: [], ids: [] };
+  const ids = rows.map((r) => r.id);
+  const tx = db.transaction(() => {
+    // Sweep any orphaned board_items whose saveId is among the
+    // trashed rows we're about to nuke. (deleteSave already cleans
+    // these up on trash, but be defensive in case anything slipped
+    // past — e.g. saves trashed before this code shipped.)
+    const placeholders = ids.map(() => '?').join(',');
+    db.prepare(
+      `DELETE FROM board_items
+       WHERE type = 'image'
+         AND json_extract(data, '$.saveId') IN (${placeholders})`
+    ).run(...ids);
+    db.prepare('DELETE FROM saves WHERE deleted_at IS NOT NULL').run();
+  });
+  tx();
   return {
     ok: true,
+    ids,
     files: rows.map((r) => ({ filePath: r.file_path, thumbPath: r.thumb_path })),
   };
 }
@@ -558,9 +589,13 @@ function wipeLibrary() {
   const tx = db.transaction(() => {
     // collection_items / save_tags / save_embeddings cascade off
     // saves and collections via the schema's ON DELETE CASCADE.
+    // boards + board_items don't FK to saves (image references live
+    // in JSON data), so wipe them explicitly — board_items cascades
+    // off boards.
     db.prepare('DELETE FROM saves').run();
     db.prepare('DELETE FROM collections').run();
     db.prepare('DELETE FROM tags').run();
+    db.prepare('DELETE FROM boards').run();
   });
   tx();
   return {

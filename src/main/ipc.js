@@ -188,10 +188,23 @@ function registerIpcHandlers() {
     }
   });
 
+  // Broadcast helper for save lifecycle events the renderer cares
+  // about. Boards listen so they can drop any items referencing a
+  // trashed/deleted save without the user having to reload the
+  // board view.
+  function broadcastSavesDeleted(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) return;
+    for (const win of BrowserWindow.getAllWindows()) {
+      try { win.webContents.send('save:deleted', { ids }); }
+      catch { /* renderer may be tearing down */ }
+    }
+  }
+
   // Soft delete — sends the save to Trash. Files stay on disk until the
   // user permanently deletes or empties Trash.
   ipcMain.handle('saves:delete', (_e, id) => {
     const r = deleteSave(id);
+    if (r?.ok) broadcastSavesDeleted([id]);
     refreshTray();
     return r;
   });
@@ -205,7 +218,10 @@ function registerIpcHandlers() {
   // Hard delete from Trash: also removes the underlying image + thumb.
   ipcMain.handle('saves:permanent-delete', (_e, id) => {
     const result = permanentlyDeleteSave(id);
-    if (result.ok) deleteImageFiles(result.filePath, result.thumbPath);
+    if (result.ok) {
+      deleteImageFiles(result.filePath, result.thumbPath);
+      broadcastSavesDeleted([id]);
+    }
     refreshTray();
     return result;
   });
@@ -214,6 +230,7 @@ function registerIpcHandlers() {
     const result = emptyTrash();
     if (result.ok) {
       for (const f of result.files) deleteImageFiles(f.filePath, f.thumbPath);
+      if (result.ids?.length) broadcastSavesDeleted(result.ids);
     }
     refreshTray();
     return { ok: true, count: result.files.length };

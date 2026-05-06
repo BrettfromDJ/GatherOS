@@ -283,6 +283,34 @@ export default function BoardView({
   const [titleDraft, setTitleDraft] = useState('');
   const rootRef = useRef(null);
 
+  // Drop any items whose underlying save was just trashed. Trash
+  // also deletes the corresponding board_items rows server-side, so
+  // this keeps the local UI in sync without needing a full reload.
+  useEffect(() => {
+    return window.moodmark.on('save:deleted', ({ ids }) => {
+      if (!Array.isArray(ids) || ids.length === 0) return;
+      const dead = new Set(ids);
+      setItems((prev) => prev.filter((it) => {
+        if (it.type !== 'image') return true;
+        return !dead.has(it.data?.saveId);
+      }));
+      setSelectedIds((prev) => {
+        const next = new Set();
+        for (const id of prev) {
+          const it = items.find((x) => x.id === id);
+          if (!it || it.type !== 'image' || !dead.has(it.data?.saveId)) {
+            next.add(id);
+          }
+        }
+        return next;
+      });
+    });
+    // intentionally not including `items` — listener uses live state
+    // via setters and stale-closure reads through `items` (only used
+    // for selection cleanup, where slight staleness is fine).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load the board metadata + items when the board changes.
   useEffect(() => {
     let cancelled = false;
