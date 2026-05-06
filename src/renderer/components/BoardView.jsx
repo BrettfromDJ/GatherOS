@@ -32,6 +32,7 @@ import {
   MoveUpRight,
   Slash,
   CornerDownRight,
+  Pencil,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -871,6 +872,8 @@ export default function BoardView({
   const [editingItemId, setEditingItemId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [titleEditing, setTitleEditing] = useState(false);
+  const titleInputRef = useRef(null);
   const rootRef = useRef(null);
 
   // Drop any items whose underlying save was just trashed. Trash
@@ -1423,6 +1426,7 @@ export default function BoardView({
   ]);
 
   const commitTitle = () => {
+    setTitleEditing(false);
     const trimmed = titleDraft.trim();
     if (!trimmed || trimmed === board?.name) {
       setTitleDraft(board?.name || '');
@@ -1430,6 +1434,18 @@ export default function BoardView({
     }
     onRenameBoard?.({ id: boardId, name: trimmed });
     setBoard((b) => (b ? { ...b, name: trimmed } : b));
+  };
+
+  const beginTitleEdit = () => {
+    setTitleDraft(board?.name || '');
+    setTitleEditing(true);
+    // Defer focus to next tick so the input has rendered.
+    setTimeout(() => {
+      const el = titleInputRef.current;
+      if (!el) return;
+      el.focus();
+      el.select();
+    }, 0);
   };
 
   const zoomReadout = useMemo(() => `${Math.round(zoom * 100)}%`, [zoom]);
@@ -1768,25 +1784,47 @@ export default function BoardView({
       )}
 
       <div className={styles.titleBar}>
-        <input
-          className={styles.titleInput}
-          value={titleDraft}
-          /* size acts as the universal fallback for browsers that
-             don't honor field-sizing: content. Track the longer of
-             the typed value or the placeholder so an empty title
-             still has room for the placeholder text. */
-          size={Math.max(8, (titleDraft || 'Untitled board').length)}
-          onChange={(e) => setTitleDraft(e.target.value)}
-          onBlur={commitTitle}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') {
-              setTitleDraft(board?.name || '');
-              e.currentTarget.blur();
-            }
-          }}
-          placeholder="Untitled board"
-        />
+        {titleEditing ? (
+          <input
+            ref={titleInputRef}
+            className={styles.titleInput}
+            value={titleDraft}
+            /* size acts as the universal fallback for browsers that
+               don't honor field-sizing: content. Track the longer of
+               the typed value or the placeholder so an empty title
+               still has room for the placeholder text. */
+            size={Math.max(8, (titleDraft || 'Untitled board').length)}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+              if (e.key === 'Escape') {
+                setTitleDraft(board?.name || '');
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="Untitled board"
+          />
+        ) : (
+          <>
+            <span
+              className={styles.titleText}
+              onDoubleClick={beginTitleEdit}
+              title="Double-click to rename"
+            >
+              {board?.name || 'Untitled board'}
+            </span>
+            <button
+              type="button"
+              className={styles.titleEditBtn}
+              onClick={beginTitleEdit}
+              title="Rename board"
+              aria-label="Rename board"
+            >
+              <Pencil size={12} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+          </>
+        )}
       </div>
 
       <div className={styles.toolbar}>
