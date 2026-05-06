@@ -291,8 +291,7 @@
   cursor: grabbing;
 }
 
-/* Resize handles. Pure visual indicators for now — clicking still
-   moves the item; resize behaviour lands in the next pass. */
+/* Resize handles — drag any corner to scale the item. */
 .handle {
   position: absolute;
   width: 11px;
@@ -301,14 +300,13 @@
   border: 1px solid rgba(0, 0, 0, 0.30);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  pointer-events: none;
   z-index: 1;
 }
 
-.handleNw { top: -6px;    left: -6px; }
-.handleNe { top: -6px;    right: -6px; }
-.handleSw { bottom: -6px; left: -6px; }
-.handleSe { bottom: -6px; right: -6px; }
+.handleNw { top: -6px;    left: -6px;  cursor: nwse-resize; }
+.handleNe { top: -6px;    right: -6px; cursor: nesw-resize; }
+.handleSw { bottom: -6px; left: -6px;  cursor: nesw-resize; }
+.handleSe { bottom: -6px; right: -6px; cursor: nwse-resize; }
 
 .itemImage {
   width: 100%;

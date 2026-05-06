@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   MousePointer2,
   ImagePlus,
@@ -360,25 +361,22 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
       created_at: Date.now(),
       updated_at: Date.now(),
     };
-    setItems((prev) => [...prev, item]);
-    setSelectedIds(new Set([item.id]));
-    setEditingItemId(item.id);
-    persistItem(item);
-    // Fall back to select after placing — single-click-to-add feels
-    // more natural than staying armed and accidentally laying down
-    // a chain of stickies.
-    setTool('select');
-    // Belt-and-suspenders focus: the inner editor's own
-    // useLayoutEffect handles the common case, but the user's
-    // ongoing mouseup can still land focus on the .item wrapper
-    // (which now has the contentEditable inside it) and the caret
-    // ends up nowhere. Re-focus on the next animation frame, after
-    // every browser default for the originating click has resolved.
-    requestAnimationFrame(() => {
-      const el = document.querySelector(
-        `[data-item-id="${item.id}"] [contenteditable="true"]`,
-      );
-      if (!el) return;
+    // flushSync forces React to commit the new item to the DOM
+    // synchronously inside the original mousedown handler. Without
+    // it, React's normal async commit lands AFTER the user's mouseup,
+    // so the browser's default mouseup-over-contentEditable focus
+    // step has nothing focusable to land on, and the caret never
+    // takes — the user has to click again. With flushSync, the
+    // contentEditable exists and is focused before mouseup fires.
+    flushSync(() => {
+      setItems((prev) => [...prev, item]);
+      setSelectedIds(new Set([item.id]));
+      setEditingItemId(item.id);
+    });
+    const el = document.querySelector(
+      `[data-item-id="${item.id}"] [contenteditable="true"]`,
+    );
+    if (el) {
       el.focus();
       const range = document.createRange();
       range.selectNodeContents(el);
@@ -386,7 +384,12 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
       const sel = window.getSelection();
       sel?.removeAllRanges();
       sel?.addRange(range);
-    });
+    }
+    persistItem(item);
+    // Fall back to select after placing — single-click-to-add feels
+    // more natural than staying armed and accidentally laying down
+    // a chain of stickies.
+    setTool('select');
   }, [boardId, items, persistItem]);
 
   const handleCommitEdit = useCallback((itemId, text) => {

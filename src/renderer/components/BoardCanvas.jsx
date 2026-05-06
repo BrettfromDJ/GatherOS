@@ -85,16 +85,22 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
   );
 }
 
-// 4 corner handles, rendered when the item is selected. Pure visual
-// for now — drag-to-resize lands in the next pass; the wrapper
-// handles move regardless of where the click lands inside it.
-function SelectionHandles() {
+// 4 corner handles, rendered when the item is selected. Each
+// handle dispatches its corner identifier so the canvas's resize
+// math knows which edges are anchored vs moving.
+function SelectionHandles({ onResizeStart }) {
+  const start = (corner) => (e) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onResizeStart(corner, e);
+  };
   return (
     <>
-      <span className={`${styles.handle} ${styles.handleNw}`} />
-      <span className={`${styles.handle} ${styles.handleNe}`} />
-      <span className={`${styles.handle} ${styles.handleSw}`} />
-      <span className={`${styles.handle} ${styles.handleSe}`} />
+      <span className={`${styles.handle} ${styles.handleNw}`} onMouseDown={start('nw')} />
+      <span className={`${styles.handle} ${styles.handleNe}`} onMouseDown={start('ne')} />
+      <span className={`${styles.handle} ${styles.handleSw}`} onMouseDown={start('sw')} />
+      <span className={`${styles.handle} ${styles.handleSe}`} onMouseDown={start('se')} />
     </>
   );
 }
@@ -110,6 +116,7 @@ function BoardItem({
   editing,
   onSelect,
   onMoveStart,
+  onResizeStart,
   onCommitEdit,
   onBeginEdit,
 }) {
@@ -171,7 +178,11 @@ function BoardItem({
       onDoubleClick={isTextish ? (e) => { e.stopPropagation(); onBeginEdit(item.id); } : undefined}
     >
       {content}
-      {selected && <SelectionHandles />}
+      {selected && (
+        <SelectionHandles
+          onResizeStart={(corner, e) => onResizeStart(item, corner, e)}
+        />
+      )}
     </div>
   );
 }
@@ -200,6 +211,10 @@ export default function BoardCanvas({
   // While the user is dragging an item, track which items are moving
   // and the world-space offset between cursor and each item's origin.
   const moveState = useRef(null);
+  // While the user is dragging a resize handle, track which corner
+  // is anchored, the item's starting rect, and (for text) starting
+  // font size so we can scale the text uniformly with the resize.
+  const resizeState = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Wheel = zoom toward cursor. Pinch on a trackpad fires wheel events
@@ -255,6 +270,37 @@ export default function BoardCanvas({
     }
   };
 
+  // Resize drag: capture the initial rect (filling in measured size
+  // for autosize text items that have width/height = null), the
+  // active corner, and starting font size. The window-level
+  // mousemove listener below applies dx/dy to the right edges and
+  // anchors the opposite corner.
+  const handleItemResizeStart = (item, corner, e) => {
+    const itemEl = canvasRef.current.querySelector(`[data-item-id="${item.id}"]`);
+    let measuredW = item.width;
+    let measuredH = item.height;
+    if ((!measuredW || !measuredH) && itemEl) {
+      const r = itemEl.getBoundingClientRect();
+      // Convert measured screen size back to world units.
+      measuredW = measuredW || r.width / zoom;
+      measuredH = measuredH || r.height / zoom;
+    }
+    resizeState.current = {
+      itemId: item.id,
+      type: item.type,
+      corner,
+      startMouse: { x: e.clientX, y: e.clientY },
+      initial: {
+        x: item.x,
+        y: item.y,
+        width: measuredW || 100,
+        height: measuredH || 40,
+        fontSize: item.data?.fontSize || (item.type === 'sticky' ? 14 : 16),
+        data: item.data || {},
+      },
+    };
+  };
+
   // Item move: started by BoardItem.onMouseDown, completed/tracked here
   // via window-level listeners so the cursor can wander outside the
   // canvas during a drag without the move getting stuck.
@@ -304,6 +350,64 @@ export default function BoardCanvas({
           return { ...it, x: cursor.x + o.dx, y: cursor.y + o.dy };
         });
         onItemsChange(updated, { movingIds, persist: false });
+      } else if (resizeState.current) {
+        const { itemId, type, corner, startMouse, initial } = resizeState.current;
+        // Convert pointer delta into world units up front so the math
+        // below stays in the item's coordinate space.
+        const dxW = (e.clientX - startMouse.x) / zoom;
+        const dyW = (e.clientY - startMouse.y) / zoom;
+
+        // Decide which directions each corner pulls. The opposite
+        // corner stays anchored — its world position never changes.
+        const anchorRight = corner === 'nw' || corner === 'sw';
+        const anchorBottom = corner === 'nw' || corner === 'ne';
+        const dxSigned = anchorRight ? -dxW : dxW;
+        const dySigned = anchorBottom ? -dyW : dyW;
+
+        const MIN = 24;
+        let newW = Math.max(MIN, initial.width + dxSigned);
+        let newH = Math.max(MIN, initial.height + dySigned);
+
+        // For text/sticky we resize uniformly so the text stays
+        // legible (and so font scaling has a single ratio to apply).
+        // For images we keep the user's free aspect.
+        if (type === 'text' || type === 'sticky') {
+          // Use the larger axis ratio so the user feels the corner
+          // they're holding actually moves under their cursor.
+          const sx = newW / initial.width;
+          const sy = newH / initial.height;
+          const s = Math.max(sx, sy);
+          newW = Math.max(MIN, initial.width * s);
+          newH = Math.max(MIN, initial.height * s);
+        }
+
+        // Anchor the opposite corner: shift x/y so the corner the
+        // user is NOT holding stays put.
+        const newX = anchorRight ? initial.x + (initial.width - newW) : initial.x;
+        const newY = anchorBottom ? initial.y + (initial.height - newH) : initial.y;
+
+        const updated = items.map((it) => {
+          if (it.id !== itemId) return it;
+          const next = {
+            ...it,
+            x: newX,
+            y: newY,
+            width: newW,
+            height: newH,
+          };
+          // Text items: scale fontSize by the same ratio so the editor
+          // toolbar's font-size input reflects the resize. Sticky keeps
+          // its body type at a fixed size — only the box grows.
+          if (type === 'text') {
+            const scale = newW / initial.width;
+            next.data = {
+              ...initial.data,
+              fontSize: Math.max(8, Math.min(200, Math.round(initial.fontSize * scale))),
+            };
+          }
+          return next;
+        });
+        onItemsChange(updated, { movingIds: [itemId], persist: false });
       }
     }
     function onUp() {
@@ -316,6 +420,11 @@ export default function BoardCanvas({
         moveState.current = null;
         // Persist the final positions of the moved items.
         onItemsChange(items, { movingIds, persist: true });
+      }
+      if (resizeState.current) {
+        const id = resizeState.current.itemId;
+        resizeState.current = null;
+        onItemsChange(items, { movingIds: [id], persist: true });
       }
     }
     window.addEventListener('mousemove', onMove);
@@ -390,6 +499,7 @@ export default function BoardCanvas({
               }
             }}
             onMoveStart={handleItemMoveStart}
+            onResizeStart={handleItemResizeStart}
             onBeginEdit={onBeginEdit}
             onCommitEdit={onCommitEdit}
           />
