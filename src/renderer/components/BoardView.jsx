@@ -86,6 +86,19 @@ const SHAPE_STROKE_SWATCHES = [
   '#ff3b30', '#af52de', 'transparent',
 ];
 
+// Sticky colour palette. Each entry carries the gradient stops
+// used to paint the paper (top -> bottom) plus a swatch colour for
+// the picker. data.color = id; defaults to 'yellow'.
+const STICKY_PALETTES = {
+  yellow: { top: '#FFF6BC', bottom: '#FFE988', swatch: '#FFE988' },
+  pink:   { top: '#FFE0EA', bottom: '#FFC2D1', swatch: '#FFC2D1' },
+  green:  { top: '#DCF1E0', bottom: '#B8E0BF', swatch: '#B8E0BF' },
+  blue:   { top: '#DCEAF8', bottom: '#B8D2EE', swatch: '#B8D2EE' },
+  orange: { top: '#FFE0CB', bottom: '#FFC59E', swatch: '#FFC59E' },
+  purple: { top: '#EFD9FF', bottom: '#DCB4FA', swatch: '#DCB4FA' },
+};
+const STICKY_COLOR_IDS = ['yellow', 'pink', 'green', 'blue', 'orange', 'purple'];
+
 // Arrow tool defaults. Arrows store every vertex in data.points
 // (world coords), with at minimum 2 points (start/end). The
 // wrapper's x/y/width/height carry the bounding rect with a few
@@ -310,6 +323,13 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
           onUpdate={onUpdate}
         />
       )}
+
+      {item.type === 'sticky' && (
+        <StickyColorPicker
+          item={item}
+          onUpdate={onUpdate}
+        />
+      )}
     </div>
   );
 }
@@ -318,6 +338,56 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
 // styler. Kind swap (rect / ellipse / triangle), fill swatch, stroke
 // swatch. Each swatch opens its own popover; only one can be open at
 // a time so they don't stack visually.
+// Sticky-specific control: paper colour. Renders a swatch trigger
+// + popover with the six sticky palettes. The selected colour fills
+// the trigger so the user always sees what's active.
+function StickyColorPicker({ item, onUpdate }) {
+  const data = item.data || {};
+  const colorId = data.stickyColor || 'yellow';
+  const swatch = STICKY_PALETTES[colorId]?.swatch || STICKY_PALETTES.yellow.swatch;
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [item.id]);
+
+  return (
+    <>
+      <div className={styles.tt_sep} />
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          type="button"
+          className={styles.tt_color}
+          onClick={() => setOpen((s) => !s)}
+          data-tooltip="Sticky color"
+          title="Sticky color"
+          style={{ '--swatch': swatch }}
+        >
+          <span className={styles.tt_colorChip} />
+          <ChevronDown size={12} strokeWidth={2} className={styles.tt_colorChevron} />
+        </button>
+        {open && (
+          <div className={styles.tt_colorPopover}>
+            {STICKY_COLOR_IDS.map((id) => {
+              const p = STICKY_PALETTES[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={styles.tt_swatch}
+                  style={{ background: p.swatch }}
+                  title={id}
+                  onClick={() => {
+                    onUpdate({ ...data, stickyColor: id });
+                    setOpen(false);
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </span>
+    </>
+  );
+}
+
 function ShapeControls({ item, onUpdate }) {
   const data = item.data || {};
   const kind = data.kind || 'rect';

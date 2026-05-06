@@ -49,13 +49,27 @@ function screenToWorld(sx, sy, pan, zoom) {
   };
 }
 
+// Hardcoded sticky palette mirror for inline-style rendering. (Kept
+// in sync with STICKY_PALETTES in BoardView.jsx; could be hoisted
+// to a shared module if it grows.)
+const STICKY_PALETTES_CANVAS = {
+  yellow: { top: '#FFF6BC', bottom: '#FFE988', shadow: 'rgba(140, 110, 0, 0.18)' },
+  pink:   { top: '#FFE0EA', bottom: '#FFC2D1', shadow: 'rgba(170, 70, 100, 0.18)' },
+  green:  { top: '#DCF1E0', bottom: '#B8E0BF', shadow: 'rgba(40, 110, 60, 0.18)' },
+  blue:   { top: '#DCEAF8', bottom: '#B8D2EE', shadow: 'rgba(40, 80, 140, 0.18)' },
+  orange: { top: '#FFE0CB', bottom: '#FFC59E', shadow: 'rgba(170, 90, 30, 0.18)' },
+  purple: { top: '#EFD9FF', bottom: '#DCB4FA', shadow: 'rgba(110, 60, 170, 0.18)' },
+};
+
 // Style props derived from item.data — used by text, sticky, and
 // shape items. Falls back to sensible per-type defaults when a field
-// hasn't been customised yet.
+// hasn't been customised yet. For stickies, also adds the CSS vars
+// that paint the paper gradient (so a single .itemSticky class
+// supports any palette).
 function textStyleFor(item) {
   const isSticky = item.type === 'sticky';
   const isShape = item.type === 'shape';
-  return {
+  const out = {
     fontFamily: item.data?.fontFamily || 'inherit',
     fontSize: `${item.data?.fontSize || (isSticky || isShape ? 14 : 16)}px`,
     fontWeight: item.data?.bold ? 700 : 400,
@@ -65,6 +79,14 @@ function textStyleFor(item) {
       item.data?.color
       || (isSticky ? 'rgba(0, 0, 0, 0.85)' : 'var(--text-primary)'),
   };
+  if (isSticky) {
+    const palette = STICKY_PALETTES_CANVAS[item.data?.stickyColor]
+      || STICKY_PALETTES_CANVAS.yellow;
+    out['--sticky-top'] = palette.top;
+    out['--sticky-bottom'] = palette.bottom;
+    out['--sticky-shadow'] = palette.shadow;
+  }
+  return out;
 }
 
 // Inner editable for text/sticky items. The contentEditable's text

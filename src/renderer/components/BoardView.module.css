@@ -822,23 +822,26 @@
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
 }
 
-/* Apple-style paper sticky: warm cream → amber gradient, a thin
-   inset highlight at the top edge for paper sheen, and three
-   layered drop shadows in a warm-tinted hue so the note reads as a
-   real piece of paper resting on the canvas rather than a flat
-   yellow rectangle. */
+/* Apple-style paper sticky. Gradient stops + shadow tint come from
+   inline CSS vars (--sticky-top, --sticky-bottom, --sticky-shadow),
+   so the same .itemSticky class supports any colour palette. The
+   yellow defaults below are used when the inline vars aren't set
+   (older items / safety fallback). */
 .itemSticky {
   width: 100%;
   height: 100%;
   padding: 16px;
-  background:
-    linear-gradient(180deg, #FFF6BC 0%, #FFE988 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sticky-top, #FFF6BC) 0%,
+    var(--sticky-bottom, #FFE988) 100%
+  );
   border-radius: 3px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 1px 2px rgba(140, 110, 0, 0.10),
-    0 6px 14px rgba(140, 110, 0, 0.18),
-    0 18px 32px rgba(140, 110, 0, 0.10);
+    0 1px 2px var(--sticky-shadow, rgba(140, 110, 0, 0.10)),
+    0 6px 14px var(--sticky-shadow, rgba(140, 110, 0, 0.18)),
+    0 18px 32px var(--sticky-shadow, rgba(140, 110, 0, 0.10));
   font-size: 14px;
   line-height: 1.45;
   letter-spacing: -0.005em;
@@ -849,9 +852,9 @@
 }
 
 .itemSticky:empty::before {
-  /* Override the generic gray placeholder with a warm desaturated
-     tone that harmonises with the paper colour. */
-  color: rgba(120, 95, 0, 0.42);
+  /* Slightly muted version of the body color so the placeholder
+     reads as 'I'm a hint' regardless of the paper colour. */
+  color: rgba(0, 0, 0, 0.30);
 }
 
 /* ── Shapes ───────────────────────────────────────────────────────
@@ -883,10 +886,18 @@
   overflow: hidden;
 }
 
-/* No placeholder on shapes — they're meaningful empty (the outline
-   itself reads as the item). The :empty selector in the shared
-   .itemText / .itemSticky placeholder rules above doesn't match
-   .shapeText so this is implicit, but documenting it here. */
+/* No visible placeholder on shapes — the outline reads as the
+   item. But we *do* drop a zero-width pseudo-element in when the
+   editor is empty: this gives flex's align-items:center an
+   anonymous item to centre, so the caret sits at the middle
+   instead of the top-left of an empty contentEditable. As soon
+   as the user types one character the :empty selector stops
+   matching, the pseudo disappears, and the typed glyph is the
+   item being centred — the caret stays put. */
+.shapeText:empty::before {
+  content: '\200B';
+  pointer-events: none;
+}
 
 /* ── Arrows ───────────────────────────────────────────────────────
    The wrapper is the bounding rect (with a small padding for the
