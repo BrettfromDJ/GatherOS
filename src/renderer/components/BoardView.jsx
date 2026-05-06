@@ -15,6 +15,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -149,8 +151,20 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
           }}
         />
         <div className={styles.tt_sizeStep}>
-          <button type="button" onClick={() => set({ fontSize: Math.min(200, fontSize + 1) })}>▲</button>
-          <button type="button" onClick={() => set({ fontSize: Math.max(8, fontSize - 1) })}>▼</button>
+          <button
+            type="button"
+            aria-label="Increase font size"
+            onClick={() => set({ fontSize: Math.min(200, fontSize + 1) })}
+          >
+            <ChevronUp size={10} strokeWidth={2.25} />
+          </button>
+          <button
+            type="button"
+            aria-label="Decrease font size"
+            onClick={() => set({ fontSize: Math.max(8, fontSize - 1) })}
+          >
+            <ChevronDown size={10} strokeWidth={2.25} />
+          </button>
         </div>
       </div>
 
@@ -213,7 +227,7 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
           style={{ '--swatch': color }}
         >
           <span className={styles.tt_colorChip} />
-          <span className={styles.tt_colorChevron}>▾</span>
+          <ChevronDown size={12} strokeWidth={2} className={styles.tt_colorChevron} />
         </button>
         {showColors && (
           <div className={styles.tt_colorPopover}>

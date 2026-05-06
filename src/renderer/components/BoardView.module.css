@@ -486,6 +486,9 @@
   padding: 0;
 }
 
+/* Stepper styled to read like a native macOS up/down control:
+   subtle column with a thin divider, chevrons centred via flexbox,
+   and a soft fill on hover that matches the rest of the styler. */
 .tt_sizeStep {
   display: inline-flex;
   flex-direction: column;
@@ -495,18 +498,28 @@
 .tt_sizeStep button {
   width: 18px;
   height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
   padding: 0;
-  font-size: 9px;
   line-height: 1;
+}
+
+.tt_sizeStep button + button {
+  border-top: 0.5px solid rgba(0, 0, 0, 0.10);
 }
 
 .tt_sizeStep button:hover {
   background: rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
+}
+
+.tt_sizeStep button:active {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* The color trigger is a solid swatch circle so it reads as
@@ -543,9 +556,8 @@
 }
 
 .tt_colorChevron {
-  font-size: 11px;
-  line-height: 1;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .tt_colorPopover {
