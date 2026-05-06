@@ -1290,6 +1290,22 @@ export default function BoardCanvas({
             position: 'absolute',
             left: it.data.x2, top: it.data.y2,
           };
+          // Midpoint anchor — geometric center of the line, painted
+          // as a filled accent disc. Mousedown on it triggers the
+          // standard item-move pipeline so the whole arrow drags as
+          // a unit (endpoints follow via handleItemMoveStart's
+          // arrow-aware translation in onMove).
+          const midStyle = {
+            position: 'absolute',
+            left: (it.data.x1 + it.data.x2) / 2,
+            top: (it.data.y1 + it.data.y2) / 2,
+          };
+          const startMidpointDrag = (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            handleItemMoveStart(it, e);
+          };
           return (
             <>
               <span
@@ -1301,6 +1317,11 @@ export default function BoardCanvas({
                 className={styles.arrowEndpoint}
                 style={handleStyle2}
                 onMouseDown={startEndpointDrag('b')}
+              />
+              <span
+                className={styles.arrowMidpoint}
+                style={midStyle}
+                onMouseDown={startMidpointDrag}
               />
             </>
           );

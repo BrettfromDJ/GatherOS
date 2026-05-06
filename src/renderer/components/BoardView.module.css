@@ -919,6 +919,23 @@
   z-index: 2;
 }
 
+/* Arrow midpoint anchor — geometric center of the line. Filled
+   accent disc to read as "drag the whole arrow", paired with the
+   open-circle endpoints. Counter-zoom-scaled like the rest of the
+   selection chrome so it stays at constant screen size. */
+.arrowMidpoint {
+  position: absolute;
+  width: calc(10px / var(--board-zoom, 1));
+  height: calc(10px / var(--board-zoom, 1));
+  background: var(--accent, #0a84ff);
+  border: calc(1.5px / var(--board-zoom, 1)) solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 calc(1px / var(--board-zoom, 1)) calc(3px / var(--board-zoom, 1)) rgba(0, 0, 0, 0.22);
+  transform: translate(-50%, -50%);
+  cursor: move;
+  z-index: 2;
+}
+
 /* Live preview while drawing. Same transparent wrapper, same SVG
    pattern, but rendered as a one-shot overlay inside .world. */
 .arrowPreview {
