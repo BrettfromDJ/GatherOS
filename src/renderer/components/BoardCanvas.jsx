@@ -455,7 +455,33 @@ export default function BoardCanvas({
   // when you click-and-drag to relocate the arrow you don't want
   // the dots flashing along with the line.
   const [arrowMovingId, setArrowMovingId] = useState(null);
+  // Active arrow-snap indicator while creating or dragging an
+  // endpoint / vertex — { axis: 'h' | 'v', anchorX, anchorY }.
+  const [snapHint, setSnapHint] = useState(null);
   const [isPanning, setIsPanning] = useState(false);
+
+  // Threshold (in world coords) for "close enough to lock" while
+  // dragging arrow endpoints / vertices. Divided by zoom so the
+  // gesture feels the same on screen at every zoom level.
+  // (Not memo'd — `zoom` is in scope per render.)
+  const ARROW_SNAP = 8 / zoom;
+
+  // Pure helper: given a candidate point and a set of anchor points
+  // to snap against, return { snapped, axis: 'h'|'v'|null,
+  // anchorX, anchorY } where snapped is the (possibly axis-locked)
+  // position. Horizontal lock wins ties so the user gets predictable
+  // behaviour when dragging diagonally near both axes.
+  function computeArrowSnap(cur, anchors) {
+    for (const a of anchors) {
+      if (Math.abs(cur.y - a.y) < ARROW_SNAP) {
+        return { snapped: { x: cur.x, y: a.y }, axis: 'h', anchorX: a.x, anchorY: a.y };
+      }
+      if (Math.abs(cur.x - a.x) < ARROW_SNAP) {
+        return { snapped: { x: a.x, y: cur.y }, axis: 'v', anchorX: a.x, anchorY: a.y };
+      }
+    }
+    return { snapped: cur, axis: null, anchorX: 0, anchorY: 0 };
+  }
 
   // Bounding rect that wraps every currently-selected item (in world
   // coords). Computed from the rendered DOM rects so it works for
@@ -703,32 +729,46 @@ export default function BoardCanvas({
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       if (arrowDrawState.current) {
-        const cur = screenToWorld(
+        const raw = screenToWorld(
           e.clientX - rect.left,
           e.clientY - rect.top,
           pan,
           zoom,
         );
-        // Stash on the ref too so the mouseup handler can read the
-        // latest end point even though it's running from a stale
-        // useEffect closure (deps don't include arrowDrawPreview).
-        arrowDrawState.current.end = cur;
         const { start } = arrowDrawState.current;
-        setArrowDrawPreview({ x1: start.x, y1: start.y, x2: cur.x, y2: cur.y });
+        // Snap the live end against the start so the user can lock
+        // a perfectly horizontal / vertical arrow during creation.
+        const { snapped, axis, anchorX, anchorY } = computeArrowSnap(raw, [start]);
+        // Stash on the ref so mouseup reads the snapped end.
+        arrowDrawState.current.end = snapped;
+        setArrowDrawPreview({ x1: start.x, y1: start.y, x2: snapped.x, y2: snapped.y });
+        setSnapHint(axis ? { axis, anchorX, anchorY } : null);
         return;
       }
       if (arrowEndpointState.current) {
         const { itemId, vertexIdx } = arrowEndpointState.current;
-        const cur = screenToWorld(
+        const raw = screenToWorld(
           e.clientX - rect.left,
           e.clientY - rect.top,
           pan,
           zoom,
         );
+        const target = items.find((x) => x.id === itemId);
+        if (!target) return;
+        const oldPoints = getArrowPoints(target);
+        // Build snap anchor list from the dragged vertex's neighbours
+        // (the points it's directly connected to). For an endpoint
+        // there's only one neighbour; for an internal vertex there
+        // are two (prev + next).
+        const anchors = [];
+        if (vertexIdx > 0) anchors.push(oldPoints[vertexIdx - 1]);
+        if (vertexIdx < oldPoints.length - 1) anchors.push(oldPoints[vertexIdx + 1]);
+        const { snapped, axis, anchorX, anchorY } = computeArrowSnap(raw, anchors);
+        setSnapHint(axis ? { axis, anchorX, anchorY } : null);
         const updated = items.map((it) => {
           if (it.id !== itemId) return it;
           const points = getArrowPoints(it).map((p, i) =>
-            i === vertexIdx ? { x: cur.x, y: cur.y } : p,
+            i === vertexIdx ? { x: snapped.x, y: snapped.y } : p,
           );
           const bbox = arrowBboxFromPoints(points);
           return {
@@ -1003,6 +1043,7 @@ export default function BoardCanvas({
         const end = liveEnd || start;
         arrowDrawState.current = null;
         setArrowDrawPreview(null);
+        setSnapHint(null);
         // Ignore micro-drags so a click on empty canvas with the
         // arrow tool just deselects rather than producing a 0-length
         // arrow.
@@ -1015,6 +1056,7 @@ export default function BoardCanvas({
       if (arrowEndpointState.current) {
         const id = arrowEndpointState.current.itemId;
         arrowEndpointState.current = null;
+        setSnapHint(null);
         onItemsChange(items, { movingIds: [id], persist: true });
       }
     }
@@ -1152,6 +1194,28 @@ export default function BoardCanvas({
               width: Math.max(0, lassoRect.x2 - lassoRect.x1),
               height: Math.max(0, lassoRect.y2 - lassoRect.y1),
             }}
+          />
+        )}
+        {snapHint && (
+          // Long line through the snap anchor in the locked axis.
+          // 20000 world px each direction is plenty to extend past
+          // the visible canvas at any reasonable zoom; the stroke
+          // counter-zooms via --board-zoom so it stays 1px on screen.
+          <div
+            className={snapHint.axis === 'h' ? styles.snapLineH : styles.snapLineV}
+            style={
+              snapHint.axis === 'h'
+                ? {
+                    left: snapHint.anchorX - 20000,
+                    top: snapHint.anchorY,
+                    width: 40000,
+                  }
+                : {
+                    left: snapHint.anchorX,
+                    top: snapHint.anchorY - 20000,
+                    height: 40000,
+                  }
+            }
           />
         )}
         {arrowDrawPreview && (() => {
