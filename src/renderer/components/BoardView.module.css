@@ -603,19 +603,36 @@
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
 }
 
+/* Apple-style paper sticky: warm cream → amber gradient, a thin
+   inset highlight at the top edge for paper sheen, and three
+   layered drop shadows in a warm-tinted hue so the note reads as a
+   real piece of paper resting on the canvas rather than a flat
+   yellow rectangle. */
 .itemSticky {
   width: 100%;
   height: 100%;
-  padding: 12px;
-  background: #FFF59D;
-  border-radius: 2px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  background:
+    linear-gradient(180deg, #FFF6BC 0%, #FFE988 100%);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(140, 110, 0, 0.10),
+    0 6px 14px rgba(140, 110, 0, 0.18),
+    0 18px 32px rgba(140, 110, 0, 0.10);
   font-size: 14px;
-  line-height: 1.35;
-  color: rgba(0, 0, 0, 0.85);
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: rgba(50, 35, 0, 0.90);
   white-space: pre-wrap;
   word-break: break-word;
   overflow: hidden;
+}
+
+.itemSticky:empty::before {
+  /* Override the generic gray placeholder with a warm desaturated
+     tone that harmonises with the paper colour. */
+  color: rgba(120, 95, 0, 0.42);
 }
 
 .itemText {

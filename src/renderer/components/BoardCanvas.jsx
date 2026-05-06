@@ -403,12 +403,12 @@ export default function BoardCanvas({
         let newW = Math.max(MIN, initial.width + dxSigned);
         let newH = Math.max(MIN, initial.height + dySigned);
 
-        // For text/sticky we resize uniformly so the text stays
-        // legible (and so font scaling has a single ratio to apply).
-        // For images we keep the user's free aspect.
-        if (type === 'text' || type === 'sticky') {
-          // Use the larger axis ratio so the user feels the corner
-          // they're holding actually moves under their cursor.
+        // Text resizes uniformly because its fontSize scales with
+        // the box and a non-uniform drag would distort typography.
+        // Sticky and image both honour free aspect — sticky's body
+        // type is fixed so the user can shape the note however they
+        // want without affecting legibility.
+        if (type === 'text') {
           const sx = newW / initial.width;
           const sy = newH / initial.height;
           const s = Math.max(sx, sy);
