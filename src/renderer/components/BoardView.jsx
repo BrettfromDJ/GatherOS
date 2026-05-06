@@ -22,7 +22,6 @@ import {
   Clipboard,
   ArrowUpToLine,
   ArrowDownToLine,
-  X,
   Trash2,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
@@ -278,7 +277,6 @@ function ImageActionBar({
   onOpenInPreview,
   onCopyImage,
   onRemoveFromBoard,
-  onTrash,
 }) {
   const [pos, setPos] = useState(null);
   useLayoutEffect(() => {
@@ -310,28 +308,50 @@ function ImageActionBar({
       style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -100%)' }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <button type="button" className={styles.tt_btn} title="Open in Preview" onClick={onOpenInPreview}>
+      <button
+        type="button"
+        className={styles.tt_btn}
+        data-tooltip="Open in Preview"
+        title="Open in Preview"
+        onClick={onOpenInPreview}
+      >
         <ExternalLink size={14} strokeWidth={1.8} />
-      </button>
-      <button type="button" className={styles.tt_btn} title="Copy image" onClick={onCopyImage}>
-        <Clipboard size={14} strokeWidth={1.8} />
-      </button>
-      <div className={styles.tt_sep} />
-      <button type="button" className={styles.tt_btn} title="Bring to front" onClick={onBringToFront}>
-        <ArrowUpToLine size={14} strokeWidth={1.8} />
-      </button>
-      <button type="button" className={styles.tt_btn} title="Send to back" onClick={onSendToBack}>
-        <ArrowDownToLine size={14} strokeWidth={1.8} />
-      </button>
-      <div className={styles.tt_sep} />
-      <button type="button" className={styles.tt_btn} title="Remove from board" onClick={onRemoveFromBoard}>
-        <X size={14} strokeWidth={2} />
       </button>
       <button
         type="button"
-        className={[styles.tt_btn, styles.tt_btn_danger].filter(Boolean).join(' ')}
-        title="Move to trash"
-        onClick={onTrash}
+        className={styles.tt_btn}
+        data-tooltip="Copy image"
+        title="Copy image"
+        onClick={onCopyImage}
+      >
+        <Clipboard size={14} strokeWidth={1.8} />
+      </button>
+      <div className={styles.tt_sep} />
+      <button
+        type="button"
+        className={styles.tt_btn}
+        data-tooltip="Bring to front"
+        title="Bring to front"
+        onClick={onBringToFront}
+      >
+        <ArrowUpToLine size={14} strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        className={styles.tt_btn}
+        data-tooltip="Send to back"
+        title="Send to back"
+        onClick={onSendToBack}
+      >
+        <ArrowDownToLine size={14} strokeWidth={1.8} />
+      </button>
+      <div className={styles.tt_sep} />
+      <button
+        type="button"
+        className={styles.tt_btn}
+        data-tooltip="Remove from board"
+        title="Remove from board"
+        onClick={onRemoveFromBoard}
       >
         <Trash2 size={14} strokeWidth={1.8} />
       </button>
@@ -896,14 +916,6 @@ export default function BoardView({
     window.moodmark.boards.deleteItem({ boardId, itemId: id });
   }, [imageBarItem, boardId, pushHistory]);
 
-  const handleTrashImageItem = useCallback(() => {
-    const saveId = imageBarItem?.data?.saveId;
-    if (!saveId) return;
-    pushHistory();
-    // The save:deleted broadcast clears matching items locally, so
-    // we don't have to setItems here — the listener does.
-    window.moodmark.saves.delete(saveId);
-  }, [imageBarItem, pushHistory]);
 
   return (
     <div ref={rootRef} className={styles.root}>
@@ -1040,7 +1052,6 @@ export default function BoardView({
           onOpenInPreview={handleOpenInPreviewItem}
           onCopyImage={handleCopyImageItem}
           onRemoveFromBoard={handleRemoveFromBoard}
-          onTrash={handleTrashImageItem}
         />
       )}
 
