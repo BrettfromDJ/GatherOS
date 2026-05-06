@@ -102,9 +102,33 @@ export default function App() {
       );
     } catch {}
   }, [shuffleSeeds]);
+  // Per-view timestamp marking when shuffle was last applied. Saves
+  // with created_at > shuffleAt for the current view skip the
+  // shuffle and stay pinned at the top in newest-first order, so
+  // freshly-dropped images always show up at position 1 even on a
+  // shuffled view. Reshuffle resets the timestamp.
+  const [shuffleAts, setShuffleAts] = useState(() => {
+    try {
+      const raw = localStorage.getItem('moodmark.shuffleAts');
+      if (!raw) return new Map();
+      const arr = JSON.parse(raw);
+      return new Map(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Map();
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'moodmark.shuffleAts',
+        JSON.stringify([...shuffleAts]),
+      );
+    } catch {}
+  }, [shuffleAts]);
   const viewKey = (v) =>
     v && v.type === 'collection' ? `collection:${v.id}` : v?.type || 'all';
   const shuffleSeed = shuffleSeeds.get(viewKey(view)) || null;
+  const shuffleAt = shuffleAts.get(viewKey(view)) || 0;
   const handleShuffleView = useCallback((targetView) => {
     const target = targetView || view;
     if (targetView) {
@@ -115,17 +139,30 @@ export default function App() {
       ? (target.type === 'collection' ? `collection:${target.id}` : target.type)
       : viewKey(view);
     const previous = shuffleSeeds.get(key) || null;
+    const previousAt = shuffleAts.get(key) || 0;
     // Math.random() yields [0,1) and we want a 32-bit-ish int seed.
     const seed = Math.floor(Math.random() * 0x7fffffff) || 1;
+    const at = Date.now();
     setShuffleSeeds((prev) => {
       const next = new Map(prev);
       next.set(key, seed);
+      return next;
+    });
+    setShuffleAts((prev) => {
+      const next = new Map(prev);
+      next.set(key, at);
       return next;
     });
     undoStack.push('shuffle', () => {
       setShuffleSeeds((prev) => {
         const next = new Map(prev);
         if (previous) next.set(key, previous);
+        else next.delete(key);
+        return next;
+      });
+      setShuffleAts((prev) => {
+        const next = new Map(prev);
+        if (previousAt) next.set(key, previousAt);
         else next.delete(key);
         return next;
       });
@@ -1250,10 +1287,21 @@ export default function App() {
   // Apply the shuffle seed to the IPC-sourced saves list. When the
   // seed is null this is a no-op; the same seed always produces the
   // same permutation so the order stays stable across re-renders.
-  const displaySaves = useMemo(
-    () => (shuffleSeed ? seededShuffle(saves, shuffleSeed) : saves),
-    [saves, shuffleSeed],
-  );
+  const displaySaves = useMemo(() => {
+    if (!shuffleSeed) return saves;
+    // Pull saves added AFTER the shuffle to the top in newest-first
+    // order so freshly-dropped images always show at position #1.
+    // Saves that existed when shuffle was applied keep the seeded
+    // random order behind them.
+    const fresh = [];
+    const settled = [];
+    for (const s of saves) {
+      if ((s.created_at || 0) > shuffleAt) fresh.push(s);
+      else settled.push(s);
+    }
+    fresh.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    return [...fresh, ...seededShuffle(settled, shuffleSeed)];
+  }, [saves, shuffleSeed, shuffleAt]);
 
   const focusedIndex = useMemo(
     () => (focusedId ? displaySaves.findIndex((s) => s.id === focusedId) : -1),
