@@ -562,6 +562,7 @@ export default function BoardCanvas({
   onItemContextMenu,
   onArrowCreate,
   arrowKind,
+  onFrameCreate,
   tool,
 }) {
   const canvasRef = useRef(null);
@@ -591,6 +592,13 @@ export default function BoardCanvas({
   // subtle blue treatment so the user sees which container the
   // dropped item will land in.
   const [hoveredFrameId, setHoveredFrameId] = useState(null);
+  // Frame drag-to-draw — same shape as arrow drawing. mousedown with
+  // the frame tool seeds `start`; mousemove updates `end` and the
+  // preview rect; mouseup either commits the drag bbox or falls back
+  // to a default-sized frame at the start point if the user just
+  // clicked without dragging.
+  const frameDrawState = useRef(null);
+  const [frameDrawPreview, setFrameDrawPreview] = useState(null);
   // Arrow endpoint drag in progress. Holds the active item and
   // which endpoint ('a' = start, 'b' = end) is moving.
   const arrowEndpointState = useRef(null);
@@ -724,6 +732,23 @@ export default function BoardCanvas({
       );
       arrowDrawState.current = { start };
       setArrowDrawPreview({ x1: start.x, y1: start.y, x2: start.x, y2: start.y });
+      return;
+    }
+    // Frame tool: same drag-to-draw pattern as the arrow tool but the
+    // preview is a rectangle. mouseup either commits the dragged
+    // bbox or, for a click-only gesture, falls back to a default-
+    // sized frame centered on the start point.
+    if (e.button === 0 && tool === 'frame' && e.target === e.currentTarget) {
+      e.preventDefault();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const start = screenToWorld(
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+        pan,
+        zoom,
+      );
+      frameDrawState.current = { start, end: start };
+      setFrameDrawPreview({ x1: start.x, y1: start.y, x2: start.x, y2: start.y });
       return;
     }
     if (e.button === 0 && tool === 'select' && e.target === e.currentTarget) {
@@ -915,6 +940,18 @@ export default function BoardCanvas({
         arrowDrawState.current.end = snapped;
         setArrowDrawPreview({ x1: start.x, y1: start.y, x2: snapped.x, y2: snapped.y });
         setSnapHint(axis ? { axis, anchorX, anchorY } : null);
+        return;
+      }
+      if (frameDrawState.current) {
+        const cur = screenToWorld(
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          pan,
+          zoom,
+        );
+        const { start } = frameDrawState.current;
+        frameDrawState.current.end = cur;
+        setFrameDrawPreview({ x1: start.x, y1: start.y, x2: cur.x, y2: cur.y });
         return;
       }
       if (arrowEndpointState.current) {
@@ -1248,6 +1285,16 @@ export default function BoardCanvas({
           onArrowCreate?.({ start, end });
         }
       }
+      if (frameDrawState.current) {
+        const { start, end: liveEnd } = frameDrawState.current;
+        const end = liveEnd || start;
+        frameDrawState.current = null;
+        setFrameDrawPreview(null);
+        // BoardView decides whether to use the dragged bbox or fall
+        // back to a default-sized frame at `start` when the gesture
+        // was a click. Threshold is checked there.
+        onFrameCreate?.({ start, end });
+      }
       if (arrowEndpointState.current) {
         const id = arrowEndpointState.current.itemId;
         arrowEndpointState.current = null;
@@ -1261,7 +1308,7 @@ export default function BoardCanvas({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [items, pan, zoom, onPanZoomChange, onItemsChange, onArrowCreate]);
+  }, [items, pan, zoom, onPanZoomChange, onItemsChange, onArrowCreate, onFrameCreate]);
 
   // Drop: a thumbnail dragged from the library drawer (data with
   // saveId) or external image drops via the host's drop handler. We
@@ -1384,6 +1431,7 @@ export default function BoardCanvas({
         tool === 'text' && styles.canvasTextTool,
         tool === 'sticky' && styles.canvasStickyTool,
         tool === 'shape' && styles.canvasShapeTool,
+        (tool === 'frame' || tool === 'arrow') && styles.canvasCrosshairTool,
       ].filter(Boolean).join(' ')}
       style={{
         backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
@@ -1413,6 +1461,17 @@ export default function BoardCanvas({
               top: lassoRect.y1,
               width: Math.max(0, lassoRect.x2 - lassoRect.x1),
               height: Math.max(0, lassoRect.y2 - lassoRect.y1),
+            }}
+          />
+        )}
+        {frameDrawPreview && (
+          <div
+            className={styles.framePreview}
+            style={{
+              left: Math.min(frameDrawPreview.x1, frameDrawPreview.x2),
+              top: Math.min(frameDrawPreview.y1, frameDrawPreview.y2),
+              width: Math.abs(frameDrawPreview.x2 - frameDrawPreview.x1),
+              height: Math.abs(frameDrawPreview.y2 - frameDrawPreview.y1),
             }}
           />
         )}

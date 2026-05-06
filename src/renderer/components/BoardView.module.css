@@ -705,6 +705,19 @@
 .canvasTextTool { cursor: text; }
 .canvasStickyTool { cursor: cell; }
 .canvasShapeTool { cursor: crosshair; }
+.canvasCrosshairTool { cursor: crosshair; }
+
+/* Live frame draw-out rectangle. Same hairline border + faint blue
+   wash as a focused frame so the user sees what they'll get on
+   mouseup, with non-scaling stroke so it stays 1px on screen at
+   any board zoom. */
+.framePreview {
+  position: absolute;
+  border: 1px dashed rgba(10, 132, 255, 0.7);
+  background: rgba(10, 132, 255, 0.05);
+  border-radius: 6px;
+  pointer-events: none;
+}
 
 /* The "world" — items live inside this and get the pan + zoom
    transform applied to the whole subtree. transform-origin: 0 0 so

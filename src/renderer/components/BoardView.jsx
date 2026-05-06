@@ -1220,11 +1220,56 @@ export default function BoardView({
     setTool('select');
   }, [arrowKind, items, boardId, persistItem, pushHistory]);
 
+  // Frame creation from the canvas drag-to-draw gesture. If the user
+  // dragged a meaningful distance we honor those bounds; if they
+  // just clicked we drop a default-sized frame centered on the
+  // click point.
+  const handleFrameCreate = useCallback(({ start, end }) => {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const MIN_DRAG = 6;
+    let x;
+    let y;
+    let width;
+    let height;
+    if (Math.hypot(dx, dy) < MIN_DRAG) {
+      width = DEFAULT_FRAME.width;
+      height = DEFAULT_FRAME.height;
+      x = start.x - width / 2;
+      y = start.y - height / 2;
+    } else {
+      x = Math.min(start.x, end.x);
+      y = Math.min(start.y, end.y);
+      width = Math.abs(dx);
+      height = Math.abs(dy);
+    }
+    pushHistory();
+    const frameCount = items.filter((it) => it.type === 'frame').length + 1;
+    const item = {
+      id: uuid(),
+      board_id: boardId,
+      type: 'frame',
+      x,
+      y,
+      width,
+      height,
+      rotation: 0,
+      z_index: nextZ(items),
+      data: { ...FRAME_DEFAULT_DATA, title: `Frame ${frameCount}` },
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
+    setItems((prev) => [...prev, item]);
+    setSelectedIds(new Set([item.id]));
+    persistItem(item);
+    setTool('select');
+  }, [items, boardId, persistItem, pushHistory]);
+
   // Click on the canvas with a non-select tool: spawn the tool's
   // item type at that world position. Empty clicks under unsupported
   // tools just deselect.
   const handleCanvasClick = useCallback((world, activeTool) => {
-    if (activeTool !== 'sticky' && activeTool !== 'text' && activeTool !== 'shape' && activeTool !== 'frame') {
+    if (activeTool !== 'sticky' && activeTool !== 'text' && activeTool !== 'shape') {
       setSelectedIds(new Set());
       return;
     }
@@ -1233,25 +1278,16 @@ export default function BoardView({
       ? DEFAULT_STICKY
       : activeTool === 'shape'
         ? DEFAULT_SHAPE
-        : activeTool === 'frame'
-          ? DEFAULT_FRAME
-          : DEFAULT_TEXT;
+        : DEFAULT_TEXT;
     // Text items launch unsized so the inner editor drives the
     // bounding box (matching the reference: a small "Type something"
     // pill rather than a fixed-width slab). Sticky and shape get
     // their default sized rectangles.
     const w = size.width || 0;
     const h = size.height || 0;
-    // Frames get an auto-numbered title so the user can identify them
-    // before renaming. Counts existing frames + 1.
-    const frameCount = activeTool === 'frame'
-      ? items.filter((it) => it.type === 'frame').length + 1
-      : 0;
     const data = activeTool === 'shape'
       ? { ...SHAPE_DEFAULT_DATA, kind: shapeKind }
-      : activeTool === 'frame'
-        ? { ...FRAME_DEFAULT_DATA, title: `Frame ${frameCount}` }
-        : { text: '' };
+      : { text: '' };
     const item = {
       id: uuid(),
       board_id: boardId,
@@ -1268,38 +1304,29 @@ export default function BoardView({
       created_at: Date.now(),
       updated_at: Date.now(),
     };
-    // Frames don't auto-enter edit mode on drop — their auto-numbered
-    // title is the default, and the user can double-click the title
-    // tab to rename. Other text-bearing items focus their inner
-    // contentEditable immediately so the user can start typing.
-    if (activeTool === 'frame') {
+    // flushSync forces React to commit the new item to the DOM
+    // synchronously inside the original mousedown handler. Without
+    // it, React's normal async commit lands AFTER the user's mouseup,
+    // so the browser's default mouseup-over-contentEditable focus
+    // step has nothing focusable to land on, and the caret never
+    // takes — the user has to click again. With flushSync, the
+    // contentEditable exists and is focused before mouseup fires.
+    flushSync(() => {
       setItems((prev) => [...prev, item]);
       setSelectedIds(new Set([item.id]));
-    } else {
-      // flushSync forces React to commit the new item to the DOM
-      // synchronously inside the original mousedown handler. Without
-      // it, React's normal async commit lands AFTER the user's mouseup,
-      // so the browser's default mouseup-over-contentEditable focus
-      // step has nothing focusable to land on, and the caret never
-      // takes — the user has to click again. With flushSync, the
-      // contentEditable exists and is focused before mouseup fires.
-      flushSync(() => {
-        setItems((prev) => [...prev, item]);
-        setSelectedIds(new Set([item.id]));
-        setEditingItemId(item.id);
-      });
-      const el = document.querySelector(
-        `[data-item-id="${item.id}"] [contenteditable="true"]`,
-      );
-      if (el) {
-        el.focus();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+      setEditingItemId(item.id);
+    });
+    const el = document.querySelector(
+      `[data-item-id="${item.id}"] [contenteditable="true"]`,
+    );
+    if (el) {
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
     persistItem(item);
     // Fall back to select after placing — single-click-to-add feels
@@ -1916,6 +1943,7 @@ export default function BoardView({
         onItemContextMenu={handleItemContextMenu}
         onArrowCreate={handleArrowCreate}
         arrowKind={arrowKind}
+        onFrameCreate={handleFrameCreate}
         tool={tool}
       />
 
