@@ -225,17 +225,19 @@ export default function BoardCanvas({
   tool,
 }) {
   const canvasRef = useRef(null);
-  // While the user is panning the canvas (drag empty space with the
-  // select tool, or hold space/middle-click) we track the start
-  // pointer + initial pan so the offset feels 1:1.
+  // Pan: middle-click drag only. (Plain scroll already pans via the
+  // wheel handler; left-click drag is reserved for the lasso below.)
   const panState = useRef(null);
-  // While the user is dragging an item, track which items are moving
-  // and the world-space offset between cursor and each item's origin.
+  // Item move: dragging an existing item.
   const moveState = useRef(null);
-  // While the user is dragging a resize handle, track which corner
-  // is anchored, the item's starting rect, and (for text) starting
-  // font size so we can scale the text uniformly with the resize.
+  // Resize: dragging a corner handle on a selected item.
   const resizeState = useRef(null);
+  // Lasso / marquee: left-click drag on empty canvas. Records the
+  // starting world point and the selection set the user already had
+  // (so shift-drag is additive) so the move handler can compute the
+  // running selection without losing what was previously picked.
+  const lassoState = useRef(null);
+  const [lassoRect, setLassoRect] = useState(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Wheel handling matches the standard canvas convention:
@@ -278,11 +280,12 @@ export default function BoardCanvas({
     return () => el.removeEventListener('wheel', onWheel);
   }, [pan, zoom, onPanZoomChange]);
 
-  // Pan: mousedown on empty canvas with middle button, or with select
-  // tool + space, or with select tool + alt. Keep it simple: middle
-  // button anywhere, or left button on empty canvas with select tool.
+  // Mousedown routing:
+  //   middle-click anywhere               → pan
+  //   left-click empty canvas, select     → lasso select (shift = add)
+  //   left-click empty canvas, other tool → spawn item (text/sticky)
   const handleCanvasMouseDown = (e) => {
-    if (e.button === 1 || (e.button === 0 && tool === 'select' && e.target === e.currentTarget)) {
+    if (e.button === 1) {
       e.preventDefault();
       panState.current = {
         startX: e.clientX,
@@ -290,26 +293,38 @@ export default function BoardCanvas({
         initialPan: { ...pan },
       };
       setIsPanning(true);
-      // Clear selection when clicking empty canvas with select tool.
-      // Also explicitly blur any focused contentEditable so the
-      // editor's onBlur handler fires onCommitEdit → editingItemId
-      // clears, hiding the cursor + floating styler. Without this
-      // the preventDefault above suppresses the browser's own
-      // focus-management blur and the cursor lingers in the editor.
-      if (e.button === 0 && !e.shiftKey) {
+      return;
+    }
+    if (e.button === 0 && tool === 'select' && e.target === e.currentTarget) {
+      e.preventDefault();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const start = screenToWorld(
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+        pan,
+        zoom,
+      );
+      lassoState.current = {
+        startWorld: start,
+        additive: e.shiftKey,
+        initialSelection: e.shiftKey ? new Set(selectedIds) : new Set(),
+      };
+      setLassoRect({ x1: start.x, y1: start.y, x2: start.x, y2: start.y });
+      // Plain (non-shift) drag on empty canvas drops any prior
+      // selection and dismisses any in-progress text edit. preventDefault
+      // above suppresses the browser's own focus-clearing pass, so blur
+      // the editor explicitly here.
+      if (!e.shiftKey) {
         const editing = document.querySelector('[contenteditable="true"]');
         if (editing) editing.blur();
         onSelectIds(new Set());
       }
-    } else if (e.button === 0 && e.target === e.currentTarget) {
+      return;
+    }
+    if (e.button === 0 && e.target === e.currentTarget) {
       // Click on empty canvas with non-select tool: dispatch up so
-      // the parent can decide what to add (sticky / text at click
-      // point). preventDefault is critical — without it the browser's
-      // default mousedown behaviour clears focus from any element
-      // *after* our handler returns, which means the contentEditable
-      // we just created and focused gets blurred a few microseconds
-      // later, leaving the user unable to type until they click
-      // again. The preventDefault keeps focus exactly where we put it.
+      // the parent can decide what to add. preventDefault keeps
+      // focus on the contentEditable we're about to create.
       e.preventDefault();
       const rect = canvasRef.current.getBoundingClientRect();
       const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, pan, zoom);
@@ -384,6 +399,38 @@ export default function BoardCanvas({
     function onMove(e) {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
+      if (lassoState.current) {
+        const cur = screenToWorld(
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          pan,
+          zoom,
+        );
+        const x1 = Math.min(lassoState.current.startWorld.x, cur.x);
+        const y1 = Math.min(lassoState.current.startWorld.y, cur.y);
+        const x2 = Math.max(lassoState.current.startWorld.x, cur.x);
+        const y2 = Math.max(lassoState.current.startWorld.y, cur.y);
+        setLassoRect({ x1, y1, x2, y2 });
+        // Walk every item, AABB-test its world rect against the
+        // marquee, and accumulate hits on top of the user's prior
+        // selection (the prior set is empty unless this drag was
+        // initiated with shift held).
+        const hits = new Set(lassoState.current.initialSelection);
+        for (const item of items) {
+          const el = canvasRef.current.querySelector(`[data-item-id="${item.id}"]`);
+          if (!el) continue;
+          const er = el.getBoundingClientRect();
+          const ix1 = (er.left   - rect.left - pan.x) / zoom;
+          const iy1 = (er.top    - rect.top  - pan.y) / zoom;
+          const ix2 = (er.right  - rect.left - pan.x) / zoom;
+          const iy2 = (er.bottom - rect.top  - pan.y) / zoom;
+          if (ix2 >= x1 && ix1 <= x2 && iy2 >= y1 && iy1 <= y2) {
+            hits.add(item.id);
+          }
+        }
+        onSelectIds(hits);
+        return;
+      }
       if (panState.current) {
         const dx = e.clientX - panState.current.startX;
         const dy = e.clientY - panState.current.startY;
@@ -493,6 +540,10 @@ export default function BoardCanvas({
         resizeState.current = null;
         onItemsChange(items, { movingIds: [id], persist: true });
       }
+      if (lassoState.current) {
+        lassoState.current = null;
+        setLassoRect(null);
+      }
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -550,11 +601,23 @@ export default function BoardCanvas({
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           // --board-zoom cascades to every item underneath so the
-          // selection chrome (outline + corner handles) can divide
-          // its dimensions by zoom and stay at constant screen size.
+          // selection chrome (outline + corner handles + marquee
+          // border) can divide its dimensions by zoom and stay at
+          // constant screen size.
           '--board-zoom': zoom,
         }}
       >
+        {lassoRect && (
+          <div
+            className={styles.marquee}
+            style={{
+              left: lassoRect.x1,
+              top: lassoRect.y1,
+              width: Math.max(0, lassoRect.x2 - lassoRect.x1),
+              height: Math.max(0, lassoRect.y2 - lassoRect.y1),
+            }}
+          />
+        )}
         {items.map((item) => (
           <BoardItem
             key={item.id}
@@ -584,7 +647,7 @@ export default function BoardCanvas({
           Drag images from the library, or click the canvas with the text /
           sticky tool.
           <div className={styles.emptyHint}>
-            Two-finger scroll to pan • Pinch or ⌘+scroll to zoom
+            Drag to lasso-select • Two-finger scroll to pan • Pinch or ⌘+scroll to zoom
           </div>
         </div>
       )}

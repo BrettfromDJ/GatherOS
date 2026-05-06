@@ -552,6 +552,17 @@
   transform-origin: 0 0;
 }
 
+/* Lasso / marquee rectangle. Lives inside the .world so its
+   position pans + zooms with the canvas, but the border + fill
+   stay at constant screen size by dividing through --board-zoom. */
+.marquee {
+  position: absolute;
+  background: rgba(10, 132, 255, 0.10);
+  border: calc(1px / var(--board-zoom, 1)) solid var(--accent, #0a84ff);
+  pointer-events: none;
+  z-index: 999;
+}
+
 /* ── Items ───────────────────────────────────────────────────────── */
 
 .item {
