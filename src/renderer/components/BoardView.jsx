@@ -416,6 +416,25 @@ export default function BoardView({
     return () => { cancelled = true; };
   }, [boardId]);
 
+  // ── Clipboard + history state ────────────────────────────────
+  // Internal clipboard + ⌘Z/⌘⇧Z snapshot stacks live up here so
+  // every other handler (drop, click-spawn, style update, drag end,
+  // delete, etc.) can call pushHistory() before mutating items.
+  const [clipboard, setClipboard] = useState(null);
+  const undoStack = useRef([]);
+  const redoStack = useRef([]);
+  // Bumped after every push/pop so the toolbar enable/disable
+  // state stays in sync with the (ref-based) stacks.
+  const [historyVer, setHistoryVer] = useState(0);
+
+  const pushHistory = useCallback(() => {
+    const snap = items.map((it) => ({ ...it, data: { ...(it.data || {}) } }));
+    undoStack.current.push(snap);
+    if (undoStack.current.length > 100) undoStack.current.shift();
+    redoStack.current = [];
+    setHistoryVer((v) => v + 1);
+  }, [items]);
+
   // Single-item upsert helper used by add/move/edit paths. Persists
   // immediately; for batch drag-moves the canvas calls onItemsChange
   // with persist: true on mouseup so we don't hit IPC every frame.
@@ -428,13 +447,28 @@ export default function BoardView({
     return window.moodmark.boards.bulkUpdateItems({ boardId, items: batch });
   }, [boardId]);
 
+  // First mousemove of a drag/resize hasn't snapshotted the BEFORE
+  // state yet — use a flag to push history exactly once per gesture
+  // (the canvas calls onItemsChange repeatedly during the drag, but
+  // only the very first call needs to record the pre-move snapshot).
+  const movingGestureRef = useRef(false);
   const handleItemsChange = useCallback((next, { movingIds, persist } = {}) => {
+    if (Array.isArray(movingIds) && movingIds.length > 0 && !persist && !movingGestureRef.current) {
+      // Snapshot from `items` (the pre-mousemove state) not `next`.
+      const snap = items.map((it) => ({ ...it, data: { ...(it.data || {}) } }));
+      undoStack.current.push(snap);
+      if (undoStack.current.length > 100) undoStack.current.shift();
+      redoStack.current = [];
+      setHistoryVer((v) => v + 1);
+      movingGestureRef.current = true;
+    }
     setItems(next);
     if (persist && Array.isArray(movingIds) && movingIds.length > 0) {
       const moved = next.filter((it) => movingIds.includes(it.id));
       persistMany(moved);
+      movingGestureRef.current = false;
     }
-  }, [persistMany]);
+  }, [items, persistMany]);
 
   // Drop an image onto the canvas. Accepts either:
   //   - { saveId, world }     — internal drag from the library
@@ -450,6 +484,7 @@ export default function BoardView({
   const handleDropImage = useCallback(({ saveId, saveRecord, world }) => {
     const save = saveRecord || saves.find((s) => s.id === saveId);
     if (!save?.id) return;
+    pushHistory();
     const aspect = save.width && save.height ? save.width / save.height : 1;
     let w = save.width || DEFAULT_IMAGE_MAX;
     let h = save.height || DEFAULT_IMAGE_MAX;
@@ -484,7 +519,142 @@ export default function BoardView({
     setItems((prev) => [...prev, item]);
     setSelectedIds(new Set([item.id]));
     persistItem(item);
-  }, [saves, items, boardId, persistItem]);
+  }, [saves, items, boardId, persistItem, pushHistory]);
+
+  // ── Undo / redo ──────────────────────────────────────────────
+  // Apply a snapshot to the items state and persist the diff: any
+  // items present in the snapshot are upserted; any items currently
+  // on the board but missing from the snapshot are deleted.
+  const applySnapshot = useCallback(async (snapshot) => {
+    const snapIds = new Set(snapshot.map((it) => it.id));
+    const currentIds = items.map((it) => it.id);
+    const toDelete = currentIds.filter((id) => !snapIds.has(id));
+    setItems(snapshot);
+    setSelectedIds(new Set());
+    if (toDelete.length > 0) {
+      await window.moodmark.boards.deleteItems({ boardId, itemIds: toDelete });
+    }
+    if (snapshot.length > 0) {
+      await persistMany(snapshot);
+    }
+  }, [items, boardId, persistMany]);
+
+  const handleUndo = useCallback(async () => {
+    if (undoStack.current.length === 0) return;
+    const cur = items.map((it) => ({ ...it, data: { ...(it.data || {}) } }));
+    redoStack.current.push(cur);
+    const prev = undoStack.current.pop();
+    setHistoryVer((v) => v + 1);
+    await applySnapshot(prev);
+  }, [items, applySnapshot]);
+
+  const handleRedo = useCallback(async () => {
+    if (redoStack.current.length === 0) return;
+    const cur = items.map((it) => ({ ...it, data: { ...(it.data || {}) } }));
+    undoStack.current.push(cur);
+    const next = redoStack.current.pop();
+    setHistoryVer((v) => v + 1);
+    await applySnapshot(next);
+  }, [items, applySnapshot]);
+
+  const canUndo = undoStack.current.length > 0;
+  const canRedo = redoStack.current.length > 0;
+  // Force re-renders for the toolbar enabled state when refs change.
+  void historyVer;
+
+  // ── Copy / paste / duplicate / select-all ────────────────────
+  const handleCopy = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const copied = items
+      .filter((it) => selectedIds.has(it.id))
+      .map((it) => ({ ...it, data: { ...(it.data || {}) } }));
+    setClipboard(copied);
+  }, [items, selectedIds]);
+
+  // Paste flow: prefer the internal board clipboard so cmd-c/cmd-v
+  // duplicates whatever the user just copied (offset by 24px so it
+  // doesn't pile under the original). If the internal clipboard is
+  // empty, fall back to the system clipboard — pull the first image
+  // MIME type, save to library via dropFile, and spawn on the board.
+  const handlePaste = useCallback(async () => {
+    if (clipboard && clipboard.length > 0) {
+      pushHistory();
+      const OFFSET = 24;
+      const newIds = [];
+      const dupes = clipboard.map((it) => {
+        const id = uuid();
+        newIds.push(id);
+        return {
+          ...it,
+          id,
+          board_id: boardId,
+          x: (it.x || 0) + OFFSET,
+          y: (it.y || 0) + OFFSET,
+          z_index: nextZ(items),
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        };
+      });
+      setItems((prev) => [...prev, ...dupes]);
+      setSelectedIds(new Set(newIds));
+      persistMany(dupes);
+      // Cascade subsequent pastes so two cmd-V in a row chain
+      // instead of stacking on top of each other.
+      setClipboard(dupes.map((it) => ({ ...it, data: { ...(it.data || {}) } })));
+      return;
+    }
+    if (!navigator.clipboard?.read) return;
+    try {
+      const ciList = await navigator.clipboard.read();
+      for (const ci of ciList) {
+        for (const type of ci.types) {
+          if (!type.startsWith('image/')) continue;
+          const blob = await ci.getType(type);
+          const ext = type.split('/')[1] || 'png';
+          const file = new File([blob], `paste-${Date.now()}.${ext}`, { type });
+          const record = await window.moodmark.saves.dropFile(file);
+          if (record?.id) {
+            pushHistory();
+            handleDropImage({ saveRecord: record, world: { x: 0, y: 0 } });
+            onShowToast?.('Pasted from clipboard');
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('System clipboard paste failed:', err);
+    }
+  }, [clipboard, items, boardId, persistMany, pushHistory, handleDropImage, onShowToast]);
+
+  const handleDuplicate = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    pushHistory();
+    const OFFSET = 24;
+    const newIds = [];
+    const dupes = items
+      .filter((it) => selectedIds.has(it.id))
+      .map((it) => {
+        const id = uuid();
+        newIds.push(id);
+        return {
+          ...it,
+          id,
+          board_id: boardId,
+          x: (it.x || 0) + OFFSET,
+          y: (it.y || 0) + OFFSET,
+          z_index: nextZ(items),
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        };
+      });
+    setItems((prev) => [...prev, ...dupes]);
+    setSelectedIds(new Set(newIds));
+    persistMany(dupes);
+  }, [items, selectedIds, boardId, persistMany, pushHistory]);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds(new Set(items.map((it) => it.id)));
+  }, [items]);
 
   // Click on the canvas with a non-select tool: spawn the tool's
   // item type at that world position. Empty clicks under unsupported
@@ -494,6 +664,7 @@ export default function BoardView({
       setSelectedIds(new Set());
       return;
     }
+    pushHistory();
     const size = activeTool === 'sticky' ? DEFAULT_STICKY : DEFAULT_TEXT;
     // Text items launch unsized so the inner editor drives the
     // bounding box (matching the reference: a small "Type something"
@@ -548,25 +719,61 @@ export default function BoardView({
   }, [boardId, items, persistItem]);
 
   const handleCommitEdit = useCallback((itemId, text) => {
-    setItems((prev) => prev.map((it) => {
-      if (it.id !== itemId) return it;
-      const next = { ...it, data: { ...(it.data || {}), text }, updated_at: Date.now() };
-      persistItem(next);
-      return next;
-    }));
+    setItems((prev) => {
+      const it = prev.find((x) => x.id === itemId);
+      if (!it) return prev;
+      // Only push history if the text actually changed.
+      if ((it.data?.text || '') !== text) {
+        const snap = prev.map((p) => ({ ...p, data: { ...(p.data || {}) } }));
+        undoStack.current.push(snap);
+        if (undoStack.current.length > 100) undoStack.current.shift();
+        redoStack.current = [];
+        setHistoryVer((v) => v + 1);
+      }
+      return prev.map((p) => {
+        if (p.id !== itemId) return p;
+        const next = { ...p, data: { ...(p.data || {}), text }, updated_at: Date.now() };
+        persistItem(next);
+        return next;
+      });
+    });
     setEditingItemId(null);
   }, [persistItem]);
 
-  // Delete selected items via Delete / Backspace. Skipped while a
-  // text/sticky is being edited so the editor handles the keystroke.
+  // Keyboard shortcuts. Skipped while a text/sticky is being edited
+  // so typing into the contentEditable doesn't trigger tool changes,
+  // and skipped while focus is in any other input/textarea so the
+  // user can type into the title pill, library search, etc.
   useEffect(() => {
     function onKey(e) {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (editingItemId) return;
+
+      const cmd = e.metaKey || e.ctrlKey;
+      const k = e.key.toLowerCase();
+
+      // ⌘Z — undo, ⌘⇧Z — redo
+      if (cmd && k === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+        return;
+      }
+      // ⌘C / ⌘V / ⌘X / ⌘D / ⌘A
+      if (cmd && k === 'c') { e.preventDefault(); handleCopy(); return; }
+      if (cmd && k === 'v') { e.preventDefault(); handlePaste(); return; }
+      if (cmd && k === 'd') {
+        e.preventDefault();
+        handleDuplicate();
+        return;
+      }
+      if (cmd && k === 'a') { e.preventDefault(); handleSelectAll(); return; }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.size === 0) return;
         e.preventDefault();
+        pushHistory();
         const ids = Array.from(selectedIds);
         setItems((prev) => prev.filter((it) => !selectedIds.has(it.id)));
         setSelectedIds(new Set());
@@ -584,20 +791,23 @@ export default function BoardView({
         setSelectedIds(new Set());
         setEditingItemId(null);
         setTool('select');
-      } else if (e.key === 'v' || e.key === 'V') {
+      } else if (!cmd && (k === 'v')) {
         setTool('select');
-      } else if (e.key === 't' || e.key === 'T') {
+      } else if (!cmd && (k === 't')) {
         setTool('text');
-      } else if (e.key === 's' || e.key === 'S') {
+      } else if (!cmd && (k === 's')) {
         setTool('sticky');
-      } else if (e.key === 'i' || e.key === 'I') {
+      } else if (!cmd && (k === 'i')) {
         setTool('image');
         setDrawerOpen(true);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedIds, boardId, editingItemId]);
+  }, [
+    selectedIds, boardId, editingItemId,
+    handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicate, handleSelectAll, pushHistory,
+  ]);
 
   const commitTitle = () => {
     const trimmed = titleDraft.trim();
@@ -630,13 +840,14 @@ export default function BoardView({
 
   const handleStyleUpdate = useCallback((nextData) => {
     if (!stylerItem) return;
+    pushHistory();
     setItems((prev) => prev.map((it) => {
       if (it.id !== stylerItem.id) return it;
       const next = { ...it, data: nextData, updated_at: Date.now() };
       persistItem(next);
       return next;
     }));
-  }, [stylerItem, persistItem]);
+  }, [stylerItem, persistItem, pushHistory]);
 
   // Single-selected image item drives the floating image action bar.
   const imageBarItem = useMemo(() => {
@@ -648,19 +859,21 @@ export default function BoardView({
 
   const handleBringToFront = useCallback(() => {
     if (!imageBarItem) return;
+    pushHistory();
     const maxZ = items.reduce((m, it) => Math.max(m, it.z_index ?? 0), 0);
     const next = { ...imageBarItem, z_index: maxZ + 1, updated_at: Date.now() };
     setItems((prev) => prev.map((it) => (it.id === imageBarItem.id ? next : it)));
     persistItem(next);
-  }, [imageBarItem, items, persistItem]);
+  }, [imageBarItem, items, persistItem, pushHistory]);
 
   const handleSendToBack = useCallback(() => {
     if (!imageBarItem) return;
+    pushHistory();
     const minZ = items.reduce((m, it) => Math.min(m, it.z_index ?? 0), 0);
     const next = { ...imageBarItem, z_index: minZ - 1, updated_at: Date.now() };
     setItems((prev) => prev.map((it) => (it.id === imageBarItem.id ? next : it)));
     persistItem(next);
-  }, [imageBarItem, items, persistItem]);
+  }, [imageBarItem, items, persistItem, pushHistory]);
 
   const handleOpenInPreviewItem = useCallback(() => {
     const save = saves.find((s) => s.id === imageBarItem?.data?.saveId);
@@ -676,19 +889,21 @@ export default function BoardView({
 
   const handleRemoveFromBoard = useCallback(() => {
     if (!imageBarItem) return;
+    pushHistory();
     const id = imageBarItem.id;
     setItems((prev) => prev.filter((it) => it.id !== id));
     setSelectedIds(new Set());
     window.moodmark.boards.deleteItem({ boardId, itemId: id });
-  }, [imageBarItem, boardId]);
+  }, [imageBarItem, boardId, pushHistory]);
 
   const handleTrashImageItem = useCallback(() => {
     const saveId = imageBarItem?.data?.saveId;
     if (!saveId) return;
+    pushHistory();
     // The save:deleted broadcast clears matching items locally, so
     // we don't have to setItems here — the listener does.
     window.moodmark.saves.delete(saveId);
-  }, [imageBarItem]);
+  }, [imageBarItem, pushHistory]);
 
   return (
     <div ref={rootRef} className={styles.root}>
@@ -748,10 +963,22 @@ export default function BoardView({
           </button>
         ))}
         <div className={styles.toolDivider} />
-        <button type="button" className={styles.toolBtn} title="Undo (coming soon)" disabled>
+        <button
+          type="button"
+          className={styles.toolBtn}
+          title="Undo (⌘Z)"
+          onClick={handleUndo}
+          disabled={!canUndo}
+        >
           <Undo2 {...TOOL_ICON} />
         </button>
-        <button type="button" className={styles.toolBtn} title="Redo (coming soon)" disabled>
+        <button
+          type="button"
+          className={styles.toolBtn}
+          title="Redo (⌘⇧Z)"
+          onClick={handleRedo}
+          disabled={!canRedo}
+        >
           <Redo2 {...TOOL_ICON} />
         </button>
       </div>
