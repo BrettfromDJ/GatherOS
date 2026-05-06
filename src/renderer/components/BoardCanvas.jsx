@@ -280,6 +280,7 @@ function BoardItem({
   onCommitEdit,
   onBeginEdit,
   onContextMenu,
+  dropHover,
 }) {
   const baseStyle = {
     left: item.x,
@@ -480,7 +481,11 @@ function BoardItem({
             <span className={styles.frameTabLabel} title={title}>{title || 'Untitled frame'}</span>
           )}
         </div>
-        <div className={styles.frameBody} style={{ background: fill }} />
+        <div
+          className={[styles.frameBody, dropHover && styles.frameBodyDropHover]
+            .filter(Boolean).join(' ')}
+          style={{ background: fill }}
+        />
       </>
     );
   } else {
@@ -581,6 +586,11 @@ export default function BoardCanvas({
   // mousemove handler updates a live preview, and mouseup commits.
   const arrowDrawState = useRef(null);
   const [arrowDrawPreview, setArrowDrawPreview] = useState(null);
+  // Frame currently being "hovered" by an in-progress drag (either a
+  // move of existing items, or an external drop). Painted with a
+  // subtle blue treatment so the user sees which container the
+  // dropped item will land in.
+  const [hoveredFrameId, setHoveredFrameId] = useState(null);
   // Arrow endpoint drag in progress. Holds the active item and
   // which endpoint ('a' = start, 'b' = end) is moving.
   const arrowEndpointState = useRef(null);
@@ -991,6 +1001,7 @@ export default function BoardCanvas({
         const cursor = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, pan, zoom);
         const offsets = moveState.current.offsets;
         const movingIds = moveState.current.movingIds;
+        const movingSet = new Set(movingIds);
         const updated = items.map((it) => {
           if (!offsets.has(it.id)) return it;
           const o = offsets.get(it.id);
@@ -1014,6 +1025,27 @@ export default function BoardCanvas({
           }
           return { ...it, x: newX, y: newY };
         });
+        // Drop-target hint: highlight the frame currently containing
+        // any non-frame moving item's center. Frames being moved
+        // (drag-with-children) don't highlight themselves. Topmost
+        // frame wins when frames overlap.
+        let hoverId = null;
+        const frames = updated.filter((it) => it.type === 'frame' && !movingSet.has(it.id));
+        for (const it of updated) {
+          if (!movingSet.has(it.id) || it.type === 'frame') continue;
+          const cx = it.x + (it.width || 0) / 2;
+          const cy = it.y + (it.height || 0) / 2;
+          for (let i = frames.length - 1; i >= 0; i -= 1) {
+            const f = frames[i];
+            if (cx >= f.x && cx <= f.x + (f.width || 0)
+              && cy >= f.y && cy <= f.y + (f.height || 0)) {
+              hoverId = f.id;
+              break;
+            }
+          }
+          if (hoverId) break;
+        }
+        setHoveredFrameId(hoverId);
         onItemsChange(updated, { movingIds, persist: false });
       } else if (groupResizeState.current) {
         const { corner, startMouse, initialBbox, snaps } = groupResizeState.current;
@@ -1185,6 +1217,7 @@ export default function BoardCanvas({
         // Persist the final positions of the moved items.
         onItemsChange(items, { movingIds, persist: true });
         setArrowMovingId(null);
+        setHoveredFrameId(null);
       }
       if (resizeState.current) {
         const id = resizeState.current.itemId;
@@ -1236,10 +1269,34 @@ export default function BoardCanvas({
   const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
+    // External drag (library thumbnail / file from desktop) — paint
+    // the same drop-target highlight on whichever frame is under the
+    // cursor so the user sees where the dropped image will land.
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, pan, zoom);
+    let hoverId = null;
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const f = items[i];
+      if (f.type !== 'frame') continue;
+      if (w.x >= f.x && w.x <= f.x + (f.width || 0)
+        && w.y >= f.y && w.y <= f.y + (f.height || 0)) {
+        hoverId = f.id;
+        break;
+      }
+    }
+    if (hoverId !== hoveredFrameId) setHoveredFrameId(hoverId);
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear when leaving the canvas itself (not when crossing
+    // into a child element).
+    if (e.currentTarget === e.target) setHoveredFrameId(null);
   };
 
   const handleDrop = async (e) => {
     e.preventDefault();
+    setHoveredFrameId(null);
     // stopPropagation prevents the App-level drop handler (which
     // also saves the dropped file and switches to 'all') from
     // running on top of ours — without this we'd save twice and
@@ -1334,6 +1391,7 @@ export default function BoardCanvas({
       }}
       onMouseDown={handleCanvasMouseDown}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div
@@ -1455,6 +1513,7 @@ export default function BoardCanvas({
             selected={selectedIds.has(item.id)}
             multiSelected={selectedIds.size > 1 && selectedIds.has(item.id)}
             editing={editingItemId === item.id}
+            dropHover={hoveredFrameId === item.id}
             onSelect={(id, additive) => {
               if (additive) {
                 const next = new Set(selectedIds);
