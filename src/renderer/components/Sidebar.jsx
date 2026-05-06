@@ -20,6 +20,7 @@ import {
   Shuffle,
   ChevronRight,
   Megaphone,
+  HelpCircle,
 } from 'lucide-react';
 
 const SIDEBAR_ICON = { strokeWidth: 1.6, 'aria-hidden': true };
@@ -28,6 +29,7 @@ const CollapseSidebarIcon = () => <PanelLeft {...SIDEBAR_ICON} />;
 const SettingsGearIcon = () => <Settings {...SIDEBAR_ICON} />;
 const KeyboardIcon = () => <Keyboard {...SIDEBAR_ICON} />;
 const MegaphoneIcon = () => <Megaphone {...SIDEBAR_ICON} />;
+const HelpIcon = () => <HelpCircle {...SIDEBAR_ICON} />;
 // Buckets read as folders in the sidebar — the previous bespoke
 // pail icon doesn't have a clean Lucide equivalent, FolderClosed is
 // the closest semantic match.
@@ -173,6 +175,35 @@ export default function Sidebar({
 
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetId, setDropTargetId] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpBtnRef = useRef(null);
+  const helpPopRef = useRef(null);
+
+  // Close the help popover on outside click / Escape.
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    function onPointerDown(e) {
+      const inBtn = helpBtnRef.current && helpBtnRef.current.contains(e.target);
+      const inPop = helpPopRef.current && helpPopRef.current.contains(e.target);
+      if (!inBtn && !inPop) setHelpOpen(false);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') setHelpOpen(false);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [helpOpen]);
+
+  function helpAction(fn) {
+    return () => {
+      setHelpOpen(false);
+      fn?.();
+    };
+  }
   // 'reorder' | 'nest' — which gesture the current dragOver maps to.
   // Three-zone hit test: top 30% / bottom 30% = reorder above/below
   // (we only render the existing top line for either since the
@@ -929,42 +960,76 @@ export default function Sidebar({
 
       {(onOpenSettings || onOpenShortcuts || onOpenReleaseNotes) && (
         <div className={styles.footer}>
-          {onOpenReleaseNotes && (
-            <button
-              type="button"
-              className={styles.footerBtn}
-              onClick={onOpenReleaseNotes}
-              title="What's new in this release"
+          <button
+            ref={helpBtnRef}
+            type="button"
+            className={[styles.footerBtn, helpOpen && styles.footerBtnActive].filter(Boolean).join(' ')}
+            onClick={() => setHelpOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={helpOpen}
+            title="Help, settings, and shortcuts"
+            data-onboarding="settings"
+          >
+            <span className={styles.footerIcon}><HelpIcon /></span>
+            <span className={styles.footerLabel}>Help</span>
+            {releaseNotesUnseen && (
+              <span className={styles.footerBadge} aria-label="New release notes available" />
+            )}
+          </button>
+
+          {helpOpen && (
+            <div
+              ref={helpPopRef}
+              className={styles.helpPopover}
+              role="menu"
             >
-              <span className={styles.footerIcon}><MegaphoneIcon /></span>
-              <span className={styles.footerLabel}>What's New</span>
-              {releaseNotesUnseen && (
-                <span className={styles.footerBadge} aria-label="New release notes available" />
+              {onOpenReleaseNotes && (
+                <>
+                  <div className={styles.helpGroupLabel}>Updates</div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.helpItem}
+                    onClick={helpAction(onOpenReleaseNotes)}
+                  >
+                    <span className={styles.helpItemIcon}><MegaphoneIcon /></span>
+                    <span className={styles.helpItemLabel}>What's New</span>
+                    {releaseNotesUnseen && (
+                      <span className={styles.helpItemDot} aria-hidden="true" />
+                    )}
+                  </button>
+                </>
               )}
-            </button>
-          )}
-          {onOpenSettings && (
-            <button
-              type="button"
-              className={styles.footerBtn}
-              onClick={onOpenSettings}
-              title="Settings"
-              data-onboarding="settings"
-            >
-              <span className={styles.footerIcon}><SettingsGearIcon /></span>
-              <span className={styles.footerLabel}>Settings</span>
-            </button>
-          )}
-          {onOpenShortcuts && (
-            <button
-              type="button"
-              className={styles.footerBtn}
-              onClick={onOpenShortcuts}
-              title="Keyboard shortcuts"
-            >
-              <span className={styles.footerIcon}><KeyboardIcon /></span>
-              <span className={styles.footerLabel}>Shortcuts</span>
-            </button>
+
+              {(onOpenSettings || onOpenShortcuts) && (
+                <>
+                  {onOpenReleaseNotes && <div className={styles.helpDivider} />}
+                  <div className={styles.helpGroupLabel}>Essentials</div>
+                  {onOpenSettings && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.helpItem}
+                      onClick={helpAction(onOpenSettings)}
+                    >
+                      <span className={styles.helpItemIcon}><SettingsGearIcon /></span>
+                      <span className={styles.helpItemLabel}>Settings</span>
+                    </button>
+                  )}
+                  {onOpenShortcuts && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.helpItem}
+                      onClick={helpAction(onOpenShortcuts)}
+                    >
+                      <span className={styles.helpItemIcon}><KeyboardIcon /></span>
+                      <span className={styles.helpItemLabel}>Shortcuts</span>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
