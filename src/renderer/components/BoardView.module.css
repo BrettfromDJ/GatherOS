@@ -471,7 +471,9 @@
 }
 
 .tt_sizeInput {
-  width: 36px;
+  /* Wide enough for three-digit sizes (the upper end is 200) plus
+     the rendered caret without clipping. */
+  width: 48px;
   height: 100%;
   border: none;
   background: transparent;
@@ -541,9 +543,9 @@
 }
 
 .tt_colorChevron {
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .tt_colorPopover {
