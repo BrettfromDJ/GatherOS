@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './BoardView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -47,9 +47,12 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
   }, [editing, item.data?.text]);
 
   // Entering edit mode: focus and put the cursor at the end of the
-  // current text. The ::before placeholder is a pseudo-element so
-  // it doesn't interfere with the cursor position.
-  useEffect(() => {
+  // current text. Use useLayoutEffect so the focus runs synchronously
+  // after the DOM commit (before paint) — using a regular useEffect
+  // here causes a race where the user's mouseup lands before the
+  // focus settles, leaving the contentEditable un-focused and the
+  // user has to click a second time before typing works.
+  useLayoutEffect(() => {
     if (!editing) return;
     const el = ref.current;
     if (!el) return;
@@ -69,6 +72,11 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
       style={textStyleFor(item)}
       contentEditable={editing}
       suppressContentEditableWarning
+      // Explicit tabIndex so the contentEditable is unambiguously
+      // focusable on every browser (Chromium occasionally refuses
+      // .focus() on a contentEditable that's just been promoted from
+      // contentEditable=false without a tabindex).
+      tabIndex={editing ? 0 : -1}
       data-placeholder="Type something"
       onBlur={(e) => onCommitEdit(item.id, e.currentTarget.innerText)}
       onMouseDown={(e) => { if (editing) e.stopPropagation(); }}

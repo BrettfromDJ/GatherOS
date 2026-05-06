@@ -506,19 +506,22 @@
   color: var(--text-primary);
 }
 
+/* The color trigger is a solid swatch circle so it reads as
+   "current color, click to change" at a glance. No letter overlay,
+   no underline-bar — those need a second look to parse. A small
+   chevron sits next to the swatch to suggest a popover. */
 .tt_color {
   position: relative;
-  width: 28px;
   height: 28px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
   background: transparent;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-secondary);
-  padding: 0;
 }
 
 .tt_color:hover {
@@ -526,13 +529,20 @@
   color: var(--text-primary);
 }
 
-.tt_colorBar {
-  display: block;
-  width: 14px;
-  height: 3px;
-  border-radius: 1px;
-  margin-top: 2px;
+.tt_colorChip {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   background: var(--swatch, currentColor);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.tt_colorChevron {
+  font-size: 8px;
+  line-height: 1;
+  color: var(--text-tertiary);
 }
 
 .tt_colorPopover {

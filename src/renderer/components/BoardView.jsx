@@ -211,8 +211,8 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
           title="Text color"
           style={{ '--swatch': color }}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1 }}>A</span>
-          <span className={styles.tt_colorBar} />
+          <span className={styles.tt_colorChip} />
+          <span className={styles.tt_colorChevron}>▾</span>
         </button>
         {showColors && (
           <div className={styles.tt_colorPopover}>
@@ -368,6 +368,25 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
     // more natural than staying armed and accidentally laying down
     // a chain of stickies.
     setTool('select');
+    // Belt-and-suspenders focus: the inner editor's own
+    // useLayoutEffect handles the common case, but the user's
+    // ongoing mouseup can still land focus on the .item wrapper
+    // (which now has the contentEditable inside it) and the caret
+    // ends up nowhere. Re-focus on the next animation frame, after
+    // every browser default for the originating click has resolved.
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `[data-item-id="${item.id}"] [contenteditable="true"]`,
+      );
+      if (!el) return;
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    });
   }, [boardId, items, persistItem]);
 
   const handleCommitEdit = useCallback((itemId, text) => {
