@@ -56,11 +56,18 @@
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  /* No flex gap — the pencil affordance manages its own margin so it
+     can collapse to zero width when hidden. Otherwise the gap would
+     reserve dead space on the right of the title even with the
+     button at width: 0. */
+  gap: 0;
+  /* Fixed height keeps the pill from "breathing" vertically when
+     the pencil reveals — only the width should change. */
+  height: 28px;
+  padding: 0 14px;
   background: #FAFAF9;
   border: 0.5px solid rgba(0, 0, 0, 0.05);
-  border-radius: 14px;
+  border-radius: 999px;
   box-shadow:
     0 0 0 1px #FFF inset,
     0 4px 20px 0 rgba(0, 0, 0, 0.05);
@@ -78,15 +85,17 @@
   max-width: 320px;
 }
 
-/* Pencil affordance: invisible until the user hovers over the title
-   pill, then fades in to advertise the rename action. Click it to
-   swap the static text for the editable input. */
+/* Pencil affordance: collapsed to zero width by default so the title
+   pill hugs the text. On hover the pill expands and the icon fades
+   in. The pill's height is fixed via .titleBar so only the width
+   changes during the transition. */
 .titleEditBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
+  width: 0;
   height: 18px;
+  margin-left: 0;
   padding: 0;
   border: none;
   background: transparent;
@@ -94,11 +103,18 @@
   border-radius: 4px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 120ms ease, background 100ms ease;
+  overflow: hidden;
+  transition:
+    width 140ms ease,
+    margin-left 140ms ease,
+    opacity 120ms ease,
+    background 100ms ease;
 }
 
 .titleBar:hover .titleEditBtn,
 .titleEditBtn:focus-visible {
+  width: 18px;
+  margin-left: 6px;
   opacity: 1;
 }
 
