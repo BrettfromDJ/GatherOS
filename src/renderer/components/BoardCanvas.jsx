@@ -226,29 +226,41 @@ export default function BoardCanvas({
   const resizeState = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
 
-  // Wheel = zoom toward cursor. Pinch on a trackpad fires wheel events
-  // with ctrlKey (browsers expose pinch as ctrl-wheel); pure wheel
-  // scrolls. Treat any wheel inside the canvas as a zoom request so
-  // there's a single, predictable gesture.
+  // Wheel handling matches the standard canvas convention:
+  //   - plain trackpad / mouse scroll  → pan (deltaX, deltaY apply
+  //     directly to the pan offset, so two-finger trackpad scroll
+  //     drags the canvas around);
+  //   - Cmd/Ctrl + scroll              → zoom toward the cursor;
+  //   - trackpad pinch                 → zoom toward the cursor.
+  //     (Browsers expose pinch as a wheel event with ctrlKey=true,
+  //     so the same modifier branch handles both.)
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
     const onWheel = (e) => {
       e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      // Anchor zoom at the cursor: world point under cursor stays
-      // pinned, so the user feels they're zooming "into" what they're
-      // pointing at.
-      const factor = Math.exp(-e.deltaY * 0.0015);
-      const nextZoom = Math.max(0.1, Math.min(4, zoom * factor));
-      const wp = screenToWorld(mx, my, pan, zoom);
-      const nextPan = {
-        x: mx - wp.x * nextZoom,
-        y: my - wp.y * nextZoom,
-      };
-      onPanZoomChange({ pan: nextPan, zoom: nextZoom });
+      if (e.ctrlKey || e.metaKey) {
+        const rect = el.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        // Anchor zoom at the cursor: the world point under the
+        // cursor stays pinned. 0.005 is a middle ground that feels
+        // responsive for trackpad pinches (deltaY ~ 1–10) without
+        // being twitchy for Cmd+wheel (deltaY ~ 100).
+        const factor = Math.exp(-e.deltaY * 0.005);
+        const nextZoom = Math.max(0.1, Math.min(4, zoom * factor));
+        const wp = screenToWorld(mx, my, pan, zoom);
+        const nextPan = {
+          x: mx - wp.x * nextZoom,
+          y: my - wp.y * nextZoom,
+        };
+        onPanZoomChange({ pan: nextPan, zoom: nextZoom });
+      } else {
+        onPanZoomChange({
+          pan: { x: pan.x - e.deltaX, y: pan.y - e.deltaY },
+          zoom,
+        });
+      }
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
@@ -546,8 +558,7 @@ export default function BoardCanvas({
           Drag images from the library, or click the canvas with the text /
           sticky tool.
           <div className={styles.emptyHint}>
-            Scroll to zoom • Middle-click drag, or empty-canvas drag with the
-            select tool, to pan
+            Two-finger scroll to pan • Pinch or ⌘+scroll to zoom
           </div>
         </div>
       )}
