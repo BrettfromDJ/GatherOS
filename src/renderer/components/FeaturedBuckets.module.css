@@ -269,7 +269,16 @@
   margin: 0;
 }
 
-.pillCard .stack img {
+/* Pill thumbnails sit centered as small circles — no tilt, no
+   fan. nth-child selectors are needed to match the specificity
+   of the .card:hover .stack img:nth-child(N) fan-out rules
+   above; without them the fan wins and the thumbnails translate
+   outside the pill's bounds. */
+.pillCard .stack img,
+.pillCard .stack img:nth-child(1),
+.pillCard .stack img:nth-child(2),
+.pillCard .stack img:nth-child(3),
+.pillCard .stack img:nth-child(4) {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -277,7 +286,11 @@
   transform: none;
 }
 
-.pillCard:hover .stack img {
+.pillCard:hover .stack img,
+.pillCard:hover .stack img:nth-child(1),
+.pillCard:hover .stack img:nth-child(2),
+.pillCard:hover .stack img:nth-child(3),
+.pillCard:hover .stack img:nth-child(4) {
   transform: none;
 }
 
