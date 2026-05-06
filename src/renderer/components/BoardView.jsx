@@ -270,6 +270,7 @@ export default function BoardView({
   onExit,
   onShowToast,
   onSetAppDragging,
+  onLibraryReload,
 }) {
   const [board, setBoard] = useState(null);
   const [items, setItems] = useState([]);
@@ -609,6 +610,12 @@ export default function BoardView({
           onShowToast?.(
             n === 1 ? 'Added to library' : `Added ${n} images to library`,
           );
+          // Belt-and-suspenders refresh: the save:created event
+          // already triggers useLibrary to reload, but being
+          // explicit here guarantees the masonry library list
+          // reflects the new save by the time the user navigates
+          // back to the All view.
+          onLibraryReload?.();
         }}
         onSetAppDragging={onSetAppDragging}
         tool={tool}

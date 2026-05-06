@@ -1827,6 +1827,7 @@ export default function App() {
               onExit={() => setView({ type: 'all' })}
               onShowToast={(message) => showActionToast({ message, durationMs: 1800 })}
               onSetAppDragging={setDragging}
+              onLibraryReload={reload}
             />
           ) : focused ? (
             <FocusedView
