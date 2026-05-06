@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { morphFocus } from './lib/morphFocus.js';
 import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
@@ -180,6 +181,11 @@ export default function App() {
     try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
   }, [gridLayout]);
   const [focusedId, setFocusedId] = useState(null);
+  // Tracks which save is currently morphing between grid and focused
+  // view. Used to attach the matching view-transition-name on both
+  // source (masonry image) and target (focused image) so the browser
+  // animates the shared element in place.
+  const [morphId, setMorphId] = useState(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1219,8 +1225,23 @@ export default function App() {
       return;
     }
     setSelected(new Set());
-    setFocusedId(id);
+    morphFocus({
+      setMorphId,
+      applyState: () => setFocusedId(id),
+      id,
+    });
   }, []);
+
+  // Closing the focused view runs the same morph in reverse — the
+  // focused image animates back into the masonry card it came from.
+  const handleCloseFocused = useCallback(() => {
+    if (focusedId == null) return;
+    morphFocus({
+      setMorphId,
+      applyState: () => setFocusedId(null),
+      id: focusedId,
+    });
+  }, [focusedId]);
 
   // Bulk Restore (Trash → library) and bulk Delete Forever from the
   // selection bar when in Trash. Both go through the action toast so
@@ -1705,7 +1726,7 @@ export default function App() {
               record={focused}
               index={focusedIndex}
               total={saves.length}
-              onBack={() => setFocusedId(null)}
+              onBack={handleCloseFocused}
               onPrev={goPrev}
               onNext={goNext}
               hasPrev={focusedIndex > 0}
@@ -1713,6 +1734,7 @@ export default function App() {
               onOpenInPreview={handleOpenInPreview}
               onDelete={handleDelete}
               onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
+              morphSource={morphId === focused.id}
             />
           ) : (
             <>
@@ -1770,6 +1792,7 @@ export default function App() {
                   colorFilter={colorFilter}
                   freshIds={freshIds}
                   layout={gridLayout}
+                  morphId={morphId}
                 />
               </div>
             </>

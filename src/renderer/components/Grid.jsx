@@ -64,7 +64,7 @@ function hostnameOf(url) {
 export default function Grid({
   saves, selected, onSelect, onSetSelection, onOpen, onContextMenu, onDragStart,
   columns, loading, view, search, semanticSearchActive, colorFilter,
-  freshIds, layout = 'masonry',
+  freshIds, layout = 'masonry', morphId = null,
 }) {
   const marqueeRef = useRef(null);
   const [marqueeRect, setMarqueeRect] = useState(null);
@@ -297,6 +297,7 @@ export default function Grid({
               onDragStart={onDragStart}
               fresh={freshIds?.has(s.id)}
               staggerMs={staggerMs}
+              morphSource={morphId === s.id}
             />
           ))}
         </div>

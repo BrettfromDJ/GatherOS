@@ -41,6 +41,7 @@ export default function FocusedView({
   onOpenInPreview,
   onDelete,
   onToggleSidebar,
+  morphSource = false,
 }) {
   const [zoom, setZoom] = useState(1);
   const stageRef = useRef(null);
@@ -102,7 +103,12 @@ export default function FocusedView({
   };
 
   return (
-    <div className={styles.focused}>
+    <div
+      className={[
+        styles.focused,
+        morphSource && styles.focusedMorphing,
+      ].filter(Boolean).join(' ')}
+    >
       <div className={styles.topBar}>
         {onToggleSidebar && (
           <button
@@ -216,6 +222,7 @@ export default function FocusedView({
               className={styles.image}
               alt={record.title || ''}
               draggable={!picking}
+              style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
               onClick={handlePickerClick}
               onMouseMove={handleImageMouseMove}
               onDragStart={(e) => {

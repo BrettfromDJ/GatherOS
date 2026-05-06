@@ -40,6 +40,7 @@ export default function ImageCard({
   onDragStart,
   fresh,
   staggerMs = 0,
+  morphSource = false,
 }) {
   const src = fileUrl(record.file_path);
   const aspect =
@@ -121,6 +122,7 @@ export default function ImageCard({
             alt={record.title || ''}
             loading="lazy"
             draggable={false}
+            style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
           />
         )}
         <span
