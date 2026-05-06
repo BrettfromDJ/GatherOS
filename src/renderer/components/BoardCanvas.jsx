@@ -11,6 +11,96 @@ function screenToWorld(sx, sy, pan, zoom) {
   };
 }
 
+// Style props derived from item.data — used by both text and sticky
+// items. Falls back to sensible per-type defaults when a field hasn't
+// been customised yet.
+function textStyleFor(item) {
+  const isSticky = item.type === 'sticky';
+  return {
+    fontFamily: item.data?.fontFamily || 'inherit',
+    fontSize: `${item.data?.fontSize || (isSticky ? 14 : 16)}px`,
+    fontWeight: item.data?.bold ? 700 : 400,
+    fontStyle: item.data?.italic ? 'italic' : 'normal',
+    textAlign: item.data?.align || 'left',
+    color: item.data?.color || (isSticky ? 'rgba(0, 0, 0, 0.85)' : 'var(--text-primary)'),
+  };
+}
+
+// Editable text/sticky item. The contentEditable's text content is
+// driven imperatively via ref to keep React from reconciling user
+// keystrokes. Empty state shows a CSS-only ::before placeholder so
+// the editor reads as "Type something" before the user types.
+function EditableTextItem({
+  item,
+  selected,
+  editing,
+  baseStyle,
+  onMouseDown,
+  onBeginEdit,
+  onCommitEdit,
+}) {
+  const ref = useRef(null);
+  const cls = item.type === 'sticky' ? styles.itemSticky : styles.itemText;
+
+  // Sync committed text → DOM when not editing. We deliberately do
+  // NOT update during edit, otherwise React would clobber whatever
+  // the user has typed so far.
+  useEffect(() => {
+    if (editing) return;
+    const el = ref.current;
+    if (!el) return;
+    const next = item.data?.text || '';
+    if (el.innerText !== next) el.innerText = next;
+  }, [editing, item.data?.text]);
+
+  // Entering edit mode: focus and put the cursor at the end of the
+  // current text. The ::before placeholder is a pseudo-element so
+  // it doesn't interfere with the cursor position.
+  useEffect(() => {
+    if (!editing) return;
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, [editing]);
+
+  const autosize = !item.width && item.type === 'text';
+
+  return (
+    <div
+      data-item-id={item.id}
+      className={[
+        styles.item,
+        selected && styles.itemSelected,
+        autosize && styles.itemAutosize,
+      ].filter(Boolean).join(' ')}
+      style={baseStyle}
+      onMouseDown={onMouseDown}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onBeginEdit(item.id);
+      }}
+    >
+      <div
+        ref={ref}
+        className={[cls, editing && styles.itemEditable].filter(Boolean).join(' ')}
+        style={textStyleFor(item)}
+        contentEditable={editing}
+        suppressContentEditableWarning
+        data-placeholder="Type something"
+        onBlur={(e) => onCommitEdit(item.id, e.currentTarget.innerText)}
+        onMouseDown={(e) => { if (editing) e.stopPropagation(); }}
+        onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}
+      />
+    </div>
+  );
+}
+
 // Render one item by type. Each item is positioned absolutely in
 // world coords; the parent .world div carries the pan/zoom transform.
 function BoardItem({
@@ -62,31 +152,16 @@ function BoardItem({
   }
 
   if (item.type === 'sticky' || item.type === 'text') {
-    const cls = item.type === 'sticky' ? styles.itemSticky : styles.itemText;
     return (
-      <div
-        data-item-id={item.id}
-        className={[styles.item, selected && styles.itemSelected].filter(Boolean).join(' ')}
-        style={baseStyle}
+      <EditableTextItem
+        item={item}
+        selected={selected}
+        editing={editing}
+        baseStyle={baseStyle}
         onMouseDown={handleMouseDown}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          onBeginEdit(item.id);
-        }}
-      >
-        <div
-          className={[cls, editing && styles.itemEditable].filter(Boolean).join(' ')}
-          contentEditable={editing}
-          suppressContentEditableWarning
-          onBlur={(e) => onCommitEdit(item.id, e.currentTarget.innerText)}
-          onMouseDown={(e) => editing && e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') e.currentTarget.blur();
-          }}
-        >
-          {item.data?.text || (editing ? '' : (item.type === 'sticky' ? 'Sticky note' : 'Text'))}
-        </div>
-      </div>
+        onBeginEdit={onBeginEdit}
+        onCommitEdit={onCommitEdit}
+      />
     );
   }
 
@@ -164,10 +239,11 @@ export default function BoardCanvas({
     } else if (e.button === 0 && e.target === e.currentTarget) {
       // Click on empty canvas with non-select tool: dispatch up so the
       // parent can decide what to add (sticky / text at click point).
+      // The parent owns selection for these clicks — we'd otherwise
+      // wipe the selection it just set on a freshly-created item.
       const rect = canvasRef.current.getBoundingClientRect();
       const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, pan, zoom);
       onCanvasClick?.(world, tool);
-      if (!e.shiftKey) onSelectIds(new Set());
     }
   };
 
@@ -274,6 +350,8 @@ export default function BoardCanvas({
       className={[
         styles.canvas,
         isPanning && styles.canvasPanning,
+        tool === 'text' && styles.canvasTextTool,
+        tool === 'sticky' && styles.canvasStickyTool,
       ].filter(Boolean).join(' ')}
       style={{
         backgroundSize: `${24 * zoom}px ${24 * zoom}px`,

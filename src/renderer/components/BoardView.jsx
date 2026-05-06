@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   MousePointer2,
   ImagePlus,
@@ -9,6 +9,11 @@ import {
   Frame,
   Undo2,
   Redo2,
+  Bold,
+  Italic,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -34,10 +39,199 @@ const INITIAL_ZOOM = 1;
 
 // Default sizes per item type (world-space pixels). Image items are
 // resized to match their dropped save's intrinsic dimensions when
-// available, capped to keep them readable on the canvas.
+// available, capped to keep them readable on the canvas. Text items
+// have no default size — the inner editor drives the bounding box
+// until the user (or a future resize handle) commits a fixed size.
 const DEFAULT_IMAGE_MAX = 360;
 const DEFAULT_STICKY = { width: 180, height: 180 };
-const DEFAULT_TEXT = { width: 240, height: 56 };
+const DEFAULT_TEXT = { width: null, height: null };
+
+// Curated font list for the text styler. Web-safe + system fonts so
+// they render consistently without bundling.
+const FONT_OPTIONS = [
+  { label: 'Sans',       value: 'inherit' },
+  { label: 'Serif',      value: '"Iowan Old Style", "Apple Garamond", Georgia, serif' },
+  { label: 'Mono',       value: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' },
+  { label: 'Display',    value: '"Helvetica Neue", "Inter", system-ui, sans-serif' },
+];
+
+// Curated text colors for the styler. Black + the same accent palette
+// the rest of the app uses, so colours stay coherent.
+const COLOR_SWATCHES = [
+  '#0a0a0a', '#5a5a5a', '#9a9a9a',
+  '#0a84ff', '#34c759', '#ff9500',
+  '#ff3b30', '#af52de', '#ff2d55',
+  '#ffd60a', '#5ac8fa', '#bf5af2',
+];
+
+// Floating styling toolbar that hovers above the selected (or
+// editing) text / sticky item. Pure presentation — every change
+// is dispatched up via onUpdate so persistence stays in BoardView.
+//
+// Curated to the controls that actually matter for moodboard text:
+// font, size, bold, italic, alignment, color. Skipped from the
+// reference design: lists, links, comments, lock, AI, "more" — none
+// of those map onto a single-user board's text affordances.
+function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
+  const [showColors, setShowColors] = useState(false);
+  const [pos, setPos] = useState(null);
+  // Close the color popover whenever the active item changes so a
+  // click on a different text doesn't leave the previous one's
+  // popover orphaned somewhere on screen.
+  useEffect(() => { setShowColors(false); }, [item.id]);
+
+  // Position above the item via the DOM rect — works for fixed-size
+  // and content-driven (autosize) items alike. ResizeObserver keeps
+  // the toolbar tracking the item if its content grows during edit.
+  useLayoutEffect(() => {
+    if (!rootEl) return;
+    const itemEl = document.querySelector(`[data-item-id="${item.id}"]`);
+    if (!itemEl) {
+      setPos(null);
+      return;
+    }
+    const compute = () => {
+      const rootRect = rootEl.getBoundingClientRect();
+      const itemRect = itemEl.getBoundingClientRect();
+      setPos({
+        left: itemRect.left - rootRect.left + itemRect.width / 2,
+        top: itemRect.top - rootRect.top - 10,
+      });
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(itemEl);
+    return () => ro.disconnect();
+  }, [item.id, rootEl, pan, zoom, item.x, item.y, item.width, item.height]);
+
+  if (!pos) return null;
+  const { left, top } = pos;
+
+  const data = item.data || {};
+  const fontFamily = data.fontFamily || 'inherit';
+  const fontSize = data.fontSize || (item.type === 'sticky' ? 14 : 16);
+  const align = data.align || 'left';
+  const color = data.color
+    || (item.type === 'sticky' ? 'rgba(0, 0, 0, 0.85)' : '#0a0a0a');
+
+  const set = (changes) => onUpdate({ ...data, ...changes });
+
+  return (
+    <div
+      className={styles.textToolbar}
+      style={{ left, top, transform: 'translate(-50%, -100%)' }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <select
+        className={styles.tt_select}
+        value={fontFamily}
+        onChange={(e) => set({ fontFamily: e.target.value })}
+        title="Font"
+      >
+        {FONT_OPTIONS.map((f) => (
+          <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+            {f.label}
+          </option>
+        ))}
+      </select>
+
+      <div className={styles.tt_size}>
+        <input
+          className={styles.tt_sizeInput}
+          type="number"
+          min="8"
+          max="200"
+          value={fontSize}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (!Number.isNaN(n) && n > 0) set({ fontSize: n });
+          }}
+        />
+        <div className={styles.tt_sizeStep}>
+          <button type="button" onClick={() => set({ fontSize: Math.min(200, fontSize + 1) })}>▲</button>
+          <button type="button" onClick={() => set({ fontSize: Math.max(8, fontSize - 1) })}>▼</button>
+        </div>
+      </div>
+
+      <div className={styles.tt_sep} />
+
+      <button
+        type="button"
+        className={[styles.tt_btn, data.bold && styles.tt_btn_active].filter(Boolean).join(' ')}
+        onClick={() => set({ bold: !data.bold })}
+        title="Bold"
+      >
+        <Bold size={14} strokeWidth={2.5} />
+      </button>
+      <button
+        type="button"
+        className={[styles.tt_btn, data.italic && styles.tt_btn_active].filter(Boolean).join(' ')}
+        onClick={() => set({ italic: !data.italic })}
+        title="Italic"
+      >
+        <Italic size={14} strokeWidth={2} />
+      </button>
+
+      <div className={styles.tt_sep} />
+
+      <div className={styles.tt_group}>
+        <button
+          type="button"
+          className={[styles.tt_btn, align === 'left' && styles.tt_btn_active].filter(Boolean).join(' ')}
+          onClick={() => set({ align: 'left' })}
+          title="Align left"
+        >
+          <AlignLeft size={14} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          className={[styles.tt_btn, align === 'center' && styles.tt_btn_active].filter(Boolean).join(' ')}
+          onClick={() => set({ align: 'center' })}
+          title="Align center"
+        >
+          <AlignCenter size={14} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          className={[styles.tt_btn, align === 'right' && styles.tt_btn_active].filter(Boolean).join(' ')}
+          onClick={() => set({ align: 'right' })}
+          title="Align right"
+        >
+          <AlignRight size={14} strokeWidth={1.8} />
+        </button>
+      </div>
+
+      <div className={styles.tt_sep} />
+
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          type="button"
+          className={styles.tt_color}
+          onClick={() => setShowColors((s) => !s)}
+          title="Text color"
+          style={{ '--swatch': color }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1 }}>A</span>
+          <span className={styles.tt_colorBar} />
+        </button>
+        {showColors && (
+          <div className={styles.tt_colorPopover}>
+            {COLOR_SWATCHES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={styles.tt_swatch}
+                style={{ background: c }}
+                title={c}
+                onClick={() => { set({ color: c }); setShowColors(false); }}
+              />
+            ))}
+          </div>
+        )}
+      </span>
+    </div>
+  );
+}
 
 function nextZ(items) {
   if (items.length === 0) return 1;
@@ -61,6 +255,7 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
   const [editingItemId, setEditingItemId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const rootRef = useRef(null);
 
   // Load the board metadata + items when the board changes.
   useEffect(() => {
@@ -136,17 +331,27 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
   }, [saves, items, boardId, persistItem]);
 
   // Click on the canvas with a non-select tool: spawn the tool's
-  // item type at that world position. Using the current zoom keeps
-  // newly-added items legible without the user manually resizing.
+  // item type at that world position. Empty clicks under unsupported
+  // tools just deselect.
   const handleCanvasClick = useCallback((world, activeTool) => {
-    if (activeTool !== 'sticky' && activeTool !== 'text') return;
+    if (activeTool !== 'sticky' && activeTool !== 'text') {
+      setSelectedIds(new Set());
+      return;
+    }
     const size = activeTool === 'sticky' ? DEFAULT_STICKY : DEFAULT_TEXT;
+    // Text items launch unsized so the inner editor drives the
+    // bounding box (matching the reference: a small "Type something"
+    // pill rather than a fixed-width slab). Sticky stays square.
+    const w = size.width || 0;
+    const h = size.height || 0;
     const item = {
       id: uuid(),
       board_id: boardId,
       type: activeTool,
-      x: world.x - size.width / 2,
-      y: world.y - size.height / 2,
+      // For autosize text the spawn point becomes the top-left rather
+      // than the centre — there's no width yet to centre against.
+      x: world.x - w / 2,
+      y: world.y - h / 2,
       width: size.width,
       height: size.height,
       rotation: 0,
@@ -219,8 +424,35 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
 
   const zoomReadout = useMemo(() => `${Math.round(zoom * 100)}%`, [zoom]);
 
+  // Active styler target: the editing text/sticky if any, else a
+  // single-selected text/sticky. Anything else (image, multi-select,
+  // nothing) hides the toolbar.
+  const stylerItem = useMemo(() => {
+    const isTextish = (it) => it && (it.type === 'text' || it.type === 'sticky');
+    if (editingItemId) {
+      const it = items.find((x) => x.id === editingItemId);
+      return isTextish(it) ? it : null;
+    }
+    if (selectedIds.size === 1) {
+      const id = Array.from(selectedIds)[0];
+      const it = items.find((x) => x.id === id);
+      return isTextish(it) ? it : null;
+    }
+    return null;
+  }, [editingItemId, selectedIds, items]);
+
+  const handleStyleUpdate = useCallback((nextData) => {
+    if (!stylerItem) return;
+    setItems((prev) => prev.map((it) => {
+      if (it.id !== stylerItem.id) return it;
+      const next = { ...it, data: nextData, updated_at: Date.now() };
+      persistItem(next);
+      return next;
+    }));
+  }, [stylerItem, persistItem]);
+
   return (
-    <div className={styles.root}>
+    <div ref={rootRef} className={styles.root}>
       <div className={styles.titleBar}>
         <input
           className={styles.titleInput}
@@ -325,6 +557,16 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
             )}
           </div>
         </div>
+      )}
+
+      {stylerItem && (
+        <TextStyler
+          item={stylerItem}
+          rootEl={rootRef.current}
+          pan={pan}
+          zoom={zoom}
+          onUpdate={handleStyleUpdate}
+        />
       )}
 
       <div className={styles.zoomReadout}>

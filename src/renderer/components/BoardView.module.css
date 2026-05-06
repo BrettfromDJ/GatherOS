@@ -248,6 +248,12 @@
   cursor: grabbing;
 }
 
+/* Tool-driven cursors so the user knows the canvas is armed before
+   they click. The I-beam mirrors a regular text editor; the cell
+   cursor (small crosshair-in-square) reads as "drop a sticky here". */
+.canvasTextTool { cursor: text; }
+.canvasStickyTool { cursor: cell; }
+
 /* The "world" — items live inside this and get the pan + zoom
    transform applied to the whole subtree. transform-origin: 0 0 so
    our pan offset is in screen pixels rather than world units. */
@@ -314,12 +320,218 @@
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+  /* Plain text items have no surface — the text floats directly on
+     the board. Outline appears via .itemSelected on the wrapper. */
+  padding: 4px 6px;
+  min-width: 60px;
+  min-height: 1em;
 }
 
 .itemEditable {
   outline: none;
   cursor: text;
 }
+
+/* Empty contentEditable shows a faded "Type something" placeholder
+   without React managing the children — the dataset attribute is
+   lifted into a ::before pseudo so React/browser don't fight over
+   the contentEditable's text nodes. */
+.itemText:empty::before,
+.itemSticky:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+  display: block;
+}
+
+/* Text items auto-size to their content when no explicit size has
+   been set yet (newly placed text). The wrapper relaxes its rigid
+   width/height so the inner editable can drive the layout. */
+.itemAutosize {
+  width: max-content;
+  max-width: 480px;
+  height: auto;
+}
+
+/* ── Floating text styler ────────────────────────────────────────── */
+
+.textToolbar {
+  position: absolute;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px #FFF inset,
+    0 6px 22px rgba(0, 0, 0, 0.10);
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.tt_group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tt_sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.tt_btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.tt_btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.tt_btn_active,
+.tt_btn_active:hover {
+  background: rgba(10, 132, 255, 0.10);
+  color: var(--accent);
+}
+
+.tt_select {
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0.5px solid rgba(0, 0, 0, 0.10);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 96px;
+}
+
+.tt_select:focus {
+  outline: 2px solid rgba(10, 132, 255, 0.30);
+  outline-offset: 0;
+}
+
+.tt_size {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border: 0.5px solid rgba(0, 0, 0, 0.10);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tt_sizeInput {
+  width: 36px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  outline: none;
+  padding: 0;
+}
+
+.tt_sizeStep {
+  display: inline-flex;
+  flex-direction: column;
+  border-left: 0.5px solid rgba(0, 0, 0, 0.10);
+}
+
+.tt_sizeStep button {
+  width: 18px;
+  height: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.tt_sizeStep button:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+.tt_color {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+}
+
+.tt_color:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.tt_colorBar {
+  display: block;
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  margin-top: 2px;
+  background: var(--swatch, currentColor);
+}
+
+.tt_colorPopover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+  z-index: 1;
+}
+
+.tt_swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.10);
+  cursor: pointer;
+  padding: 0;
+}
+
+.tt_swatch:hover { transform: scale(1.08); }
 
 /* ── Empty state ─────────────────────────────────────────────────── */
 
