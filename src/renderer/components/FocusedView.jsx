@@ -220,15 +220,42 @@ export default function FocusedView({
         onContextMenu={onContextMenu}
         onClick={(e) => {
           // Click on the whitespace around the image dismisses the
-          // focused view. Skip when:
-          //   - the click landed on the image itself (the image owns
-          //     its own click semantics — eyedropper, drag preview);
-          //   - the eyedropper is armed (picker swallows clicks);
-          //   - the user is dragging to pan a zoomed image (browser
-          //     fires click only on a real click, not after a drag,
-          //     so this is implicit).
+          // focused view. Skip when the eyedropper is armed (picker
+          // swallows clicks). When the click lands on the <img>
+          // element, it might still be in the object-fit:contain
+          // letterbox bands rather than on the actual image content;
+          // map the click to the rendered image rect and only spare
+          // hits that fall inside it.
           if (picking) return;
-          if (e.target === imageRef.current) return;
+          if (e.target === imageRef.current) {
+            const img = imageRef.current;
+            const nw = img.naturalWidth;
+            const nh = img.naturalHeight;
+            if (nw && nh) {
+              const rect = img.getBoundingClientRect();
+              const elAspect = rect.width / rect.height;
+              const imgAspect = nw / nh;
+              let renderedW, renderedH;
+              if (elAspect > imgAspect) {
+                renderedH = rect.height;
+                renderedW = rect.height * imgAspect;
+              } else {
+                renderedW = rect.width;
+                renderedH = rect.width / imgAspect;
+              }
+              const offsetX = (rect.width - renderedW) / 2;
+              const offsetY = (rect.height - renderedH) / 2;
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              const onContent =
+                x >= offsetX && x <= offsetX + renderedW &&
+                y >= offsetY && y <= offsetY + renderedH;
+              if (onContent) return;
+            } else {
+              // Image hasn't loaded yet; play it safe and don't dismiss.
+              return;
+            }
+          }
           onBack?.();
         }}
       >
