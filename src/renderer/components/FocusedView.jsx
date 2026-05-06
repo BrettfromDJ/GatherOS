@@ -218,6 +218,19 @@ export default function FocusedView({
           picking && styles.stagePicking,
         ].filter(Boolean).join(' ')}
         onContextMenu={onContextMenu}
+        onClick={(e) => {
+          // Click on the whitespace around the image dismisses the
+          // focused view. Skip when:
+          //   - the click landed on the image itself (the image owns
+          //     its own click semantics — eyedropper, drag preview);
+          //   - the eyedropper is armed (picker swallows clicks);
+          //   - the user is dragging to pan a zoomed image (browser
+          //     fires click only on a real click, not after a drag,
+          //     so this is implicit).
+          if (picking) return;
+          if (e.target === imageRef.current) return;
+          onBack?.();
+        }}
       >
         {src && (
           <div
