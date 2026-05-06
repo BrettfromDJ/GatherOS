@@ -601,23 +601,32 @@ a:focus-visible,
    Drives the "select a card → it expands into the focused image"
    transition (and the reverse on close). Both the masonry <img> and
    the focused <img> get view-transition-name: morph-image, so the
-   browser pairs them and animates size + position between snapshots.
-   The default 0.25s cross-fade root animation is fine for the rest
-   of the chrome; we only retune the matched element here. */
+   browser pairs them and animates size + position between snapshots. */
 ::view-transition-group(morph-image) {
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-::view-transition-old(morph-image),
-::view-transition-new(morph-image) {
-  animation-duration: 280ms;
-  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+/* Skip the default cross-fade between old and new snapshots. The two
+   snapshots show the same image at different framings (cover vs.
+   contain) and resolutions, so rendering both at ~50% opacity in the
+   middle of the morph produces a visible "double image" — same image
+   ghost-overlaid on itself. Showing only the new snapshot (sized to
+   the morphing group box) gives a single clean image growing from
+   the grid card position to the focused position. */
+::view-transition-old(morph-image) {
+  animation: none;
+  opacity: 0;
 }
 
-/* The focused root has its own fade-in animation that double-tweens
-   with the view transition's root cross-fade. Suppress it during the
-   transition so the morph reads as a single motion, not two stacked. */
+::view-transition-new(morph-image) {
+  animation: none;
+  opacity: 1;
+}
+
+/* Quicker root cross-fade so the rest of the grid fades out before
+   the morph completes — avoids unrelated cards lingering behind the
+   morphing image. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 220ms;
