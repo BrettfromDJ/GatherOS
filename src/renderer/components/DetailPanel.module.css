@@ -8,6 +8,37 @@
   overflow-y: auto;
 }
 
+/* Stagger-in: each direct section of the panel fades up with a tiny
+   delay between items, so the panel "fills in" once the morph
+   completes. nth-child covers the typical section count; conditional
+   sections (font, similar, etc.) just take whichever slot they fall
+   into. fill-mode: both holds the from-state until the delay expires
+   so items don't flash visible-then-hidden on first render. */
+.panel > * {
+  animation: detailItemIn 360ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.panel > :nth-child(1)  { animation-delay: 0ms; }
+.panel > :nth-child(2)  { animation-delay: 40ms; }
+.panel > :nth-child(3)  { animation-delay: 80ms; }
+.panel > :nth-child(4)  { animation-delay: 120ms; }
+.panel > :nth-child(5)  { animation-delay: 160ms; }
+.panel > :nth-child(6)  { animation-delay: 200ms; }
+.panel > :nth-child(7)  { animation-delay: 240ms; }
+.panel > :nth-child(8)  { animation-delay: 280ms; }
+.panel > :nth-child(9)  { animation-delay: 320ms; }
+.panel > :nth-child(10) { animation-delay: 360ms; }
+.panel > :nth-child(11) { animation-delay: 400ms; }
+.panel > :nth-child(12) { animation-delay: 440ms; }
+
+@keyframes detailItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel > * { animation: none; }
+}
+
 .header {
   display: flex;
   align-items: center;
