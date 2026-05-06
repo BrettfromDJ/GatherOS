@@ -28,6 +28,7 @@ import {
   ArrowRightFromLine,
   ArrowUp,
   Clipboard,
+  ExternalLink,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -51,6 +52,7 @@ const SimilarIcon = () => <Copy {...ICON} />;
 const MinusCircleIcon = () => <MinusCircle {...ICON} />;
 const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
 const ClipboardIcon = () => <Clipboard {...ICON} />;
+const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
 
 export default function App() {
   const {
@@ -1333,6 +1335,47 @@ export default function App() {
     [handleOpenInPreview],
   );
 
+  // Right-click on the focused image. Builds the same menu as the
+  // grid card (Add to Folder, Find similar, Copy image, Delete) but
+  // prepends focused-view-specific actions (Open in Preview, Export)
+  // since they're the operations a user is most likely to want once
+  // they're studying the full-size image.
+  const handleFocusedContextMenu = useCallback(async (e) => {
+    e.preventDefault();
+    if (!focused) return;
+    const saveId = focused.id;
+    let memberIds = [];
+    try {
+      const rows = await window.moodmark.collections.getForSave(saveId);
+      memberIds = (rows || []).map((r) => r.id);
+    } catch { /* fall through with empty list */ }
+    const cardItems = buildCardMenuItems(saveId, memberIds);
+
+    const ext = (focused.file_path.split('.').pop() || 'png').toLowerCase();
+    const exportName = focused.title
+      ? `${focused.title}.${ext}`
+      : `moodmark-${focused.id.slice(0, 8)}.${ext}`;
+
+    const focusedItems = [
+      {
+        label: 'Open in Preview',
+        icon: <ExternalLinkIcon />,
+        onClick: () => handleOpenInPreview(focused.file_path),
+      },
+      {
+        label: 'Export…',
+        icon: <DownloadIcon />,
+        onClick: () => window.moodmark.image.export(focused.file_path, exportName),
+      },
+    ];
+
+    const items = cardItems.length > 0
+      ? [...focusedItems, { type: 'separator' }, ...cardItems]
+      : focusedItems;
+
+    setCardCtx({ saveId, x: e.clientX, y: e.clientY, items });
+  }, [focused, buildCardMenuItems, handleOpenInPreview]);
+
   const handleDelete = useCallback(
     async (id) => {
       await deleteSave(id);
@@ -1735,6 +1778,7 @@ export default function App() {
               onDelete={handleDelete}
               onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
               morphSource={morphId === focused.id}
+              onContextMenu={handleFocusedContextMenu}
             />
           ) : (
             <>

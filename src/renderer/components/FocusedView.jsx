@@ -42,6 +42,7 @@ export default function FocusedView({
   onDelete,
   onToggleSidebar,
   morphSource = false,
+  onContextMenu,
 }) {
   const [zoom, setZoom] = useState(1);
   // Capture once on mount: was this focused view opened via a morph
@@ -216,6 +217,7 @@ export default function FocusedView({
           zoom > 1 && styles.stageScroll,
           picking && styles.stagePicking,
         ].filter(Boolean).join(' ')}
+        onContextMenu={onContextMenu}
       >
         {src && (
           <div
