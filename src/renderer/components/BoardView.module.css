@@ -189,6 +189,59 @@
   margin: 4px 2px;
 }
 
+/* Shape tool flyout — opens to the right of the tool button when
+   the user clicks Shapes. Three icon buttons (rect / ellipse /
+   triangle); picking one activates the shape tool with that kind. */
+.shapeToolFlyout {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px #FFF inset,
+    0 6px 22px 0 rgba(0, 0, 0, 0.10);
+  z-index: 7;
+  animation: shapeToolFlyoutIn 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes shapeToolFlyoutIn {
+  from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+.shapeToolFlyoutBtn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.shapeToolFlyoutBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+.shapeToolFlyoutBtnActive,
+.shapeToolFlyoutBtnActive:hover {
+  background: rgba(10, 132, 255, 0.10);
+  color: var(--accent);
+}
+
 /* ── Library drawer (right rail, image source) ───────────────────── */
 
 .drawer {
@@ -1028,6 +1081,50 @@
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-secondary);
+}
+
+/* Text-colour variant — "A" stacked over a thin coloured underline
+   (Word-style) so the user can tell at a glance this is for font,
+   not for shape fill or stroke (which use solid swatches in the
+   same row). */
+.tt_textColor {
+  position: relative;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.tt_textColor:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tt_textColorStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.tt_textColorA {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.tt_textColorBar {
+  display: block;
+  width: 13px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--swatch, currentColor);
 }
 
 .tt_color:hover {

@@ -18,7 +18,7 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronLeft,
-  ExternalLink,
+  Download,
   Clipboard,
   ArrowUpToLine,
   ArrowDownToLine,
@@ -255,12 +255,20 @@ function TextStyler({ item, rootEl, pan, zoom, onUpdate }) {
       <span style={{ position: 'relative', display: 'inline-flex' }}>
         <button
           type="button"
-          className={styles.tt_color}
+          className={styles.tt_textColor}
           onClick={() => setShowColors((s) => !s)}
+          data-tooltip="Text color"
           title="Text color"
           style={{ '--swatch': color }}
         >
-          <span className={styles.tt_colorChip} />
+          {/* "A" stacked over a colored underline bar (Word-style)
+              so the user can read this as "text color" at a glance,
+              distinct from shape fill / stroke swatches in the same
+              row. Bar tracks the current text colour via --swatch. */}
+          <span className={styles.tt_textColorStack}>
+            <span className={styles.tt_textColorA}>A</span>
+            <span className={styles.tt_textColorBar} />
+          </span>
           <ChevronDown size={12} strokeWidth={2} className={styles.tt_colorChevron} />
         </button>
         {showColors && (
@@ -402,13 +410,76 @@ function nextZ(items) {
   return Math.max(...items.map((i) => i.z_index ?? 0)) + 1;
 }
 
+// Shape tool button — clicking the icon opens a small flyout where
+// the user picks rect / ellipse / triangle. The picked kind sticks
+// across spawns and is also reflected in the floating styler when
+// a shape is selected. Click-outside / Escape both dismiss.
+function ShapeToolButton({ active, kind, onPick, Icon }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const KINDS = [
+    { id: 'rect',     Icon: Square,   label: 'Rectangle' },
+    { id: 'ellipse',  Icon: Circle,   label: 'Ellipse' },
+    { id: 'triangle', Icon: Triangle, label: 'Triangle' },
+  ];
+
+  return (
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+      <button
+        type="button"
+        className={[
+          styles.toolBtn,
+          active && styles.toolBtnActive,
+        ].filter(Boolean).join(' ')}
+        title="Shape (R)"
+        onClick={() => setOpen((s) => !s)}
+      >
+        <Icon />
+      </button>
+      {open && (
+        <div className={styles.shapeToolFlyout} role="menu">
+          {KINDS.map(({ id, Icon: KIcon, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={[
+                styles.shapeToolFlyoutBtn,
+                kind === id && active && styles.shapeToolFlyoutBtnActive,
+              ].filter(Boolean).join(' ')}
+              title={label}
+              onClick={() => { onPick(id); setOpen(false); }}
+            >
+              <KIcon size={18} strokeWidth={1.7} />
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // Floating action bar for selected image items. Mirrors TextStyler's
 // positioning logic so the bar tracks the item's screen rect via a
 // useLayoutEffect + ResizeObserver. Buttons cover z-order (bring-to-
-// front / send-to-back), library affordances (Open in Preview, Copy
-// image), and removal — Remove-from-board keeps the underlying save
-// in the library, Trash sends it to the trash and clears every board
-// it was on via the save:deleted broadcast.
+// front / send-to-back), library affordances (Download, Copy image),
+// and removal — Remove-from-board keeps the underlying save in the
+// library; trashing the underlying save itself happens elsewhere.
 function ImageActionBar({
   item,
   rootEl,
@@ -416,7 +487,7 @@ function ImageActionBar({
   zoom,
   onBringToFront,
   onSendToBack,
-  onOpenInPreview,
+  onDownload,
   onCopyImage,
   onRemoveFromBoard,
 }) {
@@ -453,11 +524,11 @@ function ImageActionBar({
       <button
         type="button"
         className={styles.tt_btn}
-        data-tooltip="Open in Preview"
-        title="Open in Preview"
-        onClick={onOpenInPreview}
+        data-tooltip="Download"
+        title="Download"
+        onClick={onDownload}
       >
-        <ExternalLink size={14} strokeWidth={1.8} />
+        <Download size={14} strokeWidth={1.8} />
       </button>
       <button
         type="button"
@@ -1052,9 +1123,14 @@ export default function BoardView({
     persistItem(next);
   }, [imageBarItem, items, persistItem, pushHistory]);
 
-  const handleOpenInPreviewItem = useCallback(() => {
+  const handleDownloadItem = useCallback(() => {
     const save = saves.find((s) => s.id === imageBarItem?.data?.saveId);
-    if (save?.file_path) window.moodmark.image.openInPreview(save.file_path);
+    if (!save?.file_path) return;
+    const ext = (save.file_path.split('.').pop() || 'png').toLowerCase();
+    const name = save.title
+      ? `${save.title}.${ext}`
+      : `gatheros-${save.id.slice(0, 8)}.${ext}`;
+    window.moodmark.image.export(save.file_path, name);
   }, [imageBarItem, saves]);
 
   const handleCopyImageItem = useCallback(async () => {
@@ -1302,7 +1378,23 @@ export default function BoardView({
       </div>
 
       <div className={styles.toolbar}>
-        {TOOLS.map(({ id, label, Icon, disabled }) => (
+        {TOOLS.map(({ id, label, Icon, disabled }) => {
+          // Shapes button gets a flyout — clicking it both activates
+          // the shape tool and opens a kind picker so the user
+          // chooses rect / ellipse / triangle before clicking the
+          // canvas. The currently-active kind highlights inside.
+          if (id === 'shape') {
+            return (
+              <ShapeToolButton
+                key={id}
+                active={tool === 'shape'}
+                kind={shapeKind}
+                onPick={(k) => { setShapeKind(k); setTool('shape'); }}
+                Icon={Icon}
+              />
+            );
+          }
+          return (
           <button
             key={id}
             type="button"
@@ -1320,7 +1412,8 @@ export default function BoardView({
           >
             <Icon />
           </button>
-        ))}
+          );
+        })}
         <div className={styles.toolDivider} />
         <button
           type="button"
@@ -1406,7 +1499,7 @@ export default function BoardView({
           zoom={zoom}
           onBringToFront={handleBringToFront}
           onSendToBack={handleSendToBack}
-          onOpenInPreview={handleOpenInPreviewItem}
+          onDownload={handleDownloadItem}
           onCopyImage={handleCopyImageItem}
           onRemoveFromBoard={handleRemoveFromBoard}
         />
