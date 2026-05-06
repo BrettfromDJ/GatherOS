@@ -236,6 +236,7 @@ export default function Toolbar({
   onClearSimilar,
   searchInputRef,
   viewTitle = null,
+  viewIcon = null,
   onBackToAll = null,
   layout = 'masonry',
   onLayoutChange,
@@ -268,7 +269,10 @@ export default function Toolbar({
           </button>
         )}
         {viewTitle && (
-          <span className={styles.viewTitle} title={viewTitle}>{viewTitle}</span>
+          <span className={styles.viewTitle} title={viewTitle}>
+            {viewIcon && <span className={styles.viewTitleIcon} aria-hidden="true">{viewIcon}</span>}
+            {viewTitle}
+          </span>
         )}
       </div>
 

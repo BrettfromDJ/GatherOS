@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   Download,
   X,
+  Inbox,
   Trash2,
   RotateCcw,
   Copy,
@@ -48,6 +49,7 @@ const BoardExportIcon = () => <LayoutDashboard {...ICON} />;
 const DownloadIcon = () => <Download {...ICON} />;
 const ClearIcon = () => <X {...ICON} strokeWidth={2} />;
 const TrashIcon = () => <Trash2 {...ICON} />;
+const InboxIcon = () => <Inbox {...ICON} />;
 const RestoreIcon = () => <RotateCcw {...ICON} />;
 const SimilarIcon = () => <Copy {...ICON} />;
 const MinusCircleIcon = () => <MinusCircle {...ICON} />;
@@ -1919,6 +1921,11 @@ export default function App() {
                   }
                   if (view.type === 'unsorted') return 'Unsorted';
                   if (view.type === 'trash') return 'Trash';
+                  return null;
+                })()}
+                viewIcon={(() => {
+                  if (view.type === 'unsorted') return <InboxIcon />;
+                  if (view.type === 'trash') return <TrashIcon />;
                   return null;
                 })()}
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}

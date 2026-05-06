@@ -92,6 +92,9 @@
 }
 
 .viewTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
@@ -100,6 +103,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   -webkit-app-region: no-drag;
+}
+
+.viewTitleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.viewTitleIcon svg {
+  width: 14px;
+  height: 14px;
 }
 
 
