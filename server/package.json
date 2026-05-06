@@ -1,0 +1,26 @@
+{
+  "name": "gatheros-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Workers + D1 backend for GatherOS auth, licensing, and Paddle webhooks.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit",
+    "db:create": "wrangler d1 create gatheros-db",
+    "db:migrate:local": "wrangler d1 migrations apply gatheros-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply gatheros-db --remote",
+    "db:console:local": "wrangler d1 execute gatheros-db --local --command",
+    "db:console:remote": "wrangler d1 execute gatheros-db --remote --command"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^3.90.0"
+  }
+}

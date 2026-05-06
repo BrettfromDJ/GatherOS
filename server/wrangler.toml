@@ -1,0 +1,23 @@
+name = "gatheros-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+
+# D1: licensing database. Run `npm run db:create` once, then paste
+# the printed database_id below before deploying.
+[[d1_databases]]
+binding = "DB"
+database_name = "gatheros-db"
+database_id = "TODO_FILL_AFTER_db:create"
+migrations_dir = "migrations"
+
+# Non-secret config. Secrets go through `wrangler secret put` so they
+# never end up in source control. See server/README.md for the full
+# list of secrets the worker needs.
+[vars]
+APP_NAME = "GatherOS"
+TRIAL_DAYS = "30"
+# Custom URL scheme the desktop app registers. Magic-link emails point
+# at https://api.gatheros.app/auth/verify?token=… which redirects
+# into this scheme so the app picks up the session token natively.
+APP_DEEP_LINK_SCHEME = "gatheros"
+EMAIL_FROM = "GatherOS <noreply@mail.gatheros.app>"
