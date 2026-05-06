@@ -78,7 +78,16 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
       // contentEditable=false without a tabindex).
       tabIndex={editing ? 0 : -1}
       data-placeholder="Type something"
-      onBlur={(e) => onCommitEdit(item.id, e.currentTarget.innerText)}
+      onBlur={(e) => {
+        onCommitEdit(item.id, e.currentTarget.innerText);
+        // Clear any text the user had highlighted inside the editor
+        // before clicking out — without this the highlight stays
+        // painted on the deselected item until they click again.
+        const sel = window.getSelection();
+        if (sel && sel.anchorNode && e.currentTarget.contains(sel.anchorNode)) {
+          sel.removeAllRanges();
+        }
+      }}
       onMouseDown={(e) => { if (editing) e.stopPropagation(); }}
       onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}
     />
