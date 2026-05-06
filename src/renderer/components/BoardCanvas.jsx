@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styles from './BoardView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -122,6 +122,7 @@ function BoardItem({
   item,
   saves,
   selected,
+  multiSelected,
   editing,
   onSelect,
   onMoveStart,
@@ -191,7 +192,10 @@ function BoardItem({
       data-item-id={item.id}
       className={[
         styles.item,
-        selected && styles.itemSelected,
+        // While multiple items are selected we suppress the per-item
+        // outline — the group bounding box paints a single ring
+        // around all of them instead.
+        selected && !multiSelected && styles.itemSelected,
         autosize && styles.itemAutosize,
       ].filter(Boolean).join(' ')}
       style={baseStyle}
@@ -199,7 +203,7 @@ function BoardItem({
       onDoubleClick={isTextish ? (e) => { e.stopPropagation(); onBeginEdit(item.id); } : undefined}
     >
       {content}
-      {selected && (
+      {selected && !multiSelected && (
         <SelectionHandles
           onResizeStart={(corner, e) => onResizeStart(item, corner, e)}
         />
@@ -238,7 +242,39 @@ export default function BoardCanvas({
   // running selection without losing what was previously picked.
   const lassoState = useRef(null);
   const [lassoRect, setLassoRect] = useState(null);
+  // Group resize: drag a handle on the multi-selection bounding box.
+  // Captures every selected item's start rect so the move handler
+  // can scale them all proportionally around the anchored corner.
+  const groupResizeState = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
+
+  // Bounding rect that wraps every currently-selected item (in world
+  // coords). Computed from the rendered DOM rects so it works for
+  // text items whose width/height are content-driven. Returns null
+  // for fewer-than-two selected items so the group chrome doesn't
+  // duplicate the per-item one.
+  const groupBbox = useMemo(() => {
+    if (selectedIds.size <= 1) return null;
+    const cnv = canvasRef.current;
+    if (!cnv) return null;
+    const cr = cnv.getBoundingClientRect();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const id of selectedIds) {
+      const el = cnv.querySelector(`[data-item-id="${id}"]`);
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      const x1 = (r.left   - cr.left - pan.x) / zoom;
+      const y1 = (r.top    - cr.top  - pan.y) / zoom;
+      const x2 = (r.right  - cr.left - pan.x) / zoom;
+      const y2 = (r.bottom - cr.top  - pan.y) / zoom;
+      if (x1 < minX) minX = x1;
+      if (y1 < minY) minY = y1;
+      if (x2 > maxX) maxX = x2;
+      if (y2 > maxY) maxY = y2;
+    }
+    if (minX === Infinity) return null;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }, [selectedIds, pan, zoom, items]);
 
   // Wheel handling matches the standard canvas convention:
   //   - plain trackpad / mouse scroll  → pan (deltaX, deltaY apply
@@ -370,6 +406,45 @@ export default function BoardCanvas({
     };
   };
 
+  // Group resize: started by the group bounding-box's corner
+  // handles. We snapshot every selected item's start rect (measured
+  // from DOM so text/image autosize is accounted for) plus its
+  // start font size, so the mousemove handler can re-position and
+  // re-size each one relative to the anchored corner.
+  const handleGroupResizeStart = (corner, e) => {
+    if (!groupBbox) return;
+    const cnv = canvasRef.current;
+    if (!cnv) return;
+    const cr = cnv.getBoundingClientRect();
+    const snaps = new Map();
+    for (const id of selectedIds) {
+      const it = items.find((x) => x.id === id);
+      if (!it) continue;
+      const el = cnv.querySelector(`[data-item-id="${id}"]`);
+      let w = it.width, h = it.height;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        w = r.width / zoom;
+        h = r.height / zoom;
+      }
+      snaps.set(id, {
+        x: it.x,
+        y: it.y,
+        width: w,
+        height: h,
+        fontSize: it.data?.fontSize,
+        data: it.data || {},
+        type: it.type,
+      });
+    }
+    groupResizeState.current = {
+      corner,
+      startMouse: { x: e.clientX, y: e.clientY },
+      initialBbox: { ...groupBbox },
+      snaps,
+    };
+  };
+
   // Item move: started by BoardItem.onMouseDown, completed/tracked here
   // via window-level listeners so the cursor can wander outside the
   // canvas during a drag without the move getting stuck.
@@ -449,6 +524,70 @@ export default function BoardCanvas({
           if (!offsets.has(it.id)) return it;
           const o = offsets.get(it.id);
           return { ...it, x: cursor.x + o.dx, y: cursor.y + o.dy };
+        });
+        onItemsChange(updated, { movingIds, persist: false });
+      } else if (groupResizeState.current) {
+        const { corner, startMouse, initialBbox, snaps } = groupResizeState.current;
+        const dxW = (e.clientX - startMouse.x) / zoom;
+        const dyW = (e.clientY - startMouse.y) / zoom;
+
+        const anchorRight = corner === 'nw' || corner === 'sw';
+        const anchorBottom = corner === 'nw' || corner === 'ne';
+        const dxSigned = anchorRight ? -dxW : dxW;
+        const dySigned = anchorBottom ? -dyW : dyW;
+
+        const MIN = 30;
+        let newW = Math.max(MIN, initialBbox.w + dxSigned);
+        let newH = Math.max(MIN, initialBbox.h + dySigned);
+        // Group resize stays uniform — heterogeneous selections
+        // (image + text + sticky) need a single scale factor so
+        // typography doesn't distort.
+        const sScale = Math.max(newW / initialBbox.w, newH / initialBbox.h);
+        newW = initialBbox.w * sScale;
+        newH = initialBbox.h * sScale;
+
+        const newBboxX = anchorRight
+          ? initialBbox.x + (initialBbox.w - newW)
+          : initialBbox.x;
+        const newBboxY = anchorBottom
+          ? initialBbox.y + (initialBbox.h - newH)
+          : initialBbox.y;
+
+        const movingIds = [];
+        const updated = items.map((it) => {
+          const snap = snaps.get(it.id);
+          if (!snap) return it;
+          movingIds.push(it.id);
+          // Each item's offset from the bbox's anchored corner is
+          // scaled by sScale so spacing between items grows with the
+          // group instead of items collapsing toward a single point.
+          const offsetX = snap.x - initialBbox.x;
+          const offsetY = snap.y - initialBbox.y;
+          const newX = newBboxX + offsetX * sScale;
+          const newY = newBboxY + offsetY * sScale;
+          if (snap.type === 'text') {
+            return {
+              ...it,
+              x: newX,
+              y: newY,
+              width: null,
+              height: null,
+              data: {
+                ...snap.data,
+                fontSize: Math.max(
+                  8,
+                  Math.min(200, Math.round((snap.fontSize || 16) * sScale)),
+                ),
+              },
+            };
+          }
+          return {
+            ...it,
+            x: newX,
+            y: newY,
+            width: snap.width * sScale,
+            height: snap.height * sScale,
+          };
         });
         onItemsChange(updated, { movingIds, persist: false });
       } else if (resizeState.current) {
@@ -540,6 +679,11 @@ export default function BoardCanvas({
         resizeState.current = null;
         onItemsChange(items, { movingIds: [id], persist: true });
       }
+      if (groupResizeState.current) {
+        const movingIds = Array.from(groupResizeState.current.snaps.keys());
+        groupResizeState.current = null;
+        onItemsChange(items, { movingIds, persist: true });
+      }
       if (lassoState.current) {
         lassoState.current = null;
         setLassoRect(null);
@@ -624,6 +768,7 @@ export default function BoardCanvas({
             item={item}
             saves={saves}
             selected={selectedIds.has(item.id)}
+            multiSelected={selectedIds.size > 1 && selectedIds.has(item.id)}
             editing={editingItemId === item.id}
             onSelect={(id, additive) => {
               if (additive) {
@@ -640,6 +785,20 @@ export default function BoardCanvas({
             onCommitEdit={onCommitEdit}
           />
         ))}
+
+        {groupBbox && (
+          <div
+            className={styles.groupBbox}
+            style={{
+              left: groupBbox.x,
+              top: groupBbox.y,
+              width: groupBbox.w,
+              height: groupBbox.h,
+            }}
+          >
+            <SelectionHandles onResizeStart={handleGroupResizeStart} />
+          </div>
+        )}
       </div>
 
       {items.length === 0 && (

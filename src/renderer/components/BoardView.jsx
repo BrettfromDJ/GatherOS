@@ -520,10 +520,10 @@ export default function BoardView({
           type="button"
           className={styles.backBtn}
           onClick={onExit}
+          aria-label="Back to library"
           title="Back to library"
         >
-          <ChevronLeft size={14} strokeWidth={1.8} />
-          <span>Library</span>
+          <ChevronLeft size={16} strokeWidth={2} />
         </button>
       )}
 
