@@ -107,12 +107,14 @@
   border-radius: 12px;
   text-align: left;
   cursor: pointer;
-  /* Tightened resting halo: previous values (0 4 34 20) extended
-     ~37px past the card edge, which was clipping at the scroller's
-     overflow boundary on left/right. New shape stays within ~12px
-     reach so it fits inside .scroller's 16px side padding. */
+  /* Two-stop 4% drop shadow — same recipe as the sidebar so the
+     featured-folder cards float at the same elevation. Ambient
+     reach (~12px sides, ~20px bottom) still fits inside the
+     scroller's 16/16/28px padding. Inner highlight stays as
+     before. */
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.04),
     0 0 1px 1px #FFF inset;
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
