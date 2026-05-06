@@ -1801,6 +1801,7 @@ export default function App() {
               key={view.id}
               boardId={view.id}
               saves={saves}
+              collections={collections}
               onRenameBoard={handleRenameBoard}
             />
           ) : focused ? (

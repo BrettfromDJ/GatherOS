@@ -156,7 +156,7 @@
   top: 14px;
   bottom: 14px;
   right: 14px;
-  width: 220px;
+  width: 300px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -164,7 +164,7 @@
   border-radius: 14px;
   box-shadow:
     0 0 0 1px #FFF inset,
-    0 4px 20px 0 rgba(0, 0, 0, 0.05);
+    0 8px 28px 0 rgba(0, 0, 0, 0.08);
   z-index: 6;
   overflow: hidden;
 }
@@ -173,8 +173,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 12px 14px 10px;
 }
 
 .drawerTitle {
@@ -186,40 +185,193 @@
 }
 
 .drawerClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   background: transparent;
   border: none;
   color: var(--text-tertiary);
-  font-size: 16px;
-  line-height: 1;
+  border-radius: 4px;
   cursor: pointer;
   padding: 0;
 }
 
 .drawerClose:hover {
+  background: rgba(0, 0, 0, 0.05);
   color: var(--text-primary);
 }
 
+/* Search + folder selector live in a single padded block above the
+   grid. The grid below them gets its own scroll container so the
+   controls stay pinned during long lists. */
+.drawerControls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 10px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+.drawerSearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 8px 0 28px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 7px;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.drawerSearch:focus-within {
+  background: #ffffff;
+  border-color: rgba(10, 132, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.15);
+}
+
+.drawerSearchIcon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.drawerSearchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+.drawerSearchInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Hide the native search-clear ornament — we have our own. */
+.drawerSearchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.drawerSearchClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.10);
+  border: none;
+  border-radius: 50%;
+  color: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.drawerSearchClear:hover {
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.drawerFolderRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+}
+
+.drawerFolderIcon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.drawerFolder {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  padding: 0 4px;
+  /* Use the system caret rather than the default chunky arrow so
+     the row reads as a quiet inline control instead of a form
+     widget. */
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.drawerFolder:hover {
+  color: var(--text-primary);
+}
+
+.drawerCount {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Masonry-style 2-column grid via CSS columns: thumbnails preserve
+   their natural aspect ratio (no center-cropped squares) and stack
+   neatly into balanced columns. break-inside keeps a single image
+   from splitting across columns. */
 .drawerGrid {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  align-content: start;
+  padding: 10px 12px 14px;
+  column-count: 2;
+  column-gap: 8px;
+}
+
+.drawerGrid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.drawerGrid::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  border: 2px solid #ffffff;
+  background-clip: padding-box;
 }
 
 .drawerThumb {
   position: relative;
-  aspect-ratio: 1;
+  display: block;
+  width: 100%;
+  margin: 0 0 8px;
   background: rgba(0, 0, 0, 0.04);
   border: 0.5px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
   overflow: hidden;
   cursor: grab;
+  break-inside: avoid;
+  transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow 120ms ease;
 }
 
-.drawerThumb:active { cursor: grabbing; }
+.drawerThumb:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+}
+
+.drawerThumb:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
 
 .drawerThumb img {
   width: 100%;
@@ -229,11 +381,36 @@
   pointer-events: none;
 }
 
+.drawerThumbCaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 8px 6px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%);
+  color: #ffffff;
+  font-size: 10.5px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.drawerThumb:hover .drawerThumbCaption {
+  opacity: 1;
+}
+
 .drawerEmpty {
-  padding: 20px 12px;
+  padding: 28px 12px;
   font-size: 12px;
   color: var(--text-tertiary);
   text-align: center;
+  /* CSS columns ignore non-content children for layout purposes,
+     so make this empty state span the full column container. */
+  column-span: all;
 }
 
 /* ── Canvas ──────────────────────────────────────────────────────── */

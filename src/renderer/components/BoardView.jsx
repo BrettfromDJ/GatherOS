@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
+import BoardLibraryDrawer from './BoardLibraryDrawer.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
 const TOOL_ICON = { strokeWidth: 1.6, 'aria-hidden': true, size: 18 };
@@ -260,7 +261,7 @@ function uuid() {
   return `b_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 }
 
-export default function BoardView({ boardId, saves, onRenameBoard }) {
+export default function BoardView({ boardId, saves, collections = [], onRenameBoard }) {
   const [board, setBoard] = useState(null);
   const [items, setItems] = useState([]);
   const [tool, setTool] = useState('select');
@@ -568,46 +569,10 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
       />
 
       {drawerOpen && (
-        <div className={styles.drawer}>
-          <div className={styles.drawerHeader}>
-            <span className={styles.drawerTitle}>Library</span>
-            <button
-              type="button"
-              className={styles.drawerClose}
-              onClick={() => setDrawerOpen(false)}
-              title="Close library"
-            >
-              ×
-            </button>
-          </div>
-          <div className={styles.drawerGrid}>
-            {saves.length === 0 ? (
-              <div className={styles.drawerEmpty}>No saves yet</div>
-            ) : (
-              saves.map((s) => (
-                <div
-                  key={s.id}
-                  className={styles.drawerThumb}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.effectAllowed = 'copy';
-                    e.dataTransfer.setData(
-                      'application/x-moodmark-board-save',
-                      JSON.stringify({ saveId: s.id }),
-                    );
-                  }}
-                  title={s.title || ''}
-                >
-                  <img
-                    src={fileUrl(s.thumb_path || s.file_path)}
-                    alt=""
-                    draggable={false}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <BoardLibraryDrawer
+          collections={collections}
+          onClose={() => setDrawerOpen(false)}
+        />
       )}
 
       {stylerItem && (
