@@ -564,12 +564,15 @@
   cursor: grab;
 }
 
-/* Selected items get a thin blue ring + 4 corner handles. The ring
-   uses outline (not border) so it doesn't change the item's box
-   model — drag/move math stays accurate, and the handles can sit
-   exactly on the corners without compensating for a border. */
+/* Selected items get a thin blue ring + 4 corner handles. Both the
+   outline and the handles divide their dimensions by --board-zoom
+   (cascaded from the world transform) so the selection chrome
+   stays at a constant on-screen size while everything else scales
+   with the canvas. The ring uses outline (not border) so it
+   doesn't change the item's box model — drag/move math stays
+   accurate, and the handles sit exactly on the corners. */
 .item.itemSelected {
-  outline: 1.5px solid var(--accent, #0a84ff);
+  outline: calc(1.5px / var(--board-zoom, 1)) solid var(--accent, #0a84ff);
   outline-offset: 0;
 }
 
@@ -577,22 +580,44 @@
   cursor: grabbing;
 }
 
-/* Resize handles — drag any corner to scale the item. */
+/* Resize handles — drag any corner to scale the item. Size, border,
+   shadow, and corner offsets all use calc(... / var(--board-zoom))
+   so the handle reads as 11px regardless of zoom. */
 .handle {
   position: absolute;
-  width: 11px;
-  height: 11px;
+  width: calc(11px / var(--board-zoom, 1));
+  height: calc(11px / var(--board-zoom, 1));
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.30);
+  border: calc(1px / var(--board-zoom, 1)) solid rgba(0, 0, 0, 0.30);
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0
+    calc(1px / var(--board-zoom, 1))
+    calc(2px / var(--board-zoom, 1))
+    rgba(0, 0, 0, 0.18);
   z-index: 1;
 }
 
-.handleNw { top: -6px;    left: -6px;  cursor: nwse-resize; }
-.handleNe { top: -6px;    right: -6px; cursor: nesw-resize; }
-.handleSw { bottom: -6px; left: -6px;  cursor: nesw-resize; }
-.handleSe { bottom: -6px; right: -6px; cursor: nwse-resize; }
+.handleNw {
+  top:  calc(-6px / var(--board-zoom, 1));
+  left: calc(-6px / var(--board-zoom, 1));
+  cursor: nwse-resize;
+}
+.handleNe {
+  top:   calc(-6px / var(--board-zoom, 1));
+  right: calc(-6px / var(--board-zoom, 1));
+  cursor: nesw-resize;
+}
+.handleSw {
+  bottom: calc(-6px / var(--board-zoom, 1));
+  left:   calc(-6px / var(--board-zoom, 1));
+  cursor: nesw-resize;
+}
+.handleSe {
+  bottom: calc(-6px / var(--board-zoom, 1));
+  right:  calc(-6px / var(--board-zoom, 1));
+  cursor: nwse-resize;
+}
 
 .itemImage {
   width: 100%;

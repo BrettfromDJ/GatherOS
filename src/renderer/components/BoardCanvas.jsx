@@ -547,7 +547,13 @@ export default function BoardCanvas({
     >
       <div
         className={styles.world}
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          // --board-zoom cascades to every item underneath so the
+          // selection chrome (outline + corner handles) can divide
+          // its dimensions by zoom and stay at constant screen size.
+          '--board-zoom': zoom,
+        }}
       >
         {items.map((item) => (
           <BoardItem
