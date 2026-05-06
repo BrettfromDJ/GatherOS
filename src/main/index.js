@@ -317,7 +317,7 @@ function createMainWindow() {
     // Aligned vertically with the 28px toolbar icons
     // (10px padding-top + 14px half-icon = center at y ≈ 24).
     trafficLightPosition: { x: 22, y: 18 },
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFAF9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

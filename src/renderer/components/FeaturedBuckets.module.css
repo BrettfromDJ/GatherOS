@@ -102,20 +102,17 @@
   gap: 12px;
   width: 188px;
   padding: 14px 14px 12px;
-  background: #ffffff;
-  border: none;
-  border-radius: 12px;
+  background: #FAFAF9;
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
   text-align: left;
   cursor: pointer;
-  /* Two-stop 4% drop shadow — same recipe as the sidebar so the
-     featured-folder cards float at the same elevation. Ambient
-     reach (~12px sides, ~20px bottom) still fits inside the
-     scroller's 16/16/28px padding. Inner highlight stays as
-     before. */
+  /* Same recipe as the sidebar + search so all three chrome
+     surfaces sit at the same elevation. Ambient reach (~10px)
+     still fits the scroller's 16/16/28px padding. */
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 8px 24px rgba(0, 0, 0, 0.04),
-    0 0 1px 1px #FFF inset;
+    0 0 0 1px #FFF inset,
+    0 4px 20px 0 rgba(0, 0, 0, 0.05);
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
