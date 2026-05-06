@@ -208,32 +208,54 @@ export default function BoardLibraryDrawer({ collections, onClose }) {
             {search ? 'No images match your search' : 'No images here yet'}
           </div>
         ) : (
-          saves.map((s) => (
-            <div
-              key={s.id}
-              className={styles.drawerThumb}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = 'copy';
-                e.dataTransfer.setData(
-                  'application/x-moodmark-board-save',
-                  JSON.stringify({ saveId: s.id }),
-                );
-              }}
-              title={s.title || ''}
-              style={{
-                aspectRatio:
-                  s.width && s.height ? `${s.width} / ${s.height}` : '1',
-              }}
-            >
-              <img
-                src={fileUrl(s.thumb_path || s.file_path)}
-                alt=""
-                draggable={false}
-              />
-              {s.title && <div className={styles.drawerThumbCaption}>{s.title}</div>}
-            </div>
-          ))
+          (() => {
+            // Manual 2-column layout: split items into two flex
+            // columns rather than relying on CSS columns, which can
+            // silently spill into a 3rd column when content overflows
+            // a constrained height. Approximate balance by appending
+            // each save to whichever column has the smaller cumulative
+            // aspect-driven height.
+            const cols = [[], []];
+            const heights = [0, 0];
+            for (const s of saves) {
+              const ar = s.width && s.height ? s.height / s.width : 1;
+              const target = heights[0] <= heights[1] ? 0 : 1;
+              cols[target].push(s);
+              heights[target] += ar;
+            }
+            const renderThumb = (s) => (
+              <div
+                key={s.id}
+                className={styles.drawerThumb}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'copy';
+                  e.dataTransfer.setData(
+                    'application/x-moodmark-board-save',
+                    JSON.stringify({ saveId: s.id }),
+                  );
+                }}
+                title={s.title || ''}
+                style={{
+                  aspectRatio:
+                    s.width && s.height ? `${s.width} / ${s.height}` : '1',
+                }}
+              >
+                <img
+                  src={fileUrl(s.thumb_path || s.file_path)}
+                  alt=""
+                  draggable={false}
+                />
+                {s.title && <div className={styles.drawerThumbCaption}>{s.title}</div>}
+              </div>
+            );
+            return (
+              <>
+                <div className={styles.drawerCol}>{cols[0].map(renderThumb)}</div>
+                <div className={styles.drawerCol}>{cols[1].map(renderThumb)}</div>
+              </>
+            );
+          })()
         )}
       </div>
     </div>
