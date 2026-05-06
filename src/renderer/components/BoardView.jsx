@@ -29,6 +29,9 @@ import {
   Lock,
   Unlock,
   Copy,
+  MoveUpRight,
+  Slash,
+  CornerDownRight,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -43,10 +46,11 @@ const TOOLS = [
   { id: 'image',  label: 'Image library (I)',  Icon: (p) => <ImagePlus {...TOOL_ICON} {...p} /> },
   { id: 'sticky', label: 'Sticky note (S)',    Icon: (p) => <StickyNote {...TOOL_ICON} {...p} /> },
   { id: 'text',   label: 'Text (T)',           Icon: (p) => <Type {...TOOL_ICON} {...p} /> },
-  // Phase 2: shapes / pen / frame are placeholders for now. The
-  // buttons render so the layout matches the final tool set; each
-  // is disabled until its implementation lands.
+  // Phase 2: shapes / arrow are live; pen and frame still placeholders.
+  // The buttons render so the layout matches the final tool set; each
+  // unimplemented one is disabled until its pass lands.
   { id: 'shape',  label: 'Shape (R)',           Icon: (p) => <Shapes {...TOOL_ICON} {...p} /> },
+  { id: 'arrow',  label: 'Arrow / Line (L)',    Icon: (p) => <MoveUpRight {...TOOL_ICON} {...p} /> },
   { id: 'pen',    label: 'Pen — coming soon',    Icon: (p) => <PenTool {...TOOL_ICON} {...p} />, disabled: true },
   { id: 'frame',  label: 'Frame — coming soon',  Icon: (p) => <Frame {...TOOL_ICON} {...p} />, disabled: true },
 ];
@@ -82,6 +86,19 @@ const SHAPE_STROKE_SWATCHES = [
   '#0a84ff', '#34c759', '#ff9500',
   '#ff3b30', '#af52de', 'transparent',
 ];
+
+// Arrow tool defaults. Arrows store endpoints in data (x1,y1,x2,y2)
+// in world coords; the wrapper's x/y/width/height carry their
+// bounding rect (with a few px of padding so arrowheads aren't
+// clipped). Stroke colour reuses the shape stroke palette.
+const ARROW_DEFAULT_DATA = {
+  kind: 'arrow', // 'line' | 'arrow' | 'elbow'
+  x1: 0, y1: 0, x2: 0, y2: 0,
+  stroke: '#0a0a0a',
+  strokeWidth: 2,
+};
+const ARROW_BBOX_PAD = 12;
+const ARROW_STROKE_WIDTHS = [1, 2, 3, 5, 8];
 
 // Curated font list for the text styler. Web-safe + system fonts so
 // they render consistently without bundling.
@@ -477,6 +494,72 @@ function ShapeToolButton({ active, kind, onPick, Icon }) {
   );
 }
 
+// Arrow tool button — same flyout pattern as ShapeToolButton but
+// for line / arrow / elbow. Sub-shortcuts 1 / 2 / 3 swap kind when
+// the arrow tool is armed.
+function ArrowToolButton({ active, kind, onPick, Icon }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const KINDS = [
+    { id: 'line',    Icon: Slash,            label: 'Line',        kbd: '1' },
+    { id: 'arrow',   Icon: MoveUpRight,      label: 'Arrow',       kbd: '2' },
+    { id: 'elbow',   Icon: CornerDownRight,  label: 'Elbow arrow', kbd: '3' },
+  ];
+
+  return (
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+      <button
+        type="button"
+        className={[
+          styles.toolBtn,
+          active && styles.toolBtnActive,
+        ].filter(Boolean).join(' ')}
+        title="Arrow / Line (L)"
+        onClick={() => setOpen((s) => !s)}
+      >
+        <Icon />
+      </button>
+      {open && (
+        <div className={styles.shapeToolFlyout} role="menu">
+          {KINDS.map(({ id, Icon: KIcon, label, kbd }) => (
+            <button
+              key={id}
+              type="button"
+              className={[
+                styles.shapeToolFlyoutBtn,
+                kind === id && active && styles.shapeToolFlyoutBtnActive,
+              ].filter(Boolean).join(' ')}
+              onClick={() => { onPick(id); setOpen(false); }}
+            >
+              <span className={styles.shapeToolFlyoutBtnIcon}>
+                <KIcon size={16} strokeWidth={1.8} />
+              </span>
+              <span className={styles.shapeToolFlyoutBtnLabel}>{label}</span>
+              <span className={styles.shapeToolFlyoutBtnKbd}>{kbd}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // Floating action bar for selected image items. Mirrors TextStyler's
 // positioning logic so the bar tracks the item's screen rect via a
 // useLayoutEffect + ResizeObserver. Buttons cover z-order (bring-to-
@@ -599,6 +682,8 @@ export default function BoardView({
   // spawns so the user can place several rectangles in a row without
   // re-picking each time. Swapped from the floating shape styler.
   const [shapeKind, setShapeKind] = useState('rect');
+  // Active arrow kind, same idea — line / arrow / elbow.
+  const [arrowKind, setArrowKind] = useState('arrow');
   const [pan, setPan] = useState(INITIAL_PAN);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -896,6 +981,40 @@ export default function BoardView({
     setSelectedIds(new Set(items.map((it) => it.id)));
   }, [items]);
 
+  // Drag-to-create: the canvas dispatches start + end world coords
+  // when the user finishes drawing an arrow. Build the bounding rect
+  // (with padding so the arrowhead isn't clipped) and persist.
+  const handleArrowCreate = useCallback((start, end) => {
+    pushHistory();
+    const minX = Math.min(start.x, end.x) - ARROW_BBOX_PAD;
+    const minY = Math.min(start.y, end.y) - ARROW_BBOX_PAD;
+    const maxX = Math.max(start.x, end.x) + ARROW_BBOX_PAD;
+    const maxY = Math.max(start.y, end.y) + ARROW_BBOX_PAD;
+    const item = {
+      id: uuid(),
+      board_id: boardId,
+      type: 'arrow',
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      rotation: 0,
+      z_index: nextZ(items),
+      data: {
+        ...ARROW_DEFAULT_DATA,
+        kind: arrowKind,
+        x1: start.x, y1: start.y,
+        x2: end.x, y2: end.y,
+      },
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
+    setItems((prev) => [...prev, item]);
+    setSelectedIds(new Set([item.id]));
+    persistItem(item);
+    setTool('select');
+  }, [arrowKind, items, boardId, persistItem, pushHistory]);
+
   // Click on the canvas with a non-select tool: spawn the tool's
   // item type at that world position. Empty clicks under unsupported
   // tools just deselect.
@@ -1047,10 +1166,14 @@ export default function BoardView({
         setTool('sticky');
       } else if (!cmd && (k === 'r')) {
         setTool('shape');
+      } else if (!cmd && (k === 'l')) {
+        setTool('arrow');
       } else if (!cmd && tool === 'shape' && (k === '1' || k === '2' || k === '3')) {
         // Sub-shortcuts when the shape tool is armed: 1 / 2 / 3
         // swap the kind so the user can pick before clicking.
         setShapeKind(k === '1' ? 'rect' : k === '2' ? 'ellipse' : 'triangle');
+      } else if (!cmd && tool === 'arrow' && (k === '1' || k === '2' || k === '3')) {
+        setArrowKind(k === '1' ? 'line' : k === '2' ? 'arrow' : 'elbow');
       } else if (!cmd && (k === 'i')) {
         setTool('image');
         setDrawerOpen(true);
@@ -1401,6 +1524,17 @@ export default function BoardView({
               />
             );
           }
+          if (id === 'arrow') {
+            return (
+              <ArrowToolButton
+                key={id}
+                active={tool === 'arrow'}
+                kind={arrowKind}
+                onPick={(k) => { setArrowKind(k); setTool('arrow'); }}
+                Icon={Icon}
+              />
+            );
+          }
           return (
           <button
             key={id}
@@ -1469,6 +1603,8 @@ export default function BoardView({
         }}
         onSetAppDragging={onSetAppDragging}
         onItemContextMenu={handleItemContextMenu}
+        onArrowCreate={({ start, end }) => handleArrowCreate(start, end)}
+        arrowKind={arrowKind}
         tool={tool}
       />
 

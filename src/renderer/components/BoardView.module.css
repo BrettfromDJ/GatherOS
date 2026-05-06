@@ -881,6 +881,52 @@
   pointer-events: none;
 }
 
+/* ── Arrows ───────────────────────────────────────────────────────
+   The wrapper is the bounding rect (with a small padding for the
+   arrowhead); inside, an SVG paints the line / arrow / elbow path.
+   The wrapper has no visible outline of its own — the line itself
+   reads as the item, and selection chrome is replaced by endpoint
+   handles painted in BoardCanvas. */
+.itemArrow {
+  background: transparent;
+  cursor: grab;
+}
+
+.itemArrow:active { cursor: grabbing; }
+
+.arrowSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Arrow endpoint handles — small open circles painted at the line's
+   start and end. Bigger hit area than visual size so they're easy
+   to grab even at low zoom levels. */
+.arrowEndpoint {
+  position: absolute;
+  width: calc(11px / var(--board-zoom, 1));
+  height: calc(11px / var(--board-zoom, 1));
+  background: #ffffff;
+  border: calc(1.5px / var(--board-zoom, 1)) solid var(--accent, #0a84ff);
+  border-radius: 50%;
+  box-shadow: 0 calc(1px / var(--board-zoom, 1)) calc(2px / var(--board-zoom, 1)) rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* Live preview while drawing. Same transparent wrapper, same SVG
+   pattern, but rendered as a one-shot overlay inside .world. */
+.arrowPreview {
+  position: absolute;
+  pointer-events: none;
+  z-index: 997;
+}
+
 .itemText {
   width: 100%;
   height: 100%;

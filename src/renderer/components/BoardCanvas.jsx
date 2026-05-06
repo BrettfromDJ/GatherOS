@@ -3,6 +3,12 @@ import styles from './BoardView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
 
+// World-space padding around an arrow's bounding rect so the SVG
+// has room to draw the arrowhead beyond the line endpoint without
+// being clipped by the wrapper's overflow: visible. Mirrors the
+// constant in BoardView so endpoint drags stay in sync.
+const ARROW_BBOX_PAD = 12;
+
 // Convert a screen-space point (relative to the canvas's top-left)
 // into world coordinates given the current pan + zoom.
 function screenToWorld(sx, sy, pan, zoom) {
@@ -201,6 +207,79 @@ function BoardItem({
         onCommitEdit={onCommitEdit}
       />
     );
+  } else if (item.type === 'arrow') {
+    // Endpoints are stored in world coords; convert to wrapper-local
+    // by subtracting the wrapper's x/y. The wrapper's bounding box
+    // already includes a few px of padding so arrowheads aren't
+    // clipped (set in BoardView when committing the create).
+    const x1 = (item.data?.x1 ?? 0) - item.x;
+    const y1 = (item.data?.y1 ?? 0) - item.y;
+    const x2 = (item.data?.x2 ?? 0) - item.x;
+    const y2 = (item.data?.y2 ?? 0) - item.y;
+    const stroke = item.data?.stroke || '#0a0a0a';
+    const strokeWidth = item.data?.strokeWidth || 2;
+    const kind = item.data?.kind || 'arrow';
+    const markerId = `arrowhead-${item.id}`;
+    let pathOrLine;
+    if (kind === 'elbow') {
+      // Auto-routing: horizontal first, then vertical. (Future
+      // pass: pick the direction that minimises crossings.)
+      const corner = `${x2},${y1}`;
+      pathOrLine = (
+        <path
+          d={`M ${x1} ${y1} L ${corner} L ${x2} ${y2}`}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          markerEnd={`url(#${markerId})`}
+          vectorEffect="non-scaling-stroke"
+        />
+      );
+    } else {
+      pathOrLine = (
+        <line
+          x1={x1} y1={y1} x2={x2} y2={y2}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          markerEnd={kind === 'arrow' ? `url(#${markerId})` : undefined}
+          vectorEffect="non-scaling-stroke"
+        />
+      );
+    }
+    content = (
+      <svg
+        className={styles.arrowSvg}
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${item.width} ${item.height}`}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          {/* refX=8 places the arrowhead tip at the line endpoint
+              regardless of stroke width (markerWidth=8). */}
+          <marker
+            id={markerId}
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            markerUnits="strokeWidth"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={stroke} />
+          </marker>
+        </defs>
+        {pathOrLine}
+      </svg>
+    );
+    // Arrows shouldn't show the standard rectangular outline +
+    // resize handles — the selected styling for arrows is handled
+    // separately (endpoint handles painted next pass). Mark the
+    // wrapper so we can suppress those.
   } else if (item.type === 'shape') {
     isTextish = true;
     const kind = item.data?.kind || 'rect';
@@ -277,9 +356,12 @@ function BoardItem({
         styles.item,
         // While multiple items are selected we suppress the per-item
         // outline — the group bounding box paints a single ring
-        // around all of them instead.
-        selected && !multiSelected && styles.itemSelected,
+        // around all of them instead. Arrows skip the outline +
+        // standard corner handles entirely; they paint their own
+        // endpoint handles when selected.
+        selected && !multiSelected && item.type !== 'arrow' && styles.itemSelected,
         autosize && styles.itemAutosize,
+        item.type === 'arrow' && styles.itemArrow,
       ].filter(Boolean).join(' ')}
       style={baseStyle}
       onMouseDown={handleMouseDown}
@@ -307,7 +389,7 @@ function BoardItem({
           </svg>
         </span>
       )}
-      {selected && !multiSelected && !item.data?.locked && (
+      {selected && !multiSelected && !item.data?.locked && item.type !== 'arrow' && (
         <SelectionHandles
           onResizeStart={(corner, e) => onResizeStart(item, corner, e)}
         />
@@ -333,6 +415,8 @@ export default function BoardCanvas({
   onExternalImageSaved,
   onSetAppDragging,
   onItemContextMenu,
+  onArrowCreate,
+  arrowKind,
   tool,
 }) {
   const canvasRef = useRef(null);
@@ -353,6 +437,13 @@ export default function BoardCanvas({
   // Captures every selected item's start rect so the move handler
   // can scale them all proportionally around the anchored corner.
   const groupResizeState = useRef(null);
+  // Arrow drawing in progress. Holds the start world coord; the
+  // mousemove handler updates a live preview, and mouseup commits.
+  const arrowDrawState = useRef(null);
+  const [arrowDrawPreview, setArrowDrawPreview] = useState(null);
+  // Arrow endpoint drag in progress. Holds the active item and
+  // which endpoint ('a' = start, 'b' = end) is moving.
+  const arrowEndpointState = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Bounding rect that wraps every currently-selected item (in world
@@ -436,6 +527,22 @@ export default function BoardCanvas({
         initialPan: { ...pan },
       };
       setIsPanning(true);
+      return;
+    }
+    // Arrow tool: drag-to-draw. Records the start world coord and
+    // tracks mousemove for the preview. Commit happens on mouseup
+    // if the drag distance is non-trivial.
+    if (e.button === 0 && tool === 'arrow' && e.target === e.currentTarget) {
+      e.preventDefault();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const start = screenToWorld(
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+        pan,
+        zoom,
+      );
+      arrowDrawState.current = { start };
+      setArrowDrawPreview({ x1: start.x, y1: start.y, x2: start.x, y2: start.y });
       return;
     }
     if (e.button === 0 && tool === 'select' && e.target === e.currentTarget) {
@@ -581,6 +688,51 @@ export default function BoardCanvas({
     function onMove(e) {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
+      if (arrowDrawState.current) {
+        const cur = screenToWorld(
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          pan,
+          zoom,
+        );
+        const { start } = arrowDrawState.current;
+        setArrowDrawPreview({ x1: start.x, y1: start.y, x2: cur.x, y2: cur.y });
+        return;
+      }
+      if (arrowEndpointState.current) {
+        const { itemId, which } = arrowEndpointState.current;
+        const cur = screenToWorld(
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          pan,
+          zoom,
+        );
+        const updated = items.map((it) => {
+          if (it.id !== itemId) return it;
+          const data = it.data || {};
+          const x1 = which === 'a' ? cur.x : data.x1;
+          const y1 = which === 'a' ? cur.y : data.y1;
+          const x2 = which === 'b' ? cur.x : data.x2;
+          const y2 = which === 'b' ? cur.y : data.y2;
+          // Recompute the wrapper's bounding rect so it always
+          // contains both endpoints (plus a few px of padding for
+          // the arrowhead).
+          const minX = Math.min(x1, x2) - ARROW_BBOX_PAD;
+          const minY = Math.min(y1, y2) - ARROW_BBOX_PAD;
+          const maxX = Math.max(x1, x2) + ARROW_BBOX_PAD;
+          const maxY = Math.max(y1, y2) + ARROW_BBOX_PAD;
+          return {
+            ...it,
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            data: { ...data, x1, y1, x2, y2 },
+          };
+        });
+        onItemsChange(updated, { movingIds: [itemId], persist: false });
+        return;
+      }
       if (lassoState.current) {
         const cur = screenToWorld(
           e.clientX - rect.left,
@@ -630,7 +782,28 @@ export default function BoardCanvas({
         const updated = items.map((it) => {
           if (!offsets.has(it.id)) return it;
           const o = offsets.get(it.id);
-          return { ...it, x: cursor.x + o.dx, y: cursor.y + o.dy };
+          const newX = cursor.x + o.dx;
+          const newY = cursor.y + o.dy;
+          // Arrow endpoints are stored in world coords on item.data,
+          // so they have to translate alongside x/y or the line will
+          // stay put while the wrapper drifts.
+          if (it.type === 'arrow' && it.data) {
+            const dx = newX - it.x;
+            const dy = newY - it.y;
+            return {
+              ...it,
+              x: newX,
+              y: newY,
+              data: {
+                ...it.data,
+                x1: (it.data.x1 ?? 0) + dx,
+                y1: (it.data.y1 ?? 0) + dy,
+                x2: (it.data.x2 ?? 0) + dx,
+                y2: (it.data.y2 ?? 0) + dy,
+              },
+            };
+          }
+          return { ...it, x: newX, y: newY };
         });
         onItemsChange(updated, { movingIds, persist: false });
       } else if (groupResizeState.current) {
@@ -817,6 +990,27 @@ export default function BoardCanvas({
         lassoState.current = null;
         setLassoRect(null);
       }
+      if (arrowDrawState.current) {
+        const { start } = arrowDrawState.current;
+        const end = arrowDrawPreview
+          ? { x: arrowDrawPreview.x2, y: arrowDrawPreview.y2 }
+          : start;
+        arrowDrawState.current = null;
+        setArrowDrawPreview(null);
+        // Ignore micro-drags so a click on empty canvas with the
+        // arrow tool just deselects rather than producing a 0-length
+        // arrow.
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        if (Math.hypot(dx, dy) >= 5) {
+          onArrowCreate?.({ start, end });
+        }
+      }
+      if (arrowEndpointState.current) {
+        const id = arrowEndpointState.current.itemId;
+        arrowEndpointState.current = null;
+        onItemsChange(items, { movingIds: [id], persist: true });
+      }
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -954,6 +1148,73 @@ export default function BoardCanvas({
             }}
           />
         )}
+        {arrowDrawPreview && (() => {
+          // Live preview while the user drags out an arrow — same
+          // bbox math as a committed arrow so the preview matches
+          // exactly what will be persisted on mouseup.
+          const minX = Math.min(arrowDrawPreview.x1, arrowDrawPreview.x2) - ARROW_BBOX_PAD;
+          const minY = Math.min(arrowDrawPreview.y1, arrowDrawPreview.y2) - ARROW_BBOX_PAD;
+          const maxX = Math.max(arrowDrawPreview.x1, arrowDrawPreview.x2) + ARROW_BBOX_PAD;
+          const maxY = Math.max(arrowDrawPreview.y1, arrowDrawPreview.y2) + ARROW_BBOX_PAD;
+          const w = maxX - minX;
+          const h = maxY - minY;
+          const x1 = arrowDrawPreview.x1 - minX;
+          const y1 = arrowDrawPreview.y1 - minY;
+          const x2 = arrowDrawPreview.x2 - minX;
+          const y2 = arrowDrawPreview.y2 - minY;
+          const isElbow = arrowKind === 'elbow';
+          const showHead = arrowKind !== 'line';
+          return (
+            <div
+              className={styles.arrowPreview}
+              style={{ left: minX, top: minY, width: w, height: h }}
+            >
+              <svg
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${w} ${h}`}
+                preserveAspectRatio="none"
+                style={{ overflow: 'visible' }}
+              >
+                <defs>
+                  <marker
+                    id="arrowhead-preview"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    markerUnits="strokeWidth"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#0a0a0a" />
+                  </marker>
+                </defs>
+                {isElbow ? (
+                  <path
+                    d={`M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2}`}
+                    fill="none"
+                    stroke="#0a0a0a"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    markerEnd={showHead ? 'url(#arrowhead-preview)' : undefined}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ) : (
+                  <line
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke="#0a0a0a"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    markerEnd={showHead ? 'url(#arrowhead-preview)' : undefined}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+              </svg>
+            </div>
+          );
+        })()}
         {items.map((item) => (
           <BoardItem
             key={item.id}
@@ -992,6 +1253,56 @@ export default function BoardCanvas({
             <SelectionHandles onResizeStart={handleGroupResizeStart} />
           </div>
         )}
+
+        {/* Arrow endpoint handles. Painted in world coords next to
+            each selected arrow's a/b endpoints; mousedown on them
+            arms an endpoint drag in arrowEndpointState which the
+            window mousemove handler consumes. */}
+        {selectedIds.size === 1 && (() => {
+          const id = Array.from(selectedIds)[0];
+          const it = items.find((x) => x.id === id);
+          if (!it || it.type !== 'arrow' || it.data?.locked) return null;
+          const startEndpointDrag = (which) => (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            // Snapshot the pre-drag state so undo restores it.
+            const snap = items.map((x) => ({ ...x, data: { ...(x.data || {}) } }));
+            // Stash via the existing items-change persist=true path:
+            // push a manual history entry by relying on the move-
+            // gesture flag (handleItemsChange auto-pushes on the
+            // first non-persist move call).
+            arrowEndpointState.current = { itemId: it.id, which };
+            // Force the gesture flag to push history on the next
+            // mousemove by toggling movingGestureRef false.
+            movingGestureRef.current = false;
+            // (Defensive: also seed an immediate snapshot in case
+            // the user releases without moving.)
+            void snap;
+          };
+          const handleStyle = {
+            position: 'absolute',
+            left: it.data.x1, top: it.data.y1,
+          };
+          const handleStyle2 = {
+            position: 'absolute',
+            left: it.data.x2, top: it.data.y2,
+          };
+          return (
+            <>
+              <span
+                className={styles.arrowEndpoint}
+                style={handleStyle}
+                onMouseDown={startEndpointDrag('a')}
+              />
+              <span
+                className={styles.arrowEndpoint}
+                style={handleStyle2}
+                onMouseDown={startEndpointDrag('b')}
+              />
+            </>
+          );
+        })()}
       </div>
 
       {items.length === 0 && (
