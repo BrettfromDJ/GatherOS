@@ -434,9 +434,9 @@ function ShapeToolButton({ active, kind, onPick, Icon }) {
   }, [open]);
 
   const KINDS = [
-    { id: 'rect',     Icon: Square,   label: 'Rectangle' },
-    { id: 'ellipse',  Icon: Circle,   label: 'Ellipse' },
-    { id: 'triangle', Icon: Triangle, label: 'Triangle' },
+    { id: 'rect',     Icon: Square,   label: 'Rectangle', kbd: '1' },
+    { id: 'ellipse',  Icon: Circle,   label: 'Ellipse',   kbd: '2' },
+    { id: 'triangle', Icon: Triangle, label: 'Triangle',  kbd: '3' },
   ];
 
   return (
@@ -454,7 +454,7 @@ function ShapeToolButton({ active, kind, onPick, Icon }) {
       </button>
       {open && (
         <div className={styles.shapeToolFlyout} role="menu">
-          {KINDS.map(({ id, Icon: KIcon, label }) => (
+          {KINDS.map(({ id, Icon: KIcon, label, kbd }) => (
             <button
               key={id}
               type="button"
@@ -462,10 +462,13 @@ function ShapeToolButton({ active, kind, onPick, Icon }) {
                 styles.shapeToolFlyoutBtn,
                 kind === id && active && styles.shapeToolFlyoutBtnActive,
               ].filter(Boolean).join(' ')}
-              title={label}
               onClick={() => { onPick(id); setOpen(false); }}
             >
-              <KIcon size={18} strokeWidth={1.7} />
+              <span className={styles.shapeToolFlyoutBtnIcon}>
+                <KIcon size={16} strokeWidth={1.8} />
+              </span>
+              <span className={styles.shapeToolFlyoutBtnLabel}>{label}</span>
+              <span className={styles.shapeToolFlyoutBtnKbd}>{kbd}</span>
             </button>
           ))}
         </div>
@@ -1044,6 +1047,10 @@ export default function BoardView({
         setTool('sticky');
       } else if (!cmd && (k === 'r')) {
         setTool('shape');
+      } else if (!cmd && tool === 'shape' && (k === '1' || k === '2' || k === '3')) {
+        // Sub-shortcuts when the shape tool is armed: 1 / 2 / 3
+        // swap the kind so the user can pick before clicking.
+        setShapeKind(k === '1' ? 'rect' : k === '2' ? 'ellipse' : 'triangle');
       } else if (!cmd && (k === 'i')) {
         setTool('image');
         setDrawerOpen(true);
@@ -1052,7 +1059,7 @@ export default function BoardView({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [
-    selectedIds, boardId, editingItemId,
+    selectedIds, boardId, editingItemId, tool,
     handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicate, handleSelectAll, pushHistory,
   ]);
 
