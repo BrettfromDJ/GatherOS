@@ -87,13 +87,14 @@ const SHAPE_STROKE_SWATCHES = [
   '#ff3b30', '#af52de', 'transparent',
 ];
 
-// Arrow tool defaults. Arrows store endpoints in data (x1,y1,x2,y2)
-// in world coords; the wrapper's x/y/width/height carry their
-// bounding rect (with a few px of padding so arrowheads aren't
-// clipped). Stroke colour reuses the shape stroke palette.
+// Arrow tool defaults. Arrows store every vertex in data.points
+// (world coords), with at minimum 2 points (start/end). The
+// wrapper's x/y/width/height carry the bounding rect with a few
+// px of padding so arrowheads aren't clipped. Stroke colour reuses
+// the shape stroke palette.
 const ARROW_DEFAULT_DATA = {
-  kind: 'arrow', // 'line' | 'arrow' | 'elbow'
-  x1: 0, y1: 0, x2: 0, y2: 0,
+  kind: 'arrow', // 'line' | 'arrow' (elbow is a 3-point arrow at create-time)
+  points: [],
   stroke: '#0a0a0a',
   strokeWidth: 2,
 };
@@ -1153,14 +1154,36 @@ export default function BoardView({
   }, [items]);
 
   // Drag-to-create: the canvas dispatches start + end world coords
-  // when the user finishes drawing an arrow. Build the bounding rect
-  // (with padding so the arrowhead isn't clipped) and persist.
+  // when the user finishes drawing an arrow. Build the polyline
+  // (line/arrow = 2 points; elbow = 3 points with auto-routed
+  // corner), compute the bbox, and persist.
   const handleArrowCreate = useCallback(({ start, end }) => {
     pushHistory();
-    const minX = Math.min(start.x, end.x) - ARROW_BBOX_PAD;
-    const minY = Math.min(start.y, end.y) - ARROW_BBOX_PAD;
-    const maxX = Math.max(start.x, end.x) + ARROW_BBOX_PAD;
-    const maxY = Math.max(start.y, end.y) + ARROW_BBOX_PAD;
+    let points;
+    let renderKind;
+    if (arrowKind === 'elbow') {
+      // Auto-routed corner: horizontal first, then vertical. Once
+      // placed, the arrow stores three points and behaves like any
+      // other polyline arrow (vertex/midpoint dragging works).
+      points = [
+        { x: start.x, y: start.y },
+        { x: end.x, y: start.y },
+        { x: end.x, y: end.y },
+      ];
+      renderKind = 'arrow';
+    } else {
+      points = [
+        { x: start.x, y: start.y },
+        { x: end.x, y: end.y },
+      ];
+      renderKind = arrowKind; // 'line' | 'arrow'
+    }
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    const minX = Math.min(...xs) - ARROW_BBOX_PAD;
+    const minY = Math.min(...ys) - ARROW_BBOX_PAD;
+    const maxX = Math.max(...xs) + ARROW_BBOX_PAD;
+    const maxY = Math.max(...ys) + ARROW_BBOX_PAD;
     const item = {
       id: uuid(),
       board_id: boardId,
@@ -1173,9 +1196,8 @@ export default function BoardView({
       z_index: nextZ(items),
       data: {
         ...ARROW_DEFAULT_DATA,
-        kind: arrowKind,
-        x1: start.x, y1: start.y,
-        x2: end.x, y2: end.y,
+        kind: renderKind,
+        points,
       },
       created_at: Date.now(),
       updated_at: Date.now(),

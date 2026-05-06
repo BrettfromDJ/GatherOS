@@ -919,10 +919,10 @@
   z-index: 2;
 }
 
-/* Arrow midpoint anchor — geometric center of the line. Filled
-   accent disc to read as "drag the whole arrow", paired with the
-   open-circle endpoints. Counter-zoom-scaled like the rest of the
-   selection chrome so it stays at constant screen size. */
+/* Internal-vertex handle — filled accent disc at an existing bend
+   point on the polyline. Drag to move that vertex. Slightly bigger
+   than the midpoint-insert disc so the user can tell at a glance
+   which dots are "real" vertices vs "drag-to-add" hints. */
 .arrowMidpoint {
   position: absolute;
   width: calc(10px / var(--board-zoom, 1));
@@ -934,6 +934,27 @@
   transform: translate(-50%, -50%);
   cursor: move;
   z-index: 2;
+}
+
+/* Midpoint-insert handle — drag to add a new vertex between two
+   existing points (i.e. bend the line). Same disc but smaller +
+   slightly muted so it reads as secondary chrome. */
+.arrowMidpointInsert {
+  position: absolute;
+  width: calc(7px / var(--board-zoom, 1));
+  height: calc(7px / var(--board-zoom, 1));
+  background: var(--accent, #0a84ff);
+  border-radius: 50%;
+  opacity: 0.6;
+  transform: translate(-50%, -50%);
+  cursor: crosshair;
+  z-index: 2;
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+
+.arrowMidpointInsert:hover {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.25);
 }
 
 /* Live preview while drawing. Same transparent wrapper, same SVG

@@ -9,6 +9,37 @@ import { extractDropImageUrls } from '../lib/dropUrls.js';
 // constant in BoardView so endpoint drags stay in sync.
 const ARROW_BBOX_PAD = 12;
 
+// Pull the arrow's points out of item.data, handling the legacy
+// shape ({x1,y1,x2,y2}) by deriving a 2-point array. Going forward
+// every persisted arrow stores data.points; the legacy keys are
+// only honoured when no points array is present.
+function getArrowPoints(item) {
+  const pts = item?.data?.points;
+  if (Array.isArray(pts) && pts.length >= 2) return pts;
+  return [
+    { x: item?.data?.x1 ?? 0, y: item?.data?.y1 ?? 0 },
+    { x: item?.data?.x2 ?? 0, y: item?.data?.y2 ?? 0 },
+  ];
+}
+
+// Bounding rect of an arrow given its points, padded so the
+// arrowhead has room to draw past the last point.
+function arrowBboxFromPoints(points) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of points) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  return {
+    x: minX - ARROW_BBOX_PAD,
+    y: minY - ARROW_BBOX_PAD,
+    width: (maxX - minX) + ARROW_BBOX_PAD * 2,
+    height: (maxY - minY) + ARROW_BBOX_PAD * 2,
+  };
+}
+
 // Convert a screen-space point (relative to the canvas's top-left)
 // into world coordinates given the current pan + zoom.
 function screenToWorld(sx, sy, pan, zoom) {
@@ -208,47 +239,17 @@ function BoardItem({
       />
     );
   } else if (item.type === 'arrow') {
-    // Endpoints are stored in world coords; convert to wrapper-local
-    // by subtracting the wrapper's x/y. The wrapper's bounding box
-    // already includes a few px of padding so arrowheads aren't
-    // clipped (set in BoardView when committing the create).
-    const x1 = (item.data?.x1 ?? 0) - item.x;
-    const y1 = (item.data?.y1 ?? 0) - item.y;
-    const x2 = (item.data?.x2 ?? 0) - item.x;
-    const y2 = (item.data?.y2 ?? 0) - item.y;
+    // Polyline model: data.points carries every vertex in world
+    // coords (with legacy x1/y1/x2/y2 falling back to a 2-point
+    // path). Convert to wrapper-local for SVG rendering.
+    const points = getArrowPoints(item);
+    const localPoints = points.map((p) => ({ x: p.x - item.x, y: p.y - item.y }));
     const stroke = item.data?.stroke || '#0a0a0a';
     const strokeWidth = item.data?.strokeWidth || 2;
     const kind = item.data?.kind || 'arrow';
     const markerId = `arrowhead-${item.id}`;
-    let pathOrLine;
-    if (kind === 'elbow') {
-      // Auto-routing: horizontal first, then vertical. (Future
-      // pass: pick the direction that minimises crossings.)
-      const corner = `${x2},${y1}`;
-      pathOrLine = (
-        <path
-          d={`M ${x1} ${y1} L ${corner} L ${x2} ${y2}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          markerEnd={`url(#${markerId})`}
-          vectorEffect="non-scaling-stroke"
-        />
-      );
-    } else {
-      pathOrLine = (
-        <line
-          x1={x1} y1={y1} x2={x2} y2={y2}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          markerEnd={kind === 'arrow' ? `url(#${markerId})` : undefined}
-          vectorEffect="non-scaling-stroke"
-        />
-      );
-    }
+    const showHead = kind !== 'line';
+    const polyPoints = localPoints.map((p) => `${p.x},${p.y}`).join(' ');
     content = (
       <svg
         className={styles.arrowSvg}
@@ -273,13 +274,18 @@ function BoardItem({
             <path d="M 0 0 L 10 5 L 0 10 z" fill={stroke} />
           </marker>
         </defs>
-        {pathOrLine}
+        <polyline
+          points={polyPoints}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          markerEnd={showHead ? `url(#${markerId})` : undefined}
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
     );
-    // Arrows shouldn't show the standard rectangular outline +
-    // resize handles — the selected styling for arrows is handled
-    // separately (endpoint handles painted next pass). Mark the
-    // wrapper so we can suppress those.
   } else if (item.type === 'shape') {
     isTextish = true;
     const kind = item.data?.kind || 'rect';
@@ -704,7 +710,7 @@ export default function BoardCanvas({
         return;
       }
       if (arrowEndpointState.current) {
-        const { itemId, which } = arrowEndpointState.current;
+        const { itemId, vertexIdx } = arrowEndpointState.current;
         const cur = screenToWorld(
           e.clientX - rect.left,
           e.clientY - rect.top,
@@ -713,25 +719,17 @@ export default function BoardCanvas({
         );
         const updated = items.map((it) => {
           if (it.id !== itemId) return it;
-          const data = it.data || {};
-          const x1 = which === 'a' ? cur.x : data.x1;
-          const y1 = which === 'a' ? cur.y : data.y1;
-          const x2 = which === 'b' ? cur.x : data.x2;
-          const y2 = which === 'b' ? cur.y : data.y2;
-          // Recompute the wrapper's bounding rect so it always
-          // contains both endpoints (plus a few px of padding for
-          // the arrowhead).
-          const minX = Math.min(x1, x2) - ARROW_BBOX_PAD;
-          const minY = Math.min(y1, y2) - ARROW_BBOX_PAD;
-          const maxX = Math.max(x1, x2) + ARROW_BBOX_PAD;
-          const maxY = Math.max(y1, y2) + ARROW_BBOX_PAD;
+          const points = getArrowPoints(it).map((p, i) =>
+            i === vertexIdx ? { x: cur.x, y: cur.y } : p,
+          );
+          const bbox = arrowBboxFromPoints(points);
           return {
             ...it,
-            x: minX,
-            y: minY,
-            width: maxX - minX,
-            height: maxY - minY,
-            data: { ...data, x1, y1, x2, y2 },
+            x: bbox.x,
+            y: bbox.y,
+            width: bbox.width,
+            height: bbox.height,
+            data: { ...(it.data || {}), points },
           };
         });
         onItemsChange(updated, { movingIds: [itemId], persist: false });
@@ -788,23 +786,20 @@ export default function BoardCanvas({
           const o = offsets.get(it.id);
           const newX = cursor.x + o.dx;
           const newY = cursor.y + o.dy;
-          // Arrow endpoints are stored in world coords on item.data,
-          // so they have to translate alongside x/y or the line will
-          // stay put while the wrapper drifts.
+          // Arrow points are stored in world coords on item.data
+          // (.points array, with legacy x1/y1/x2/y2 fallback), so
+          // they have to translate alongside x/y or the line stays
+          // put while the wrapper drifts.
           if (it.type === 'arrow' && it.data) {
             const dx = newX - it.x;
             const dy = newY - it.y;
+            const oldPoints = getArrowPoints(it);
+            const points = oldPoints.map((p) => ({ x: p.x + dx, y: p.y + dy }));
             return {
               ...it,
               x: newX,
               y: newY,
-              data: {
-                ...it.data,
-                x1: (it.data.x1 ?? 0) + dx,
-                y1: (it.data.y1 ?? 0) + dy,
-                x2: (it.data.x2 ?? 0) + dx,
-                y2: (it.data.y2 ?? 0) + dy,
-              },
+              data: { ...it.data, points },
             };
           }
           return { ...it, x: newX, y: newY };
@@ -1256,75 +1251,85 @@ export default function BoardCanvas({
           </div>
         )}
 
-        {/* Arrow endpoint handles. Painted in world coords next to
-            each selected arrow's a/b endpoints; mousedown on them
-            arms an endpoint drag in arrowEndpointState which the
-            window mousemove handler consumes. */}
+        {/* Arrow handles: open-circle endpoints at the path's first
+            and last vertex, filled-disc handles at internal vertices
+            (drag to move that vertex), and filled-disc midpoint
+            handles between consecutive vertices (drag to insert a
+            new vertex, bending the line). All rendered in world
+            coords inside .world; counter-zoom-scaled CSS keeps them
+            constant on screen regardless of canvas zoom. */}
         {selectedIds.size === 1 && (() => {
           const id = Array.from(selectedIds)[0];
           const it = items.find((x) => x.id === id);
           if (!it || it.type !== 'arrow' || it.data?.locked) return null;
-          const startEndpointDrag = (which) => (e) => {
+          const points = getArrowPoints(it);
+          const startVertexDrag = (vertexIdx) => (e) => {
             if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
-            // Snapshot the pre-drag state so undo restores it.
-            const snap = items.map((x) => ({ ...x, data: { ...(x.data || {}) } }));
-            // Stash via the existing items-change persist=true path:
-            // push a manual history entry by relying on the move-
-            // gesture flag (handleItemsChange auto-pushes on the
-            // first non-persist move call).
-            arrowEndpointState.current = { itemId: it.id, which };
-            // Force the gesture flag to push history on the next
-            // mousemove by toggling movingGestureRef false.
-            movingGestureRef.current = false;
-            // (Defensive: also seed an immediate snapshot in case
-            // the user releases without moving.)
-            void snap;
+            arrowEndpointState.current = { itemId: it.id, vertexIdx };
+            // The window mousemove handler will fire onItemsChange
+            // with persist:false on the first move; BoardView's
+            // handleItemsChange auto-pushes history on the first
+            // such call per gesture, so no manual snapshot needed.
           };
-          const handleStyle = {
-            position: 'absolute',
-            left: it.data.x1, top: it.data.y1,
-          };
-          const handleStyle2 = {
-            position: 'absolute',
-            left: it.data.x2, top: it.data.y2,
-          };
-          // Midpoint anchor — geometric center of the line, painted
-          // as a filled accent disc. Mousedown on it triggers the
-          // standard item-move pipeline so the whole arrow drags as
-          // a unit (endpoints follow via handleItemMoveStart's
-          // arrow-aware translation in onMove).
-          const midStyle = {
-            position: 'absolute',
-            left: (it.data.x1 + it.data.x2) / 2,
-            top: (it.data.y1 + it.data.y2) / 2,
-          };
-          const startMidpointDrag = (e) => {
+          // Midpoint drag inserts a new vertex at the click position
+          // between segIdx and segIdx+1 immediately, then arms a
+          // vertex-drag on the new index so the cursor stays
+          // attached and follow-up mousemove keeps reshaping.
+          const startMidpointDrag = (segIdx) => (e) => {
             if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
-            handleItemMoveStart(it, e);
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            const cur = screenToWorld(
+              e.clientX - rect.left,
+              e.clientY - rect.top,
+              pan,
+              zoom,
+            );
+            const oldPoints = getArrowPoints(it);
+            const newPoints = [
+              ...oldPoints.slice(0, segIdx + 1),
+              { x: cur.x, y: cur.y },
+              ...oldPoints.slice(segIdx + 1),
+            ];
+            const bbox = arrowBboxFromPoints(newPoints);
+            const updated = items.map((x) => x.id === it.id
+              ? { ...x, x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height, data: { ...(x.data || {}), points: newPoints } }
+              : x);
+            // Auto-snapshot via handleItemsChange's first-move flag.
+            onItemsChange(updated, { movingIds: [it.id], persist: false });
+            arrowEndpointState.current = { itemId: it.id, vertexIdx: segIdx + 1 };
           };
-          return (
-            <>
+
+          const handles = [];
+          points.forEach((p, i) => {
+            const isEnd = i === 0 || i === points.length - 1;
+            handles.push(
               <span
-                className={styles.arrowEndpoint}
-                style={handleStyle}
-                onMouseDown={startEndpointDrag('a')}
-              />
+                key={`v-${i}`}
+                className={isEnd ? styles.arrowEndpoint : styles.arrowMidpoint}
+                style={{ position: 'absolute', left: p.x, top: p.y }}
+                onMouseDown={startVertexDrag(i)}
+              />,
+            );
+          });
+          // Midpoints between consecutive points.
+          for (let i = 0; i < points.length - 1; i += 1) {
+            const mx = (points[i].x + points[i + 1].x) / 2;
+            const my = (points[i].y + points[i + 1].y) / 2;
+            handles.push(
               <span
-                className={styles.arrowEndpoint}
-                style={handleStyle2}
-                onMouseDown={startEndpointDrag('b')}
-              />
-              <span
-                className={styles.arrowMidpoint}
-                style={midStyle}
-                onMouseDown={startMidpointDrag}
-              />
-            </>
-          );
+                key={`m-${i}`}
+                className={styles.arrowMidpointInsert}
+                style={{ position: 'absolute', left: mx, top: my }}
+                onMouseDown={startMidpointDrag(i)}
+              />,
+            );
+          }
+          return handles;
         })()}
       </div>
 
