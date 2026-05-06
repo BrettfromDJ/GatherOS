@@ -18,6 +18,63 @@ const {
 } = require('./db');
 const { hasOpenAIKey, getOpenAIKey, getPref } = require('./settings');
 const { analyzeImage, embedText } = require('./openai');
+const licensing = require('./licensing');
+const { URL_SCHEME: LICENSE_URL_SCHEME } = require('../shared/licensing-config');
+
+// Register the custom URL scheme so the OS knows magic-link emails
+// (gatheros://auth/verify?token=…) should open this app. macOS
+// dispatches the URL via the 'open-url' event; Windows / Linux pass
+// it through argv to a second-instance launch.
+if (process.defaultApp) {
+  // Dev: when launched via `electron .`, defaultApp is true and we
+  // need to pass the script path so single-instance forwarding works.
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(LICENSE_URL_SCHEME, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(LICENSE_URL_SCHEME);
+}
+
+// Token queue for licensing deep-links that arrive before the
+// renderer is ready to receive them (cold launch from email click).
+const pendingLicenseTokens = [];
+let rendererReady = false;
+
+async function handleLicensingDeepLink(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return;
+  }
+  // gatheros://auth/verify?token=…
+  if (parsed.hostname !== 'auth' || parsed.pathname !== '/verify') return;
+  const token = parsed.searchParams.get('token');
+  if (!token) return;
+
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+
+  const result = await licensing.exchangeMagicToken(token);
+  // Always notify the renderer so it can refresh license state and
+  // dismiss the signin screen; include success/failure so the UI can
+  // surface the right toast.
+  pendingLicenseTokens.push(result);
+  drainLicenseTokenQueue();
+}
+
+function drainLicenseTokenQueue() {
+  if (!mainWindow || !rendererReady) return;
+  while (pendingLicenseTokens.length > 0) {
+    const item = pendingLicenseTokens.shift();
+    mainWindow.webContents.send('licensing:auth-result', item);
+  }
+}
 
 // Float32Array <-> Buffer plumbing for storing embeddings as SQLite BLOBs.
 function vectorToBuffer(arr) {
@@ -122,7 +179,14 @@ const dockOpenUrlQueue = [];
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return;
+  if (typeof url !== 'string') return;
+  // Magic-link bridge: gatheros://auth/verify?token=… — route to the
+  // licensing module instead of the image-save pipeline.
+  if (url.startsWith(`${LICENSE_URL_SCHEME}://`)) {
+    handleLicensingDeepLink(url);
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) return;
   dockOpenUrlQueue.push(url);
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
@@ -334,6 +398,13 @@ function createMainWindow() {
   trackWindowState(mainWindow);
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
+
+  // Renderer is ready to receive IPC events. Drain any queued
+  // licensing deep-links that arrived before this point.
+  mainWindow.webContents.once('did-finish-load', () => {
+    rendererReady = true;
+    drainLicenseTokenQueue();
+  });
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

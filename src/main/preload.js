@@ -124,6 +124,12 @@ contextBridge.exposeInMainWorld('moodmark', {
   updater: {
     install: () => ipcRenderer.invoke('updater:install'),
   },
+  licensing: {
+    requestMagicLink: (email) => ipcRenderer.invoke('licensing:request-magic-link', email),
+    verify: (opts) => ipcRenderer.invoke('licensing:verify', opts),
+    hasSession: () => ipcRenderer.invoke('licensing:has-session'),
+    signOut: () => ipcRenderer.invoke('licensing:sign-out'),
+  },
   on: (channel, listener) => {
     const allowed = new Set([
       'save:created',
@@ -137,6 +143,7 @@ contextBridge.exposeInMainWorld('moodmark', {
       'update-error',
       'ai:reindex-progress',
       'library:switched',
+      'licensing:auth-result',
     ]);
     if (!allowed.has(channel)) return () => {};
     const wrapped = (_event, ...args) => listener(...args);

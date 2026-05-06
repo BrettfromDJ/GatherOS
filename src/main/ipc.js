@@ -902,6 +902,19 @@ function registerIpcHandlers() {
   ipcMain.on('toast:empty', () => {
     onToastsEmpty();
   });
+
+  // ─── Licensing ──────────────────────────────────────────────
+  // Renderer asks for the entitlement state on launch + on every
+  // window focus; main process owns the session token + cache.
+  const licensing = require('./licensing');
+  ipcMain.handle('licensing:request-magic-link', (_e, email) =>
+    licensing.requestMagicLink(email),
+  );
+  ipcMain.handle('licensing:verify', (_e, opts) =>
+    licensing.verifyLicense(opts || {}),
+  );
+  ipcMain.handle('licensing:has-session', () => licensing.hasSession());
+  ipcMain.handle('licensing:sign-out', () => licensing.signOut());
 }
 
 module.exports = { registerIpcHandlers };
