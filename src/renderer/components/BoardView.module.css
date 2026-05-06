@@ -48,9 +48,15 @@
   border: none;
   outline: none;
   text-align: center;
-  min-width: 80px;
-  max-width: 240px;
   padding: 0;
+  /* Auto-size to typed content. field-sizing is the modern
+     mechanism (Chromium 123+); the size= attribute set in JSX is
+     the explicit fallback for any browser that doesn't honor it.
+     The pill's flex layout then collapses around whichever width
+     the input lands on. */
+  field-sizing: content;
+  min-width: 0;
+  max-width: 320px;
 }
 
 .zoomReadout {

@@ -503,6 +503,11 @@ export default function BoardView({ boardId, saves, onRenameBoard }) {
         <input
           className={styles.titleInput}
           value={titleDraft}
+          /* size acts as the universal fallback for browsers that
+             don't honor field-sizing: content. Track the longer of
+             the typed value or the placeholder so an empty title
+             still has room for the placeholder text. */
+          size={Math.max(8, (titleDraft || 'Untitled board').length)}
           onChange={(e) => setTitleDraft(e.target.value)}
           onBlur={commitTitle}
           onKeyDown={(e) => {
