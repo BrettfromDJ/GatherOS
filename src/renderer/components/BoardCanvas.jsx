@@ -123,6 +123,16 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
     if (!editing) return;
     const el = ref.current;
     if (!el) return;
+    // Shapes are flex-centred; an empty contentEditable has no
+    // content for flex to centre, so the browser drops the caret at
+    // the top-left of the box. Insert a real zero-width space — a
+    // text node, since pseudo-elements don't affect caret placement
+    // — so the line box exists at the centred position. Stripped on
+    // commit; re-inserted via onInput below if the user backspaces
+    // it out during the edit.
+    if (item.type === 'shape' && (el.textContent || '') === '') {
+      el.textContent = '​';
+    }
     el.focus();
     const range = document.createRange();
     range.selectNodeContents(el);
@@ -148,8 +158,29 @@ function EditableTextContent({ item, editing, onCommitEdit }) {
       // so they don't get a "Type something" placeholder. Text +
       // sticky still do.
       data-placeholder={item.type === 'shape' ? undefined : 'Type something'}
+      onInput={(e) => {
+        // Shapes seed a zero-width-space on edit-mode entry to keep
+        // the caret centred. If the user backspaces every char,
+        // including that ZWS, the editor goes truly empty and the
+        // caret falls back to the top-left. Re-seed it here.
+        if (item.type !== 'shape') return;
+        const el = e.currentTarget;
+        if ((el.textContent || '') === '') {
+          el.textContent = '​';
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+      }}
       onBlur={(e) => {
-        onCommitEdit(item.id, e.currentTarget.innerText);
+        // Strip any zero-width spaces (the caret-centering seed for
+        // shapes) before persisting so they never reach the saved text.
+        const raw = e.currentTarget.innerText;
+        const text = raw.replace(/​/g, '');
+        onCommitEdit(item.id, text);
         // Clear any text the user had highlighted inside the editor
         // before clicking out — without this the highlight stays
         // painted on the deselected item until they click again.

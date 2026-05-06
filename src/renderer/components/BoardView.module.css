@@ -886,18 +886,11 @@
   overflow: hidden;
 }
 
-/* No visible placeholder on shapes — the outline reads as the
-   item. But we *do* drop a zero-width pseudo-element in when the
-   editor is empty: this gives flex's align-items:center an
-   anonymous item to centre, so the caret sits at the middle
-   instead of the top-left of an empty contentEditable. As soon
-   as the user types one character the :empty selector stops
-   matching, the pseudo disappears, and the typed glyph is the
-   item being centred — the caret stays put. */
-.shapeText:empty::before {
-  content: '\200B';
-  pointer-events: none;
-}
+/* No placeholder on shapes — the outline reads as the item. The
+   empty-shape caret centring is handled imperatively in
+   EditableTextContent (a real zero-width-space text node is
+   inserted on edit-mode entry; pseudo-elements don't actually
+   move the caret). */
 
 /* ── Arrows ───────────────────────────────────────────────────────
    The wrapper is the bounding rect (with a small padding for the
