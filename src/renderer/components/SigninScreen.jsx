@@ -8,7 +8,7 @@ import styles from './SigninScreen.module.css';
 // Two states:
 //   form  — email input + "Send magic link" button
 //   sent  — confirmation, "Check your email"
-export default function SigninScreen({ onRequestMagicLink }) {
+export default function SigninScreen({ onRequestMagicLink, reason }) {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -31,6 +31,16 @@ export default function SigninScreen({ onRequestMagicLink }) {
       );
     }
   }
+
+  // Soften the framing when the gate appears immediately after the
+  // user's first save in guest mode — they've already invested
+  // something and the prompt should read as protecting that, not
+  // blocking access.
+  const isPostSave = reason === 'post-save';
+  const headline = isPostSave ? 'Save your library' : 'Sign in to continue';
+  const subhead = isPostSave
+    ? 'Sign in with your email so you don’t lose what you just saved. No passwords — we’ll send you a magic link.'
+    : 'Enter your email and we’ll send you a magic sign-in link — no passwords required.';
 
   return (
     <div className={styles.scrim}>
@@ -56,11 +66,8 @@ export default function SigninScreen({ onRequestMagicLink }) {
           </div>
         ) : (
           <form onSubmit={submit} className={styles.form}>
-            <h1 className={styles.heading}>Sign in to continue</h1>
-            <p className={styles.body}>
-              Enter your email and we’ll send you a magic sign-in link —
-              no passwords required.
-            </p>
+            <h1 className={styles.heading}>{headline}</h1>
+            <p className={styles.body}>{subhead}</p>
             <input
               className={styles.input}
               type="email"
