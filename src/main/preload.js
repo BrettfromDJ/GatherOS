@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   app: {
     version: appVersion,
     theme: initialTheme,
+    setTheme: (theme) => ipcRenderer.invoke('app:set-theme', theme),
   },
   saves: {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),

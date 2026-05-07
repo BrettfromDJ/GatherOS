@@ -368,6 +368,12 @@ async function maybeAIIndexInBackground(record) {
 
 function createMainWindow() {
   const winState = getWindowInitialOptions();
+  // Theme is read from prefs synchronously so the BrowserWindow's
+  // initial backgroundColor matches what variables.css will paint —
+  // otherwise a dark-mode user sees a white flash before the first
+  // CSS frame lands.
+  const initialTheme = require('./settings').getPref('theme', 'light');
+  const isDark = initialTheme === 'dark';
   mainWindow = new BrowserWindow({
     x: winState.x,
     y: winState.y,
@@ -381,7 +387,7 @@ function createMainWindow() {
     // Aligned vertically with the 28px toolbar icons
     // (10px padding-top + 14px half-icon = center at y ≈ 24).
     trafficLightPosition: { x: 22, y: 18 },
-    backgroundColor: '#FAFAF9',
+    backgroundColor: isDark ? '#1C1C1E' : '#FAFAF9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -568,6 +574,21 @@ ipcMain.on('app:get-theme', (event) => {
   event.returnValue = settings.getPref('theme', 'light');
 });
 
+// Renderer's Light/Dark switch fires this so the native chrome
+// (traffic lights, scrollbars, native dialogs) flips in lockstep
+// with the document. Pref persistence still happens via the regular
+// settings:set-pref path; this handler only updates Electron state.
+ipcMain.handle('app:set-theme', (_e, theme) => {
+  const next = theme === 'dark' ? 'dark' : 'light';
+  if (process.platform === 'darwin') {
+    nativeTheme.themeSource = next;
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setBackgroundColor(next === 'dark' ? '#1C1C1E' : '#FAFAF9');
+  }
+  return { ok: true };
+});
+
 // ── Library registry IPC ────────────────────────────────────────────
 // All five handlers are thin wrappers over library-registry. The
 // switch handler additionally closes the current DB, reopens it
@@ -636,7 +657,14 @@ ipcMain.handle('library:switch', (_e, id) => {
 });
 
 app.whenReady().then(() => {
-  if (process.platform === 'darwin') nativeTheme.themeSource = 'light';
+  if (process.platform === 'darwin') {
+    // Drive the macOS native chrome (title bar text, traffic-light
+    // hover state, native scrollbars) off the same prefs.theme value
+    // the renderer applies to <html data-theme>.
+    const settings = require('./settings');
+    const themePref = settings.getPref('theme', 'light');
+    nativeTheme.themeSource = themePref === 'dark' ? 'dark' : 'light';
+  }
   setSaveNotifier(notifySaved);
   setDuplicateNotifier(notifyDuplicateInRenderer);
   setTrayRefresher(rebuildTrayMenu);

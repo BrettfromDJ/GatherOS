@@ -200,13 +200,18 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
   // Theme writes go through the same prefs file as the AI toggles, but
   // also need to hit document.documentElement so the swap is instant
   // — the boot-time read in main.jsx only runs on next launch.
+  // Main process is also told so the macOS traffic-lights / window
+  // chrome flip in lockstep with the document.
   async function setTheme(next) {
     if (next !== 'light' && next !== 'dark') return;
     if (prefs.theme === next) return;
     const updated = { ...prefs, theme: next };
     setPrefs(updated);
     document.documentElement.setAttribute('data-theme', next);
-    await window.moodmark.settings.setPref('theme', next);
+    await Promise.all([
+      window.moodmark.settings.setPref('theme', next),
+      window.moodmark.app.setTheme?.(next),
+    ]);
     onPrefsChange?.(updated);
   }
 
