@@ -115,6 +115,7 @@ interface PaddleSubscriptionData {
   id?: string;
   status?: SubscriptionRow['status'];
   customer_id?: string;
+  custom_data?: { user_id?: string } | null;
   items?: Array<{ price?: { id?: string; product_id?: string; billing_cycle?: { interval?: 'month' | 'year' } } }>;
   current_billing_period?: { starts_at?: string; ends_at?: string };
   scheduled_change?: { action?: string; effective_at?: string } | null;
@@ -124,22 +125,45 @@ interface PaddleSubscriptionData {
 interface PaddleTransactionData {
   customer_id?: string;
   subscription_id?: string;
+  custom_data?: { user_id?: string } | null;
 }
 
 async function handleEvent(env: Env, evt: PaddleEvent): Promise<void> {
+  // Opportunistically link the Paddle customer to our user row using
+  // custom_data.user_id, which the desktop app sets at Checkout.open
+  // time. Doing this on every event self-heals — even if events arrive
+  // out of order, the first one with custom_data wins, and subsequent
+  // events find the user.
+  const userId = evt.data.custom_data?.user_id;
+  const customerId = evt.data.customer_id;
+  if (userId && customerId) {
+    await linkCustomerToUser(env, userId, customerId);
+  }
+
   if (evt.event_type.startsWith('subscription.')) {
     await upsertSubscription(env, evt.data);
     return;
   }
-  if (evt.event_type === 'transaction.completed') {
-    // First-checkout signal — make sure the user row carries the
-    // Paddle customer id so future webhooks (and the customer-portal
-    // link) can find them.
-    const customerId = evt.data.customer_id;
-    if (customerId) await ensureCustomerLinked(env, customerId);
-    return;
-  }
-  // Unhandled event types are fine to ignore.
+  // transaction.completed is fully handled by the link step above —
+  // we don't persist transaction rows in Phase 1.
+}
+
+async function linkCustomerToUser(
+  env: Env,
+  userId: string,
+  customerId: string,
+): Promise<void> {
+  // Set paddle_customer_id only if it's still null OR already equals
+  // this same id. Refusing to overwrite a different existing id avoids
+  // stomping on a user who switched accounts.
+  await env.DB.prepare(
+    `UPDATE users
+        SET paddle_customer_id = ?
+      WHERE id = ?
+        AND (paddle_customer_id IS NULL OR paddle_customer_id = ?)`,
+  )
+    .bind(customerId, userId, customerId)
+    .run();
 }
 
 async function upsertSubscription(env: Env, d: PaddleSubscriptionData): Promise<void> {
@@ -218,20 +242,6 @@ async function upsertSubscription(env: Env, d: PaddleSubscriptionData): Promise<
       )
       .run();
   }
-}
-
-async function ensureCustomerLinked(env: Env, customerId: string): Promise<void> {
-  // We can't link without knowing the email. The transaction event
-  // doesn't carry it directly, but Paddle's API does. Phase 2 will
-  // implement: GET /customers/{id} → email → match user. For Phase 1
-  // we just log that the link is pending.
-  const linked = await env.DB.prepare(
-    `SELECT id FROM users WHERE paddle_customer_id = ? LIMIT 1`,
-  )
-    .bind(customerId)
-    .first();
-  if (linked) return;
-  console.log('[paddle] TODO link Paddle customer →', customerId);
 }
 
 function parseTs(s: string | null | undefined): number | null {
