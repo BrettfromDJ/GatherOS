@@ -876,6 +876,17 @@ function deleteTag(tagId) {
   return { ok: true, removed };
 }
 
+// Bulk-cleanup for the tag manager — drops every tag that no save
+// references. Single statement so 1000-tag libraries don't pay
+// transaction overhead per row.
+function deleteUnusedTags() {
+  const db = getDatabase();
+  const { changes } = db
+    .prepare('DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM save_tags WHERE tag_id IS NOT NULL)')
+    .run();
+  return { ok: true, deleted: changes };
+}
+
 function reorderCollections(orderedIds) {
   const db = getDatabase();
   const stmt = db.prepare('UPDATE collections SET order_index = ? WHERE id = ?');
@@ -1107,6 +1118,7 @@ module.exports = {
   removeTagFromSave,
   renameTag,
   deleteTag,
+  deleteUnusedTags,
   getIntegrityResult,
   // Boards
   listBoards,

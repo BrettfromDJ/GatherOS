@@ -329,6 +329,10 @@ function registerIpcHandlers() {
     const { deleteTag } = require('./db');
     return deleteTag(id);
   });
+  ipcMain.handle('tags:delete-unused', () => {
+    const { deleteUnusedTags } = require('./db');
+    return deleteUnusedTags();
+  });
 
   ipcMain.handle('capture:screenshot', () => {
     startScreenshotCapture();

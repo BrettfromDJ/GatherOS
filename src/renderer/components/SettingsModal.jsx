@@ -101,6 +101,10 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState({ id: null, name: '' });
   const [tagBusy, setTagBusy] = useState(false);
+  const [tagFilter, setTagFilter] = useState('');
+  // 'count_desc' | 'name_asc' | 'unused_first'
+  const [tagSort, setTagSort] = useState('count_desc');
+  const [tagShowAll, setTagShowAll] = useState(false);
   const [acksOpen, setAcksOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [account, setAccount] = useState(null);
@@ -343,6 +347,46 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
     setTags(Array.isArray(rows) ? rows : []);
     setTagBusy(false);
   }
+
+  async function handleDeleteUnusedTags() {
+    const unusedCount = tags.filter((t) => (t.save_count || 0) === 0).length;
+    if (unusedCount === 0) return;
+    const ok = window.confirm(
+      `Delete ${unusedCount} unused ${unusedCount === 1 ? 'tag' : 'tags'}? They aren't applied to any saves.`,
+    );
+    if (!ok) return;
+    setTagBusy(true);
+    await window.moodmark.tags.deleteUnused();
+    const rows = await window.moodmark.tags.getAll();
+    setTags(Array.isArray(rows) ? rows : []);
+    setTagBusy(false);
+  }
+
+  // Filter + sort the tag list. Search is a substring match against
+  // the lowercase name; sort comparators are stable so equal-count
+  // rows stay alphabetical. Capped at 200 visible rows by default to
+  // keep DOM size bounded on libraries with thousands of tags — the
+  // "Show all" link drops the cap when the user opts in.
+  const TAG_RENDER_CAP = 200;
+  const filteredTags = (() => {
+    const q = tagFilter.trim().toLowerCase();
+    let rows = q ? tags.filter((t) => t.name.includes(q)) : tags.slice();
+    rows.sort((a, b) => {
+      if (tagSort === 'name_asc') return a.name.localeCompare(b.name);
+      if (tagSort === 'unused_first') {
+        const ua = (a.save_count || 0) === 0 ? 0 : 1;
+        const ub = (b.save_count || 0) === 0 ? 0 : 1;
+        if (ua !== ub) return ua - ub;
+        return a.name.localeCompare(b.name);
+      }
+      // count_desc — most-used first, alpha as tiebreak
+      const diff = (b.save_count || 0) - (a.save_count || 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+    return rows;
+  })();
+  const visibleTags = tagShowAll ? filteredTags : filteredTags.slice(0, TAG_RENDER_CAP);
+  const unusedTagCount = tags.filter((t) => (t.save_count || 0) === 0).length;
 
   if (!open) return null;
 
@@ -703,50 +747,113 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
                   No tags yet. Add tags to a save from its detail panel.
                 </div>
               ) : (
-                <ul className={styles.tagList}>
-                  {tags.map((t) => {
-                    const renaming = tagDraft.id === t.id;
-                    return (
-                      <li key={t.id} className={styles.tagRow}>
-                        {renaming ? (
-                          <input
-                            autoFocus
-                            className={styles.tagInput}
-                            value={tagDraft.name}
-                            disabled={tagBusy}
-                            onChange={(e) => setTagDraft({ id: t.id, name: e.target.value })}
-                            onBlur={() => handleTagRenameCommit(t)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleTagRenameCommit(t);
-                              if (e.key === 'Escape') setTagDraft({ id: null, name: '' });
-                            }}
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            className={styles.tagName}
-                            onClick={() => setTagDraft({ id: t.id, name: t.name })}
-                            title="Rename tag"
-                          >
-                            <span className={styles.tagHash}>#</span>{t.name}
-                          </button>
-                        )}
-                        <span className={styles.tagCount}>
-                          {t.save_count} {t.save_count === 1 ? 'save' : 'saves'}
-                        </span>
-                        <button
-                          type="button"
-                          className={`${styles.btn} ${styles.btnDanger}`}
-                          onClick={() => handleTagDelete(t)}
-                          disabled={tagBusy}
-                          aria-label={`Delete tag ${t.name}`}
-                        >
-                          Delete
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <>
+                  <div className={styles.tagControls}>
+                    <input
+                      type="search"
+                      className={styles.tagSearch}
+                      placeholder="Search tags…"
+                      value={tagFilter}
+                      onChange={(e) => {
+                        setTagFilter(e.target.value);
+                        setTagShowAll(false);
+                      }}
+                    />
+                    <select
+                      className={styles.tagSort}
+                      value={tagSort}
+                      onChange={(e) => setTagSort(e.target.value)}
+                      aria-label="Sort tags"
+                    >
+                      <option value="count_desc">Most used</option>
+                      <option value="name_asc">A → Z</option>
+                      <option value="unused_first">Unused first</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.tagSummaryRow}>
+                    <span className={styles.tagSummary}>
+                      {tags.length} {tags.length === 1 ? 'tag' : 'tags'}
+                      {unusedTagCount > 0 && (
+                        <> · {unusedTagCount} unused</>
+                      )}
+                      {tagFilter && (
+                        <> · {filteredTags.length} match{filteredTags.length === 1 ? '' : 'es'}</>
+                      )}
+                    </span>
+                    {unusedTagCount > 0 && (
+                      <button
+                        type="button"
+                        className={styles.tagBulkBtn}
+                        onClick={handleDeleteUnusedTags}
+                        disabled={tagBusy}
+                      >
+                        Delete unused
+                      </button>
+                    )}
+                  </div>
+
+                  {filteredTags.length === 0 ? (
+                    <div className={styles.sectionHint}>
+                      No tags match "{tagFilter}".
+                    </div>
+                  ) : (
+                    <ul className={styles.tagList}>
+                      {visibleTags.map((t) => {
+                        const renaming = tagDraft.id === t.id;
+                        return (
+                          <li key={t.id} className={styles.tagRow}>
+                            {renaming ? (
+                              <input
+                                autoFocus
+                                className={styles.tagInput}
+                                value={tagDraft.name}
+                                disabled={tagBusy}
+                                onChange={(e) => setTagDraft({ id: t.id, name: e.target.value })}
+                                onBlur={() => handleTagRenameCommit(t)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleTagRenameCommit(t);
+                                  if (e.key === 'Escape') setTagDraft({ id: null, name: '' });
+                                }}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.tagName}
+                                onClick={() => setTagDraft({ id: t.id, name: t.name })}
+                                title="Rename tag"
+                              >
+                                <span className={styles.tagHash}>#</span>{t.name}
+                              </button>
+                            )}
+                            <span className={styles.tagCount}>
+                              {t.save_count} {t.save_count === 1 ? 'save' : 'saves'}
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.tagDeleteBtn}
+                              onClick={() => handleTagDelete(t)}
+                              disabled={tagBusy}
+                              aria-label={`Delete tag ${t.name}`}
+                            >
+                              Delete
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+
+                  {!tagShowAll && filteredTags.length > TAG_RENDER_CAP && (
+                    <button
+                      type="button"
+                      className={styles.tagShowAll}
+                      onClick={() => setTagShowAll(true)}
+                    >
+                      Show all {filteredTags.length} tags
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}

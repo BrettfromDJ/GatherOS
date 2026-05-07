@@ -572,15 +572,123 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Tag manager — flat list of every tag in the library with inline
-   rename + delete. Each row is a 3-column flex: clickable label,
-   save count, danger button. */
+/* Tag manager — search + sort row pinned at the top of the drawer,
+   stats line below it (count + unused + bulk-clean affordance), and
+   then the scrollable list. Internally scrollable so a 1000-tag
+   library doesn't blow out the modal height. */
+.tagControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tagSearch {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--input-bg);
+  border: 0.5px solid var(--input-border);
+  border-radius: 7px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.tagSearch::placeholder { color: var(--text-tertiary); }
+
+.tagSearch:focus {
+  background: var(--input-bg-focus);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+}
+
+.tagSearch::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tagSort {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--input-bg);
+  border: 0.5px solid var(--input-border);
+  border-radius: 7px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+}
+
+.tagSummaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 8px;
+}
+
+.tagSummary {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tagBulkBtn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  background: transparent;
+  border: 0.5px solid var(--input-border);
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease, border-color 100ms ease;
+}
+
+.tagBulkBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-error) 8%, transparent);
+  border-color: color-mix(in srgb, var(--status-error) 35%, transparent);
+  color: var(--status-error);
+}
+
+.tagBulkBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tagShowAll {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.tagShowAll:hover { text-decoration: underline; }
+
 .tagList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
+  /* Internal scroll keeps the modal height bounded. ~12 rows visible
+     at a glance, scroll for the rest — search/sort makes finding
+     specific tags fast even past that. */
+  max-height: 340px;
+  overflow-y: auto;
 }
 
 .tagRow {
@@ -642,6 +750,36 @@
   font-size: 12.5px;
   color: var(--text-primary);
 }
+
+.tagDeleteBtn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms ease, color 100ms ease, background 100ms ease;
+}
+
+/* Reveal the per-row delete on hover so the list reads as a calm
+   reference even with hundreds of rows; explicit row hover keeps the
+   button accessible without screaming for attention by default. */
+.tagRow:hover .tagDeleteBtn,
+.tagDeleteBtn:focus-visible {
+  opacity: 1;
+}
+
+.tagDeleteBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+  color: var(--status-error);
+}
+
+.tagDeleteBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Light/Dark picker — two segmented chips with a preview swatch.
    Selected state mirrors the soft button surface so it reads as

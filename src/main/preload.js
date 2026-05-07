@@ -79,6 +79,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     removeFromSave: (payload) => ipcRenderer.invoke('tags:remove-from-save', payload),
     rename: (payload) => ipcRenderer.invoke('tags:rename', payload),
     delete: (id) => ipcRenderer.invoke('tags:delete', id),
+    deleteUnused: () => ipcRenderer.invoke('tags:delete-unused'),
   },
   db: {
     integrity: () => ipcRenderer.invoke('db:integrity'),
