@@ -149,7 +149,10 @@ authRoutes.post('/exchange', async (c) => {
 
   if (!user) {
     const id = newId();
-    const trialDays = Number(c.env.TRIAL_DAYS) || 30;
+    const parsedTrialDays = Number(c.env.TRIAL_DAYS);
+    // Number.isFinite('') is false, '0' parses to 0 — accept 0 as
+    // "no server trial" rather than falling back to 30.
+    const trialDays = Number.isFinite(parsedTrialDays) ? parsedTrialDays : 30;
     const trialEndsAt = now + trialDays * 24 * 60 * 60 * 1000;
     await c.env.DB.prepare(
       `INSERT INTO users (id, email, created_at, trial_ends_at, paddle_customer_id)

@@ -15,7 +15,10 @@ migrations_dir = "migrations"
 # list of secrets the worker needs.
 [vars]
 APP_NAME = "GatherOS"
-TRIAL_DAYS = "30"
+# 0 disables the server-side trial entirely — users go straight to
+# the paywall after first sign-in. Paddle's price-level trial (set in
+# the Paddle dashboard) is the only trial the user ever sees.
+TRIAL_DAYS = "0"
 # Custom URL scheme the desktop app registers. Magic-link emails point
 # at https://api.gatheros.app/auth/verify?token=… which redirects
 # into this scheme so the app picks up the session token natively.
