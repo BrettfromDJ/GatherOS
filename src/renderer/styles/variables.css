@@ -153,10 +153,10 @@
   --hover-bg-strong: rgba(255, 255, 255, 0.10);
   --active-bg: rgba(255, 255, 255, 0.10);
 
-  --btn-from: #2E2E30;
-  --btn-to: #292929;
-  --btn-border: rgba(255, 255, 255, 0.08);
-  --btn-inset: rgba(255, 255, 255, 0.06);
+  --btn-from: #333333;
+  --btn-to: #252525;
+  --btn-border: rgba(0, 0, 0, 0.55);
+  --btn-inset: #2F2F2F;
 
   --glass-from: rgba(48, 48, 50, 0.88);
   --glass-to: rgba(36, 36, 38, 0.78);
