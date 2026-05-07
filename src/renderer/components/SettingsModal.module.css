@@ -85,15 +85,29 @@
   flex-shrink: 0;
 }
 
-/* Drawer-style sections sit tighter against each other than the
-   regular .section (which is sized for an always-expanded body). */
+/* Drawer-style sections render as inset rounded cards with a soft
+   tinted fill so they read as grouped rows of settings rather than
+   edge-to-edge divider stacks. The horizontal margin gives them a
+   bit of air on either side of the modal. */
 .drawerSection {
-  padding: 2px 18px;
-  border-top: 0.5px solid var(--border-hairline);
+  margin: 6px 14px;
+  padding: 0 12px;
+  background: var(--input-bg);
+  border: 0.5px solid var(--border-subtle);
+  border-radius: 10px;
 }
 
+/* Override the original cascade — adjacent cards no longer share a
+   single hairline divider; each card carries its own border. */
 .drawerSection + .drawerSection {
-  border-top: 0.5px solid var(--border-hairline);
+  border-top: 0.5px solid var(--border-subtle);
+}
+
+/* The OpenAI section above the cards still uses the regular .section
+   spacing, so add a hairline below it to mark the transition into
+   the card stack. */
+.section + .drawerSection {
+  margin-top: 8px;
 }
 
 /* Drawer-style section header — clickable row that toggles the
@@ -104,7 +118,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 0;
+  padding: 10px 0;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -136,7 +150,9 @@
 }
 
 .drawerBody {
-  padding: 6px 0 12px;
+  padding: 8px 0 12px;
+  border-top: 0.5px solid var(--border-subtle);
+  margin-top: 2px;
   animation: drawerIn 140ms ease-out;
 }
 
