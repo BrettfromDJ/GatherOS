@@ -1,11 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { History } from 'lucide-react';
+import { History, User, Sparkles, Hash, Database, Info } from 'lucide-react';
 import styles from './SettingsModal.module.css';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
 import PrivacyModal from './PrivacyModal.jsx';
 
 const SUPPORT_EMAIL = 'hello@designjoy.co';
+
+// Settings is laid out as a two-pane modal: a left rail of category
+// nav entries and a main content area showing one page at a time.
+// Adding a new category = append an entry here and a render branch
+// in the content switch below — beats the old drawer accordion as
+// the surface area grows.
+const NAV_ITEMS = [
+  { id: 'account', label: 'Account', Icon: User },
+  { id: 'ai',      label: 'AI',      Icon: Sparkles },
+  { id: 'tags',    label: 'Tags',    Icon: Hash },
+  { id: 'data',    label: 'Data',    Icon: Database },
+  { id: 'about',   label: 'About',   Icon: Info },
+];
 
 function formatPlanLabel(account) {
   if (!account) return '—';
@@ -93,11 +106,7 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
   const [snapshots, setSnapshots] = useState([]);
   const [snapshotState, setSnapshotState] = useState({ running: false, message: null });
   const [snapshotsListOpen, setSnapshotsListOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [dataOpen, setDataOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [tagsOpen, setTagsOpen] = useState(false);
+  const [activePage, setActivePage] = useState('account');
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState({ id: null, name: '' });
   const [tagBusy, setTagBusy] = useState(false);
@@ -292,33 +301,26 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // Auto-expand a specific drawer when the parent passes a hint
-  // (e.g. AppGate's DB-integrity banner aiming the user at Backups).
-  // The hint is { drawer, key } where key is bumped per dispatch so
-  // repeated triggers re-fire even if the drawer name didn't change.
+  // Jump to a specific page when the parent passes a hint (e.g.
+  // AppGate's DB-integrity banner aiming the user at Data). The hint
+  // is { drawer, key } where key is bumped per dispatch so repeated
+  // triggers re-fire even on the same target page.
   useEffect(() => {
     if (!open || !drawerHint) return;
-    const map = {
-      account: setAccountOpen,
-      ai: setAiOpen,
-      data: setDataOpen,
-      tags: setTagsOpen,
-      about: setAboutOpen,
-    };
-    const setter = map[drawerHint.drawer];
-    if (setter) setter(true);
+    const valid = NAV_ITEMS.some((p) => p.id === drawerHint.drawer);
+    if (valid) setActivePage(drawerHint.drawer);
   }, [open, drawerHint]);
 
-  // Refresh the tag list whenever the drawer is opened so save_count
+  // Refresh the tag list whenever the Tags page is shown so save_count
   // reflects any tagging changes that happened mid-session.
   useEffect(() => {
-    if (!open || !tagsOpen) return;
+    if (!open || activePage !== 'tags') return;
     let cancelled = false;
     window.moodmark?.tags?.getAll().then((rows) => {
       if (!cancelled) setTags(Array.isArray(rows) ? rows : []);
     });
     return () => { cancelled = true; };
-  }, [open, tagsOpen]);
+  }, [open, activePage]);
 
   async function handleTagRenameCommit(tag) {
     const next = tagDraft.name.trim().toLowerCase().replace(/^#+/, '');
@@ -464,23 +466,91 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
         role="dialog"
         aria-modal="true"
       >
-        <header className={styles.header}>
-          <h2 className={styles.title}>Settings</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
-        </header>
+        <button
+          className={styles.closeBtn}
+          onClick={onClose}
+          aria-label="Close"
+        >×</button>
 
-        <section className={styles.section}>
-          <div className={styles.sectionTitle} aria-label="OpenAI">
-            <svg
-              className={styles.openaiLogo}
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.786a4.495 4.495 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" />
-            </svg>
-          </div>
-          <p className={styles.sectionHint}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarLabel}>Settings</div>
+          <nav className={styles.nav}>
+            {NAV_ITEMS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className={`${styles.navItem} ${activePage === id ? styles.navItemActive : ''}`}
+                onClick={() => setActivePage(id)}
+                aria-current={activePage === id ? 'page' : undefined}
+              >
+                <span className={styles.navIcon}>
+                  <Icon size={14} strokeWidth={1.7} aria-hidden="true" />
+                </span>
+                <span className={styles.navLabel}>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className={styles.content}>
+          <h2 className={styles.pageTitle}>
+            {NAV_ITEMS.find((p) => p.id === activePage)?.label}
+          </h2>
+
+          {activePage === 'account' && (
+            <div className={styles.page}>
+              <div className={styles.aboutRow}>
+                <span className={styles.aboutLabel}>Email</span>
+                <span className={styles.aboutValue}>
+                  {account?.user?.email || '—'}
+                </span>
+              </div>
+              <div className={styles.aboutRow}>
+                <span className={styles.aboutLabel}>Plan</span>
+                <span className={styles.aboutValue}>
+                  {formatPlanLabel(account)}
+                </span>
+              </div>
+              {account?.subscription?.current_period_end && (
+                <div className={styles.aboutRow}>
+                  <span className={styles.aboutLabel}>
+                    {account.subscription.cancel_at_period_end
+                      ? 'Ends'
+                      : account.subscription.status === 'trialing'
+                        ? 'Trial ends'
+                        : 'Renews'}
+                  </span>
+                  <span className={styles.aboutValue}>
+                    {formatPeriodEnd(account.subscription.current_period_end)}
+                  </span>
+                </div>
+              )}
+              <div className={styles.actions} style={{ marginTop: 14, justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnDanger}`}
+                  onClick={handleSignOut}
+                >Sign out</button>
+                {account?.subscription && (
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnPrimary}`}
+                    onClick={handleOpenCustomerPortal}
+                    disabled={portalState.running}
+                  >{portalState.running ? 'Opening…' : 'Manage subscription'}</button>
+                )}
+              </div>
+              {portalState.message && (
+                <div className={styles.sectionHint} style={{ marginTop: 8 }}>
+                  {portalState.message}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activePage === 'ai' && (
+            <div className={styles.page}>
+              <p className={styles.sectionHint}>
             Bring your own key for AI features like auto-tagging. It’s encrypted locally, and your images go straight to OpenAI—never through anyone else.
           </p>
 
@@ -572,91 +642,10 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
               {hasKey ? 'Replace key' : 'Save key'}
             </button>
           </div>
-        </section>
 
-        <section className={`${styles.section} ${styles.drawerSection}`}>
-          <button
-            type="button"
-            className={styles.drawerHeader}
-            onClick={() => setAccountOpen((v) => !v)}
-            aria-expanded={accountOpen}
-          >
-            <span className={styles.sectionTitle}>Account</span>
-            <span className={[styles.drawerChevron, accountOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
-              <DrawerChevron />
-            </span>
-          </button>
-          {accountOpen && (
-            <div className={styles.drawerBody}>
-              <div className={styles.aboutRow}>
-                <span className={styles.aboutLabel}>Email</span>
-                <span className={styles.aboutValue}>
-                  {account?.user?.email || '—'}
-                </span>
-              </div>
-              <div className={styles.aboutRow}>
-                <span className={styles.aboutLabel}>Plan</span>
-                <span className={styles.aboutValue}>
-                  {formatPlanLabel(account)}
-                </span>
-              </div>
-              {account?.subscription?.current_period_end && (
-                <div className={styles.aboutRow}>
-                  <span className={styles.aboutLabel}>
-                    {account.subscription.cancel_at_period_end
-                      ? 'Ends'
-                      : account.subscription.status === 'trialing'
-                        ? 'Trial ends'
-                        : 'Renews'}
-                  </span>
-                  <span className={styles.aboutValue}>
-                    {formatPeriodEnd(account.subscription.current_period_end)}
-                  </span>
-                </div>
-              )}
-              <div className={styles.actions} style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.btnDanger}`}
-                  onClick={handleSignOut}
-                >
-                  Sign out
-                </button>
-                {account?.subscription && (
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.btnPrimary}`}
-                    onClick={handleOpenCustomerPortal}
-                    disabled={portalState.running}
-                  >
-                    {portalState.running ? 'Opening…' : 'Manage subscription'}
-                  </button>
-                )}
-              </div>
-              {portalState.message && (
-                <div className={styles.sectionHint} style={{ marginTop: 8 }}>
-                  {portalState.message}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+              <div className={styles.divider} />
 
-        <section className={`${styles.section} ${styles.drawerSection}`}>
-          <button
-            type="button"
-            className={styles.drawerHeader}
-            onClick={() => setAiOpen((v) => !v)}
-            aria-expanded={aiOpen}
-          >
-            <span className={styles.sectionTitle}>AI Features</span>
-            <span className={[styles.drawerChevron, aiOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
-              <DrawerChevron />
-            </span>
-          </button>
-          {aiOpen && (
-          <div className={styles.drawerBody}>
-          <label className={styles.toggleRow}>
+              <label className={styles.toggleRow}>
             <span className={styles.toggleText}>
               <span className={styles.toggleLabel}>Auto-name new uploads</span>
               <span className={styles.toggleSub}>
@@ -724,24 +713,11 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
               </button>
             </div>
           )}
-          </div>
+            </div>
           )}
-        </section>
 
-        <section className={`${styles.section} ${styles.drawerSection}`}>
-          <button
-            type="button"
-            className={styles.drawerHeader}
-            onClick={() => setTagsOpen((v) => !v)}
-            aria-expanded={tagsOpen}
-          >
-            <span className={styles.sectionTitle}>Tags</span>
-            <span className={[styles.drawerChevron, tagsOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
-              <DrawerChevron />
-            </span>
-          </button>
-          {tagsOpen && (
-            <div className={styles.drawerBody}>
+          {activePage === 'tags' && (
+            <div className={styles.page}>
               {tags.length === 0 ? (
                 <div className={styles.sectionHint}>
                   No tags yet. Add tags to a save from its detail panel.
@@ -857,23 +833,10 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
               )}
             </div>
           )}
-        </section>
 
-        <section className={`${styles.section} ${styles.drawerSection}`}>
-          <button
-            type="button"
-            className={styles.drawerHeader}
-            onClick={() => setDataOpen((v) => !v)}
-            aria-expanded={dataOpen}
-          >
-            <span className={styles.sectionTitle}>Data</span>
-            <span className={[styles.drawerChevron, dataOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
-              <DrawerChevron />
-            </span>
-          </button>
-          {dataOpen && (
-          <div className={styles.drawerBody}>
-          <p className={styles.sectionHint}>
+          {activePage === 'data' && (
+            <div className={styles.page}>
+              <p className={styles.sectionHint}>
             Export your entire library — the GatherOS database plus every
             saved image and thumbnail — into a single .zip backup. You can
             restore later by replacing the contents of the app's data
@@ -989,29 +952,16 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
               {wipeState.running ? 'Erasing…' : 'Erase Library'}
             </button>
           </div>
-          {wipeState.message && (
-            <div className={styles.sectionHint} style={{ marginTop: 8 }}>
-              {wipeState.message}
+              {wipeState.message && (
+                <div className={styles.sectionHint} style={{ marginTop: 8 }}>
+                  {wipeState.message}
+                </div>
+              )}
             </div>
           )}
-          </div>
-          )}
-        </section>
 
-        <section className={`${styles.section} ${styles.drawerSection}`}>
-          <button
-            type="button"
-            className={styles.drawerHeader}
-            onClick={() => setAboutOpen((v) => !v)}
-            aria-expanded={aboutOpen}
-          >
-            <span className={styles.sectionTitle}>About</span>
-            <span className={[styles.drawerChevron, aboutOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
-              <DrawerChevron />
-            </span>
-          </button>
-          {aboutOpen && (
-          <div className={styles.drawerBody}>
+          {activePage === 'about' && (
+            <div className={styles.page}>
             <div className={styles.aboutRow}>
               <span className={styles.aboutLabel}>Version</span>
               <span className={styles.aboutValue}>
@@ -1060,9 +1010,9 @@ export default function SettingsModal({ open, drawerHint, onClose, onConfiguredC
                 </button>
               </div>
             )}
-          </div>
+            </div>
           )}
-        </section>
+        </main>
       </div>
 
       <AcknowledgmentsModal
