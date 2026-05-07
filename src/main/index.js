@@ -582,6 +582,27 @@ ipcMain.handle('db:integrity', () => {
   return getIntegrityResult();
 });
 
+// Window state — last view + focused save the user was on. Pulled
+// synchronously at preload time so App.jsx can restore on first
+// render with no flash; written async whenever the renderer state
+// changes.
+ipcMain.on('app:get-window-state', (event) => {
+  const settings = require('./settings');
+  event.returnValue = settings.getPref('windowState', null);
+});
+
+ipcMain.handle('app:set-window-state', (_e, state) => {
+  const settings = require('./settings');
+  if (state == null || typeof state !== 'object') return { ok: false };
+  // Whitelist what we persist — keep it tight so future renderer
+  // state additions don't accidentally land on disk forever.
+  const sanitized = {
+    view: state.view && typeof state.view === 'object' ? state.view : null,
+    focusedId: typeof state.focusedId === 'string' ? state.focusedId : null,
+  };
+  return settings.setPref('windowState', sanitized);
+});
+
 // Renderer's Light/Dark switch fires this so the native chrome
 // (traffic lights, scrollbars, native dialogs) flips in lockstep
 // with the document. Pref persistence still happens via the regular
@@ -685,6 +706,10 @@ app.whenReady().then(() => {
   initDatabase();
   registerIpcHandlers();
   createMainWindow();
+  // Apply the macOS application menu now that mainWindow exists so
+  // the menu can target webContents.send() at the right window.
+  const { buildAppMenu } = require('./menu');
+  Menu.setApplicationMenu(buildAppMenu({ getMainWindow: () => mainWindow }));
   createTray();
   registerCaptureHotkey();
   initUpdater(mainWindow);

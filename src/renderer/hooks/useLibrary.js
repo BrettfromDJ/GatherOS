@@ -3,10 +3,25 @@ import { playPop } from '../lib/sounds.js';
 
 const SEARCH_DEBOUNCE_MS = 180;
 
+// Pulled at preload time from prefs.windowState. We seed `view` with
+// the persisted shape on first render so the user lands directly on
+// the bucket / board they had open at quit, rather than flashing
+// the default 'all' grid for a frame before the restore effect runs.
+function initialViewFromPrefs() {
+  const persisted = typeof window !== 'undefined'
+    ? window.moodmark?.app?.windowState
+    : null;
+  if (persisted && persisted.view && typeof persisted.view === 'object'
+      && typeof persisted.view.type === 'string') {
+    return persisted.view;
+  }
+  return { type: 'all' };
+}
+
 export function useLibrary() {
   const [saves, setSaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState({ type: 'all' });
+  const [view, setView] = useState(initialViewFromPrefs);
   const [search, setSearch] = useState('');
   // Debounced shadow of `search`. Typing updates `search` immediately so
   // the input stays responsive, but the IPC only fires off this value

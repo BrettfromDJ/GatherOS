@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { morphFocus } from './lib/morphFocus.js';
 import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
+import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
 import WelcomeModal from './components/WelcomeModal.jsx';
@@ -222,7 +223,17 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
   }, [gridLayout]);
-  const [focusedId, setFocusedId] = useState(null);
+  // Restore the focused-view save on launch from the persisted
+  // window state. If the save no longer exists we'll clear it once
+  // the saves list loads (see effect below) so the focused view
+  // doesn't render empty forever.
+  const [focusedId, setFocusedId] = useState(
+    () => window.moodmark?.app?.windowState?.focusedId || null,
+  );
+  // Spacebar Quick Look — a lightweight, dismissible peek of the
+  // currently-focused save without opening the full focused view.
+  // Holds a save id while the overlay is up, null when dismissed.
+  const [peekedSaveId, setPeekedSaveId] = useState(null);
   // Tracks which save is currently morphing between grid and focused
   // view. Used to attach the matching view-transition-name on both
   // source (masonry image) and target (focused image) so the browser
@@ -282,6 +293,86 @@ export default function App() {
     }
     window.addEventListener('moodmark:open-settings', onOpenSettings);
     return () => window.removeEventListener('moodmark:open-settings', onOpenSettings);
+  }, []);
+
+  // Persist the active view + focused save whenever they change so
+  // a relaunch lands the user back on the same screen. Sanitised on
+  // the main side; we just hand over the current values.
+  useEffect(() => {
+    if (!window.moodmark?.app?.setWindowState) return;
+    window.moodmark.app.setWindowState({ view, focusedId });
+  }, [view, focusedId]);
+
+  // Once the initial saves list loads, drop a restored focusedId
+  // that no longer points at a real save (e.g. user deleted it
+  // between sessions) so the focused view doesn't render empty.
+  const focusedRestoreCheckedRef = useRef(false);
+  useEffect(() => {
+    if (focusedRestoreCheckedRef.current) return;
+    if (loading) return;
+    focusedRestoreCheckedRef.current = true;
+    if (focusedId && !saves.some((s) => s.id === focusedId)) {
+      setFocusedId(null);
+    }
+  }, [loading, saves, focusedId]);
+
+  // Native menu commands. The menu lives in main and routes user
+  // intent through this single channel so we don't have to thread
+  // setter props down to a non-React owner. Each id matches one of
+  // the items in src/main/menu.js.
+  useEffect(() => {
+    if (!window.moodmark?.on) return undefined;
+    const off = window.moodmark.on('menu:command', (id) => {
+      switch (id) {
+        case 'open-settings':
+          setSettingsOpen(true);
+          break;
+        case 'shortcuts':
+          setShortcutsOpen(true);
+          break;
+        case 'quick-switcher':
+          setQuickSwitcherOpen(true);
+          break;
+        case 'focus-search':
+          searchInputRef.current?.focus?.();
+          searchInputRef.current?.select?.();
+          break;
+        case 'new-bucket':
+          setCreateCollectionSignal((s) => s + 1);
+          break;
+        case 'new-board':
+          handleCreateBoard?.().then((b) => {
+            if (b?.id) setView({ type: 'board', id: b.id });
+          });
+          break;
+        case 'toggle-sidebar':
+          setSidebarCollapsed((c) => !c);
+          break;
+        case 'capture-screenshot':
+          window.moodmark.capture?.screenshot?.();
+          break;
+        case 'export-library':
+          window.moodmark.library?.exportZip?.();
+          break;
+        case 'snapshot-library':
+          window.moodmark.backup?.snapshot?.();
+          break;
+        case 'whats-new':
+          setSettingsDrawerHint({ drawer: 'about', key: Date.now() });
+          setSettingsOpen(true);
+          break;
+        case 'quick-look':
+          // Forward to a CustomEvent so the keydown / menu paths
+          // share a single dispatch site and Quick Look's own logic
+          // (bail when typing, peek the right card) lives in one
+          // place below.
+          window.dispatchEvent(new CustomEvent('moodmark:quick-look'));
+          break;
+        default:
+          break;
+      }
+    });
+    return off;
   }, []);
 
   // Splash that runs once per app launch. The LoadingScreen calls
@@ -1698,6 +1789,26 @@ export default function App() {
       // Single-key shortcuts: skip when typing so we don't eat real input.
       if (typing) return;
 
+      // Spacebar Quick Look. Mirrors Finder: select a card, hit
+      // space, get a peek; hit space (or Esc) again to dismiss. We
+      // bail when the focused view is up because it's already a
+      // full-screen render of the same image.
+      if (e.code === 'Space') {
+        if (peekedSaveId) {
+          e.preventDefault();
+          setPeekedSaveId(null);
+          return;
+        }
+        if (focusedId) return;
+        if (selected.size === 0) return;
+        const firstId = selected.values().next().value;
+        if (firstId) {
+          e.preventDefault();
+          setPeekedSaveId(firstId);
+        }
+        return;
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selected.size > 0 && !focusedId) {
           e.preventDefault();
@@ -1720,7 +1831,26 @@ export default function App() {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev]);
+  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev, peekedSaveId]);
+
+  // Menu's "Quick Look" item (no accelerator on the menu side because
+  // a menu-bound Space would steal keystrokes from text fields). The
+  // menu fires a CustomEvent which we handle with the same logic as
+  // the spacebar path above.
+  useEffect(() => {
+    function onPeek() {
+      if (focusedId) return;
+      if (peekedSaveId) {
+        setPeekedSaveId(null);
+        return;
+      }
+      if (selected.size === 0) return;
+      const firstId = selected.values().next().value;
+      if (firstId) setPeekedSaveId(firstId);
+    }
+    window.addEventListener('moodmark:quick-look', onPeek);
+    return () => window.removeEventListener('moodmark:quick-look', onPeek);
+  }, [focusedId, selected, peekedSaveId]);
 
   // Global Cmd+Z (Ctrl+Z on non-Mac). Pops the latest mutation off
   // the undo stack and surfaces a brief "Undid <label>" toast. Skips
@@ -2252,6 +2382,11 @@ export default function App() {
           onClose={() => setCardCtx(null)}
         />
       )}
+
+      <QuickLookOverlay
+        save={peekedSaveId ? saves.find((s) => s.id === peekedSaveId) || null : null}
+        onDismiss={() => setPeekedSaveId(null)}
+      />
 
       <QuickSwitcher
         open={quickSwitcherOpen}

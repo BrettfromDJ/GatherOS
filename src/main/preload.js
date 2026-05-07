@@ -14,11 +14,21 @@ const initialTheme = (() => {
   catch { return 'light'; }
 })();
 
+// Last view + focused save the renderer was on at quit. Sync-read
+// so App.jsx can restore on first render without a flash of the
+// default 'all' view.
+const initialWindowState = (() => {
+  try { return ipcRenderer.sendSync('app:get-window-state') || null; }
+  catch { return null; }
+})();
+
 contextBridge.exposeInMainWorld('moodmark', {
   app: {
     version: appVersion,
     theme: initialTheme,
     setTheme: (theme) => ipcRenderer.invoke('app:set-theme', theme),
+    windowState: initialWindowState,
+    setWindowState: (state) => ipcRenderer.invoke('app:set-window-state', state),
   },
   saves: {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),
@@ -161,6 +171,7 @@ contextBridge.exposeInMainWorld('moodmark', {
       'ai:reindex-progress',
       'library:switched',
       'licensing:auth-result',
+      'menu:command',
     ]);
     if (!allowed.has(channel)) return () => {};
     const wrapped = (_event, ...args) => listener(...args);
