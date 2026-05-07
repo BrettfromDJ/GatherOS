@@ -214,6 +214,14 @@
   color: var(--accent);
 }
 
+/* In dark mode the accent blue reads too loud for the small board
+   tool rail — flip to a neutral white-on-faint-white instead. */
+:root[data-theme="dark"] .toolBtnActive,
+:root[data-theme="dark"] .toolBtnActive:hover {
+  background: var(--hover-bg-strong);
+  color: var(--text-primary);
+}
+
 .toolBtn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
