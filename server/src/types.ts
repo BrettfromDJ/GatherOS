@@ -8,21 +8,28 @@ export type Env = {
   TRIAL_DAYS: string;
   APP_DEEP_LINK_SCHEME: string;
   EMAIL_FROM: string;
-  PADDLE_ENV: 'sandbox' | 'production';
+  // 'true' = Lemon Squeezy test mode, 'false' = live mode. Affects
+  // which API host the customer-portal + checkout endpoints hit.
+  LEMONSQUEEZY_TEST_MODE: string;
+  // Catalog ids — used to map an incoming subscription's variant_id
+  // back to a 'monthly' | 'yearly' plan label.
+  LEMONSQUEEZY_STORE_ID: string;
+  LEMONSQUEEZY_VARIANT_MONTHLY: string;
+  LEMONSQUEEZY_VARIANT_YEARLY: string;
 
   // Secrets (set via `wrangler secret put`)
   RESEND_API_KEY: string;
-  PADDLE_WEBHOOK_SECRET: string;
-  PADDLE_API_KEY: string;
+  LEMONSQUEEZY_WEBHOOK_SECRET: string;
+  LEMONSQUEEZY_API_KEY: string;
 };
 
-// Row shapes — keep in sync with migrations/0001_initial.sql.
+// Row shapes — keep in sync with migrations/0001_initial.sql + later.
 export interface UserRow {
   id: string;
   email: string;
   created_at: number;
   trial_ends_at: number;
-  paddle_customer_id: string | null;
+  lemonsqueezy_customer_id: string | null;
   deleted_at: number | null;
 }
 
@@ -45,7 +52,7 @@ export type SubscriptionStatus =
 export interface SubscriptionRow {
   id: string;
   user_id: string;
-  paddle_subscription_id: string | null;
+  lemonsqueezy_subscription_id: string | null;
   status: SubscriptionStatus;
   plan: 'monthly' | 'yearly' | null;
   current_period_start: number | null;

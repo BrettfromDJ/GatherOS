@@ -242,7 +242,7 @@ function fallbackOrError() {
     : cachedToState(cached);
 }
 
-// Asks the worker to mint a fresh Paddle customer-portal URL. Returns
+// Asks the worker to mint a fresh customer-portal URL. Returns
 // { ok: true, url } on success. The renderer just opens the URL in
 // the user's default browser via shell.openExternal; the portal is
 // where the user can view invoices, swap card, change plan, cancel.
@@ -261,6 +261,36 @@ async function customerPortal() {
     return { ok: true, url: body.url };
   } catch (err) {
     console.error('[licensing] customerPortal failed:', err);
+    return { ok: false, error: 'network' };
+  }
+}
+
+// Asks the worker to mint a Lemon Squeezy checkout URL for the
+// current user + chosen plan. The worker stuffs custom_data.user_id
+// into the checkout so the resulting subscription's webhook events
+// can be linked back to our user row. Returns { ok: true, url }.
+async function createCheckout(plan) {
+  const sessionToken = getSessionToken();
+  if (!sessionToken) return { ok: false, error: 'unauth' };
+  if (plan !== 'monthly' && plan !== 'yearly') {
+    return { ok: false, error: 'invalid_plan' };
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/license/checkout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ plan }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.ok) {
+      return { ok: false, error: body?.error || `http_${res.status}` };
+    }
+    return { ok: true, url: body.url };
+  } catch (err) {
+    console.error('[licensing] createCheckout failed:', err);
     return { ok: false, error: 'network' };
   }
 }
@@ -292,6 +322,7 @@ module.exports = {
   verifyLicense,
   // Billing
   customerPortal,
+  createCheckout,
   // Inspection (used by IPC + tests)
   getSessionToken,
   hasSession: () => !!getSessionToken(),

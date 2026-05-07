@@ -141,7 +141,7 @@ authRoutes.post('/exchange', async (c) => {
   // Find or create user — case-insensitive email.
   const email = link.email;
   let user = await c.env.DB.prepare(
-    `SELECT id, email, created_at, trial_ends_at, paddle_customer_id, deleted_at
+    `SELECT id, email, created_at, trial_ends_at, lemonsqueezy_customer_id, deleted_at
        FROM users WHERE email = ?`,
   )
     .bind(email)
@@ -155,7 +155,7 @@ authRoutes.post('/exchange', async (c) => {
     const trialDays = Number.isFinite(parsedTrialDays) ? parsedTrialDays : 30;
     const trialEndsAt = now + trialDays * 24 * 60 * 60 * 1000;
     await c.env.DB.prepare(
-      `INSERT INTO users (id, email, created_at, trial_ends_at, paddle_customer_id)
+      `INSERT INTO users (id, email, created_at, trial_ends_at, lemonsqueezy_customer_id)
        VALUES (?, ?, ?, ?, NULL)`,
     )
       .bind(id, email, now, trialEndsAt)
@@ -165,7 +165,7 @@ authRoutes.post('/exchange', async (c) => {
       email,
       created_at: now,
       trial_ends_at: trialEndsAt,
-      paddle_customer_id: null,
+      lemonsqueezy_customer_id: null,
       deleted_at: null,
     };
   } else if (user.deleted_at) {
@@ -220,7 +220,7 @@ export async function userFromSession(
 ): Promise<UserRow | null> {
   const now = Date.now();
   const row = await env.DB.prepare(
-    `SELECT u.id, u.email, u.created_at, u.trial_ends_at, u.paddle_customer_id, u.deleted_at
+    `SELECT u.id, u.email, u.created_at, u.trial_ends_at, u.lemonsqueezy_customer_id, u.deleted_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.id = ? AND s.revoked_at IS NULL`,

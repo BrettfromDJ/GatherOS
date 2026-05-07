@@ -22,8 +22,8 @@ export const licenseRoutes = new Hono<{ Bindings: Env }>();
 
 const ENTITLED_SUB_STATUSES = new Set<SubscriptionRow['status']>([
   'active',
-  'past_due', // grace window — Paddle dunning will eventually flip to canceled
-  'trialing', // unused for now (we run the trial pre-Paddle), but harmless
+  'past_due', // grace window — LS dunning will eventually flip to canceled
+  'trialing',
 ]);
 
 licenseRoutes.get('/verify', async (c) => {
@@ -37,7 +37,7 @@ licenseRoutes.get('/verify', async (c) => {
   // Latest subscription row (there's usually exactly one per user;
   // if a user re-subscribed we keep history but the most recent wins).
   const sub = await c.env.DB.prepare(
-    `SELECT id, user_id, paddle_subscription_id, status, plan,
+    `SELECT id, user_id, lemonsqueezy_subscription_id, status, plan,
             current_period_start, current_period_end,
             cancel_at_period_end, canceled_at, created_at, updated_at
        FROM subscriptions
@@ -73,51 +73,38 @@ licenseRoutes.get('/verify', async (c) => {
   });
 });
 
-// Paddle-hosted customer portal — billing history, payment method
-// updates, plan changes, cancellation. We mint a fresh portal URL on
-// every request rather than caching, since Paddle's URLs are short-
-// lived (1 hour) and bound to a session id.
+// Lemon Squeezy customer portal — billing history, payment method
+// updates, plan changes, cancellation. We hit GET /v1/customers/{id}
+// and pull the portal URL off the customer object on every request
+// rather than caching, since LS's URLs are short-lived.
 licenseRoutes.post('/customer-portal', async (c) => {
   const token = bearer(c.req.header('Authorization'));
   if (!token) return c.json({ ok: false, error: 'unauthenticated' }, 401);
   const user = await userFromSession(c.env, token);
   if (!user) return c.json({ ok: false, error: 'unauthenticated' }, 401);
-  if (!user.paddle_customer_id) {
-    // Hasn't checked out yet — there's nothing to manage. The renderer
-    // should hide the link for users in this state, but we belt-and-
-    // brace here too.
+  if (!user.lemonsqueezy_customer_id) {
     return c.json({ ok: false, error: 'no_customer' }, 400);
   }
 
-  const apiBase =
-    c.env.PADDLE_ENV === 'production'
-      ? 'https://api.paddle.com'
-      : 'https://sandbox-api.paddle.com';
-
   try {
     const res = await fetch(
-      `${apiBase}/customers/${user.paddle_customer_id}/portal-sessions`,
+      `https://api.lemonsqueezy.com/v1/customers/${user.lemonsqueezy_customer_id}`,
       {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${c.env.PADDLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
+        method: 'GET',
+        headers: lsHeaders(c.env.LEMONSQUEEZY_API_KEY),
       },
     );
     const body = (await res.json().catch(() => ({}))) as {
-      data?: { urls?: { general?: { overview?: string } } };
-      error?: { detail?: string };
+      data?: { attributes?: { urls?: { customer_portal?: string } } };
     };
     if (!res.ok) {
-      console.error('[license] paddle portal-sessions failed:', body);
-      return c.json({ ok: false, error: 'paddle_error' }, 502);
+      console.error('[license] LS customer GET failed:', body);
+      return c.json({ ok: false, error: 'lemonsqueezy_error' }, 502);
     }
-    const url = body.data?.urls?.general?.overview;
+    const url = body.data?.attributes?.urls?.customer_portal;
     if (!url) {
-      console.error('[license] paddle portal-sessions response missing overview url:', body);
-      return c.json({ ok: false, error: 'paddle_response' }, 502);
+      console.error('[license] LS customer response missing portal url:', body);
+      return c.json({ ok: false, error: 'lemonsqueezy_response' }, 502);
     }
     return c.json({ ok: true, url });
   } catch (err) {
@@ -125,3 +112,85 @@ licenseRoutes.post('/customer-portal', async (c) => {
     return c.json({ ok: false, error: 'network' }, 502);
   }
 });
+
+// Creates an LS checkout session for the authenticated user, with
+// custom_data.user_id baked in so the resulting subscription's
+// webhook events can be linked back to our user row even before
+// LS's customer email matches.
+//
+// Returns { ok: true, url } — the desktop app opens that URL in the
+// user's default browser via shell.openExternal.
+licenseRoutes.post('/checkout', async (c) => {
+  const token = bearer(c.req.header('Authorization'));
+  if (!token) return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  const user = await userFromSession(c.env, token);
+  if (!user) return c.json({ ok: false, error: 'unauthenticated' }, 401);
+
+  const body = await c.req.json<{ plan?: 'monthly' | 'yearly' }>().catch(() => ({}));
+  const plan = body.plan;
+  const variantId =
+    plan === 'yearly'
+      ? c.env.LEMONSQUEEZY_VARIANT_YEARLY
+      : plan === 'monthly'
+        ? c.env.LEMONSQUEEZY_VARIANT_MONTHLY
+        : null;
+  if (!variantId) return c.json({ ok: false, error: 'invalid_plan' }, 400);
+
+  try {
+    const res = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
+      method: 'POST',
+      headers: lsHeaders(c.env.LEMONSQUEEZY_API_KEY),
+      body: JSON.stringify({
+        data: {
+          type: 'checkouts',
+          attributes: {
+            checkout_data: {
+              email: user.email,
+              custom: { user_id: user.id },
+            },
+            // Test mode is determined by the variant being a test-mode
+            // variant in LS. Setting it here is belt-and-braces.
+            test_mode: c.env.LEMONSQUEEZY_TEST_MODE === 'true',
+            // Auto-close the LS success screen after a moment, since
+            // we're going to bring the user back to the app via
+            // re-verify on focus rather than a redirect.
+            checkout_options: { embed: false },
+          },
+          relationships: {
+            store: {
+              data: { type: 'stores', id: c.env.LEMONSQUEEZY_STORE_ID },
+            },
+            variant: {
+              data: { type: 'variants', id: variantId },
+            },
+          },
+        },
+      }),
+    });
+    const responseBody = (await res.json().catch(() => ({}))) as {
+      data?: { attributes?: { url?: string } };
+      errors?: unknown;
+    };
+    if (!res.ok) {
+      console.error('[license] LS checkout create failed:', responseBody);
+      return c.json({ ok: false, error: 'lemonsqueezy_error' }, 502);
+    }
+    const url = responseBody.data?.attributes?.url;
+    if (!url) {
+      console.error('[license] LS checkout response missing url:', responseBody);
+      return c.json({ ok: false, error: 'lemonsqueezy_response' }, 502);
+    }
+    return c.json({ ok: true, url });
+  } catch (err) {
+    console.error('[license] checkout network error:', err);
+    return c.json({ ok: false, error: 'network' }, 502);
+  }
+});
+
+function lsHeaders(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    Accept: 'application/vnd.api+json',
+    'Content-Type': 'application/vnd.api+json',
+  };
+}

@@ -5,12 +5,15 @@
 # Resend transactional-email API key. Get one at https://resend.com.
 # In dev, set to "stub" to skip the actual fetch and log the email
 # body to the console instead.
-RESEND_API_KEY="stub"
+RESEND_API_KEY=stub
 
-# Paddle webhook signing secret. Found in your Paddle dashboard
-# under Developer Tools → Notifications → (your endpoint) → Secret.
-PADDLE_WEBHOOK_SECRET="stub"
+# Lemon Squeezy webhook signing secret. You set this when you create
+# the webhook destination in the LS dashboard (Settings → Webhooks).
+# Use "stub" locally to bypass signature verification during dev.
+LEMONSQUEEZY_WEBHOOK_SECRET=stub
 
-# Paddle API key (server-side, used to look up customers/subscriptions
-# during the webhook reconcile step).
-PADDLE_API_KEY="stub"
+# Lemon Squeezy API key (server-side, used to create checkouts and
+# fetch the customer-portal URL). Settings → API → New API Key.
+# Test-mode keys work for both test and live API calls — the test_mode
+# flag on the request controls whether real money flows.
+LEMONSQUEEZY_API_KEY=stub

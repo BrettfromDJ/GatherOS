@@ -1,6 +1,5 @@
-import React, { useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLicense } from './hooks/useLicense.js';
-import { usePaddle } from './hooks/usePaddle.js';
 import App from './App.jsx';
 import SigninScreen from './components/SigninScreen.jsx';
 import PaywallModal from './components/PaywallModal.jsx';
@@ -16,24 +15,38 @@ import AccountBanner from './components/AccountBanner.jsx';
 // torn down + re-mounted (e.g. during a future hot-reload story).
 export default function AppGate() {
   const { state, verify, requestMagicLink, signOut } = useLicense();
+  // While the user is on the paywall and we've handed them off to
+  // the LS hosted-checkout in their browser, poll license/verify on a
+  // shorter cadence so the app flips out of paywall as soon as the
+  // webhook lands. We stop polling once we leave 'expired'.
+  const checkoutPollRef = useRef(null);
 
-  // Paddle.js fans events into here. checkout.completed is fired
-  // client-side as soon as Paddle confirms the charge — we re-verify
-  // shortly after so the entitled bit flips without waiting for the
-  // 6-hour background poll. The webhook on the server is still the
-  // source of truth.
-  const handlePaddleEvent = useCallback(
-    (event) => {
-      if (event?.name === 'checkout.completed') {
-        setTimeout(() => verify({ force: true }), 1500);
+  useEffect(() => {
+    if (state.status === 'expired' && checkoutPollRef.current == null) {
+      // 4s × 30 = 2 min of fast polling after a checkout was opened.
+      // After that we fall back to focus + 6h background re-verify.
+      let ticks = 0;
+      checkoutPollRef.current = setInterval(() => {
+        ticks += 1;
+        if (ticks > 30) {
+          clearInterval(checkoutPollRef.current);
+          checkoutPollRef.current = null;
+          return;
+        }
+        verify({ force: true });
+      }, 4000);
+    }
+    if (state.status !== 'expired' && checkoutPollRef.current != null) {
+      clearInterval(checkoutPollRef.current);
+      checkoutPollRef.current = null;
+    }
+    return () => {
+      if (checkoutPollRef.current != null) {
+        clearInterval(checkoutPollRef.current);
+        checkoutPollRef.current = null;
       }
-    },
-    [verify],
-  );
-
-  const { ready: paddleReady, openCheckout, priceIds } = usePaddle({
-    onEvent: handlePaddleEvent,
-  });
+    };
+  }, [state.status, verify]);
 
   if (state.status === 'loading') {
     // Brief — usually just one tick while the cached cache is read.
@@ -49,24 +62,17 @@ export default function AppGate() {
     return (
       <PaywallModal
         license={state.license}
-        canSubscribe={paddleReady}
         onSignOut={signOut}
-        onSubscribe={(plan) => {
-          const priceId = priceIds?.[plan];
-          if (!priceId) {
-            console.error('[paywall] no priceId configured for plan:', plan);
-            return;
+        onSubscribe={async (plan) => {
+          // Hosted checkout: main process asks the worker to mint a
+          // checkout URL with our user_id baked in, then opens it in
+          // the user's default browser via shell.openExternal. We
+          // poll license/verify in the background (see effect above)
+          // so the paywall flips off as soon as the webhook lands.
+          const result = await window.moodmark.licensing.openCheckout(plan);
+          if (!result?.ok) {
+            console.error('[paywall] openCheckout failed:', result?.error);
           }
-          openCheckout({
-            priceId,
-            email: state.license?.user?.email,
-            // customData is echoed back on every webhook for this
-            // checkout — lets the worker link the resulting customer
-            // to our user row even before the email matches.
-            customData: state.license?.user?.id
-              ? { user_id: state.license.user.id }
-              : undefined,
-          });
         }}
       />
     );

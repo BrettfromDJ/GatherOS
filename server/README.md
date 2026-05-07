@@ -1,8 +1,9 @@
 # gatheros-server
 
 Cloudflare Workers + D1 backend that powers GatherOS sign-in,
-licensing, and Paddle webhook reconciliation. Lives in this repo
-under `server/` so a solo dev can keep client + API in lock-step.
+licensing, and Lemon Squeezy webhook reconciliation. Lives in this
+repo under `server/` so a solo dev can keep client + API in
+lock-step.
 
 See `../MONETIZATION.md` for the architectural decisions and rollout
 plan. This README is just the operational runbook.
@@ -11,18 +12,19 @@ plan. This README is just the operational runbook.
 
 ```
 server/
-├─ migrations/0001_initial.sql   D1 schema (users / magic_links / sessions / subscriptions)
+├─ migrations/0001_initial.sql      D1 schema (users / magic_links / sessions / subscriptions)
+├─ migrations/0002_lemonsqueezy.sql Provider rename: paddle_* columns → lemonsqueezy_*
 ├─ src/
-│  ├─ index.ts                   Hono entry, mounts the three routers
-│  ├─ auth.ts                    POST /auth/magic-link, /auth/exchange; GET /auth/verify
-│  ├─ license.ts                 GET /license/verify  (the endpoint the app polls)
-│  ├─ paddle.ts                  POST /webhooks/paddle
-│  ├─ email.ts                   Resend wrapper (stubs to console in dev)
-│  └─ types.ts                   Env + row shapes
-├─ wrangler.toml                 binding + non-secret vars
+│  ├─ index.ts                      Hono entry, mounts the three routers
+│  ├─ auth.ts                       POST /auth/magic-link, /auth/exchange; GET /auth/verify
+│  ├─ license.ts                    /verify, /customer-portal, /checkout
+│  ├─ lemonsqueezy.ts               POST /webhooks/lemonsqueezy
+│  ├─ email.ts                      Resend wrapper (stubs to console in dev)
+│  └─ types.ts                      Env + row shapes
+├─ wrangler.toml                    binding + non-secret vars
 ├─ tsconfig.json
 ├─ package.json
-└─ .dev.vars.example             local-dev secrets template
+└─ .dev.vars.example                local-dev secrets template
 ```
 
 ## First-time setup
@@ -42,8 +44,8 @@ npm run db:migrate:remote
 
 # Set production secrets (one prompt each).
 npx wrangler secret put RESEND_API_KEY
-npx wrangler secret put PADDLE_WEBHOOK_SECRET
-npx wrangler secret put PADDLE_API_KEY
+npx wrangler secret put LEMONSQUEEZY_WEBHOOK_SECRET
+npx wrangler secret put LEMONSQUEEZY_API_KEY
 
 # Deploy.
 npm run deploy
@@ -96,10 +98,10 @@ npm run db:console:remote -- "SELECT id, status, plan FROM subscriptions"
 ## What's still TODO
 
 Tracked in `../MONETIZATION.md` under the "Roadmap" section. Headline
-items remaining for Phase 1 → Phase 2 handoff:
+items remaining before launch:
 
-- Set up the Paddle dashboard (monthly + annual prices, sandbox + live)
-- Implement `Paddle GET /customers/{id}` lookup so we can attach
-  `paddle_customer_id` to the right user from `transaction.completed`
-- Wire the desktop app: deep-link handler, signin screen, license
-  client with offline grace, paywall modal
+- Verify a real LS account (test mode wires up the integration without
+  approval; live charges need verification first)
+- Flip `LEMONSQUEEZY_TEST_MODE` to `"false"` in `wrangler.toml` and
+  recreate the products + variants in live mode
+- Package + sign + notarize the Mac app for distribution

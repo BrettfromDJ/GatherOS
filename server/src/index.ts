@@ -3,10 +3,10 @@
 // Mounts three sub-routers:
 //   /auth/*       magic-link request, browser bridge, token exchange, signout
 //   /license/*    /verify endpoint the desktop app polls on launch
-//   /webhooks/*   Paddle subscription/transaction events
+//   /webhooks/*   Lemon Squeezy subscription events
 //
 // Everything is local-first on the desktop side; this Worker exists
-// only to gate the app via license verification and to mirror Paddle
+// only to gate the app via license verification and to mirror LS
 // subscription state into D1.
 
 import { Hono } from 'hono';
@@ -14,7 +14,7 @@ import { cors } from 'hono/cors';
 import type { Env } from './types';
 import { authRoutes } from './auth';
 import { licenseRoutes } from './license';
-import { webhookRoutes } from './paddle';
+import { webhookRoutes } from './lemonsqueezy';
 
 const app = new Hono<{ Bindings: Env }>();
 

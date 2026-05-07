@@ -915,12 +915,26 @@ function registerIpcHandlers() {
   );
   ipcMain.handle('licensing:has-session', () => licensing.hasSession());
   ipcMain.handle('licensing:sign-out', () => licensing.signOut());
-  // Mints a Paddle customer-portal URL and opens it in the user's
-  // default browser. Renderer doesn't need to handle the URL itself —
-  // we open it in main so the user lands on the secure session
-  // without us ever exposing the URL to the page context.
+  // Mints a customer-portal URL and opens it in the user's default
+  // browser. Renderer doesn't need to handle the URL itself — we open
+  // it in main so the user lands on the secure session without us
+  // ever exposing the URL to the page context.
   ipcMain.handle('licensing:open-customer-portal', async () => {
     const result = await licensing.customerPortal();
+    if (result?.ok && result.url) {
+      try { await shell.openExternal(result.url); } catch (err) {
+        return { ok: false, error: 'open_failed' };
+      }
+      return { ok: true };
+    }
+    return { ok: false, error: result?.error || 'unknown' };
+  });
+  // Mints a Lemon Squeezy checkout URL for the chosen plan and opens
+  // it externally. The same shell.openExternal pattern works on both
+  // localhost dev (renderer talks to our worker) and the packaged
+  // file:// app (no domain-whitelist gymnastics).
+  ipcMain.handle('licensing:open-checkout', async (_e, plan) => {
+    const result = await licensing.createCheckout(plan);
     if (result?.ok && result.url) {
       try { await shell.openExternal(result.url); } catch (err) {
         return { ok: false, error: 'open_failed' };

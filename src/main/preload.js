@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
-const { PADDLE, API_BASE_URL } = require('../shared/licensing-config');
 
 // Pulled once at preload time so it's available synchronously to the
 // renderer (loading screen reads it during first paint).
@@ -131,14 +130,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     hasSession: () => ipcRenderer.invoke('licensing:has-session'),
     signOut: () => ipcRenderer.invoke('licensing:sign-out'),
     openCustomerPortal: () => ipcRenderer.invoke('licensing:open-customer-portal'),
-  },
-  licensingConfig: {
-    apiBaseUrl: API_BASE_URL,
-    PADDLE: {
-      environment: PADDLE.environment,
-      clientToken: PADDLE.clientToken,
-      priceIds: { ...PADDLE.priceIds },
-    },
+    openCheckout: (plan) => ipcRenderer.invoke('licensing:open-checkout', plan),
   },
   on: (channel, listener) => {
     const allowed = new Set([

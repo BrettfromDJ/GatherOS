@@ -16,15 +16,18 @@ migrations_dir = "migrations"
 [vars]
 APP_NAME = "GatherOS"
 # 0 disables the server-side trial entirely — users go straight to
-# the paywall after first sign-in. Paddle's price-level trial (set in
-# the Paddle dashboard) is the only trial the user ever sees.
+# the paywall after first sign-in. Lemon Squeezy's variant-level
+# trial is the only trial the user ever sees.
 TRIAL_DAYS = "0"
 # Custom URL scheme the desktop app registers. Magic-link emails point
 # at https://api.gatheros.co/auth/verify?token=… which redirects
 # into this scheme so the app picks up the session token natively.
 APP_DEEP_LINK_SCHEME = "gatheros"
 EMAIL_FROM = "GatherOS <noreply@mail.gatheros.co>"
-# 'sandbox' | 'production' — controls which Paddle REST API host the
-# customer-portal endpoint hits. Webhook signature verification uses
-# the secret regardless of environment.
-PADDLE_ENV = "sandbox"
+# 'true' = Lemon Squeezy test mode, 'false' = live. Affects which
+# checkouts the worker creates. Webhook signature verification works
+# the same in either mode.
+LEMONSQUEEZY_TEST_MODE = "true"
+LEMONSQUEEZY_STORE_ID = "368336"
+LEMONSQUEEZY_VARIANT_MONTHLY = "1624943"
+LEMONSQUEEZY_VARIANT_YEARLY = "1624953"

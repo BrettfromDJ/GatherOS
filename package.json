@@ -32,7 +32,6 @@
   },
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
-    "@paddle/paddle-js": "^1.6.4",
     "@vitejs/plugin-react": "^4.3.1",
     "concurrently": "^8.2.2",
     "electron": "^41.0.0",
