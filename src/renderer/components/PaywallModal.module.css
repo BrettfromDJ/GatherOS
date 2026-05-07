@@ -90,13 +90,6 @@
   cursor: not-allowed;
 }
 
-.planFeatured {
-  border-color: var(--accent);
-  box-shadow:
-    0 1px 0 1px #FFF inset,
-    0 0 0 2px rgba(10, 132, 255, 0.18);
-}
-
 .planLabel {
   font-family: var(--font-mono);
   font-size: 10.5px;

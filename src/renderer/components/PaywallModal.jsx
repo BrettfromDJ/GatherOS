@@ -55,7 +55,7 @@ export default function PaywallModal({ license, onSignOut, onSubscribe }) {
         <div className={styles.plans}>
           <button
             type="button"
-            className={`${styles.plan} ${styles.planFeatured}`}
+            className={styles.plan}
             disabled={!!opening}
             onClick={() => handleClick('yearly')}
           >
