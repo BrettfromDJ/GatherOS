@@ -4,6 +4,7 @@ import { usePaddle } from './hooks/usePaddle.js';
 import App from './App.jsx';
 import SigninScreen from './components/SigninScreen.jsx';
 import PaywallModal from './components/PaywallModal.jsx';
+import AccountBanner from './components/AccountBanner.jsx';
 
 // Top-level license gate. Decides whether the user sees the app, the
 // signin screen, or the paywall — based on the entitlement state
@@ -71,7 +72,16 @@ export default function AppGate() {
     );
   }
 
-  // 'entitled' or 'offline' — let the app run. Phase 4 adds an
-  // offline / payment-failed banner that overlays App.
-  return <App />;
+  // 'entitled' or 'offline' — let the app run. Layer the account
+  // banner on top so payment-failed / offline states are surfaced
+  // without blocking the UI.
+  return (
+    <>
+      <App />
+      <AccountBanner
+        license={state.license}
+        onOpenCustomerPortal={() => window.moodmark.licensing.openCustomerPortal()}
+      />
+    </>
+  );
 }

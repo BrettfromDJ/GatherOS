@@ -242,6 +242,29 @@ function fallbackOrError() {
     : cachedToState(cached);
 }
 
+// Asks the worker to mint a fresh Paddle customer-portal URL. Returns
+// { ok: true, url } on success. The renderer just opens the URL in
+// the user's default browser via shell.openExternal; the portal is
+// where the user can view invoices, swap card, change plan, cancel.
+async function customerPortal() {
+  const sessionToken = getSessionToken();
+  if (!sessionToken) return { ok: false, error: 'unauth' };
+  try {
+    const res = await fetch(`${API_BASE_URL}/license/customer-portal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.ok) {
+      return { ok: false, error: body?.error || `http_${res.status}` };
+    }
+    return { ok: true, url: body.url };
+  } catch (err) {
+    console.error('[licensing] customerPortal failed:', err);
+    return { ok: false, error: 'network' };
+  }
+}
+
 async function signOut() {
   const sessionToken = getSessionToken();
   if (sessionToken) {
@@ -267,6 +290,8 @@ module.exports = {
   signOut,
   // Verify
   verifyLicense,
+  // Billing
+  customerPortal,
   // Inspection (used by IPC + tests)
   getSessionToken,
   hasSession: () => !!getSessionToken(),

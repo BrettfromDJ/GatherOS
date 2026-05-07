@@ -9,69 +9,80 @@
     #F1F1EE;
   z-index: 1000;
   -webkit-app-region: drag;
+  font-family: var(--font-ui);
 }
 
 .card {
   width: 380px;
   max-width: 90vw;
-  padding: 32px 32px 28px;
+  padding: 28px 28px 24px;
   background: #FAFAF9;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border: 0.5px solid var(--border);
   border-radius: 16px;
   box-shadow:
-    0 0 0 1px #FFF inset,
-    0 30px 80px -10px rgba(0, 0, 0, 0.18);
+    0 4px 14px rgba(0, 0, 0, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 #FFF;
   -webkit-app-region: no-drag;
 }
 
 .brand {
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-tertiary, #888);
-  margin-bottom: 20px;
+  color: var(--text-tertiary);
+  margin-bottom: 18px;
 }
 
 .heading {
-  font-size: 22px;
+  font-family: var(--font-ui);
+  font-size: 19px;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .body {
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-secondary, #555);
-  margin: 0 0 20px;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+  text-wrap: pretty;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .input {
   width: 100%;
   height: 36px;
   padding: 0 12px;
-  font-size: 14px;
+  font-size: 13px;
+  font-family: var(--font-ui);
   color: var(--text-primary);
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.025);
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   outline: none;
-  font-family: inherit;
   box-sizing: border-box;
+  transition: background 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
 }
 
 .input:focus {
-  border-color: var(--accent, #0a84ff);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+  background: #FFFFFF;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px rgba(10, 132, 255, 0.18);
 }
 
 .submit {
@@ -83,13 +94,17 @@
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
-  font-family: inherit;
+  font-family: var(--font-ui);
   cursor: pointer;
-  transition: filter 100ms ease;
+  transition: filter 100ms ease, transform 80ms ease;
 }
 
 .submit:hover:not(:disabled) {
   filter: brightness(0.98);
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.99);
 }
 
 .submit:disabled {
@@ -100,7 +115,7 @@
 .error {
   font-size: 12px;
   color: #c1322a;
-  margin-top: -4px;
+  margin: -2px 0 0;
 }
 
 .sentBlock {
@@ -113,11 +128,13 @@
   align-self: flex-start;
   background: transparent;
   border: none;
-  color: var(--text-tertiary, #888);
+  color: var(--text-tertiary);
   font-size: 12px;
+  font-family: var(--font-ui);
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
+  transition: color 100ms ease;
 }
 
 .linkBtn:hover {

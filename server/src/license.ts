@@ -72,3 +72,56 @@ licenseRoutes.get('/verify', async (c) => {
     user: { id: user.id, email: user.email },
   });
 });
+
+// Paddle-hosted customer portal — billing history, payment method
+// updates, plan changes, cancellation. We mint a fresh portal URL on
+// every request rather than caching, since Paddle's URLs are short-
+// lived (1 hour) and bound to a session id.
+licenseRoutes.post('/customer-portal', async (c) => {
+  const token = bearer(c.req.header('Authorization'));
+  if (!token) return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  const user = await userFromSession(c.env, token);
+  if (!user) return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  if (!user.paddle_customer_id) {
+    // Hasn't checked out yet — there's nothing to manage. The renderer
+    // should hide the link for users in this state, but we belt-and-
+    // brace here too.
+    return c.json({ ok: false, error: 'no_customer' }, 400);
+  }
+
+  const apiBase =
+    c.env.PADDLE_ENV === 'production'
+      ? 'https://api.paddle.com'
+      : 'https://sandbox-api.paddle.com';
+
+  try {
+    const res = await fetch(
+      `${apiBase}/customers/${user.paddle_customer_id}/portal-sessions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${c.env.PADDLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      },
+    );
+    const body = (await res.json().catch(() => ({}))) as {
+      data?: { urls?: { general?: { overview?: string } } };
+      error?: { detail?: string };
+    };
+    if (!res.ok) {
+      console.error('[license] paddle portal-sessions failed:', body);
+      return c.json({ ok: false, error: 'paddle_error' }, 502);
+    }
+    const url = body.data?.urls?.general?.overview;
+    if (!url) {
+      console.error('[license] paddle portal-sessions response missing overview url:', body);
+      return c.json({ ok: false, error: 'paddle_response' }, 502);
+    }
+    return c.json({ ok: true, url });
+  } catch (err) {
+    console.error('[license] customer-portal network error:', err);
+    return c.json({ ok: false, error: 'network' }, 502);
+  }
+});

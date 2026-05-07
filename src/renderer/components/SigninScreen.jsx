@@ -59,8 +59,7 @@ export default function SigninScreen({ onRequestMagicLink }) {
             <h1 className={styles.heading}>Sign in to continue</h1>
             <p className={styles.body}>
               Enter your email and we’ll send you a magic sign-in link —
-              no passwords. Your 30-day free trial starts the moment you
-              sign in for the first time.
+              no passwords required.
             </p>
             <input
               className={styles.input}

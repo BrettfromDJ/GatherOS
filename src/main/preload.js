@@ -130,6 +130,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     verify: (opts) => ipcRenderer.invoke('licensing:verify', opts),
     hasSession: () => ipcRenderer.invoke('licensing:has-session'),
     signOut: () => ipcRenderer.invoke('licensing:sign-out'),
+    openCustomerPortal: () => ipcRenderer.invoke('licensing:open-customer-portal'),
   },
   licensingConfig: {
     apiBaseUrl: API_BASE_URL,

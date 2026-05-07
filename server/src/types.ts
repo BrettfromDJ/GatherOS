@@ -8,6 +8,7 @@ export type Env = {
   TRIAL_DAYS: string;
   APP_DEEP_LINK_SCHEME: string;
   EMAIL_FROM: string;
+  PADDLE_ENV: 'sandbox' | 'production';
 
   // Secrets (set via `wrangler secret put`)
   RESEND_API_KEY: string;

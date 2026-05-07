@@ -24,3 +24,7 @@ TRIAL_DAYS = "0"
 # into this scheme so the app picks up the session token natively.
 APP_DEEP_LINK_SCHEME = "gatheros"
 EMAIL_FROM = "GatherOS <noreply@mail.gatheros.app>"
+# 'sandbox' | 'production' — controls which Paddle REST API host the
+# customer-portal endpoint hits. Webhook signature verification uses
+# the secret regardless of environment.
+PADDLE_ENV = "sandbox"

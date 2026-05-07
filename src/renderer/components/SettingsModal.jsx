@@ -7,6 +7,29 @@ import PrivacyModal from './PrivacyModal.jsx';
 
 const SUPPORT_EMAIL = 'hello@designjoy.co';
 
+function formatPlanLabel(account) {
+  if (!account) return '—';
+  const sub = account.subscription;
+  if (sub) {
+    const plan = sub.plan === 'yearly' ? 'Yearly' : sub.plan === 'monthly' ? 'Monthly' : '';
+    const status = sub.status;
+    if (status === 'trialing') return plan ? `${plan} · Trial` : 'Trial';
+    if (status === 'past_due') return plan ? `${plan} · Past due` : 'Past due';
+    if (status === 'canceled') return plan ? `${plan} · Canceled` : 'Canceled';
+    if (status === 'paused') return plan ? `${plan} · Paused` : 'Paused';
+    return plan || 'Active';
+  }
+  if (account.reason === 'trial') return 'Trial';
+  return 'Free';
+}
+
+function formatPeriodEnd(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
+
 const STATUS_IDLE = 'idle';
 const STATUS_TESTING = 'testing';
 const STATUS_OK = 'ok';
@@ -72,9 +95,12 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
   const [snapshotsListOpen, setSnapshotsListOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [acksOpen, setAcksOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [account, setAccount] = useState(null);
+  const [portalState, setPortalState] = useState({ running: false, message: null });
   const appVersion = window.moodmark?.app?.version || '';
   const inputRef = useRef(null);
 
@@ -178,6 +204,43 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
     });
     return () => { cancelled = true; };
   }, [open]);
+
+  // Pull the latest license/entitlement view when Settings opens so
+  // the Account drawer renders with fresh email + plan + status.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    window.moodmark.licensing.verify({ force: false }).then((result) => {
+      if (!cancelled) setAccount(result || null);
+    });
+    setPortalState({ running: false, message: null });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  async function handleOpenCustomerPortal() {
+    if (portalState.running) return;
+    setPortalState({ running: true, message: null });
+    const result = await window.moodmark.licensing.openCustomerPortal();
+    setPortalState({
+      running: false,
+      message: result?.ok
+        ? null
+        : result?.error === 'no_customer'
+          ? 'You don’t have a subscription yet.'
+          : 'Couldn’t open the billing portal. Try again in a moment.',
+    });
+  }
+
+  async function handleSignOut() {
+    const ok = window.confirm(
+      'Sign out of GatherOS?\n\nYour library stays on this Mac. You can sign back in any time with the same email.',
+    );
+    if (!ok) return;
+    await window.moodmark.licensing.signOut();
+    // Closing settings before AppGate flips back to the SigninScreen
+    // avoids a brief flash of Settings on top of the new takeover.
+    onClose?.();
+  }
 
   async function handleSnapshotNow() {
     if (snapshotState.running) return;
@@ -404,6 +467,74 @@ export default function SettingsModal({ open, onClose, onConfiguredChange, onPre
               {hasKey ? 'Replace key' : 'Save key'}
             </button>
           </div>
+        </section>
+
+        <section className={`${styles.section} ${styles.drawerSection}`}>
+          <button
+            type="button"
+            className={styles.drawerHeader}
+            onClick={() => setAccountOpen((v) => !v)}
+            aria-expanded={accountOpen}
+          >
+            <span className={styles.sectionTitle}>Account</span>
+            <span className={[styles.drawerChevron, accountOpen && styles.drawerChevronOpen].filter(Boolean).join(' ')}>
+              <DrawerChevron />
+            </span>
+          </button>
+          {accountOpen && (
+            <div className={styles.drawerBody}>
+              <div className={styles.aboutRow}>
+                <span className={styles.aboutLabel}>Email</span>
+                <span className={styles.aboutValue}>
+                  {account?.user?.email || '—'}
+                </span>
+              </div>
+              <div className={styles.aboutRow}>
+                <span className={styles.aboutLabel}>Plan</span>
+                <span className={styles.aboutValue}>
+                  {formatPlanLabel(account)}
+                </span>
+              </div>
+              {account?.subscription?.current_period_end && (
+                <div className={styles.aboutRow}>
+                  <span className={styles.aboutLabel}>
+                    {account.subscription.cancel_at_period_end
+                      ? 'Ends'
+                      : account.subscription.status === 'trialing'
+                        ? 'Trial ends'
+                        : 'Renews'}
+                  </span>
+                  <span className={styles.aboutValue}>
+                    {formatPeriodEnd(account.subscription.current_period_end)}
+                  </span>
+                </div>
+              )}
+              <div className={styles.actions} style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnDanger}`}
+                  onClick={handleSignOut}
+                >
+                  Sign out
+                </button>
+                {account?.subscription && (
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnPrimary}`}
+                    onClick={handleOpenCustomerPortal}
+                    disabled={portalState.running}
+                  >
+                    {portalState.running ? 'Opening…' : 'Manage subscription'}
+                  </button>
+                )}
+              </div>
+              {portalState.message && (
+                <div className={styles.sectionHint} style={{ marginTop: 8 }}>
+                  {portalState.message}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <section className={`${styles.section} ${styles.drawerSection}`}>
