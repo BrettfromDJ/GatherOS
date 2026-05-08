@@ -599,3 +599,131 @@
 @media (prefers-reduced-motion: reduce) {
   .modeThumb { transition: none; }
 }
+
+/* Right-edge cluster of single-icon affordances — relocated from
+   the sidebar footer in nav stage 4b. Theme toggle + settings +
+   help live here so the toolbar carries everything chrome-related
+   the sidebar used to. Tight gap so they read as one row of related
+   controls rather than scattered buttons. */
+.iconCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 0.5px solid var(--border-subtle);
+  -webkit-app-region: no-drag;
+}
+
+.iconBtnActive,
+.iconBtnActive:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Tiny accent dot pinned to the top-right of the help icon when
+   release notes are unread. Same affordance the sidebar's footer
+   carried. */
+.iconBtnDot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-circle);
+  background: var(--accent);
+}
+
+.iconBtn {
+  position: relative;
+}
+
+/* Help popover — attached to the help icon's bottom-right anchor.
+   Liquid-glass surface to match the toolbar's chrome family;
+   restricted to a small surface so audit's "glass everywhere"
+   note stays in mind. */
+.helpPopover {
+  position: fixed;
+  z-index: 9000;
+  min-width: 200px;
+  padding: 4px;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  background:
+    linear-gradient(180deg, var(--glass-from-hover) 0%, var(--glass-from) 100%);
+  backdrop-filter: blur(40px) saturate(1.6);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glass);
+  animation: helpPopIn var(--dur-quick) var(--ease-pop);
+}
+
+@keyframes helpPopIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.helpGroupLabel {
+  padding: 6px 8px 2px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.helpDivider {
+  height: 0;
+  margin: 4px 0 2px;
+}
+
+.helpItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease;
+}
+
+.helpItem:hover {
+  background: var(--hover-bg);
+}
+
+.helpItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.helpItemIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.helpItemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.helpItemDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-circle);
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-right: 2px;
+}

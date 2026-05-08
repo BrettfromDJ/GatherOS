@@ -4,6 +4,7 @@ import styles from './Sidebar.module.css';
 import ContextMenu from './ContextMenu.jsx';
 import LibrarySwitcher from './LibrarySwitcher.jsx';
 import SidebarSearch from './SidebarSearch.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
 
@@ -22,8 +23,6 @@ import {
   Megaphone,
   HelpCircle,
   Frame,
-  Sun,
-  Moon,
   CalendarHeart,
 } from 'lucide-react';
 
@@ -32,42 +31,6 @@ import {
 // persists the pref, and asks main to flip the macOS native chrome
 // (traffic lights, scrollbars). No props needed — same IPC the
 // Settings modal uses.
-function ThemeToggle({ className }) {
-  const [theme, setTheme] = React.useState(() =>
-    typeof document !== 'undefined' &&
-    document.documentElement.getAttribute('data-theme') === 'dark'
-      ? 'dark'
-      : 'light',
-  );
-  async function flip() {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.setAttribute('data-theme', next);
-    try {
-      await Promise.all([
-        window.moodmark?.settings?.setPref?.('theme', next),
-        window.moodmark?.app?.setTheme?.(next),
-      ]);
-    } catch {
-      /* best-effort — UI already reflects the swap */
-    }
-  }
-  const isDark = theme === 'dark';
-  return (
-    <button
-      type="button"
-      className={className}
-      onClick={flip}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {isDark
-        ? <Sun {...SIDEBAR_ICON} />
-        : <Moon {...SIDEBAR_ICON} />}
-    </button>
-  );
-}
-
 const SIDEBAR_ICON = { strokeWidth: 1.6, 'aria-hidden': true };
 const GridIcon = () => <LayoutGrid {...SIDEBAR_ICON} />;
 const CollapseSidebarIcon = () => <PanelLeft {...SIDEBAR_ICON} />;

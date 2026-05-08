@@ -11,9 +11,14 @@ import {
   LayoutDashboard,
   X as LucideX,
   Clock as LucideClock,
+  Settings as SettingsLucide,
+  HelpCircle,
+  Keyboard,
+  Megaphone,
 } from 'lucide-react';
 import styles from './Toolbar.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import ThemeToggle from './ThemeToggle.jsx';
 
 // Lucide-backed icon shims. Wrapping each Lucide component in a tiny
 // named function keeps every existing call site untouched and lets
@@ -24,6 +29,10 @@ const SearchIcon = () => <Search {...ICON} />;
 const SearchSparkleIcon = () => <Sparkles {...ICON} fill="currentColor" />;
 const SidebarIcon = () => <PanelLeft {...ICON} />;
 const BackChevronIcon = () => <ChevronLeft {...ICON} strokeWidth={2} />;
+const SettingsIcon = () => <SettingsLucide {...ICON} />;
+const HelpIcon = () => <HelpCircle {...ICON} />;
+const KeyboardIcon = () => <Keyboard {...ICON} />;
+const MegaphoneIcon = () => <Megaphone {...ICON} />;
 const GridSmallIcon = () => <Grid3x3 className={styles.zoomIcon} {...ICON} />;
 // Match the sidebar's "All" affordance (also LayoutGrid) so the
 // grid-layout button reads as "this is the grid/all view."
@@ -232,6 +241,118 @@ const MODE_SEGMENTS = [
   { id: 'boards',  label: 'Boards'  },
 ];
 
+// Anchored popover-menu attached to the toolbar's help icon. Lifted
+// from the old sidebar footer; consolidates "What's New" + Settings
+// + Shortcuts into a single overflow menu so the toolbar stays
+// scannable. Portals to document.body so toolbar overflow:hidden
+// doesn't clip it.
+function HelpMenu({
+  onOpenSettings,
+  onOpenShortcuts,
+  onOpenReleaseNotes,
+  releaseNotesUnseen,
+}) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState(null);
+  const btnRef = useRef(null);
+  const popRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setAnchor({ top: r.bottom + 6, right: window.innerWidth - r.right });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function onDown(e) {
+      if (
+        popRef.current && !popRef.current.contains(e.target) &&
+        btnRef.current && !btnRef.current.contains(e.target)
+      ) setOpen(false);
+    }
+    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  function go(action) {
+    return () => {
+      setOpen(false);
+      action?.();
+    };
+  }
+
+  if (!onOpenSettings && !onOpenShortcuts && !onOpenReleaseNotes) return null;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`${styles.iconBtn} ${open ? styles.iconBtnActive : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Help"
+      >
+        <HelpIcon />
+        {releaseNotesUnseen && (
+          <span className={styles.iconBtnDot} aria-hidden="true" />
+        )}
+      </button>
+      {open && anchor && createPortal(
+        <div
+          ref={popRef}
+          role="menu"
+          className={styles.helpPopover}
+          style={{ top: `${anchor.top}px`, right: `${anchor.right}px` }}
+        >
+          {onOpenReleaseNotes && (
+            <>
+              <div className={styles.helpGroupLabel}>Updates</div>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.helpItem}
+                onClick={go(onOpenReleaseNotes)}
+              >
+                <span className={styles.helpItemIcon}><MegaphoneIcon /></span>
+                <span className={styles.helpItemLabel}>What's New</span>
+                {releaseNotesUnseen && (
+                  <span className={styles.helpItemDot} aria-hidden="true" />
+                )}
+              </button>
+            </>
+          )}
+          {(onOpenSettings || onOpenShortcuts) && (
+            <>
+              {onOpenReleaseNotes && <div className={styles.helpDivider} />}
+              <div className={styles.helpGroupLabel}>Essentials</div>
+              {onOpenShortcuts && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.helpItem}
+                  onClick={go(onOpenShortcuts)}
+                >
+                  <span className={styles.helpItemIcon}><KeyboardIcon /></span>
+                  <span className={styles.helpItemLabel}>Shortcuts</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 function ModePill({ mode, onModeChange }) {
   const activeIndex = Math.max(0, MODE_SEGMENTS.findIndex((s) => s.id === mode));
   return (
@@ -280,6 +401,10 @@ export default function Toolbar({
   onOpenQuickSwitcher,
   mode = 'library',
   onModeChange = () => {},
+  onOpenSettings,
+  onOpenShortcuts,
+  onOpenReleaseNotes,
+  releaseNotesUnseen = false,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -415,6 +540,26 @@ export default function Toolbar({
             </button>
           </div>
         )}
+        <div className={styles.iconCluster}>
+          <ThemeToggle className={styles.iconBtn} />
+          {onOpenSettings && (
+            <button
+              type="button"
+              className={styles.iconBtn}
+              onClick={onOpenSettings}
+              title="Settings"
+              aria-label="Settings"
+            >
+              <SettingsIcon />
+            </button>
+          )}
+          <HelpMenu
+            onOpenSettings={onOpenSettings}
+            onOpenShortcuts={onOpenShortcuts}
+            onOpenReleaseNotes={onOpenReleaseNotes}
+            releaseNotesUnseen={releaseNotesUnseen}
+          />
+        </div>
       </div>
     </div>
   );

@@ -2296,6 +2296,10 @@ export default function App() {
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
                 mode={appMode}
                 onModeChange={handleModeChange}
+                onOpenSettings={() => setSettingsOpen(true)}
+                onOpenShortcuts={() => setShortcutsOpen(true)}
+                onOpenReleaseNotes={handleOpenReleaseNotes}
+                releaseNotesUnseen={releaseNotesUnseen}
               />
               {appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of
