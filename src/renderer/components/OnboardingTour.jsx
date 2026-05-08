@@ -120,6 +120,16 @@ function place(rect, placement, tipH) {
 export default function OnboardingTour({ active, onDone }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [anchor, setAnchor] = useState({ rect: null, ready: false });
+
+  // Write the "tour seen" flag the moment the tour activates rather
+  // than waiting for the user to step through to the end. If they
+  // quit mid-tour (or just close the window), the next launch won't
+  // re-show step 1. The Settings → Replay path explicitly removes
+  // the flag before re-activating, so manual replays still work.
+  useEffect(() => {
+    if (!active) return;
+    try { localStorage.setItem(FLAG_KEY, '1'); } catch {}
+  }, [active]);
   // Real tooltip height, measured from the DOM after each render so
   // long-body steps (e.g. the Settings step) reposition tight against
   // the anchor instead of clipping at the viewport edge.
