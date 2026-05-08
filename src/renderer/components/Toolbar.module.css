@@ -727,3 +727,13 @@
   flex-shrink: 0;
   margin-right: 2px;
 }
+
+/* Library switcher relocated from the sidebar header in nav stage
+   4c. Renders as the toolbar's first left-cluster element so it
+   reads as the brand-mark / location-indicator. Width caps at 180px
+   so a long library name truncates instead of pushing the mode
+   pill off-center. */
+.librarySwitcherSlot {
+  max-width: 180px;
+  -webkit-app-region: no-drag;
+}

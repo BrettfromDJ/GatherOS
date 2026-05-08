@@ -19,6 +19,7 @@ import {
 import styles from './Toolbar.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ThemeToggle from './ThemeToggle.jsx';
+import LibrarySwitcher from './LibrarySwitcher.jsx';
 
 // Lucide-backed icon shims. Wrapping each Lucide component in a tiny
 // named function keeps every existing call site untouched and lets
@@ -405,12 +406,30 @@ export default function Toolbar({
   onOpenShortcuts,
   onOpenReleaseNotes,
   releaseNotesUnseen = false,
+  libraries,
+  activeLibraryId,
+  onSwitchLibrary,
+  onCreateLibrary,
+  onRenameLibrary,
+  onDeleteLibrary,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
   return (
     <div className={styles.toolbar}>
       <div className={styles.left}>
+        {Array.isArray(libraries) && libraries.length > 0 && (
+          <div className={styles.librarySwitcherSlot}>
+            <LibrarySwitcher
+              libraries={libraries}
+              activeId={activeLibraryId}
+              onSwitch={onSwitchLibrary}
+              onCreate={onCreateLibrary}
+              onRename={onRenameLibrary}
+              onDelete={onDeleteLibrary}
+            />
+          </div>
+        )}
         {onToggleSidebar && (
           <button
             type="button"

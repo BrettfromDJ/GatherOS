@@ -2300,6 +2300,12 @@ export default function App() {
                 onOpenShortcuts={() => setShortcutsOpen(true)}
                 onOpenReleaseNotes={handleOpenReleaseNotes}
                 releaseNotesUnseen={releaseNotesUnseen}
+                libraries={libraries}
+                activeLibraryId={activeLibraryId}
+                onSwitchLibrary={handleSwitchLibrary}
+                onCreateLibrary={handleCreateLibrary}
+                onRenameLibrary={handleRenameLibrary}
+                onDeleteLibrary={handleDeleteLibrary}
               />
               {appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of
