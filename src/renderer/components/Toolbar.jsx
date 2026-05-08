@@ -220,6 +220,43 @@ function SearchField({
 const COLS_MIN = 2;
 const COLS_MAX = 8;
 
+// Three-segment pill that switches between the app's primary modes.
+// Active segment fills with --text-primary (true ink) rather than the
+// accent color — keeps it typographic and restrained, matching the
+// Geist / fintech-display feel we're aiming for. The sliding thumb
+// reuses the layoutThumb easing to stay consistent with the other
+// segmented control already in this toolbar.
+const MODE_SEGMENTS = [
+  { id: 'library', label: 'Library' },
+  { id: 'folders', label: 'Folders' },
+  { id: 'boards',  label: 'Boards'  },
+];
+
+function ModePill({ mode, onModeChange }) {
+  const activeIndex = Math.max(0, MODE_SEGMENTS.findIndex((s) => s.id === mode));
+  return (
+    <div className={styles.modePill} role="tablist" aria-label="App mode">
+      <span
+        className={styles.modeThumb}
+        style={{ '--mode-thumb-index': activeIndex }}
+        aria-hidden="true"
+      />
+      {MODE_SEGMENTS.map((seg) => (
+        <button
+          key={seg.id}
+          type="button"
+          role="tab"
+          aria-selected={mode === seg.id}
+          className={`${styles.modeSegment} ${mode === seg.id ? styles.modeSegmentActive : ''}`}
+          onClick={() => onModeChange(seg.id)}
+        >
+          {seg.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function Toolbar({
   search,
   onSearchChange,
@@ -241,6 +278,8 @@ export default function Toolbar({
   layout = 'masonry',
   onLayoutChange,
   onOpenQuickSwitcher,
+  mode = 'library',
+  onModeChange = () => {},
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
@@ -274,6 +313,7 @@ export default function Toolbar({
             {viewTitle}
           </span>
         )}
+        <ModePill mode={mode} onModeChange={onModeChange} />
       </div>
 
       <SearchField

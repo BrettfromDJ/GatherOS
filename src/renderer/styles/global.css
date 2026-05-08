@@ -642,3 +642,29 @@ body[data-board-print="true"] .main-col {
 ::view-transition-new(root) {
   animation-duration: var(--dur-medium);
 }
+
+/* Stage-1 placeholder for Folders / Boards modes. Removed in
+   subsequent stages when each mode lands its real tile grid. */
+.mode-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  background: var(--content-bg);
+  color: var(--text-tertiary);
+}
+
+.mode-placeholder-title {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.mode-placeholder-hint {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}

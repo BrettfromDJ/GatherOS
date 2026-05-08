@@ -89,6 +89,23 @@ export default function App() {
   const undoStack = useUndoStack();
   const recentSearches = useRecentSearches();
 
+  // Top-level mode pill in the toolbar. Lives parallel to `view`
+  // rather than replacing it: while we're staging the migration, the
+  // pill is the new primary nav for Library / Folders / Boards but
+  // the legacy view-state still drives drilled-in navigation
+  // (clicking a folder tile changes view; the pill stays on
+  // 'folders'). Persisted to localStorage so the user's last mode
+  // sticks across launches.
+  const [appMode, setAppMode] = useState(() => {
+    try {
+      const raw = localStorage.getItem('moodmark.appMode');
+      return raw === 'folders' || raw === 'boards' ? raw : 'library';
+    } catch { return 'library'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('moodmark.appMode', appMode); } catch {}
+  }, [appMode]);
+
   // Per-view shuffle seeds. Persisted to localStorage so a shuffle
   // sticks across navigation, search, sort, and full app restarts —
   // the user's intentional order is treated as a real preference,
@@ -2258,7 +2275,21 @@ export default function App() {
                   return null;
                 })()}
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
+                mode={appMode}
+                onModeChange={setAppMode}
               />
+              {appMode !== 'library' ? (
+                <div className="mode-placeholder">
+                  <div className="mode-placeholder-title">
+                    {appMode === 'folders' ? 'Folders' : 'Boards'}
+                  </div>
+                  <div className="mode-placeholder-hint">
+                    {appMode === 'folders'
+                      ? 'A tile grid of every folder is coming next.'
+                      : 'A tile grid of every board is coming next.'}
+                  </div>
+                </div>
+              ) : (
               <div className="grid-scroll" ref={setGridScrollNode}>
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
@@ -2290,6 +2321,7 @@ export default function App() {
                   morphId={morphId}
                 />
               </div>
+              )}
             </>
           )}
         </div>
