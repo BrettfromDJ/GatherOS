@@ -555,6 +555,19 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
     conditions.push('deleted_at IS NULL');
     if (view === 'unsorted') {
       conditions.push('id NOT IN (SELECT save_id FROM collection_items)');
+    } else if (view === 'onThisDay') {
+      // Same calendar month + day as today, in any prior year. Local
+      // time so a save made yesterday at 11pm doesn't slip into the
+      // wrong bucket because of UTC math. Excludes today's saves so
+      // the view reads as 'memories', not 'recent activity'.
+      conditions.push(
+        "strftime('%m-%d', created_at / 1000, 'unixepoch', 'localtime')"
+        + " = strftime('%m-%d', 'now', 'localtime')",
+      );
+      conditions.push(
+        "strftime('%Y', created_at / 1000, 'unixepoch', 'localtime')"
+        + " < strftime('%Y', 'now', 'localtime')",
+      );
     }
   }
 
@@ -766,10 +779,21 @@ function getSmartViewCounts() {
       AND id NOT IN (SELECT save_id FROM collection_items)
   `).get();
   const trash = db.prepare('SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NOT NULL').get();
+  // Saves whose calendar date matches today in some prior year — same
+  // condition the 'onThisDay' view applies in getAllSaves.
+  const onThisDay = db.prepare(`
+    SELECT COUNT(*) AS n FROM saves
+    WHERE deleted_at IS NULL
+      AND strftime('%m-%d', created_at / 1000, 'unixepoch', 'localtime')
+        = strftime('%m-%d', 'now', 'localtime')
+      AND strftime('%Y', created_at / 1000, 'unixepoch', 'localtime')
+        < strftime('%Y', 'now', 'localtime')
+  `).get();
   return {
     all: all?.n ?? 0,
     unsorted: unsorted?.n ?? 0,
     trash: trash?.n ?? 0,
+    onThisDay: onThisDay?.n ?? 0,
   };
 }
 

@@ -24,6 +24,7 @@ import {
   Frame,
   Sun,
   Moon,
+  CalendarHeart,
 } from 'lucide-react';
 
 // Tiny self-contained theme toggle that lives in the sidebar footer.
@@ -81,6 +82,7 @@ export const CollectionIcon = () => <FolderClosed {...SIDEBAR_ICON} />;
 export const InboxIcon = () => <Inbox {...SIDEBAR_ICON} />;
 export const TrashIcon = () => <Trash2 {...SIDEBAR_ICON} />;
 export const BoardIcon = () => <Frame {...SIDEBAR_ICON} />;
+const OnThisDayIcon = () => <CalendarHeart {...SIDEBAR_ICON} />;
 
 // Inline count badge that briefly slide-fades on every change. The
 // effect skips the first render — opening the app shouldn't fire a
@@ -111,9 +113,10 @@ const PencilIcon = () => <Pencil {...SIDEBAR_ICON} />;
 const ShuffleIcon = () => <Shuffle {...SIDEBAR_ICON} />;
 
 const SMART_VIEWS = [
-  { id: 'all',      label: 'All',      color: 'var(--icon-blue)',   Icon: GridIcon },
-  { id: 'unsorted', label: 'Unsorted', color: 'var(--icon-yellow)', Icon: InboxIcon },
-  { id: 'trash',    label: 'Trash',    color: 'var(--text-tertiary)', Icon: TrashIcon },
+  { id: 'all',        label: 'All',          color: 'var(--icon-blue)',     Icon: GridIcon },
+  { id: 'unsorted',   label: 'Unsorted',     color: 'var(--icon-yellow)',   Icon: InboxIcon },
+  { id: 'onThisDay',  label: 'On this day',  color: 'var(--icon-pink)',     Icon: OnThisDayIcon },
+  { id: 'trash',      label: 'Trash',        color: 'var(--text-tertiary)', Icon: TrashIcon },
 ];
 
 // Walk the (already order_index-sorted) collections list and emit a

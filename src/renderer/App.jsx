@@ -592,7 +592,7 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   // Counts that drive the sidebar's smart-view badges (All / Unsorted /
   // Trash). Refreshed alongside collections.
-  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0 });
+  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0, onThisDay: 0 });
 
   const loadCollections = useCallback(async () => {
     const [cols, counts] = await Promise.all([
@@ -600,7 +600,9 @@ export default function App() {
       window.moodmark.saves.counts(),
     ]);
     setCollections(cols);
-    setSmartCounts(counts && typeof counts === 'object' ? counts : { all: 0, unsorted: 0, trash: 0 });
+    setSmartCounts(counts && typeof counts === 'object'
+      ? counts
+      : { all: 0, unsorted: 0, trash: 0, onThisDay: 0 });
   }, []);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);

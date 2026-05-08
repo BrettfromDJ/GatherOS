@@ -168,15 +168,21 @@ export default function RediscoverMode({
 
   if (!open) return null;
 
-  // End-of-queue state. Surface the count of saves walked + a way
-  // out so the user isn't left staring at a blank scrim.
+  // Two empty states with different copy: a library that has nothing
+  // to rediscover (queue never had anything in it) vs. one where the
+  // user has walked through every save.
   if (!current) {
+    const neverHadAnything = queue.length === 0;
     return (
       <div className={styles.scrim} onClick={onClose} role="dialog" aria-modal="true">
         <div className={styles.empty} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.emptyTitle}>You've seen everything</div>
+          <div className={styles.emptyTitle}>
+            {neverHadAnything ? 'Nothing to rediscover yet' : "You've seen everything"}
+          </div>
           <div className={styles.emptySub}>
-            {queue.length} {queue.length === 1 ? 'save' : 'saves'} reviewed.
+            {neverHadAnything
+              ? 'Save some inspiration first — drag in a screenshot, image, or URL.'
+              : `${queue.length} ${queue.length === 1 ? 'save' : 'saves'} reviewed.`}
           </div>
           <button type="button" className={styles.doneBtn} onClick={onClose}>
             Done
