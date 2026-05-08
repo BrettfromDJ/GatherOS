@@ -8,27 +8,22 @@
   overflow-y: auto;
 }
 
-/* Stagger-in: each direct section of the panel fades up with a tiny
-   delay between items, so the panel "fills in" once the morph
-   completes. nth-child covers the typical section count; conditional
-   sections (font, similar, etc.) just take whichever slot they fall
-   into. fill-mode: both holds the from-state until the delay expires
-   so items don't flash visible-then-hidden on first render. */
+/* Stagger-in compressed to three stages: header + image arrive
+   together (the hero), the editable metadata block follows, and
+   everything below (tags, similar, meta dl) lands as the third
+   wave. Total cascade is ~--dur-medium instead of the prior 12-
+   step 800ms — the panel feels alive without becoming a slow
+   choreographed reveal that interrupts the user. */
 .panel > * {
-  animation: detailItemIn var(--dur-pronounced) var(--ease-out) both;
+  animation: detailItemIn var(--dur-medium) var(--ease-out) both;
 }
-.panel > :nth-child(1)  { animation-delay: 0ms; }
-.panel > :nth-child(2)  { animation-delay: 40ms; }
-.panel > :nth-child(3)  { animation-delay: var(--dur-instant); }
-.panel > :nth-child(4)  { animation-delay: var(--dur-instant); }
-.panel > :nth-child(5)  { animation-delay: var(--dur-quick); }
-.panel > :nth-child(6)  { animation-delay: var(--dur-medium); }
-.panel > :nth-child(7)  { animation-delay: var(--dur-medium); }
-.panel > :nth-child(8)  { animation-delay: var(--dur-medium); }
-.panel > :nth-child(9)  { animation-delay: var(--dur-pronounced); }
-.panel > :nth-child(10) { animation-delay: var(--dur-pronounced); }
-.panel > :nth-child(11) { animation-delay: var(--dur-pronounced); }
-.panel > :nth-child(12) { animation-delay: var(--dur-pronounced); }
+.panel > :nth-child(-n+2)         { animation-delay: 0ms; }
+.panel > :nth-child(n+3):nth-child(-n+5) {
+  animation-delay: var(--dur-instant);
+}
+.panel > :nth-child(n+6) {
+  animation-delay: var(--dur-quick);
+}
 
 @keyframes detailItemIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -78,7 +73,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--input-bg);
+  background: transparent;
   border-bottom: 1px solid var(--border);
   /* 3D viewing distance for the imageWrap's rotateX / rotateY. Lower
      values exaggerate the tilt; 900px gives a soft, photographic feel. */
@@ -117,10 +112,8 @@
   top: 8px;
   right: 8px;
   padding: 3px 7px;
-  background: var(--glass-from);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 0.5px solid var(--glass-border);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -128,16 +121,20 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-control);
 }
 
 .image {
   max-width: 100%;
   max-height: 260px;
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   object-fit: contain;
   background: var(--surface-1);
+}
+
+:root[data-theme="dark"] .image {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .palette {
@@ -253,18 +250,25 @@
   margin-bottom: 5px;
 }
 
+/* Canonical input surface — same recipe used by .notesInput and
+   .fontInput so the whole metadata block reads as one family.
+   1px hairline border, 8px radius, --shadow-control for the
+   resting lift, accent ring + tinted halo on focus. */
 .metaInput {
   width: 100%;
-  padding: 5px 10px;
-  background: var(--input-bg);
-  border: 0.5px solid var(--input-border);
-  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
   font-family: var(--font-ui);
   font-size: var(--text-md);
   color: var(--text-primary);
   outline: none;
   box-sizing: border-box;
-  transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
 }
 
 .metaInput::placeholder {
@@ -272,7 +276,6 @@
 }
 
 .metaInput:focus {
-  background: var(--input-bg-focus);
   border-color: var(--accent);
   box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
 }
@@ -300,10 +303,11 @@
 
 .notesInput {
   width: 100%;
-  padding: 6px 10px;
-  background: var(--input-bg);
-  border: 0.5px solid var(--input-border);
-  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
   font-family: var(--font-ui);
   font-size: var(--text-md);
   line-height: 1.4;
@@ -311,9 +315,11 @@
   outline: none;
   resize: none;
   field-sizing: content;
-  min-height: 28px;
+  min-height: 32px;
   box-sizing: border-box;
-  transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
 }
 
 .notesInput::placeholder {
@@ -321,9 +327,8 @@
 }
 
 .notesInput:focus {
-  background: #ffffff;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2.5px rgba(0, 122, 255, 0.18);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
 }
 
 .metaInputRow {
@@ -521,10 +526,10 @@
   align-items: center;
   gap: 5px;
   padding: 3px 4px 3px 8px;
-  background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
-  border: 1px solid var(--btn-border);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 1px 0 1px var(--btn-inset) inset;
+  box-shadow: var(--shadow-control);
   font-size: var(--text-sm);
   color: var(--text-primary);
   max-width: 100%;
@@ -592,23 +597,21 @@
   align-items: center;
   gap: 4px;
   padding: 3px 11px 3px 9px;
-  background: var(--ai-tint-bg);
-  border: 1px solid var(--btn-border);
+  background: var(--surface-1);
+  border: 1px solid var(--ai-tint-border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 1px 0 1px var(--btn-inset) inset;
+  box-shadow: var(--shadow-control);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--ai-tint);
   cursor: pointer;
-  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease, filter var(--dur-instant) ease;
+  transition:
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
 }
 
 .autoTagBtn:hover:not(:disabled) {
-  filter: brightness(0.97);
-}
-
-:root[data-theme="dark"] .autoTagBtn:hover:not(:disabled) {
-  filter: brightness(1.2);
+  background: var(--ai-tint-bg);
 }
 
 .autoTagBtn:active:not(:disabled) {
@@ -688,9 +691,10 @@
   align-items: center;
   gap: 1px;
   padding: 2px 2px 2px 6px;
-  background: var(--accent-bg-faint);
-  border: 0.5px solid var(--accent-bg-medium);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-control);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-secondary);
@@ -698,7 +702,7 @@
 }
 
 .tagHash {
-  color: color-mix(in srgb, var(--accent) 70%, transparent);
+  color: var(--text-tertiary);
   margin-right: 1px;
 }
 
@@ -717,7 +721,7 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-circle);
-  color: color-mix(in srgb, var(--accent) 70%, transparent);
+  color: var(--text-tertiary);
   font-size: var(--text-md);
   line-height: 1;
   cursor: pointer;
@@ -726,8 +730,8 @@
 }
 
 .tagRemove:hover {
-  background: var(--accent-bg-active);
-  color: var(--accent);
+  background: var(--hover-bg);
+  color: var(--text-primary);
 }
 
 .tagInputAnchor {
@@ -813,20 +817,24 @@
 
 .fontInput {
   width: 100%;
-  padding: 6px 9px;
-  background: var(--content-bg);
+  padding: 7px 10px;
+  background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
   font-family: var(--font-ui);
   font-size: var(--text-md);
   color: var(--text-primary);
   outline: none;
-  transition: border-color var(--dur-instant) ease;
   box-sizing: border-box;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
 }
 
 .fontInput:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
 }
 
 .fontInput::placeholder {
@@ -893,22 +901,22 @@
   position: relative;
   aspect-ratio: 1 / 1;
   padding: 0;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--hover-bg-soft);
   cursor: pointer;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    inset 0 0 0 1px var(--border-subtle);
+  box-shadow: var(--shadow-control);
   transition: transform var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
 }
 
 .similarTile:hover {
   transform: translateY(-1px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.10),
-    inset 0 0 0 1px var(--border-hairline);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .similarTile:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.50);
 }
 
 .similarTile img {

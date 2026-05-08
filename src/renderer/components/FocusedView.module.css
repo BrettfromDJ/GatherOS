@@ -28,9 +28,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px 10px var(--titlebar-left-pad, 16px);
-  background: var(--titlebar-bg);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: var(--content-bg);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
   -webkit-app-region: drag;
@@ -53,7 +51,7 @@
 .divider {
   width: 1px;
   height: 16px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--border-strong);
   margin: 0 2px;
 }
 
@@ -80,12 +78,12 @@
 }
 
 .iconBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-bg);
   color: var(--text-primary);
 }
 
 .iconBtn:active {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--active-bg);
 }
 
 /* Active state when the eyedropper is armed — same dark fill we
@@ -108,8 +106,8 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: rgba(20, 20, 20, 0.92);
-  color: #fff;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -136,8 +134,8 @@
 }
 
 .iconBtnDanger:hover {
-  background: rgba(193, 50, 42, 0.08);
-  color: #c1322a;
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+  color: var(--status-error);
 }
 
 .zoomLabel {
@@ -170,24 +168,28 @@
 
 .slider::-webkit-slider-runnable-track {
   height: 3px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: linear-gradient(
     to right,
-    #000 var(--zoom-fill, 0%),
-    rgba(0, 0, 0, 0.15) var(--zoom-fill, 0%)
+    var(--text-primary) var(--zoom-fill, 0%),
+    var(--border-strong) var(--zoom-fill, 0%)
   );
 }
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 12px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-1);
-  border: 0.5px solid var(--input-border);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  margin-top: -4.5px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-circle);
+  background: var(--text-primary);
+  border: none;
+  margin-top: -5.5px;
+  transition: transform var(--dur-instant) ease;
+}
+
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.1);
 }
 
 /* Bare-icon back button — no container, just the chevron. Same
@@ -278,16 +280,18 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px 5px 8px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   color: var(--text-secondary);
   font-size: var(--text-xs);
   pointer-events: none;
   user-select: none;
+}
+
+:root[data-theme="dark"] .navHint {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .kbd {
@@ -297,11 +301,10 @@
   width: 18px;
   height: 18px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.8);
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-circle);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--text-primary);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
 }
