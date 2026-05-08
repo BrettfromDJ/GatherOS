@@ -1,18 +1,12 @@
 .sidebar {
-  /* Two-state navigation: a 64px compact rail at rest (just the
-     mini-stacks of each bucket), expanding to 240px while the
-     pointer is over it or anything inside is keyboard-focused.
-     Expansion shifts main-col over and the masonry reflows;
-     accepted trade-off for the breathing room the rail buys back. */
-  width: 64px;
-  flex: 0 0 64px;
+  width: 220px;
+  flex: 0 0 220px;
   display: flex;
   flex-direction: column;
-  padding: 50px 8px 16px;
+  padding: 50px 10px 16px;
   margin: 10px;
   border-radius: var(--radius-xl);
   overflow-y: auto;
-  overflow-x: hidden;
   position: relative;
   /* Float above .main-col so the soft halo isn't clipped by the sibling's
      opaque background — without this the shadow seams against main-col's
@@ -25,21 +19,6 @@
   background: transparent;
   border: 0.5px solid var(--border-subtle);
   box-shadow: var(--shadow-card);
-  transition:
-    width var(--dur-medium) var(--ease-out),
-    flex-basis var(--dur-medium) var(--ease-out),
-    padding var(--dur-medium) var(--ease-out);
-}
-
-/* Expand on hover or whenever something inside has keyboard focus
-   (covers Tab nav into the bucket list). Width carries everything
-   — children animate their visibility off the same selector. */
-.sidebar:hover,
-.sidebar:focus-within {
-  width: 240px;
-  flex: 0 0 240px;
-  padding-left: 10px;
-  padding-right: 10px;
 }
 
 .collapseBtn {
@@ -738,151 +717,4 @@
   0%   { transform: translateY(60%); opacity: 0; }
   55%  { transform: translateY(-10%); opacity: 1; }
   100% { transform: translateY(0);    opacity: 1; }
-}
-
-/* ── Mini-stack ──────────────────────────────────────────────────────
-   Inline three-thumb fan rendered in front of every bucket row.
-   Replaces the generic folder icon so the rail reads as visual,
-   not textual. Same overall footprint as the old icon span (28px
-   wide) so flex layout doesn't shift between empty / populated
-   buckets. */
-.miniStack {
-  position: relative;
-  width: 28px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-.miniStackImg {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  background: var(--hover-bg-soft);
-  border: 0.5px solid var(--border-strong);
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-.miniStackImg:nth-child(1) {
-  left: 0;
-  top: 2px;
-  transform: rotate(-7deg);
-  z-index: 1;
-  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
-}
-
-.miniStackImg:nth-child(2) {
-  left: 5px;
-  top: 1px;
-  transform: rotate(0deg);
-  z-index: 2;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
-}
-
-.miniStackImg:nth-child(3) {
-  left: 10px;
-  top: 2px;
-  transform: rotate(7deg);
-  z-index: 3;
-  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
-}
-
-/* Empty bucket — falls back to the generic folder icon at the
-   same 28px slot so layout stays stable across populated and
-   empty buckets. */
-.miniStackEmpty {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 22px;
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-}
-
-.miniStackEmpty svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* On hover of the row, the front card lifts and fans slightly
-   wider — small reward signal that this is a clickable, alive
-   target. */
-.item:hover .miniStackImg:nth-child(1) {
-  transform: rotate(-10deg) translate(-1px, -1px);
-}
-.item:hover .miniStackImg:nth-child(3) {
-  transform: rotate(10deg) translate(1px, -1px);
-}
-
-/* ── Compact-state visibility ────────────────────────────────────────
-   Everything textual disappears at rest; expanding the sidebar
-   (hover / focus-within) brings them back. Padding/space is
-   reclaimed so the mini-stacks center within the 64px rail. */
-.sidebar:not(:hover):not(:focus-within) .label,
-.sidebar:not(:hover):not(:focus-within) .count,
-.sidebar:not(:hover):not(:focus-within) .smartCount,
-.sidebar:not(:hover):not(:focus-within) .inboxZero,
-.sidebar:not(:hover):not(:focus-within) .sectionHeader,
-.sidebar:not(:hover):not(:focus-within) .sectionHeaderRow,
-.sidebar:not(:hover):not(:focus-within) .searchSlot,
-.sidebar:not(:hover):not(:focus-within) .footerLabel,
-.sidebar:not(:hover):not(:focus-within) .footerBadge,
-.sidebar:not(:hover):not(:focus-within) .disclosure,
-.sidebar:not(:hover):not(:focus-within) .disclosureSpacer,
-.sidebar:not(:hover):not(:focus-within) .addBtn,
-.sidebar:not(:hover):not(:focus-within) .empty {
-  display: none;
-}
-
-/* The fully-hide sidebar button stays accessible from the compact
-   rail too — slides to the centered top of the rail rather than
-   the right edge so it's reachable in 64px. */
-.sidebar:not(:hover):not(:focus-within) .collapseBtn {
-  right: 50%;
-  transform: translateX(50%);
-}
-
-/* Section blocks shed their bottom margin in compact mode so the
-   rail stays tight; the mini-stacks effectively form a single
-   continuous column with hairline separators between sections
-   (rendered by the section gap in expanded mode reusing the same
-   margin). */
-.sidebar:not(:hover):not(:focus-within) .section {
-  margin-bottom: 6px;
-}
-
-/* Items center their mini-stack column-wise instead of the
-   default left-aligned row. */
-.sidebar:not(:hover):not(:focus-within) .item {
-  justify-content: center;
-  padding: 6px 4px;
-}
-
-/* The footer's theme toggle stays visible (it's icon-only) but
-   the help button collapses to its icon column. */
-.sidebar:not(:hover):not(:focus-within) .footer {
-  flex-direction: column;
-  gap: 4px;
-}
-.sidebar:not(:hover):not(:focus-within) .footerBtn {
-  justify-content: center;
-  padding: 5px 0;
-}
-
-/* Nested bucket children, the create-child form, the new-bucket
-   form, and the trailing reorder dropzone all carry padding /
-   indent that misreads inside a 64px rail. Reset them in compact
-   so the column stays tight and centered. */
-.sidebar:not(:hover):not(:focus-within) .itemChild {
-  padding-left: 4px;
-}
-
-.sidebar:not(:hover):not(:focus-within) .childForm,
-.sidebar:not(:hover):not(:focus-within) .newCollectionForm,
-.sidebar:not(:hover):not(:focus-within) .tailDropzone {
-  display: none;
 }
