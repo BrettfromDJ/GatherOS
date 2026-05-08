@@ -298,7 +298,6 @@ export default function SettingsModal({
   onConfiguredChange,
   onPrefsChange,
   onLibraryWiped,
-  onReplayOnboarding,
   libraries = [],
   activeLibraryId = null,
   onSwitchLibrary,
@@ -1103,18 +1102,6 @@ export default function SettingsModal({
                 View acknowledgments
               </button>
             </div>
-            {onReplayOnboarding && (
-              <div className={styles.aboutRow}>
-                <span className={styles.aboutLabel}>Welcome tour</span>
-                <button
-                  type="button"
-                  className={styles.aboutLink}
-                  onClick={onReplayOnboarding}
-                >
-                  Replay
-                </button>
-              </div>
-            )}
             </div>
           )}
         </main>

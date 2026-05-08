@@ -12,7 +12,6 @@ import RediscoverMode from './components/RediscoverMode.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
 import WelcomeModal from './components/WelcomeModal.jsx';
-import OnboardingTour from './components/OnboardingTour.jsx';
 import WhatsNewModal from './components/WhatsNewModal.jsx';
 import { pickNotesForUpgrade, RELEASE_NOTES } from './data/releaseNotes.js';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
@@ -480,43 +479,6 @@ export default function App() {
       setLastViewedNotesVersion(currentAppVersion);
     }
   }, [latestReleaseNotes, currentAppVersion]);
-  // Lightweight first-launch tooltips — gate on the localStorage flag
-  // and only start once the welcome modal has closed and the library
-  // has finished its initial load. Once-per-mount guard via ref so the
-  // tour doesn't restart on every dep change.
-  const [onboardingActive, setOnboardingActive] = useState(false);
-  const onboardingTriggeredRef = useRef(false);
-  useEffect(() => {
-    if (onboardingTriggeredRef.current) return;
-    if (!OnboardingTour.shouldShow()) return;
-    // Wait for the startup splash to finish, the welcome modal to
-    // close, and the library's initial load to resolve. Otherwise
-    // the spotlight either lands behind the splash or anchors on a
-    // sidebar that hasn't fully painted yet.
-    if (booting) return;
-    if (welcomeOpen) return;
-    if (loading) return;
-    // Don't run the tour over a board canvas — the sidebar auto-
-    // collapses for board views, so the spotlight would anchor onto
-    // elements the user can't see. Mark the flag as written so the
-    // tour doesn't re-trigger on the next launch either.
-    if (view?.type === 'board') {
-      onboardingTriggeredRef.current = true;
-      try { localStorage.setItem('moodmark.onboardingTooltipsShown', '1'); } catch {}
-      return;
-    }
-    onboardingTriggeredRef.current = true;
-    // Write the flag immediately so the tour never re-appears even if
-    // the app quits before OnboardingTour mounts (e.g. within the
-    // 280ms settle delay below). Settings → Replay clears the flag
-    // before calling setOnboardingActive directly, so replays still work.
-    try { localStorage.setItem('moodmark.onboardingTooltipsShown', '1'); } catch {}
-    // Slight delay so the spotlight lands on already-rendered targets
-    // (sidebar layout settles after the first frame).
-    const t = setTimeout(() => setOnboardingActive(true), 280);
-    return () => clearTimeout(t);
-  }, [booting, welcomeOpen, loading, view?.type]);
-
   // Show "What's new" once after an auto-update lands the user on a
   // newer build. Brand-new installs (no lastSeenVersion stored) get
   // their version recorded silently — first-launch onboarding is
@@ -2761,14 +2723,6 @@ export default function App() {
         onCreateLibrary={handleCreateLibrary}
         onRenameLibrary={handleRenameLibrary}
         onDeleteLibrary={handleDeleteLibrary}
-        onReplayOnboarding={() => {
-          try { localStorage.removeItem('moodmark.onboardingTooltipsShown'); } catch {}
-          onboardingTriggeredRef.current = false;
-          setSettingsOpen(false);
-          // Brief delay so the modal's close transition finishes
-          // before the tour spotlight tries to anchor.
-          setTimeout(() => setOnboardingActive(true), 200);
-        }}
         onLibraryWiped={() => {
           // Reset focus + selection in case the user was viewing a
           // save mid-wipe, then re-pull collections/saves so the UI
@@ -2797,12 +2751,7 @@ export default function App() {
         onClose={() => setWelcomeOpen(false)}
       />
 
-      <OnboardingTour
-        active={onboardingActive}
-        onDone={() => setOnboardingActive(false)}
-      />
-
-      <WhatsNewModal
+<WhatsNewModal
         open={!!whatsNewNotes}
         onClose={() => setWhatsNewNotes(null)}
         notes={whatsNewNotes}
