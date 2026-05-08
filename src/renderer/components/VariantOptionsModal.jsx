@@ -35,6 +35,7 @@ export default function VariantOptionsModal({ open, record, onCancel, onConfirm 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [aspectId, setAspectId] = useState('auto');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState(null);
   const promptRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
@@ -88,6 +89,30 @@ export default function VariantOptionsModal({ open, record, onCancel, onConfirm 
     }
     window.addEventListener('mousedown', onClick);
     return () => window.removeEventListener('mousedown', onClick);
+  }, [menuOpen]);
+
+  // Portal the menu to document.body so it escapes the modal's
+  // overflow:auto clipping. Re-measure the trigger on open and on
+  // any scroll inside the modal so the menu stays anchored.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function update() {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setMenuRect({
+        top: rect.bottom + 6,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
   }, [menuOpen]);
 
   function confirm() {
@@ -173,40 +198,6 @@ export default function VariantOptionsModal({ open, record, onCancel, onConfirm 
               </span>
             </button>
 
-            {menuOpen && (
-              <div ref={menuRef} className={styles.aspectMenu} role="listbox">
-                <div className={styles.aspectMenuHeader}>Choose image aspect ratio</div>
-                {ASPECTS.map((opt) => {
-                  const active = opt.id === aspectId;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      role="option"
-                      aria-selected={active}
-                      className={styles.aspectMenuItem}
-                      onClick={() => {
-                        setAspectId(opt.id);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      <span
-                        className={styles.aspectTile}
-                        style={{ width: opt.tile.w, height: opt.tile.h }}
-                        aria-hidden="true"
-                      />
-                      <span className={styles.aspectMenuLabel}>{opt.label}</span>
-                      {opt.ratio && (
-                        <span className={styles.aspectMenuMeta}>{opt.ratio}</span>
-                      )}
-                      <span className={styles.aspectMenuCheck} aria-hidden="true">
-                        {active && <Check size={14} strokeWidth={2} />}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
 
@@ -228,6 +219,50 @@ export default function VariantOptionsModal({ open, record, onCancel, onConfirm 
           </button>
         </div>
       </div>
+
+      {menuOpen && menuRect && (
+        <div
+          ref={menuRef}
+          className={styles.aspectMenu}
+          role="listbox"
+          style={{
+            top: menuRect.top,
+            left: menuRect.left,
+            width: menuRect.width,
+          }}
+        >
+          <div className={styles.aspectMenuHeader}>Choose image aspect ratio</div>
+          {ASPECTS.map((opt) => {
+            const active = opt.id === aspectId;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={styles.aspectMenuItem}
+                onClick={() => {
+                  setAspectId(opt.id);
+                  setMenuOpen(false);
+                }}
+              >
+                <span
+                  className={styles.aspectTile}
+                  style={{ width: opt.tile.w, height: opt.tile.h }}
+                  aria-hidden="true"
+                />
+                <span className={styles.aspectMenuLabel}>{opt.label}</span>
+                {opt.ratio && (
+                  <span className={styles.aspectMenuMeta}>{opt.ratio}</span>
+                )}
+                <span className={styles.aspectMenuCheck} aria-hidden="true">
+                  {active && <Check size={14} strokeWidth={2} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>,
     document.body,
   );
