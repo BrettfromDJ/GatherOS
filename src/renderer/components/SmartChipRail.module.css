@@ -4,8 +4,11 @@
    sort dropdown + zoom slider on the right. */
 
 .rail {
+  /* align-items: stretch so the left cluster can bottom-align its
+     chips against the rail's bottom border. The right cluster
+     opts back into center alignment for its dropdown + slider. */
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 24px;
   padding: 14px 32px;
@@ -15,7 +18,7 @@
 
 .left {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 28px;
 }
 
