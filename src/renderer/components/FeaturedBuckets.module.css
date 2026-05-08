@@ -102,23 +102,29 @@
   gap: 12px;
   width: 188px;
   padding: 14px 14px 12px;
+  /* Canonical card recipe — same surface treatment used by the
+     LibrarySwitcher dropdown panel. 1px hairline border, 8px
+     corner, plain ambient shadow without an inset highlight. */
   background: var(--surface-1);
-  border: 0.5px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   text-align: left;
   cursor: pointer;
-  /* Same recipe as the sidebar + search so all three chrome
-     surfaces sit at the same elevation. Ambient reach (~10px)
-     still fits the scroller's 16/16/28px padding. */
-  box-shadow: var(--shadow-card);
   transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+}
+
+:root[data-theme="dark"] .card {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 10px 22px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .card:hover {
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.55);
 }
 
 /* ── Stack of preview thumbnails ─────────────────────────────────────── */

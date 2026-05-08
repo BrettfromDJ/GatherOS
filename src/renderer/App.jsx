@@ -2281,18 +2281,15 @@ export default function App() {
                 onClearSimilar={() => setSimilarTo(null)}
                 searchInputRef={searchInputRef}
                 viewTitle={(() => {
+                  // Only drilled-into-collection shows a title here.
+                  // Smart views (unsorted / trash) advertise themselves
+                  // via the underlined chip in the rail below.
                   if (view.type === 'collection') {
                     return collections.find((c) => c.id === view.id)?.name ?? null;
                   }
-                  if (view.type === 'unsorted') return 'Unsorted';
-                  if (view.type === 'trash') return 'Trash';
                   return null;
                 })()}
-                viewIcon={(() => {
-                  if (view.type === 'unsorted') return <InboxIcon />;
-                  if (view.type === 'trash') return <TrashIcon />;
-                  return null;
-                })()}
+                viewIcon={null}
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
                 mode={appMode}
                 onModeChange={handleModeChange}
