@@ -46,6 +46,31 @@
   background: #ffffff !important;
 }
 
+/* Empty contentEditable placeholders ("Type something") are pure
+   editing affordances — they shouldn't appear in an export of an
+   item the author left intentionally blank. */
+:global(body[data-board-print="true"]) .itemText:empty::before,
+:global(body[data-board-print="true"]) .itemSticky:empty::before {
+  content: "" !important;
+  display: none !important;
+}
+
+/* Strip the frame's drop-hover tint if the export fires while a
+   drag was hovering. Border falls back to the resting hairline. */
+:global(body[data-board-print="true"]) .frameBodyDropHover {
+  border-color: var(--border-strong) !important;
+  box-shadow: none !important;
+}
+
+/* Frame title tab input, if the user was editing a frame name when
+   they hit export, would otherwise paint its focus outline. */
+:global(body[data-board-print="true"]) .frameTabInput {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* The drag region exists so the user can grab the empty top edge to
    move the window, but every interactive child needs no-drag so
    clicks register. */
