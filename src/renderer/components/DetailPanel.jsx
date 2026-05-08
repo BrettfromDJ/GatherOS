@@ -145,6 +145,7 @@ export default function DetailPanel({
   onUpdateMeta,
   onOpenSettings,
   onOpenSave,
+  onGenerateVariant,
 }) {
   const src = fileUrl(record.file_path);
   const typeLabel = fileTypeLabel(record.file_path);
@@ -731,6 +732,19 @@ export default function DetailPanel({
         )}
         {promptError && (
           <div className={styles.autoTagError}>{promptError}</div>
+        )}
+        {aiConfigured && onGenerateVariant && (
+          <button
+            type="button"
+            className={styles.variantBtn}
+            onClick={() => onGenerateVariant(record.id)}
+            title="Generate a fresh variation of this image"
+          >
+            <span className={styles.variantBtnIcon}>
+              <SparkleIcon />
+            </span>
+            Generate variation
+          </button>
         )}
       </div>
 

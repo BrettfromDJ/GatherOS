@@ -884,6 +884,52 @@ export default function App() {
   const [bulkTagPicker, setBulkTagPicker] = useState(null); // { x, y } | null
   const [rediscoverOpen, setRediscoverOpen] = useState(false);
 
+  // Shared variant-generation flow used by both the right-click
+  // context menu and the DetailPanel button. Pushes a placeholder
+  // card so the user has immediate feedback, fires the IPC, then
+  // either opens the new save in the focused view (success) or
+  // shows a friendly error toast.
+  const handleGenerateVariant = useCallback(async (saveId) => {
+    const source = saves.find((s) => s.id === saveId);
+    const pendingId = `pending-${saveId}-${Date.now()}`;
+    if (source) {
+      setPendingVariants((prev) => [
+        ...prev,
+        {
+          id: pendingId,
+          __pending: true,
+          file_path: source.file_path,
+          thumb_path: source.thumb_path,
+          width: source.width,
+          height: source.height,
+          title: source.title,
+          created_at: Date.now(),
+        },
+      ]);
+    }
+    const result = await window.moodmark.ai.generateVariant(saveId);
+    setPendingVariants((prev) => prev.filter((p) => p.id !== pendingId));
+    if (result?.ok) {
+      await reload();
+      // Pop the new save into the focused view so the user sees
+      // their result full-screen the moment it lands.
+      if (result.save?.id) {
+        setFocusedId(result.save.id);
+      }
+      showActionToast({ message: 'Variation created', durationMs: 1800 });
+    } else if (result?.reason === 'monthly_cap_reached') {
+      showActionToast({
+        message: 'Monthly image limit reached. Resets at the start of next month.',
+        durationMs: 3200,
+      });
+    } else {
+      showActionToast({
+        message: result?.detail || 'Could not generate variation',
+        durationMs: 2400,
+      });
+    }
+  }, [saves, reload, showActionToast]);
+
   const buildCardMenuItems = useCallback((saveId, memberIds) => {
     // If the right-clicked save is part of an active multi-selection,
     // every menu action operates on the full selection. Otherwise
@@ -1030,50 +1076,9 @@ export default function App() {
     if (!isMulti && aiConfigured) {
       if (items.length > 0) items.push({ type: 'separator' });
       items.push({
-        label: 'Generate new version',
+        label: 'Generate variation',
         icon: <SparklesIcon />,
-        onClick: async () => {
-          // Push a placeholder card to the top of the masonry
-          // immediately so the user has visual feedback that the
-          // generation is running. Tagged with __pending so
-          // ImageCard knows to render the loading overlay.
-          const source = saves.find((s) => s.id === saveId);
-          const pendingId = `pending-${saveId}-${Date.now()}`;
-          if (source) {
-            setPendingVariants((prev) => [
-              ...prev,
-              {
-                id: pendingId,
-                __pending: true,
-                file_path: source.file_path,
-                thumb_path: source.thumb_path,
-                width: source.width,
-                height: source.height,
-                title: source.title,
-                created_at: Date.now(),
-              },
-            ]);
-          }
-          const result = await window.moodmark.ai.generateVariant(saveId);
-          // Drop the placeholder; the real save (or none, on failure)
-          // arrives via reload().
-          setPendingVariants((prev) => prev.filter((p) => p.id !== pendingId));
-          if (result?.ok) {
-            await reload();
-            showActionToast({ message: 'Variant created', durationMs: 1800 });
-          } else if (result?.reason === 'monthly_cap_reached') {
-            showActionToast({
-              message:
-                'Monthly image limit reached. Resets at the start of next month.',
-              durationMs: 3200,
-            });
-          } else {
-            showActionToast({
-              message: result?.detail || 'Could not generate variant',
-              durationMs: 2400,
-            });
-          }
-        },
+        onClick: () => handleGenerateVariant(saveId),
       });
     }
 
@@ -1134,7 +1139,7 @@ export default function App() {
       },
     });
     return items;
-  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured]);
+  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, handleGenerateVariant]);
 
   const handleCardContextMenu = useCallback(async (saveId, x, y) => {
     // Resolve the bucket memberships used to filter the Add-to-Bucket
@@ -2445,6 +2450,7 @@ export default function App() {
             onUpdateMeta={undoableUpdateSaveMeta}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSave={(id) => setFocusedId(id)}
+            onGenerateVariant={handleGenerateVariant}
           />
         )}
       </div>

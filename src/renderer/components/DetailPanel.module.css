@@ -951,3 +951,45 @@
   word-break: break-word;
 }
 
+
+/* Generate-variation button — secondary control surface (white +
+   stroke + soft shadow), matching the rest of the new button
+   system. Sparkle icon up front so the AI affordance reads
+   immediately. */
+.variantBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
+}
+
+.variantBtn:hover { background: var(--hover-bg); }
+.variantBtn:active { transform: scale(0.98); }
+
+.variantBtnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--ai-tint);
+}
+
+.variantBtnIcon svg {
+  width: 12px;
+  height: 12px;
+}
