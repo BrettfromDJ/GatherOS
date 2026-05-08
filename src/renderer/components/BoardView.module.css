@@ -55,11 +55,14 @@
   display: none !important;
 }
 
-/* Strip the frame's drop-hover tint if the export fires while a
-   drag was hovering. Border falls back to the resting hairline. */
-:global(body[data-board-print="true"]) .frameBodyDropHover {
-  border-color: var(--border-strong) !important;
-  box-shadow: none !important;
+/* Frame chrome (the labelled tab + the coloured rectangle behind the
+   grouped items) is purely an organisational affordance for the
+   editor. In a PNG / PDF export it reads as a stray opaque halo
+   around each item, so strip it out and let the items inside paint
+   directly onto the white page. */
+:global(body[data-board-print="true"]) .frameTab,
+:global(body[data-board-print="true"]) .frameBody {
+  display: none !important;
 }
 
 /* Frame title tab input, if the user was editing a frame name when
