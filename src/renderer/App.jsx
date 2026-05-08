@@ -17,6 +17,7 @@ import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
+import SmartChipRail from './components/SmartChipRail.jsx';
 import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import BoardView from './components/BoardView.jsx';
@@ -2321,6 +2322,17 @@ export default function App() {
                 />
               ) : (
               <div className="grid-scroll" ref={setGridScrollNode}>
+                {appMode === 'library' && (
+                  <SmartChipRail
+                    activeViewType={
+                      ['all', 'unsorted', 'onThisDay', 'trash'].includes(view.type)
+                        ? view.type
+                        : 'all'
+                    }
+                    counts={smartCounts}
+                    onPick={(v) => handleViewChange(v)}
+                  />
+                )}
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
                     collections={collections}
