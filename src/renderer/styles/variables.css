@@ -114,7 +114,7 @@
   --active-row-fg: #000;
 
   --titlebar-height: 44px;
-  --font-ui: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+  --font-ui: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
