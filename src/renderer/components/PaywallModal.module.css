@@ -16,7 +16,7 @@
   padding: 28px 28px 22px;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   -webkit-app-region: no-drag;
   text-align: center;
@@ -63,7 +63,7 @@
   padding: 14px 14px 13px;
   text-align: left;
   border: 1px solid var(--btn-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;
   cursor: pointer;

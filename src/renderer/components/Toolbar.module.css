@@ -20,7 +20,7 @@
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -142,7 +142,7 @@
   left: 0;
   width: 22px;
   height: 22px;
-  border-radius: 100vh;
+  border-radius: var(--radius-pill);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   border: 1px solid var(--btn-border);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;
@@ -164,7 +164,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
@@ -221,7 +221,7 @@
   padding: 3px 4px 3px 6px;
   background: var(--hover-bg-soft);
   border: 0.5px solid var(--input-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-secondary);
@@ -236,7 +236,7 @@
 .colorChipDot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: 0.5px solid var(--border-strong);
   flex-shrink: 0;
 }
@@ -247,7 +247,7 @@
 .similarChipThumb {
   width: 16px;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   flex-shrink: 0;
   border: 0.5px solid var(--border-strong);
@@ -263,7 +263,7 @@
   height: 16px;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   font-size: var(--text-md);
   line-height: 1;
   color: var(--text-tertiary);
@@ -285,7 +285,7 @@
   padding: 6px 60px 6px 32px;
   background: var(--surface-1);
   border: 0.5px solid var(--border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--text-md);
@@ -308,7 +308,7 @@
   padding: 2px 5px;
   background: var(--hover-bg-soft);
   border: 0.5px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   -webkit-app-region: no-drag;
   transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease, color var(--dur-instant) ease;
@@ -331,7 +331,7 @@
   padding: 0;
   background: var(--hover-bg-strong);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   color: var(--text-secondary);
   cursor: pointer;
   -webkit-app-region: no-drag;
@@ -356,7 +356,7 @@
   backdrop-filter: blur(40px) saturate(1.6);
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
   border: 0.5px solid var(--glass-border);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-glass);
   animation: recentsIn var(--dur-quick) var(--ease-pop);
 }
@@ -403,7 +403,7 @@
   padding: 6px 8px;
   border: none;
   background: transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: inherit;
   font-size: var(--text-md);
   color: var(--text-primary);
@@ -509,7 +509,7 @@
 .slider::-webkit-slider-runnable-track {
   height: 3px;
   background: var(--border-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .slider::-webkit-slider-thumb {
@@ -517,7 +517,7 @@
   appearance: none;
   width: 20px;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background:
     linear-gradient(180deg, #ffffff 0%, #f3f3f5 100%);
   border: 0.5px solid rgba(0, 0, 0, 0.16);

@@ -16,7 +16,7 @@
   padding: 28px 28px 24px;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   -webkit-app-region: no-drag;
 }
@@ -64,7 +64,7 @@
   color: var(--text-primary);
   background: var(--input-bg);
   border: 0.5px solid var(--input-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   outline: none;
   box-sizing: border-box;
   transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
@@ -82,7 +82,7 @@
 
 .submit {
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--btn-border);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;

@@ -24,7 +24,7 @@
   display: flex;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   overflow: hidden;
   animation: rise var(--dur-quick) var(--ease-pop);
@@ -47,7 +47,7 @@
   color: var(--text-secondary);
   font-size: var(--text-lg);
   line-height: 1;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   padding: 0;
 }
@@ -70,7 +70,7 @@
   margin: 10px 0 10px 10px;
   background: var(--surface-1);
   border: 0.5px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   overflow-y: auto;
   z-index: 1;
@@ -100,7 +100,7 @@
   padding: 7px 10px;
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: var(--text-md);
@@ -310,7 +310,7 @@
   padding: 7px 10px;
   background: var(--input-bg);
   border: 0.5px solid var(--input-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -357,7 +357,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--status-success-dot);
   box-shadow: 0 0 0 2px var(--status-success-halo);
 }
@@ -371,7 +371,7 @@
 
 .btn {
   padding: 6px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--btn-border);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   color: var(--text-primary);
@@ -414,7 +414,7 @@
 
 .btnPrimary {
   border: 1px solid var(--btn-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   color: var(--text-primary);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;
@@ -462,7 +462,7 @@
   align-items: center;
   gap: 12px;
   padding: 6px 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--input-bg);
   border: 0.5px solid var(--border-subtle);
 }
@@ -576,7 +576,7 @@
   position: absolute;
   inset: 0;
   background: var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: background var(--dur-medium) var(--ease-out);
 }
 
@@ -587,7 +587,7 @@
   width: 20px;
   height: 20px;
   background: #ffffff;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.04),
     0 1px 1px rgba(0, 0, 0, 0.04),
@@ -615,7 +615,7 @@
   margin-top: 8px;
   background: var(--ai-tint-bg);
   border: 0.5px solid var(--ai-tint-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .reindexCopy {
@@ -661,7 +661,7 @@
   padding: 0 10px;
   background: var(--input-bg);
   border: 0.5px solid var(--input-border);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -697,7 +697,7 @@
   background-size: 10px 10px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M2 3.5l3 3 3-3' fill='none' stroke='rgba(0,0,0,0.55)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   border: 0.5px solid var(--input-border);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -733,7 +733,7 @@
   padding: 0 10px;
   background: transparent;
   border: 0.5px solid var(--input-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--text-secondary);
@@ -793,7 +793,7 @@
   background: transparent;
   border: none;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -829,7 +829,7 @@
   padding: 0 8px;
   background: var(--input-bg-focus);
   border: 0.5px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   outline: none;
   box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
   font-family: var(--font-mono);
@@ -851,7 +851,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-tertiary);
   cursor: pointer;
   transition: color var(--dur-instant) ease, background var(--dur-instant) ease;
@@ -881,7 +881,7 @@
   padding: 8px 10px;
   background: var(--input-bg);
   border: 0.5px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: var(--font-ui);
   color: var(--text-secondary);
@@ -905,7 +905,7 @@
   flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: 0.5px solid var(--border-strong);
 }
 
@@ -947,7 +947,7 @@
 .usageMeterTrack {
   height: 4px;
   background: var(--hover-bg-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 

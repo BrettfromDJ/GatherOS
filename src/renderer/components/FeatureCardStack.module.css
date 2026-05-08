@@ -28,7 +28,7 @@
   padding: 12px 14px;
   background: #ffffff;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   text-align: left;
   cursor: pointer;
   font-family: inherit;
@@ -90,7 +90,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--chip-bg);
   color: var(--chip-color);
 }
@@ -142,7 +142,7 @@
 .dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.18);
   border: none;
   padding: 0;

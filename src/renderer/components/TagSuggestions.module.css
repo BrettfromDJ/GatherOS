@@ -12,7 +12,7 @@
   padding: 4px;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow:
     0 4px 14px rgba(0, 0, 0, 0.08),
     0 16px 36px rgba(0, 0, 0, 0.12);
@@ -27,7 +27,7 @@
   padding: 4px 8px;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-primary);

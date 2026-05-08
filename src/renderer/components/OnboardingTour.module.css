@@ -14,7 +14,7 @@
    the words. */
 .spotlight {
   position: fixed;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   pointer-events: none;
   box-shadow:
     0 0 0 2px rgba(10, 132, 255, 0.55),
@@ -42,7 +42,7 @@
   padding: 14px 16px 12px;
   background: var(--surface-1);
   border: 0.5px solid var(--input-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
   pointer-events: auto;
   animation: tipIn var(--dur-medium) var(--ease-out);
@@ -78,7 +78,7 @@
   padding: 0 4px;
   margin: 0 1px;
   background: rgba(0, 0, 0, 0.06);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -112,7 +112,7 @@
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .skipBtn:hover { color: var(--text-secondary); }
@@ -123,7 +123,7 @@
   gap: 4px;
   padding: 5px 12px;
   border: 1px solid var(--btn-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;
   color: var(--text-primary);

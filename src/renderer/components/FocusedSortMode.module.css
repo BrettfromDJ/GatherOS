@@ -42,7 +42,7 @@
   position: absolute;
   width: 180px;
   height: 180px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   object-fit: cover;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   animation: bgFloat 18s ease-in-out infinite;
@@ -80,7 +80,7 @@
   width: 30px;
   height: 30px;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: rgba(255, 255, 255, 0.10);
   border: 0.5px solid rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.85);
@@ -104,7 +104,7 @@
   align-items: baseline;
   gap: 6px;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.10);
   border: 0.5px solid rgba(255, 255, 255, 0.14);
   font-family: var(--font-mono);
@@ -126,7 +126,7 @@
   justify-content: center;
   max-width: min(560px, 70vw);
   max-height: 56vh;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   background: rgba(0, 0, 0, 0.4);
   box-shadow:
@@ -168,7 +168,7 @@
   padding: 8px 14px 8px 8px;
   background: rgba(255, 255, 255, 0.10);
   border: 0.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgba(255, 255, 255, 0.95);
   font-family: var(--font-ui);
   font-size: var(--text-md);
@@ -188,7 +188,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.35);
   border: 0.5px solid rgba(255, 255, 255, 0.14);
   font-family: var(--font-mono);
@@ -217,7 +217,7 @@
   display: inline-block;
   padding: 1px 6px;
   margin: 0 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.10);
   border: 0.5px solid rgba(255, 255, 255, 0.18);
   font-family: var(--font-mono);
@@ -262,7 +262,7 @@
 .doneCheck {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: linear-gradient(135deg, #34c759, #0a84ff);
   display: inline-flex;
   align-items: center;
@@ -303,7 +303,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 1px;
+  border-radius: var(--radius-sm);
   opacity: 0;
   animation: confettiFly 1.6s var(--ease-out) forwards;
   animation-delay: var(--delay, 0ms);

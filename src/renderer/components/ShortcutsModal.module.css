@@ -18,7 +18,7 @@
   overflow-y: auto;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   animation: rise var(--dur-quick) var(--ease-pop);
 }
@@ -50,7 +50,7 @@
   color: var(--text-secondary);
   font-size: var(--text-lg);
   line-height: 1;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   padding: 0;
 }
@@ -112,7 +112,7 @@
   gap: 3px;
   padding: 3px;
   background: var(--hover-bg);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
 

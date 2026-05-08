@@ -165,6 +165,25 @@
   --dur-medium: 240ms;
   --dur-pronounced: 380ms;
   --dur-long: 600ms;
+
+  /* ── Corner radii ───────────────────────────────────────────────────
+     Six tokens. circle is aspect-aware (50%) and conceptually
+     distinct from pill (capsule shape via huge fixed radius), so
+     they get separate names.
+
+       --radius-sm     micro markers, drop indicators, badges
+       --radius-md     icon buttons, sidebar items, list rows
+       --radius-lg     primary buttons, popovers, sub-panels
+       --radius-xl     modals, sidebar shell, sheet-style surfaces
+       --radius-pill   capsules — FABs, status pills, dots-with-text
+       --radius-circle true circles — avatars, dots, icon-only round buttons
+  */
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
 }
 
 /* Dark theme — overrides the surface + ink + glass values from

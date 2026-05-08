@@ -39,7 +39,7 @@
 .frame {
   position: relative;
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: rgba(0, 0, 0, 0.03);
   box-shadow:
@@ -75,7 +75,7 @@
   left: 8px;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(20px) saturate(1.6);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
@@ -116,7 +116,7 @@
   right: 8px;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(20px) saturate(1.6);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
@@ -171,7 +171,7 @@
   max-height: 80vh;
   width: auto;
   height: auto;
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   background: var(--surface-1);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.2),

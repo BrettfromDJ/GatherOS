@@ -19,7 +19,7 @@
   padding: 5px 8px;
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: var(--text-md);
   font-weight: 400;
@@ -51,7 +51,7 @@
   color: var(--text-primary);
   background: var(--input-bg-focus);
   border: 0.5px solid var(--accent);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   outline: none;
   box-shadow: 0 0 0 2px var(--accent-bg-medium);
 }
@@ -64,7 +64,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-tertiary);
   cursor: pointer;
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
@@ -104,7 +104,7 @@
   backdrop-filter: blur(40px) saturate(1.6);
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
   border: 0.5px solid var(--glass-border);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-glass);
   padding: 4px;
   animation: rise var(--dur-quick) var(--ease-pop);
@@ -118,7 +118,7 @@
   padding: 6px 8px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-family: inherit;
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -193,7 +193,7 @@
   font: inherit;
   background: var(--input-bg-focus);
   border: 0.5px solid var(--input-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
   outline: none;
   color: var(--text-primary);
@@ -236,7 +236,7 @@
   height: 20px;
   top: 3px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--hover-bg-soft);
   box-shadow:
     0 0 0 0.5px var(--border),
@@ -271,7 +271,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background:
     linear-gradient(135deg, var(--hover-bg-soft) 0%, var(--hover-bg-strong) 100%);
   color: var(--text-tertiary);

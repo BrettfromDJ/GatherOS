@@ -11,7 +11,7 @@
   margin: 0 0 6px;
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-family: inherit;
   font-size: var(--text-md);
@@ -44,7 +44,7 @@
   margin: 0 0 6px;
   background: var(--input-bg-focus);
   border: 0.5px solid var(--input-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-primary);
   font-family: inherit;
   font-size: var(--text-sm);
@@ -98,7 +98,7 @@
   flex-shrink: 0;
   background: var(--hover-bg-strong);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;

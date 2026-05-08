@@ -8,7 +8,7 @@
   align-items: center;
   gap: 12px;
   padding: 6px 6px 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--status-error) 8%, var(--surface-1));
   border: 0.5px solid color-mix(in srgb, var(--status-error) 25%, transparent);
   box-shadow:
@@ -27,7 +27,7 @@
   justify-content: center;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: var(--status-error);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-error) 22%, transparent);
@@ -40,7 +40,7 @@
 
 .action {
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--btn-border);
   background: linear-gradient(0deg, var(--btn-from) 0%, var(--btn-to) 100%);
   box-shadow: 0 1px 0 1px var(--btn-inset) inset;

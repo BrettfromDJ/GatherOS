@@ -9,7 +9,7 @@
   padding: 6px;
   background: var(--surface-1);
   border: 0.5px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow:
     0 4px 14px rgba(0, 0, 0, 0.10),
     0 16px 36px rgba(0, 0, 0, 0.16);
@@ -28,7 +28,7 @@
   padding: 0 10px;
   background: var(--input-bg);
   border: 0.5px solid var(--input-border);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -62,7 +62,7 @@
   padding: 5px 8px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--text-primary);

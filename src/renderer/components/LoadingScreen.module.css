@@ -78,7 +78,7 @@
   height: 92px;
   margin-top: -46px;
   margin-left: -46px;
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   background: rgba(0, 0, 0, 0.04);
   box-shadow:
@@ -159,14 +159,14 @@
   width: 240px;
   height: 3px;
   background: rgba(0, 0, 0, 0.08);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .barFill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), #6c63ff);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   transition: width var(--dur-instant) linear;
 }
 
