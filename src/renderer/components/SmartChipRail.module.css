@@ -32,9 +32,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  /* Bottom padding leaves room for the active-state underline so
-     the chip's box height is constant whether active or not. */
-  padding: 0 0 8px 0;
+  padding: 0;
   background: transparent;
   border: none;
   color: var(--text-tertiary);
@@ -55,19 +53,21 @@
   color: var(--text-primary);
 }
 
-/* Active-state underline — 2px ink bar that anchors the active
-   chip without reshaping its box. Inset slightly from the chip's
-   horizontal edges so it reads as a typographic mark, not a tab
-   bar. */
+/* Active-state underline — sits ON TOP of the rail's bottom
+   divider so the active tab visually breaks through the gray
+   line. The negative bottom offset matches the rail's
+   padding-bottom (14px) plus the divider's 1px height, so the
+   underline's bottom edge aligns with the divider's bottom edge.
+   3px height covers the divider's full 1px depth and adds 2px
+   of ink above it. */
 .chipActive::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 2px;
+  bottom: -15px;
+  height: 3px;
   background: var(--text-primary);
-  border-radius: 1px;
 }
 
 .chipLabel {
