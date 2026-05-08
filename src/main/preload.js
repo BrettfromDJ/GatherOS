@@ -70,6 +70,10 @@ contextBridge.exposeInMainWorld('moodmark', {
     // Composite-PNG export of selected saves into a moodboard image
     // (used by the multi-select bar's "Export as Moodboard" button).
     export: (saveIds) => ipcRenderer.invoke('boards:export', saveIds),
+    // Snapshot the current board view — capturePage on a rect for
+    // PNG, printToPDF (with print CSS) for PDF.
+    exportPng: (payload) => ipcRenderer.invoke('boards:export-png', payload),
+    exportPdf: (payload) => ipcRenderer.invoke('boards:export-pdf', payload),
     // Persistent infinite-canvas boards (Miro-style).
     list: () => ipcRenderer.invoke('boards:list'),
     get: (id) => ipcRenderer.invoke('boards:get', id),
@@ -77,6 +81,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     rename: (payload) => ipcRenderer.invoke('boards:rename', payload),
     delete: (id) => ipcRenderer.invoke('boards:delete', id),
     getItems: (boardId) => ipcRenderer.invoke('boards:get-items', boardId),
+    getPreviewSaves: (boardId, limit) => ipcRenderer.invoke('boards:get-preview-saves', boardId, limit),
     upsertItem: (payload) => ipcRenderer.invoke('boards:upsert-item', payload),
     bulkUpdateItems: (payload) => ipcRenderer.invoke('boards:bulk-update-items', payload),
     deleteItem: (payload) => ipcRenderer.invoke('boards:delete-item', payload),

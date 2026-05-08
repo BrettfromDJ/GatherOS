@@ -11,7 +11,7 @@ const {
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
   listBoards, getBoard, createBoard, renameBoard, deleteBoard,
-  getBoardItems, upsertBoardItem, bulkUpdateBoardItems, deleteBoardItem, deleteBoardItems,
+  getBoardItems, getBoardPreviewSaves, upsertBoardItem, bulkUpdateBoardItems, deleteBoardItem, deleteBoardItems,
 } = require('./db');
 const {
   deleteImageFiles,
@@ -352,6 +352,9 @@ function registerIpcHandlers() {
   ipcMain.handle('boards:rename', (_e, payload) => renameBoard(payload));
   ipcMain.handle('boards:delete', (_e, id) => deleteBoard(id));
   ipcMain.handle('boards:get-items', (_e, boardId) => getBoardItems(boardId));
+  ipcMain.handle('boards:get-preview-saves', (_e, boardId, limit) =>
+    getBoardPreviewSaves(boardId, typeof limit === 'number' ? limit : 4),
+  );
   ipcMain.handle('boards:upsert-item', (_e, payload) => upsertBoardItem(payload));
   ipcMain.handle('boards:bulk-update-items', (_e, payload) => bulkUpdateBoardItems(payload));
   ipcMain.handle('boards:delete-item', (_e, payload) => deleteBoardItem(payload));
@@ -706,6 +709,74 @@ function registerIpcHandlers() {
       return { ok: false, reason: 'all-cards-failed' };
     }
     return { ok: true, collectionId: collection.id, installed };
+  });
+
+  // PNG snapshot of the current board view. Renderer measures the
+  // canvas DOM rect (with the user's current pan/zoom + items in
+  // view) and hands us those coords; we pass them to capturePage so
+  // chrome (toolbar / sidebar / detail panel) is excluded.
+  ipcMain.handle('boards:export-png', async (event, payload = {}) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    if (!owner) return { ok: false, reason: 'no_window' };
+    const { rect, defaultName } = payload;
+    if (!rect || typeof rect.width !== 'number' || typeof rect.height !== 'number') {
+      return { ok: false, reason: 'no_rect' };
+    }
+
+    const dlg = await dialog.showSaveDialog(owner, {
+      title: 'Export board as PNG',
+      buttonLabel: 'Export',
+      defaultPath: defaultName || 'board.png',
+      filters: [{ name: 'PNG Image', extensions: ['png'] }],
+    });
+    if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
+
+    try {
+      const image = await event.sender.capturePage({
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      });
+      await fs.promises.writeFile(dlg.filePath, image.toPNG());
+      return { ok: true, savedPath: dlg.filePath };
+    } catch (err) {
+      console.error('[boards:export-png] failed:', err);
+      return { ok: false, error: err.message || String(err) };
+    }
+  });
+
+  // PDF export — webContents.printToPDF prints the whole renderer.
+  // The renderer adds body[data-board-print="true"] before invoking
+  // and removes it after; the matching @media print rules in
+  // global.css hide everything except .board-canvas so the PDF is
+  // a single-page snapshot of the board surface.
+  ipcMain.handle('boards:export-pdf', async (event, payload = {}) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    if (!owner) return { ok: false, reason: 'no_window' };
+    const { defaultName, landscape = true } = payload;
+
+    const dlg = await dialog.showSaveDialog(owner, {
+      title: 'Export board as PDF',
+      buttonLabel: 'Export',
+      defaultPath: defaultName || 'board.pdf',
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
+    if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
+
+    try {
+      const pdf = await event.sender.printToPDF({
+        printBackground: true,
+        landscape,
+        pageSize: 'Letter',
+        margins: { marginType: 'none' },
+      });
+      await fs.promises.writeFile(dlg.filePath, pdf);
+      return { ok: true, savedPath: dlg.filePath };
+    } catch (err) {
+      console.error('[boards:export-pdf] failed:', err);
+      return { ok: false, error: err.message || String(err) };
+    }
   });
 
   ipcMain.handle('boards:export', async (e, saveIds) => {

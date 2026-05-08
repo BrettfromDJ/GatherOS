@@ -420,7 +420,11 @@ export default function Sidebar({
   // Generation counter so cancelled fetches don't commit late.
   const previewGenRef = useRef(0);
 
-  function scheduleHoverPreview(bucketId, target) {
+  // Generic hover preview — works for either a bucket (fetched via
+  // saves.getAll filtered by collectionId) or a board (fetched via
+  // boards.getPreviewSaves which joins the first N image items'
+  // saves on the main side, avoiding a round-trip per item).
+  function scheduleHoverPreview(kind, id, target) {
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     const rect = target.getBoundingClientRect();
     const gen = ++previewGenRef.current;
@@ -428,13 +432,17 @@ export default function Sidebar({
       if (gen !== previewGenRef.current) return;
       let data = [];
       try {
-        data = await window.moodmark.saves.getAll({ collectionId: bucketId });
+        if (kind === 'board') {
+          data = await window.moodmark.boards.getPreviewSaves(id, 4);
+        } else {
+          data = await window.moodmark.saves.getAll({ collectionId: id });
+        }
       } catch { return; }
       if (gen !== previewGenRef.current) return;
       const slice = (data || []).slice(0, 4);
       if (slice.length === 0) return;
       setHoverPreview({
-        bucketId,
+        sourceId: id,
         saves: slice,
         x: rect.right + 8,
         y: rect.top + rect.height / 2,
@@ -879,6 +887,8 @@ export default function Sidebar({
                   e.preventDefault();
                   setBoardCtx({ x: e.clientX, y: e.clientY, board: b });
                 }}
+                onMouseEnter={(e) => scheduleHoverPreview('board', b.id, e.currentTarget)}
+                onMouseLeave={cancelHoverPreview}
                 title={b.name}
               >
                 <span className={styles.icon}>
@@ -1020,7 +1030,7 @@ export default function Sidebar({
                   startRename(c);
                 }}
                 onContextMenu={(e) => handleCollectionContextMenu(e, c)}
-                onMouseEnter={(e) => scheduleHoverPreview(c.id, e.currentTarget)}
+                onMouseEnter={(e) => scheduleHoverPreview('bucket', c.id, e.currentTarget)}
                 onMouseLeave={cancelHoverPreview}
                 draggable
                 onDragStart={(e) => handleDragStart(e, c.id)}

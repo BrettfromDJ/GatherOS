@@ -564,8 +564,19 @@ export default function BoardCanvas({
   arrowKind,
   onFrameCreate,
   tool,
+  onCanvasMount,
 }) {
   const canvasRef = useRef(null);
+
+  // Hand the canvas DOM element back to the parent on mount so it
+  // can measure for screenshot / PDF capture. Cleared on unmount so
+  // the parent doesn't dereference a stale node after a board switch.
+  useEffect(() => {
+    if (typeof onCanvasMount === 'function') onCanvasMount(canvasRef.current);
+    return () => {
+      if (typeof onCanvasMount === 'function') onCanvasMount(null);
+    };
+  }, [onCanvasMount]);
   // Pan: middle-click drag only. (Plain scroll already pans via the
   // wheel handler; left-click drag is reserved for the lasso below.)
   const panState = useRef(null);

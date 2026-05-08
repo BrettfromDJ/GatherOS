@@ -866,6 +866,47 @@ export default function BoardView({
   const [pan, setPan] = useState(INITIAL_PAN);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [exporting, setExporting] = useState(false);
+  // Ref filled by BoardCanvas via the new ref prop below — gives us
+  // the canvas DOM rect for the PNG capture region.
+  const canvasNodeRef = useRef(null);
+
+  const exportBoardPng = useCallback(async () => {
+    if (exporting) return;
+    const el = canvasNodeRef.current;
+    if (!el) return;
+    setExporting(true);
+    try {
+      const r = el.getBoundingClientRect();
+      // window.devicePixelRatio is baked into capturePage's output;
+      // pass the CSS-pixel rect and it returns a higher-resolution
+      // image automatically.
+      await window.moodmark.boards.exportPng({
+        rect: { x: r.left, y: r.top, width: r.width, height: r.height },
+        defaultName: `${(board?.name || 'board').replace(/[/\\?*:|"<>]/g, '_')}.png`,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, board]);
+
+  const exportBoardPdf = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    document.body.dataset.boardPrint = 'true';
+    // Yield two animation frames so the print stylesheet hides chrome
+    // before printToPDF samples the renderer's layout.
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+    try {
+      await window.moodmark.boards.exportPdf({
+        defaultName: `${(board?.name || 'board').replace(/[/\\?*:|"<>]/g, '_')}.pdf`,
+        landscape: true,
+      });
+    } finally {
+      delete document.body.dataset.boardPrint;
+      setExporting(false);
+    }
+  }, [exporting, board]);
   const [editingItemId, setEditingItemId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -1911,6 +1952,30 @@ export default function BoardView({
         >
           <Redo2 {...TOOL_ICON} />
         </button>
+        <div className={styles.toolDivider} />
+        <button
+          type="button"
+          className={styles.toolBtn}
+          title="Export PNG"
+          onClick={exportBoardPng}
+          disabled={exporting}
+        >
+          <Download {...TOOL_ICON} />
+        </button>
+        <button
+          type="button"
+          className={styles.toolBtn}
+          title="Export PDF"
+          onClick={exportBoardPdf}
+          disabled={exporting}
+        >
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+          }}>PDF</span>
+        </button>
       </div>
 
       <BoardCanvas
@@ -1927,6 +1992,7 @@ export default function BoardView({
         onItemsChange={handleItemsChange}
         onCanvasClick={handleCanvasClick}
         onDropImage={handleDropImage}
+        onCanvasMount={(el) => { canvasNodeRef.current = el; }}
         onExternalImageSaved={(n) => {
           onShowToast?.(
             n === 1 ? 'Added to library' : `Added ${n} images to library`,

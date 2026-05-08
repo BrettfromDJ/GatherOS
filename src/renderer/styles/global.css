@@ -66,6 +66,33 @@ a:focus-visible,
   background: transparent;
 }
 
+/* Print mode for the board PDF export. Renderer adds
+   data-board-print="true" on <body> before invoking printToPDF,
+   then drops it once the PDF returns. Hide everything except the
+   board canvas so the PDF is a clean single-page snapshot. */
+body[data-board-print="true"] {
+  background: #ffffff;
+}
+
+body[data-board-print="true"] .toolbar,
+body[data-board-print="true"] .sidebar,
+body[data-board-print="true"] [class*="DetailPanel"],
+body[data-board-print="true"] [class*="selection-bar"],
+body[data-board-print="true"] [class*="AccountBanner"],
+body[data-board-print="true"] [class*="DbIntegrityBanner"],
+body[data-board-print="true"] .scroll-top-fab,
+body[data-board-print="true"] .sort-fab {
+  display: none !important;
+}
+
+body[data-board-print="true"] .app-shell,
+body[data-board-print="true"] .layout,
+body[data-board-print="true"] .main-col {
+  background: #ffffff !important;
+}
+
+@page { margin: 0; }
+
 .layout {
   display: flex;
   flex: 1 1 auto;

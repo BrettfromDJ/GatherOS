@@ -1126,6 +1126,33 @@ function getBoardItems(boardId) {
   }));
 }
 
+// Tiny preview slice for the sidebar's board hover fan — up to N
+// image items with the corresponding save's file_path / thumb_path
+// joined in. Avoids a round-trip per item from the renderer.
+function getBoardPreviewSaves(boardId, limit = 4) {
+  if (!boardId) return [];
+  const rows = getDatabase().prepare(
+    `SELECT data, z_index, created_at FROM board_items
+       WHERE board_id = ? AND type = 'image'
+       ORDER BY z_index ASC, created_at ASC`,
+  ).all(boardId);
+  const saveIds = [];
+  for (const r of rows) {
+    const data = r.data ? safeParseJSON(r.data) : {};
+    if (data && typeof data.saveId === 'string') saveIds.push(data.saveId);
+    if (saveIds.length >= limit) break;
+  }
+  if (saveIds.length === 0) return [];
+  const placeholders = saveIds.map(() => '?').join(',');
+  const saves = getDatabase().prepare(
+    `SELECT id, file_path, thumb_path, title FROM saves
+       WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+  ).all(...saveIds);
+  // Preserve the order of saveIds (most-recent-first per board layer).
+  const byId = new Map(saves.map((s) => [s.id, s]));
+  return saveIds.map((id) => byId.get(id)).filter(Boolean);
+}
+
 function safeParseJSON(s) {
   try { return JSON.parse(s); } catch { return {}; }
 }
@@ -1244,6 +1271,7 @@ module.exports = {
   renameBoard,
   deleteBoard,
   getBoardItems,
+  getBoardPreviewSaves,
   upsertBoardItem,
   bulkUpdateBoardItems,
   deleteBoardItem,
