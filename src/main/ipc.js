@@ -954,7 +954,7 @@ function registerIpcHandlers() {
   // result preserves composition + palette + subject — closer to a
   // "remix" than a "describe-then-redraw". Resulting PNG is saved
   // as a new entry in the user's library, not a replacement.
-  ipcMain.handle('ai:generate-variant', async (event, saveId) => {
+  ipcMain.handle('ai:generate-variant', async (event, saveId, options = {}) => {
     if (!saveId) return { ok: false, reason: 'no-save-id' };
     if (!hasAiSession()) return { ok: false, reason: 'no-session' };
     const save = getSave(saveId);
@@ -962,15 +962,14 @@ function registerIpcHandlers() {
 
     event.sender.send('save:indexing-start', saveId);
     try {
-      // Remix instruction — the source image carries the visual
-      // information; the prompt just tells the model what kind of
-      // variation we want.
-      const remixPrompt =
-        'Generate a fresh variation of this image. Keep the overall ' +
-        'composition, color palette, and primary subject — produce ' +
-        'a creative reinterpretation, not a copy.';
-      const { bytes, quota } = await generateImage(remixPrompt, {
+      // Prompt + size come from the modal the user filled in; we
+      // fall back to a sensible default prompt if the renderer ever
+      // dispatched without one.
+      const prompt = (options.prompt || '').trim() ||
+        'Create a fresh variation of this image. Keep the composition and palette.';
+      const { bytes, quota } = await generateImage(prompt, {
         sourceFilePath: save.file_path,
+        size: options.size,
       });
       const { saveImageFromBuffer } = require('./storage');
       const imgData = await saveImageFromBuffer(bytes, 'png');

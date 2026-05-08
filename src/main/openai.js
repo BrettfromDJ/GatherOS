@@ -250,10 +250,11 @@ async function imageToBase64(filePath) {
 // and subject. Without a source, falls back to text-to-image
 // generation (used only by callers that genuinely have no image).
 //
-// Server-side the model + quality + size are locked (gpt-image-1 /
-// medium / 1024x1024) so the per-image cost curve is predictable;
-// this client doesn't get to ask for 'high'.
-async function generateImage(prompt, { sourceFilePath } = {}) {
+// `size` selects the output aspect ratio — the worker validates it
+// against gpt-image-1's supported set ('1024x1024', '1536x1024',
+// '1024x1536'); model + quality stay locked server-side so the
+// per-image cost curve is predictable.
+async function generateImage(prompt, { sourceFilePath, size } = {}) {
   const trimmed = (prompt || '').trim();
   if (!trimmed) throw new Error('Cannot generate from empty prompt');
   const body = { prompt: trimmed.slice(0, 4000) };
@@ -261,6 +262,7 @@ async function generateImage(prompt, { sourceFilePath } = {}) {
     body.image_b64 = await imageToBase64(sourceFilePath);
     body.image_mime = 'image/jpeg';
   }
+  if (size) body.size = size;
   const data = await postProxy('/ai/image', body);
   const b64 = data.image?.b64_json;
   if (!b64) throw new Error('No image in proxy response');

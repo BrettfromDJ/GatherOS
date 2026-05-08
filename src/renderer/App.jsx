@@ -27,6 +27,7 @@ import BoardView from './components/BoardView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
+import VariantOptionsModal from './components/VariantOptionsModal.jsx';
 import {
   LayoutDashboard,
   Download,
@@ -884,12 +885,16 @@ export default function App() {
   const [bulkTagPicker, setBulkTagPicker] = useState(null); // { x, y } | null
   const [rediscoverOpen, setRediscoverOpen] = useState(false);
 
-  // Shared variant-generation flow used by both the right-click
-  // context menu and the DetailPanel button. Pushes a placeholder
-  // card so the user has immediate feedback, fires the IPC, then
-  // either opens the new save in the focused view (success) or
-  // shows a friendly error toast.
-  const handleGenerateVariant = useCallback(async (saveId) => {
+  // Modal-backed variant generation. The opener (right-click or
+  // DetailPanel) sets `variantOptions` with a saveId + whether the
+  // user wants the result auto-opened in focus view; the modal
+  // collects prompt + aspect, then calls handleGenerateVariant.
+  // From the grid we don't auto-focus (would yank the user out of
+  // browsing). From the focused view we do — they're already there.
+  const [variantOptions, setVariantOptions] = useState(null);
+
+  const handleGenerateVariant = useCallback(async (saveId, opts = {}) => {
+    const { prompt, size, openOnComplete = false } = opts;
     const source = saves.find((s) => s.id === saveId);
     const pendingId = `pending-${saveId}-${Date.now()}`;
     if (source) {
@@ -907,13 +912,11 @@ export default function App() {
         },
       ]);
     }
-    const result = await window.moodmark.ai.generateVariant(saveId);
+    const result = await window.moodmark.ai.generateVariant(saveId, { prompt, size });
     setPendingVariants((prev) => prev.filter((p) => p.id !== pendingId));
     if (result?.ok) {
       await reload();
-      // Pop the new save into the focused view so the user sees
-      // their result full-screen the moment it lands.
-      if (result.save?.id) {
+      if (openOnComplete && result.save?.id) {
         setFocusedId(result.save.id);
       }
       showActionToast({ message: 'Variation created', durationMs: 1800 });
@@ -929,6 +932,10 @@ export default function App() {
       });
     }
   }, [saves, reload, showActionToast]);
+
+  const openVariantModal = useCallback((saveId, openOnComplete) => {
+    setVariantOptions({ saveId, openOnComplete });
+  }, []);
 
   const buildCardMenuItems = useCallback((saveId, memberIds) => {
     // If the right-clicked save is part of an active multi-selection,
@@ -1078,7 +1085,9 @@ export default function App() {
       items.push({
         label: 'Generate variation',
         icon: <SparklesIcon />,
-        onClick: () => handleGenerateVariant(saveId),
+        // Grid-triggered: open the prompt/aspect modal but don't
+        // auto-focus the result on success — the user is browsing.
+        onClick: () => openVariantModal(saveId, false),
       });
     }
 
@@ -1139,7 +1148,7 @@ export default function App() {
       },
     });
     return items;
-  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, handleGenerateVariant]);
+  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, openVariantModal]);
 
   const handleCardContextMenu = useCallback(async (saveId, x, y) => {
     // Resolve the bucket memberships used to filter the Add-to-Bucket
@@ -2450,10 +2459,21 @@ export default function App() {
             onUpdateMeta={undoableUpdateSaveMeta}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSave={(id) => setFocusedId(id)}
-            onGenerateVariant={handleGenerateVariant}
+            onGenerateVariant={(id) => openVariantModal(id, true)}
           />
         )}
       </div>
+
+      <VariantOptionsModal
+        open={!!variantOptions}
+        record={variantOptions ? saves.find((s) => s.id === variantOptions.saveId) : null}
+        onCancel={() => setVariantOptions(null)}
+        onConfirm={({ prompt, size }) => {
+          const { saveId, openOnComplete } = variantOptions;
+          setVariantOptions(null);
+          handleGenerateVariant(saveId, { prompt, size, openOnComplete });
+        }}
+      />
 
       {actionToast && (
         <div className="trash-toast" role="status">

@@ -1,0 +1,293 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--dur-quick) ease;
+}
+
+/* Hero modal — same canonical popover recipe used by the other
+   surfaces (white surface, 1px hairline, plain shadow), sized
+   wider than a dropdown but narrower than Settings. The 12px
+   radius is between the standard popover-8 and the settings-14
+   so it reads as "more important than a dropdown, less heavy
+   than a full settings sheet." */
+.modal {
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 22px 18px;
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  animation: rise var(--dur-quick) var(--ease-pop);
+  overflow-y: auto;
+}
+
+:root[data-theme="dark"] .modal {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-instant) ease;
+}
+
+.closeBtn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ai-tint);
+}
+
+.headerLabel {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.005em;
+}
+
+/* Source preview — small thumbnail confirming which image the
+   variation will be based on. Sized to read as context, not as
+   the main subject of the modal. */
+.preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 4px;
+}
+
+.previewImg {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  background: var(--surface-1);
+}
+
+:root[data-theme="dark"] .previewImg {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.fieldHint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Canonical input recipe + a slight bump in line-height for the
+   multi-line nature of a prompt. Auto-grows via field-sizing on
+   modern browsers; falls back to fixed rows={3} otherwise. */
+.promptInput {
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: 1.45;
+  color: var(--text-primary);
+  outline: none;
+  resize: none;
+  field-sizing: content;
+  min-height: 60px;
+  box-sizing: border-box;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
+}
+
+.promptInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.promptInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+}
+
+/* Three-button aspect picker — each button shows a tile sized to
+   its actual aspect ratio so the user can read the option visually
+   without parsing "1:1". Active button fills with ink (consistent
+   with the active mode-pill and toolbtn idiom). */
+.aspectRow {
+  display: flex;
+  gap: 8px;
+}
+
+.aspectBtn {
+  flex: 1 1 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition:
+    background var(--dur-instant) ease,
+    border-color var(--dur-instant) ease,
+    color var(--dur-instant) ease;
+}
+
+.aspectBtn:hover {
+  background: var(--hover-bg);
+}
+
+.aspectBtnActive,
+.aspectBtnActive:hover {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--surface-1);
+}
+
+.aspectTile {
+  display: inline-block;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.aspectBtnActive .aspectTile {
+  opacity: 1;
+}
+
+.aspectLabel {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: inherit;
+}
+
+.aspectMeta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.aspectBtnActive .aspectMeta {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+:root[data-theme="dark"] .aspectBtnActive .aspectMeta {
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+/* Secondary button — white + stroke + soft shadow */
+.btnSecondary {
+  padding: 9px 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.btnSecondary:hover { background: var(--hover-bg); }
+.btnSecondary:active { transform: scale(0.98); }
+
+/* Primary button — black ink fill */
+.btnPrimary {
+  padding: 9px 18px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--surface-1);
+  cursor: pointer;
+  transition: opacity var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.btnPrimary:hover:not(:disabled) { opacity: 0.92; }
+.btnPrimary:active:not(:disabled) { transform: scale(0.98); }
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
