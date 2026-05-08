@@ -176,6 +176,33 @@ function DisclosureChevron({ expanded }) {
   );
 }
 
+// Inline mini-stack rendered in front of every bucket row. Up to
+// three of the bucket's most recent thumbs, fanned with subtle
+// rotation. Empty buckets fall back to the generic folder icon so
+// the rail still has a tile in that slot. Pure presentational —
+// no interaction; the parent row owns hover / click / drag.
+function MiniStack({ thumbs, fallback = <CollectionIcon /> }) {
+  const list = Array.isArray(thumbs) ? thumbs.slice(0, 3) : [];
+  if (list.length === 0) {
+    return <span className={styles.miniStackEmpty}>{fallback}</span>;
+  }
+  return (
+    <span className={styles.miniStack} aria-hidden="true">
+      {list.map((thumb, i) => (
+        <img
+          key={`${i}-${thumb}`}
+          className={styles.miniStackImg}
+          src={fileUrl(thumb)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      ))}
+    </span>
+  );
+}
+
 export default function Sidebar({
   libraries,
   activeLibraryId,
@@ -1074,9 +1101,7 @@ export default function Sidebar({
                     <span className={styles.disclosureSpacer} aria-hidden="true" />
                   )
                 )}
-                <span className={styles.icon}>
-                  <CollectionIcon />
-                </span>
+                <MiniStack thumbs={c.thumbs} />
                 <span className={styles.label}>{c.name}</span>
                 {c.save_count > 0 && (
                   <AnimatedCount value={c.save_count} className={styles.count} />

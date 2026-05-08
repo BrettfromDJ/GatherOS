@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   },
   collections: {
     getAll: () => ipcRenderer.invoke('collections:get-all'),
+    getAllWithThumbs: () => ipcRenderer.invoke('collections:get-all-with-thumbs'),
     getForSave: (saveId) => ipcRenderer.invoke('collections:get-for-save', saveId),
     containingAll: (saveIds) => ipcRenderer.invoke('collections:containing-all', saveIds),
     create: (payload) => ipcRenderer.invoke('collections:create', payload),

@@ -844,6 +844,47 @@ function getAllCollections() {
   `).all();
 }
 
+// Same shape as getAllCollections but each row also carries `thumbs:
+// string[]` — the file paths of the three most recently saved items
+// in the bucket. The Sidebar uses these to render a small fan
+// inline in compact mode. Window function does the per-collection
+// LIMIT 3 in a single query; group_concat aggregates the thumbs into
+// a delimited string so the renderer can split on a separator that
+// can never appear in a path (, the SOH control char).
+function getAllCollectionsWithThumbs() {
+  const rows = getDatabase().prepare(`
+    WITH ranked AS (
+      SELECT ci.collection_id, s.thumb_path, s.created_at,
+             ROW_NUMBER() OVER (
+               PARTITION BY ci.collection_id
+               ORDER BY s.created_at DESC
+             ) AS rn
+      FROM collection_items ci
+      JOIN saves s ON s.id = ci.save_id
+      WHERE s.deleted_at IS NULL
+    ),
+    top_thumbs AS (
+      SELECT collection_id,
+             group_concat(thumb_path, x'01') AS thumbs
+      FROM ranked
+      WHERE rn <= 3
+      GROUP BY collection_id
+    )
+    SELECT c.id, c.name, c.color, c.created_at, c.order_index, c.parent_id,
+           COUNT(ci.save_id) AS save_count,
+           tt.thumbs AS thumbs_blob
+    FROM collections c
+    LEFT JOIN collection_items ci ON ci.collection_id = c.id
+    LEFT JOIN top_thumbs tt ON tt.collection_id = c.id
+    GROUP BY c.id
+    ORDER BY c.order_index ASC, c.created_at ASC
+  `).all();
+  return rows.map((row) => {
+    const { thumbs_blob, ...rest } = row;
+    return { ...rest, thumbs: thumbs_blob ? thumbs_blob.split('') : [] };
+  });
+}
+
 function getCollectionsForSave(saveId) {
   return getDatabase().prepare(`
     SELECT c.* FROM collections c
@@ -1247,6 +1288,7 @@ module.exports = {
   getUnindexedCount,
   filterByColor,
   getAllCollections,
+  getAllCollectionsWithThumbs,
   getCollectionsForSave,
   getCollectionsContainingAll,
   createCollection,

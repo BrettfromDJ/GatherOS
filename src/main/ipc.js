@@ -7,7 +7,7 @@ const {
   emptyTrash, wipeLibrary, updateSave, insertSave,
   getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
   filterByColor, findSimilarByPalette,
-  getAllCollections, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionParent,
+  getAllCollections, getAllCollectionsWithThumbs, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionParent,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
   listBoards, getBoard, createBoard, renameBoard, deleteBoard,
@@ -340,6 +340,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('collections:get-all', () => getAllCollections());
+  ipcMain.handle('collections:get-all-with-thumbs', () => getAllCollectionsWithThumbs());
   ipcMain.handle('collections:get-for-save', (_e, saveId) => getCollectionsForSave(saveId));
   ipcMain.handle('collections:containing-all', (_e, saveIds) => getCollectionsContainingAll(saveIds));
   ipcMain.handle('collections:create', (_e, payload) => createCollection(payload));

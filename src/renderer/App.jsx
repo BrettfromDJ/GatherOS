@@ -613,7 +613,9 @@ export default function App() {
 
   const loadCollections = useCallback(async () => {
     const [cols, counts] = await Promise.all([
-      window.moodmark.collections.getAll(),
+      // Pulls thumbs in the same query so the sidebar can render
+      // its inline mini-stacks without a per-bucket round-trip.
+      window.moodmark.collections.getAllWithThumbs(),
       window.moodmark.saves.counts(),
     ]);
     setCollections(cols);
