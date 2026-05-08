@@ -2270,6 +2270,7 @@ export default function App() {
                 onCreateLibrary={handleCreateLibrary}
                 onRenameLibrary={handleRenameLibrary}
                 onDeleteLibrary={handleDeleteLibrary}
+                onUpload={handleUploadClick}
               />
               {appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of

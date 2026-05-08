@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Keyboard,
   Megaphone,
+  Plus,
 } from 'lucide-react';
 import styles from './Toolbar.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -236,10 +237,14 @@ const COLS_MAX = 8;
 // Geist / fintech-display feel we're aiming for. The sliding thumb
 // reuses the layoutThumb easing to stay consistent with the other
 // segmented control already in this toolbar.
+// User-facing label "Spaces" replaces "Boards" — friendlier word
+// for the same canvas concept. Internal identifier stays as
+// 'boards' so the DB / IPC / view-state layer doesn't have to
+// migrate; this is purely a relabel at the surface.
 const MODE_SEGMENTS = [
   { id: 'library', label: 'Library' },
   { id: 'folders', label: 'Folders' },
-  { id: 'boards',  label: 'Boards'  },
+  { id: 'boards',  label: 'Spaces'  },
 ];
 
 // Anchored popover-menu attached to the toolbar's help icon. Lifted
@@ -412,12 +417,22 @@ export default function Toolbar({
   onCreateLibrary,
   onRenameLibrary,
   onDeleteLibrary,
+  onUpload,
 }) {
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = COLS_MAX + COLS_MIN - columns;
   return (
     <div className={styles.toolbar}>
       <div className={styles.left}>
+        <span className={styles.brand} aria-hidden="true">
+          {/* Minimal triangle brand mark — placeholder for the
+              eventual GatherOS logo. Sized to read as ink at the
+              leftmost edge of the toolbar without competing with
+              the library switcher beside it. */}
+          <svg viewBox="0 0 16 14" width="22" height="20" aria-hidden="true">
+            <path d="M8 0 L16 14 L0 14 Z" fill="currentColor" />
+          </svg>
+        </span>
         {Array.isArray(libraries) && libraries.length > 0 && (
           <div className={styles.librarySwitcherSlot}>
             <LibrarySwitcher
@@ -429,16 +444,6 @@ export default function Toolbar({
               onDelete={onDeleteLibrary}
             />
           </div>
-        )}
-        {onToggleSidebar && (
-          <button
-            type="button"
-            className={styles.iconBtn}
-            onClick={onToggleSidebar}
-            title="Toggle sidebar"
-          >
-            <SidebarIcon />
-          </button>
         )}
         {onBackToAll && (
           <button
@@ -457,128 +462,37 @@ export default function Toolbar({
             {viewTitle}
           </span>
         )}
-        <ModePill mode={mode} onModeChange={onModeChange} />
       </div>
 
-      <SearchField
-        search={search}
-        onSearchChange={onSearchChange}
-        searchInputRef={searchInputRef}
-        semanticSearchActive={semanticSearchActive}
-        onOpenQuickSwitcher={onOpenQuickSwitcher}
-        recentSearches={recentSearches}
-        onRecordSearch={onRecordSearch}
-        onClearRecentSearches={onClearRecentSearches}
-      />
+      <ModePill mode={mode} onModeChange={onModeChange} />
 
       <div className={styles.right}>
-        {similarTo && (
+        <ThemeToggle className={styles.iconBtn} />
+        {onOpenSettings && (
           <button
             type="button"
-            className={styles.colorChip}
-            onClick={onClearSimilar}
-            title="Clear find-similar filter"
+            className={styles.iconBtn}
+            onClick={onOpenSettings}
+            title="Settings"
+            aria-label="Settings"
           >
-            <img
-              className={styles.similarChipThumb}
-              src={fileUrl(similarTo.thumb_path || similarTo.file_path)}
-              alt=""
-              draggable={false}
-            />
-            <span className={styles.colorChipLabel}>Similar</span>
-            <span className={styles.colorChipX} aria-hidden="true">×</span>
+            <SettingsIcon />
           </button>
         )}
-
-        {colorFilter && (
+        {onUpload && (
           <button
             type="button"
-            className={styles.colorChip}
-            onClick={onClearColorFilter}
-            title="Clear color filter"
+            className={styles.addBtn}
+            onClick={onUpload}
+            title="Add image"
+            aria-label="Add image"
           >
-            <span className={styles.colorChipDot} style={{ background: colorFilter }} />
-            <span className={styles.colorChipLabel}>{colorFilter.toUpperCase()}</span>
-            <span className={styles.colorChipX} aria-hidden="true">×</span>
+            <span className={styles.addBtnIcon} aria-hidden="true">
+              <Plus strokeWidth={1.8} />
+            </span>
+            <span className={styles.addBtnLabel}>Add</span>
           </button>
         )}
-
-        {/* Card-size slider always occupies its slot. In list view we
-            keep the layout reserved (visibility: hidden) so the
-            layout toggle to its right stays anchored at the same x
-            position when switching modes. */}
-        <div
-          className={styles.zoom}
-          title="Card size"
-          style={{ visibility: layout === 'masonry' ? 'visible' : 'hidden' }}
-          aria-hidden={layout !== 'masonry'}
-        >
-          <GridSmallIcon />
-          <input
-            type="range"
-            min={COLS_MIN}
-            max={COLS_MAX}
-            step={1}
-            value={sliderValue}
-            onChange={(e) =>
-              onColumnsChange(COLS_MAX + COLS_MIN - Number(e.target.value))
-            }
-            className={styles.slider}
-            aria-label="Card size"
-            tabIndex={layout === 'masonry' ? 0 : -1}
-          />
-          <GridLargeIcon />
-        </div>
-
-        {onLayoutChange && (
-          <div className={styles.layoutToggle} role="group" aria-label="Layout">
-            <span
-              aria-hidden="true"
-              className={styles.layoutThumb}
-              data-pos={layout === 'list' ? 'list' : 'masonry'}
-            />
-            <button
-              type="button"
-              className={[styles.layoutBtn, layout === 'masonry' && styles.layoutBtnActive]
-                .filter(Boolean).join(' ')}
-              onClick={() => onLayoutChange('masonry')}
-              title="Masonry"
-              aria-pressed={layout === 'masonry'}
-            >
-              <MasonryIcon />
-            </button>
-            <button
-              type="button"
-              className={[styles.layoutBtn, layout === 'list' && styles.layoutBtnActive]
-                .filter(Boolean).join(' ')}
-              onClick={() => onLayoutChange('list')}
-              title="List"
-              aria-pressed={layout === 'list'}
-            >
-              <ListViewIcon />
-            </button>
-          </div>
-        )}
-        <div className={styles.iconCluster}>
-          <ThemeToggle className={styles.iconBtn} />
-          {onOpenSettings && (
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={onOpenSettings}
-              title="Settings"
-              aria-label="Settings"
-            >
-              <SettingsIcon />
-            </button>
-          )}
-          <HelpMenu
-            onOpenSettings={onOpenSettings}
-            onOpenShortcuts={onOpenShortcuts}
-            onOpenReleaseNotes={onOpenReleaseNotes}
-            releaseNotesUnseen={releaseNotesUnseen}
-          />
-        </div>
       </div>
     </div>
   );

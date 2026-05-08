@@ -101,14 +101,14 @@ function NewBoardTile({ onActivate }) {
       type="button"
       className={`${styles.tile} ${styles.tileNew}`}
       onClick={onActivate}
-      title="New board"
+      title="New space"
     >
       <div className={`${styles.tileArt} ${styles.tileArtNew}`}>
         <Plus size={28} strokeWidth={1.4} aria-hidden="true" />
       </div>
       <div className={styles.tileMeta}>
         <span className={`${styles.tileName} ${styles.tileNameMuted}`}>
-          New board
+          New space
         </span>
       </div>
     </button>
@@ -153,9 +153,9 @@ export default function BoardGrid({
     return (
       <div className={styles.empty}>
         <Frame size={36} strokeWidth={1.3} className={styles.emptyIcon} />
-        <div className={styles.emptyTitle}>No boards yet</div>
+        <div className={styles.emptyTitle}>No spaces yet</div>
         <div className={styles.emptyHint}>
-          Boards are infinite canvases — drop images, sticky notes, and
+          Spaces are infinite canvases — drop images, sticky notes, and
           shapes anywhere you want.
         </div>
         {onCreateBoard && (
@@ -164,7 +164,7 @@ export default function BoardGrid({
             className={styles.emptyAction}
             onClick={onCreateBoard}
           >
-            Create your first board
+            Create your first space
           </button>
         )}
       </div>
@@ -206,7 +206,7 @@ export default function BoardGrid({
               onClick: () => startRename(ctxMenu.board),
             },
             {
-              label: 'Delete Board',
+              label: 'Delete Space',
               icon: <TrashIcon />,
               danger: true,
               onClick: () => onDeleteBoard?.(ctxMenu.board.id),
