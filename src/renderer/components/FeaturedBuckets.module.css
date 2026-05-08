@@ -316,3 +316,18 @@
 .pillCard .count {
   font-size: var(--text-xs);
 }
+
+/* Drop-target highlight while a save card is being dragged over a
+   folder card. Soft accent ring + slight scale read as "this is the
+   target" without yelling. The fan inside still hovers — keeps the
+   moment alive even as the drag commits. */
+.cardDropTarget {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 4px;
+  transform: scale(1.02);
+}
+
+.cardDropTarget,
+.cardDropTarget:hover {
+  background: var(--accent-bg-faint);
+}

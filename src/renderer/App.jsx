@@ -2303,6 +2303,7 @@ export default function App() {
                     onRenameCollection={handleRenameCollection}
                     onDeleteCollection={handleDeleteCollection}
                     onShuffleView={handleShuffleView}
+                    onAddSavesToBucket={handleAddSavesToBucket}
                   />
                 )}
                 <Grid

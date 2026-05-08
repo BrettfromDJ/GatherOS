@@ -33,12 +33,18 @@ function TrashIcon() {
 //      sentinel at the bottom of .cardsRow leaves the viewport (i.e.
 //      the cards have scrolled past), pillBar fades in. Scroll back
 //      up and it fades out as the cards come back.
+// MIME type the masonry cards use to advertise "I'm a drag of save
+// ids" — declared at module scope so the drop handlers in this file
+// can match without crossing back into App.jsx.
+const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
+
 export default function FeaturedBuckets({
   collections,
   onPickBucket,
   onRenameCollection,
   onDeleteCollection,
   onShuffleView,
+  onAddSavesToBucket,
 }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
   const [pillsVisible, setPillsVisible] = useState(false);
@@ -50,6 +56,37 @@ export default function FeaturedBuckets({
   const [renameDraft, setRenameDraft] = useState('');
   const renameInputRef = useRef(null);
   const sentinelRef = useRef(null);
+  // While a save card is being dragged over a folder card, this is
+  // the active target. Drives the accent-ring highlight on the card.
+  const [dropTargetId, setDropTargetId] = useState(null);
+
+  function isSaveDrag(e) {
+    return e.dataTransfer.types.includes(SAVE_DROP_MIME);
+  }
+
+  function handleCardDragOver(e, bucketId) {
+    if (!isSaveDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if (dropTargetId !== bucketId) setDropTargetId(bucketId);
+  }
+
+  function handleCardDragLeave(e) {
+    // dragleave fires on child enter too; only reset on real exit.
+    if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetId(null);
+  }
+
+  async function handleCardDrop(e, bucketId) {
+    if (!isSaveDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTargetId(null);
+    let ids;
+    try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
+    catch { return; }
+    if (!Array.isArray(ids) || ids.length === 0) return;
+    await onAddSavesToBucket?.(bucketId, ids);
+  }
 
   // Pre-fetch up to N preview images per bucket. One IPC per bucket;
   // fine for sidebars with a handful of buckets, would want a single
@@ -188,7 +225,7 @@ export default function FeaturedBuckets({
             return (
               <div
                 key={c.id}
-                className={styles.card}
+                className={`${styles.card}${dropTargetId === c.id ? ' ' + styles.cardDropTarget : ''}`}
                 role="button"
                 tabIndex={isRenaming ? -1 : 0}
                 onClick={(e) => {
@@ -206,6 +243,9 @@ export default function FeaturedBuckets({
                   }
                 }}
                 onContextMenu={(e) => handleCardContextMenu(e, c)}
+                onDragOver={(e) => handleCardDragOver(e, c.id)}
+                onDragLeave={handleCardDragLeave}
+                onDrop={(e) => handleCardDrop(e, c.id)}
                 title={c.name}
               >
                 <div className={styles.stack}>
