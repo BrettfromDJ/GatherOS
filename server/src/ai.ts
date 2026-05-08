@@ -347,7 +347,18 @@ aiRoutes.post('/image', async (c) => {
   const auth = await requireEntitled(c);
   if (auth instanceof Response) return auth;
 
-  type ImageBody = { prompt?: string };
+  type ImageBody = {
+    prompt?: string;
+    // Optional source image as base64 (no data-url prefix). When
+    // present, the worker routes to /v1/images/edits which produces
+    // a true variation of the source — composition, palette, and
+    // subject preserved. When absent, falls back to the text-to-image
+    // /v1/images/generations endpoint.
+    image_b64?: string;
+    // Optional MIME type for the source image. Defaults to image/jpeg
+    // since the desktop client downsizes via sharp before encoding.
+    image_mime?: string;
+  };
   const body: ImageBody = await c.req.json<ImageBody>().catch(() => ({}));
 
   const prompt = (body.prompt || '').trim();
@@ -362,23 +373,52 @@ aiRoutes.post('/image', async (c) => {
   // Cap is checked AFTER the request. Soft-fail: we serve the
   // generation but flag over_cap so the renderer can warn. Hard-stop
   // would feel punitive on a creative tool.
-  const upstream = await fetch(`${OPENAI_BASE}/images/generations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${c.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-image-1',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'medium',
-    }),
-  }).catch((err) => {
-    console.error('[ai] image upstream network error:', err);
-    return null;
-  });
+
+  let upstream: Response | null;
+  if (body.image_b64) {
+    // Image-to-image edit. multipart/form-data per OpenAI spec.
+    const binary = atob(body.image_b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const mime = body.image_mime || 'image/jpeg';
+    const ext = mime === 'image/png' ? 'png' : 'jpg';
+    const blob = new Blob([bytes], { type: mime });
+    const form = new FormData();
+    form.append('model', 'gpt-image-1');
+    form.append('prompt', prompt);
+    form.append('size', '1024x1024');
+    form.append('quality', 'medium');
+    form.append('n', '1');
+    form.append('image', blob, `source.${ext}`);
+    upstream = await fetch(`${OPENAI_BASE}/images/edits`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${c.env.OPENAI_API_KEY}` },
+      body: form,
+    }).catch((err) => {
+      console.error('[ai] image-edit upstream network error:', err);
+      return null;
+    });
+  } else {
+    // Pure text-to-image — kept as a fallback for callers that don't
+    // have a source image (e.g. future "generate from prompt only").
+    upstream = await fetch(`${OPENAI_BASE}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${c.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'medium',
+      }),
+    }).catch((err) => {
+      console.error('[ai] image upstream network error:', err);
+      return null;
+    });
+  }
   if (!upstream) return c.json({ ok: false, error: 'upstream_network' }, 502);
 
   const data = (await upstream.json().catch(() => ({}))) as {

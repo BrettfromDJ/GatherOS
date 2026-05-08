@@ -949,11 +949,11 @@ function registerIpcHandlers() {
     }
   });
 
-  // Generate a fresh image inspired by an existing save. Uses the
-  // save's stored ai_prompt if present (cached from a prior
-  // "Generate prompt" call); otherwise calls generateImagePrompt
-  // first to produce one. Resulting PNG is saved as a new entry in
-  // the user's library — not as a replacement of the source.
+  // Generate a fresh variation of an existing save. Uses OpenAI's
+  // /v1/images/edits with the source image as a reference, so the
+  // result preserves composition + palette + subject — closer to a
+  // "remix" than a "describe-then-redraw". Resulting PNG is saved
+  // as a new entry in the user's library, not a replacement.
   ipcMain.handle('ai:generate-variant', async (event, saveId) => {
     if (!saveId) return { ok: false, reason: 'no-save-id' };
     if (!hasAiSession()) return { ok: false, reason: 'no-session' };
@@ -962,18 +962,16 @@ function registerIpcHandlers() {
 
     event.sender.send('save:indexing-start', saveId);
     try {
-      // Use cached ai_prompt if we already have one; otherwise
-      // generate it on demand. This avoids a second token-billed
-      // call on subsequent variants of the same source image.
-      let prompt = (save.ai_prompt || '').trim();
-      if (!prompt) {
-        const fresh = await generateImagePrompt(save.file_path);
-        if (!fresh) return { ok: false, reason: 'no-prompt' };
-        updateSave({ id: saveId, aiPrompt: fresh });
-        prompt = fresh.trim();
-      }
-
-      const { bytes, quota } = await generateImage(prompt);
+      // Remix instruction — the source image carries the visual
+      // information; the prompt just tells the model what kind of
+      // variation we want.
+      const remixPrompt =
+        'Generate a fresh variation of this image. Keep the overall ' +
+        'composition, color palette, and primary subject — produce ' +
+        'a creative reinterpretation, not a copy.';
+      const { bytes, quota } = await generateImage(remixPrompt, {
+        sourceFilePath: save.file_path,
+      });
       const { saveImageFromBuffer } = require('./storage');
       const imgData = await saveImageFromBuffer(bytes, 'png');
       if (imgData.duplicateOf) {
