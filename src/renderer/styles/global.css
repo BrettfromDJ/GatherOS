@@ -66,10 +66,10 @@ a:focus-visible,
   background: transparent;
 }
 
-/* Print mode for the board PDF export. Renderer adds
-   data-board-print="true" on <body> before invoking printToPDF,
-   then drops it once the PDF returns. Hide everything except the
-   board canvas so the PDF is a clean single-page snapshot. */
+/* Print mode for the board PNG export. Renderer adds
+   data-board-print="true" on <body> before invoking capturePage,
+   then drops it once the PNG returns. Hide everything except the
+   board canvas so the PNG is a clean snapshot. */
 body[data-board-print="true"] {
   background: #ffffff;
 }

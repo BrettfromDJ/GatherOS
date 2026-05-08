@@ -746,39 +746,6 @@ function registerIpcHandlers() {
     }
   });
 
-  // PDF export — webContents.printToPDF prints the whole renderer.
-  // The renderer adds body[data-board-print="true"] before invoking
-  // and removes it after; the matching @media print rules in
-  // global.css hide everything except .board-canvas so the PDF is
-  // a single-page snapshot of the board surface.
-  ipcMain.handle('boards:export-pdf', async (event, payload = {}) => {
-    const owner = BrowserWindow.fromWebContents(event.sender);
-    if (!owner) return { ok: false, reason: 'no_window' };
-    const { defaultName, landscape = true } = payload;
-
-    const dlg = await dialog.showSaveDialog(owner, {
-      title: 'Export board as PDF',
-      buttonLabel: 'Export',
-      defaultPath: defaultName || 'board.pdf',
-      filters: [{ name: 'PDF', extensions: ['pdf'] }],
-    });
-    if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
-
-    try {
-      const pdf = await event.sender.printToPDF({
-        printBackground: true,
-        landscape,
-        pageSize: 'Letter',
-        margins: { marginType: 'none' },
-      });
-      await fs.promises.writeFile(dlg.filePath, pdf);
-      return { ok: true, savedPath: dlg.filePath };
-    } catch (err) {
-      console.error('[boards:export-pdf] failed:', err);
-      return { ok: false, error: err.message || String(err) };
-    }
-  });
-
   ipcMain.handle('boards:export', async (e, saveIds) => {
     if (!Array.isArray(saveIds) || saveIds.length === 0) {
       return { ok: false, reason: 'no-ids' };

@@ -70,10 +70,8 @@ contextBridge.exposeInMainWorld('moodmark', {
     // Composite-PNG export of selected saves into a moodboard image
     // (used by the multi-select bar's "Export as Moodboard" button).
     export: (saveIds) => ipcRenderer.invoke('boards:export', saveIds),
-    // Snapshot the current board view — capturePage on a rect for
-    // PNG, printToPDF (with print CSS) for PDF.
+    // Snapshot the current board view — capturePage on a rect.
     exportPng: (payload) => ipcRenderer.invoke('boards:export-png', payload),
-    exportPdf: (payload) => ipcRenderer.invoke('boards:export-pdf', payload),
     // Persistent infinite-canvas boards (Miro-style).
     list: () => ipcRenderer.invoke('boards:list'),
     get: (id) => ipcRenderer.invoke('boards:get', id),

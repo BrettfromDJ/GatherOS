@@ -10,9 +10,9 @@
 }
 
 /* Print-mode toggle: hide every floating UI affordance the board
-   layers over the canvas so PNG / PDF exports capture only the
-   canvas + its items. The body attribute is flipped from BoardView
-   immediately before we hand off to capturePage / printToPDF. */
+   layers over the canvas so the PNG export captures only the canvas
+   + its items. The body attribute is flipped from BoardView
+   immediately before we hand off to capturePage. */
 :global(body[data-board-print="true"]) .backBtn,
 :global(body[data-board-print="true"]) .titleBar,
 :global(body[data-board-print="true"]) .toolbar,
@@ -41,7 +41,7 @@
 }
 
 /* Drop the canvas dot grid + content background so the export sits
-   on a clean white page (matches PDF page colour). */
+   on a clean white page. */
 :global(body[data-board-print="true"]) .canvas {
   background: #ffffff !important;
 }
@@ -57,9 +57,9 @@
 
 /* Frame chrome (the labelled tab + the coloured rectangle behind the
    grouped items) is purely an organisational affordance for the
-   editor. In a PNG / PDF export it reads as a stray opaque halo
-   around each item, so strip it out and let the items inside paint
-   directly onto the white page. */
+   editor. In a PNG export it reads as a stray opaque halo around
+   each item, so strip it out and let the items inside paint directly
+   onto the white page. */
 :global(body[data-board-print="true"]) .frameTab,
 :global(body[data-board-print="true"]) .frameBody {
   display: none !important;

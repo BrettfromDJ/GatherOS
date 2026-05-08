@@ -908,20 +908,6 @@ export default function BoardView({
     }
   }, [exporting, board, withPrintMode]);
 
-  const exportBoardPdf = useCallback(async () => {
-    if (exporting) return;
-    setExporting(true);
-    try {
-      await withPrintMode(async () => {
-        await window.moodmark.boards.exportPdf({
-          defaultName: `${(board?.name || 'board').replace(/[/\\?*:|"<>]/g, '_')}.pdf`,
-          landscape: true,
-        });
-      });
-    } finally {
-      setExporting(false);
-    }
-  }, [exporting, board, withPrintMode]);
   const [editingItemId, setEditingItemId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -1976,20 +1962,6 @@ export default function BoardView({
           disabled={exporting}
         >
           <Download {...TOOL_ICON} />
-        </button>
-        <button
-          type="button"
-          className={styles.toolBtn}
-          title="Export PDF"
-          onClick={exportBoardPdf}
-          disabled={exporting}
-        >
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-          }}>PDF</span>
         </button>
       </div>
 
