@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { morphFocus } from './lib/morphFocus.js';
-import Sidebar, { CollectionIcon } from './components/Sidebar.jsx';
+// CollectionIcon is still re-exported from Sidebar.jsx and used by
+// context menus / featured-bucket affordances. Sidebar component
+// itself is no longer rendered (removed in nav stage 4d) but lives
+// on as the home of these shared icon helpers until Stage 6 cleanup.
+import { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import BulkTagPicker from './components/BulkTagPicker.jsx';
@@ -292,28 +296,9 @@ export default function App() {
   const [morphId, setMorphId] = useState(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Boards run full-screen — auto-collapse the sidebar on entry and
-  // restore the user's previous state on exit. We stash the previous
-  // value in a ref so a manual toggle while inside the board doesn't
-  // get clobbered by later view changes.
-  const preBoardSidebar = useRef(null);
-  useEffect(() => {
-    if (view.type === 'board') {
-      if (preBoardSidebar.current === null) {
-        preBoardSidebar.current = sidebarCollapsed;
-        setSidebarCollapsed(true);
-      }
-    } else if (preBoardSidebar.current !== null) {
-      setSidebarCollapsed(preBoardSidebar.current);
-      preBoardSidebar.current = null;
-    }
-    // sidebarCollapsed is intentionally NOT a dep — we only want to
-    // run on view-type transitions, not every time the user toggles
-    // the sidebar themselves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.type]);
+  // Sidebar removed in nav stage 4d. The legacy auto-collapse-on-
+  // board-entry effect lived here; with no sidebar there's nothing
+  // to collapse.
 
   // Multi-library state. Loaded once on mount; refreshed whenever
   // the user creates / renames / deletes from the library switcher.
@@ -397,7 +382,8 @@ export default function App() {
           });
           break;
         case 'toggle-sidebar':
-          setSidebarCollapsed((c) => !c);
+          // No-op: sidebar was removed in nav stage 4d. Kept the
+          // case so menu/keyboard senders don't error.
           break;
         case 'capture-screenshot':
           window.moodmark.capture?.screenshot?.();
@@ -443,10 +429,6 @@ export default function App() {
     if (booting) return;
     try { localStorage.setItem(SPLASH_FLAG_KEY, '1'); } catch {}
   }, [booting]);
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((c) => !c);
-  }, []);
 
   // Settings modal + AI configured-state. The ai.hasSession check runs
   // once on mount and is updated whenever the user saves/clears via
@@ -2193,43 +2175,16 @@ export default function App() {
         onChange={handleFileInput}
       />
 
-      <div className={`layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
-        {!sidebarCollapsed && (
-          <Sidebar
-            libraries={libraries}
-            activeLibraryId={activeLibraryId}
-            onSwitchLibrary={handleSwitchLibrary}
-            onCreateLibrary={handleCreateLibrary}
-            onRenameLibrary={handleRenameLibrary}
-            onDeleteLibrary={handleDeleteLibrary}
-            search={search}
-            onSearchChange={setSearch}
-            onShuffleView={handleShuffleView}
-            view={view}
-            onViewChange={handleViewChange}
-            collections={collections}
-            smartCounts={smartCounts}
-            onCreateCollection={handleCreateCollection}
-            onRenameCollection={handleRenameCollection}
-            onDeleteCollection={handleDeleteCollection}
-            onReorderCollections={handleReorderCollections}
-            onAddSavesToBucket={handleAddSavesToBucket}
-            onExternalDropToBucket={handleExternalDropToBucket}
-            onSetAppDragging={setDragging}
-            onToggleCollapse={toggleSidebar}
-            onUpload={handleUploadClick}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onOpenShortcuts={() => setShortcutsOpen(true)}
-            onOpenReleaseNotes={handleOpenReleaseNotes}
-            onOpenRediscover={() => setRediscoverOpen(true)}
-            releaseNotesUnseen={releaseNotesUnseen}
-            createCollectionSignal={createCollectionSignal}
-            boards={boards}
-            onCreateBoard={handleCreateBoard}
-            onRenameBoard={handleRenameBoard}
-            onDeleteBoard={handleDeleteBoard}
-          />
-        )}
+      <div className="layout">
+        {/* Sidebar removed in nav stage 4d — replaced by:
+            - LibrarySwitcher in toolbar's left cluster
+            - Mode pill (Library / Folders / Boards) in toolbar
+            - SmartChipRail at top of Library mode
+            - FolderGrid for browsing folders
+            - BoardGrid for browsing boards
+            - Theme + settings + help in toolbar's right cluster
+            Drag-to-folder is the one functional regression; Stage
+            5 brings it back as a multi-select inline action. */}
 
         <div className="main-col">
           {view.type === 'board' ? (
@@ -2256,7 +2211,6 @@ export default function App() {
               hasNext={focusedIndex < saves.length - 1}
               onOpenInPreview={handleOpenInPreview}
               onDelete={handleDelete}
-              onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
               morphSource={morphId === focused.id}
               onContextMenu={handleFocusedContextMenu}
             />
@@ -2273,7 +2227,6 @@ export default function App() {
                 layout={gridLayout}
                 onLayoutChange={setGridLayout}
                 onOpenQuickSwitcher={() => setQuickSwitcherOpen(true)}
-                onToggleSidebar={sidebarCollapsed ? toggleSidebar : null}
                 semanticSearchActive={semanticSearchActive}
                 colorFilter={colorFilter}
                 onClearColorFilter={() => setColorFilter(null)}
