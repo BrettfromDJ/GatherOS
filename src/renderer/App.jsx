@@ -16,6 +16,7 @@ import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
+import BoardGrid from './components/BoardGrid.jsx';
 import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import BoardView from './components/BoardView.jsx';
@@ -106,6 +107,16 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('moodmark.appMode', appMode); } catch {}
   }, [appMode]);
+
+  // Switching the pill always returns to the mode's "root" — Library
+  // shows the unfiltered masonry, Folders shows the tile grid (root
+  // level), Boards shows the boards grid. Without this, switching to
+  // Folders while already drilled into a collection would render the
+  // drilled-in masonry instead of the grid the user expected.
+  const handleModeChange = useCallback((nextMode) => {
+    setAppMode(nextMode);
+    setView({ type: 'all' });
+  }, [setView]);
 
   // Per-view shuffle seeds. Persisted to localStorage so a shuffle
   // sticks across navigation, search, sort, and full app restarts —
@@ -649,7 +660,11 @@ export default function App() {
   // stays in sync.
   const [boards, setBoards] = useState([]);
   const loadBoards = useCallback(async () => {
-    const rows = await window.moodmark.boards.list();
+    // Boards-mode tile grid renders a 2x2 mosaic of each board's
+    // first image items, so we pull thumbs in the same query rather
+    // than per-tile. listWithThumbs returns the same shape as list()
+    // plus a `thumbs: string[]` field.
+    const rows = await window.moodmark.boards.listWithThumbs();
     setBoards(Array.isArray(rows) ? rows : []);
   }, []);
   useEffect(() => { loadBoards(); }, [loadBoards]);
@@ -2279,7 +2294,7 @@ export default function App() {
                 })()}
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
                 mode={appMode}
-                onModeChange={setAppMode}
+                onModeChange={handleModeChange}
               />
               {appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of
@@ -2292,12 +2307,18 @@ export default function App() {
                   onCreateFolder={() => setCreateCollectionSignal((n) => n + 1)}
                 />
               ) : appMode === 'boards' ? (
-                <div className="mode-placeholder">
-                  <div className="mode-placeholder-title">Boards</div>
-                  <div className="mode-placeholder-hint">
-                    A tile grid of every board is coming next.
-                  </div>
-                </div>
+                // Boards mode → tile grid of every board. Clicking
+                // a tile sets view to that board, which is handled
+                // higher in the render tree by BoardView (the canvas
+                // owns the full main column when active).
+                <BoardGrid
+                  boards={boards}
+                  onPickBoard={(id) => handleViewChange({ type: 'board', id })}
+                  onCreateBoard={async () => {
+                    const board = await handleCreateBoard();
+                    if (board?.id) handleViewChange({ type: 'board', id: board.id });
+                  }}
+                />
               ) : (
               <div className="grid-scroll" ref={setGridScrollNode}>
                 {view.type === 'all' && collections.length > 0 && !search && (

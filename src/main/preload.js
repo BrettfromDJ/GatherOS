@@ -75,6 +75,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     exportPng: (payload) => ipcRenderer.invoke('boards:export-png', payload),
     // Persistent infinite-canvas boards (Miro-style).
     list: () => ipcRenderer.invoke('boards:list'),
+    listWithThumbs: () => ipcRenderer.invoke('boards:list-with-thumbs'),
     get: (id) => ipcRenderer.invoke('boards:get', id),
     create: (payload) => ipcRenderer.invoke('boards:create', payload ?? {}),
     rename: (payload) => ipcRenderer.invoke('boards:rename', payload),

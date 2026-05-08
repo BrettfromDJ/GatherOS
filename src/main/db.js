@@ -1121,6 +1121,49 @@ function listBoards() {
   ).all();
 }
 
+// Same shape as listBoards plus a `thumbs: string[]` field with up
+// to four save thumbnails — the first image items on the canvas
+// ordered bottom-up. Powers the Boards-mode tile grid where each
+// board renders as a small mosaic of its content. board_items.data
+// is JSON; json_extract pulls saveId out without needing a join
+// through a materialised intermediate. Filters by deleted_at on
+// the joined save so stale references to trashed saves don't
+// appear as broken thumbs.
+function listBoardsWithThumbs() {
+  const rows = getDatabase().prepare(`
+    WITH ranked AS (
+      SELECT bi.board_id,
+             json_extract(bi.data, '$.saveId') AS save_id,
+             bi.z_index,
+             bi.created_at,
+             ROW_NUMBER() OVER (
+               PARTITION BY bi.board_id
+               ORDER BY bi.z_index ASC, bi.created_at ASC
+             ) AS rn
+        FROM board_items bi
+       WHERE bi.type = 'image'
+         AND json_extract(bi.data, '$.saveId') IS NOT NULL
+    ),
+    top_thumbs AS (
+      SELECT r.board_id,
+             group_concat(s.thumb_path, x'01') AS thumbs
+        FROM ranked r
+        JOIN saves s ON s.id = r.save_id
+       WHERE r.rn <= 4 AND s.deleted_at IS NULL
+       GROUP BY r.board_id
+    )
+    SELECT b.id, b.name, b.thumb_path, b.created_at, b.updated_at,
+           tt.thumbs AS thumbs_blob
+      FROM boards b
+      LEFT JOIN top_thumbs tt ON tt.board_id = b.id
+     ORDER BY b.updated_at DESC
+  `).all();
+  return rows.map((row) => {
+    const { thumbs_blob, ...rest } = row;
+    return { ...rest, thumbs: thumbs_blob ? thumbs_blob.split('') : [] };
+  });
+}
+
 function getBoard(id) {
   return getDatabase().prepare(
     'SELECT id, name, thumb_path, created_at, updated_at FROM boards WHERE id = ?'
@@ -1307,6 +1350,7 @@ module.exports = {
   getIntegrityResult,
   // Boards
   listBoards,
+  listBoardsWithThumbs,
   getBoard,
   createBoard,
   renameBoard,
