@@ -362,10 +362,16 @@ function HelpMenu({
   );
 }
 
-function ModePill({ mode, onModeChange }) {
+function ModePill({ mode, onModeChange, compact = false }) {
   const activeIndex = Math.max(0, MODE_SEGMENTS.findIndex((s) => s.id === mode));
   return (
-    <div className={styles.modePill} role="tablist" aria-label="App mode">
+    <div
+      className={[styles.modePill, compact && styles.modePillCompact]
+        .filter(Boolean)
+        .join(' ')}
+      role="tablist"
+      aria-label="App mode"
+    >
       <span
         className={styles.modeThumb}
         style={{ '--mode-thumb-index': activeIndex }}
@@ -413,6 +419,7 @@ export default function Toolbar({
   onOpenQuickSwitcher,
   mode = 'library',
   onModeChange = () => {},
+  modePillCompact = false,
   onOpenSettings,
   onOpenShortcuts,
   onOpenReleaseNotes,
@@ -470,7 +477,7 @@ export default function Toolbar({
         )}
       </div>
 
-      <ModePill mode={mode} onModeChange={onModeChange} />
+      <ModePill mode={mode} onModeChange={onModeChange} compact={modePillCompact} />
 
       <div className={styles.right}>
         <ThemeToggle className={styles.iconBtn} />

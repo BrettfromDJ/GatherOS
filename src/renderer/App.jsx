@@ -1666,6 +1666,11 @@ export default function App() {
   const gridScrollRef = useRef(null);
   const scrollHandlerRef = useRef(null);
   const [scrolledFar, setScrolledFar] = useState(false);
+  // Separate near-top tracker for the toolbar's mode pill, which
+  // shrinks on any non-trivial scroll and pops back at the top.
+  // Threshold sits above 0 so a tiny inertial overshoot doesn't
+  // flicker the state.
+  const [scrolledOff, setScrolledOff] = useState(false);
   const setGridScrollNode = useCallback((node) => {
     if (scrollHandlerRef.current) {
       scrollHandlerRef.current.node.removeEventListener(
@@ -1676,6 +1681,7 @@ export default function App() {
     gridScrollRef.current = node;
     if (!node) {
       setScrolledFar(false);
+      setScrolledOff(false);
       return;
     }
     let ticking = false;
@@ -1683,13 +1689,17 @@ export default function App() {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        setScrolledFar(node.scrollTop > 720);
+        const t = node.scrollTop;
+        setScrolledFar(t > 720);
+        setScrolledOff(t > 8);
         ticking = false;
       });
     };
     scrollHandlerRef.current = { node, fn };
     node.addEventListener('scroll', fn, { passive: true });
-    setScrolledFar(node.scrollTop > 720);
+    const t0 = node.scrollTop;
+    setScrolledFar(t0 > 720);
+    setScrolledOff(t0 > 8);
   }, []);
   const scrollGridToTop = useCallback(() => {
     gridScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2345,6 +2355,7 @@ export default function App() {
                 onBackToAll={view.type === 'collection' ? () => handleViewChange({ type: 'all' }) : null}
                 mode={appMode}
                 onModeChange={handleModeChange}
+                modePillCompact={scrolledOff}
                 onOpenSettings={() => setSettingsOpen(true)}
                 onOpenShortcuts={() => setShortcutsOpen(true)}
                 onOpenReleaseNotes={handleOpenReleaseNotes}

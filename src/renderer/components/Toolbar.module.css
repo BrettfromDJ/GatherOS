@@ -550,6 +550,28 @@
   -webkit-app-region: no-drag;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   justify-self: center;
+  transform-origin: center top;
+  /* Springy compact ⇄ full transition driven by .modePillCompact.
+     The bezier eases out with a small overshoot at the end so the
+     pill feels alive when it pops back to full size at the top of
+     the grid, while the symmetric curve still settles cleanly when
+     it shrinks on scroll-down. */
+  transition:
+    transform var(--dur-pronounced) cubic-bezier(0.34, 1.18, 0.40, 1),
+    box-shadow var(--dur-medium) var(--ease-out);
+}
+
+/* Compact form — driven by App.jsx via the grid scroll position
+   (scrollTop > 8px). One transform handles the resize so we don't
+   reflow neighbouring toolbar items as the user scrolls. Shadow
+   softens too so the pill recedes a touch when shrunk. */
+.modePillCompact {
+  transform: scale(0.86);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modePill { transition: none; }
 }
 
 /* Sliding ink thumb. Each segment is 140px wide; the index drives
