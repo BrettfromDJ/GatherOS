@@ -112,10 +112,6 @@ body[data-board-print="true"] .main-col {
   flex-direction: column;
   min-width: 0;
   background: var(--content-bg);
-  /* Anchor for the corner-layout DetailPanel overlay so its corner
-     cards position relative to the focused stage rather than the
-     viewport. No-op when the panel renders as a sibling rail. */
-  position: relative;
 }
 
 .grid-scroll {

@@ -267,18 +267,6 @@ export default function App() {
   // failure.
   const [pendingVariants, setPendingVariants] = useState([]);
 
-  // Detail-panel layout: 'corners' (default — overlay with three
-  // floating cards anchored to the focused stage) or 'rail' (the
-  // legacy 300px right-rail). Flip via:
-  //   localStorage.setItem('gatheros.detailLayout', 'rail')
-  // Reload to take effect. No UI for now — easy revert is the
-  // single git revert of the corners commit.
-  const detailLayout = useMemo(() => {
-    try {
-      return window.localStorage?.getItem('gatheros.detailLayout') === 'rail' ? 'rail' : 'corners';
-    } catch { return 'corners'; }
-  }, []);
-
   // Active sort mode for the masonry. Persisted per-app (not per-
   // view) — the user's preference is a global setting, not a
   // per-folder toggle. Shuffle takes precedence when active.
@@ -2456,29 +2444,10 @@ export default function App() {
               )}
             </>
           )}
-
-          {focused && detailLayout === 'corners' && (
-            <DetailPanel
-              layout="corners"
-              record={focused}
-              allCollections={collections}
-              allTags={allTags}
-              aiConfigured={aiConfigured}
-              aiIndexing={indexingIds.has(focused.id)}
-              onClose={() => setFocusedId(null)}
-              onCollectionsChanged={loadCollections}
-              onTagsChanged={loadAllTags}
-              onUpdateMeta={undoableUpdateSaveMeta}
-              onOpenSettings={() => setSettingsOpen(true)}
-              onOpenSave={(id) => setFocusedId(id)}
-              onGenerateVariant={(id) => openVariantModal(id, true)}
-            />
-          )}
         </div>
 
-        {focused && detailLayout === 'rail' && (
+        {focused && (
           <DetailPanel
-            layout="rail"
             record={focused}
             allCollections={collections}
             allTags={allTags}
