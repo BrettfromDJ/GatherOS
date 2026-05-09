@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { parseLap } from '../lib/format.js';
 
@@ -8,6 +8,8 @@ const DISCIPLINES = ['road', 'street', 'dirt', 'cross-country', 'drift'];
 
 export default function LogRace() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const rematchOf = params.get('rematch');
   const [users, setUsers] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [tracks, setTracks] = useState([]);
@@ -16,22 +18,38 @@ export default function LogRace() {
   const [trackOverride, setTrackOverride] = useState('');
   const [carClass, setCarClass] = useState('');
   const [notes, setNotes] = useState('');
-  const [order, setOrder] = useState([]); // [{user_id, lap, dnf}]
+  const [order, setOrder] = useState([]);
   const [creatingTrack, setCreatingTrack] = useState(false);
   const [newTrack, setNewTrack] = useState({ name: '', discipline: 'road', region: '' });
+  const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [rematchSource, setRematchSource] = useState(null);
 
   useEffect(() => {
-    Promise.all([api.users(), api.seasons(), api.tracks()]).then(([u, s, t]) => {
+    Promise.all([api.users(), api.seasons(), api.tracks()]).then(async ([u, s, t]) => {
       setUsers(u);
       setSeasons(s);
       setTracks(t);
       const active = s.find(x => x.status === 'active') || s[0];
       if (active) setSeasonId(active.id);
       setOrder(u.map(x => ({ user_id: x.id, lap: '', dnf: false })));
+
+      if (rematchOf) {
+        try {
+          const races = await api.races({ limit: 200 });
+          const src = races.find(r => r.id === Number(rematchOf));
+          if (src) {
+            setRematchSource(src);
+            setSeasonId(src.season_id);
+            setTrackId(src.track_id ? String(src.track_id) : '');
+            setTrackOverride(src.track_id ? '' : (src.track_name_override || ''));
+            setCarClass(src.car_class || '');
+          }
+        } catch {}
+      }
     });
-  }, []);
+  }, [rematchOf]);
 
   const move = (idx, dir) => {
     setOrder(o => {
@@ -50,13 +68,22 @@ export default function LogRace() {
     setBusy(true);
     setError(null);
     try {
-      const results = order.map((r, i) => ({
-        user_id: r.user_id,
-        position: i + 1,
-        fastest_lap_ms: parseLap(r.lap),
-        dnf: r.dnf,
-      }));
-      await api.createRace({
+      const finishers = order.filter(r => !r.dnf);
+      const results = [
+        ...finishers.map((r, i) => ({
+          user_id: r.user_id,
+          position: i + 1,
+          fastest_lap_ms: parseLap(r.lap),
+          dnf: false,
+        })),
+        ...order.filter(r => r.dnf).map(r => ({
+          user_id: r.user_id,
+          position: finishers.length + 1,
+          fastest_lap_ms: null,
+          dnf: true,
+        })),
+      ];
+      const { id: raceId } = await api.createRace({
         season_id: seasonId,
         track_id: trackId ? Number(trackId) : null,
         track_name_override: trackId ? null : trackOverride.trim(),
@@ -64,6 +91,10 @@ export default function LogRace() {
         notes: notes.trim() || null,
         results,
       });
+      if (photos.length > 0) {
+        try { await api.uploadPhotos(raceId, photos); }
+        catch (e) { alert(`Race saved, but photo upload failed: ${e.message}`); }
+      }
       nav('/');
     } catch (e) {
       setError(e.message || 'Failed to save.');
@@ -87,6 +118,14 @@ export default function LogRace() {
     <>
       <h1>Log a Race</h1>
       <p className="subtitle">Drag-rank by clicking the up/down arrows. Lap times like <code>1:42.388</code>.</p>
+
+      {rematchSource && (
+        <div className="notice" style={{ marginBottom: 12, borderColor: 'var(--accent)' }}>
+          <strong style={{ color: 'var(--text)' }}>Rematch:</strong>{' '}
+          {rematchSource.track_name || rematchSource.track_name_override}
+          {rematchSource.car_class && ` · ${rematchSource.car_class}`} — track and class prefilled.
+        </div>
+      )}
 
       <div className="notice" style={{ marginBottom: 16 }}>
         <strong style={{ color: 'var(--text)' }}>Crew races only.</strong> The tracker only accepts races where all four of you ran. If someone wasn't online, don't log it. If someone was in the lobby but crashed out, mark them DNF.
@@ -169,6 +208,20 @@ export default function LogRace() {
         <div className="field">
           <label>Notes (optional)</label>
           <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything memorable. Crashes, drama, photo finishes…" />
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>Photos (optional) — screenshots, photo mode, the post-race results screen</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={e => setPhotos([...e.target.files])}
+          />
+          {photos.length > 0 && (
+            <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12 }}>
+              {photos.length} file{photos.length === 1 ? '' : 's'} selected ({Math.round(photos.reduce((acc, f) => acc + f.size, 0) / 1024)} KB total)
+            </div>
+          )}
         </div>
       </div>
 

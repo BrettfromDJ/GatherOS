@@ -1,5 +1,12 @@
 import { db } from './db.js';
 import { applyResults } from './scoring.js';
+import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { resolve, extname } from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { randomUUID } from 'node:crypto';
+
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 
 const SHARED_PASSCODE = process.env.FORZA_PASSCODE || 'horizon';
 const SESSION_COOKIE = 'forza_session';
@@ -18,7 +25,8 @@ function requireAuth(req, reply) {
   return user;
 }
 
-export default async function routes(app) {
+export default async function routes(app, opts) {
+  const uploadsDir = opts?.uploadsDir;
   app.get('/api/health', async () => ({ ok: true }));
 
   app.post('/api/auth/login', async (req, reply) => {
@@ -300,7 +308,15 @@ export default async function routes(app) {
       WHERE rr.race_id = ?
       ORDER BY rr.position ASC
     `);
-    return rows.map(r => ({ ...r, results: results.all(r.id) }));
+    const photos = db.prepare(`
+      SELECT id, filename, caption, uploaded_by, uploaded_at
+      FROM race_photos WHERE race_id = ? ORDER BY uploaded_at ASC
+    `);
+    return rows.map(r => ({
+      ...r,
+      results: results.all(r.id),
+      photos: photos.all(r.id),
+    }));
   });
 
   app.post('/api/races', async (req, reply) => {
@@ -393,5 +409,73 @@ export default async function routes(app) {
       GROUP BY track, discipline
       ORDER BY track ASC
     `).all();
+  });
+
+  app.get('/api/races/:id/photos', async (req) => {
+    return db.prepare(`
+      SELECT id, race_id, filename, caption, uploaded_by, uploaded_at
+      FROM race_photos WHERE race_id = ? ORDER BY uploaded_at ASC
+    `).all(Number(req.params.id));
+  });
+
+  app.post('/api/races/:id/photos', async (req, reply) => {
+    const me = requireAuth(req, reply);
+    if (!me) return;
+    const raceId = Number(req.params.id);
+    const race = db.prepare('SELECT id FROM races WHERE id = ?').get(raceId);
+    if (!race) return reply.code(404).send({ error: 'race not found' });
+
+    const parts = req.parts();
+    const inserted = [];
+    const insert = db.prepare(
+      'INSERT INTO race_photos (race_id, filename, caption, uploaded_by) VALUES (?, ?, ?, ?)'
+    );
+    let captionForNext = null;
+
+    for await (const part of parts) {
+      if (part.type === 'field' && part.fieldname === 'caption') {
+        captionForNext = String(part.value || '').slice(0, 500) || null;
+        continue;
+      }
+      if (part.type === 'file') {
+        const ext = extname(part.filename || '').toLowerCase();
+        if (!ALLOWED_IMAGE_EXT.has(ext)) {
+          await part.file.resume();
+          continue;
+        }
+        const filename = `${randomUUID()}${ext}`;
+        const dest = resolve(uploadsDir, filename);
+        await pipeline(part.file, createWriteStream(dest));
+        if (part.file.truncated) {
+          await unlink(dest).catch(() => {});
+          return reply.code(413).send({ error: 'file_too_large' });
+        }
+        const info = insert.run(raceId, filename, captionForNext, me.id);
+        captionForNext = null;
+        inserted.push(db.prepare('SELECT * FROM race_photos WHERE id = ?').get(info.lastInsertRowid));
+      }
+    }
+    return inserted;
+  });
+
+  app.patch('/api/photos/:id', async (req, reply) => {
+    const me = requireAuth(req, reply);
+    if (!me) return;
+    const { caption } = req.body || {};
+    db.prepare('UPDATE race_photos SET caption = ? WHERE id = ?').run(
+      caption ? String(caption).slice(0, 500) : null,
+      Number(req.params.id)
+    );
+    return db.prepare('SELECT * FROM race_photos WHERE id = ?').get(Number(req.params.id));
+  });
+
+  app.delete('/api/photos/:id', async (req, reply) => {
+    const me = requireAuth(req, reply);
+    if (!me) return;
+    const photo = db.prepare('SELECT * FROM race_photos WHERE id = ?').get(Number(req.params.id));
+    if (!photo) return { ok: true };
+    db.prepare('DELETE FROM race_photos WHERE id = ?').run(photo.id);
+    await unlink(resolve(uploadsDir, photo.filename)).catch(() => {});
+    return { ok: true };
   });
 }

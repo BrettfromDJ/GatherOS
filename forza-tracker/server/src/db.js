@@ -82,4 +82,15 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_teams_season ON teams(season_id);
+
+  CREATE TABLE IF NOT EXISTS race_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id INTEGER NOT NULL REFERENCES races(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    caption TEXT,
+    uploaded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_photos_race ON race_photos(race_id);
 `);

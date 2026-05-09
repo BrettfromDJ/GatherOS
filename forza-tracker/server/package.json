@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^9.3.1",
+    "@fastify/multipart": "^8.3.0",
     "@fastify/static": "^7.0.4",
     "better-sqlite3": "^11.3.0",
     "fastify": "^4.28.1"

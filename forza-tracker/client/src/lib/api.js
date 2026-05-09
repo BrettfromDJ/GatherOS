@@ -45,4 +45,20 @@ export const api = {
   deleteRace: (id) => request(`/api/races/${id}`, { method: 'DELETE' }),
 
   records: () => request('/api/stats/records'),
+
+  photos: (raceId) => request(`/api/races/${raceId}/photos`),
+  uploadPhotos: async (raceId, files, caption) => {
+    const fd = new FormData();
+    if (caption) fd.append('caption', caption);
+    for (const f of files) fd.append('photo', f, f.name);
+    const res = await fetch(`/api/races/${raceId}/photos`, {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+    });
+    if (!res.ok) throw new Error(await res.text() || `upload failed: ${res.status}`);
+    return res.json();
+  },
+  updatePhoto: (id, body) => request(`/api/photos/${id}`, { method: 'PATCH', body }),
+  deletePhoto: (id) => request(`/api/photos/${id}`, { method: 'DELETE' }),
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { formatDate, formatLap } from '../lib/format.js';
+import PhotoGallery from '../components/PhotoGallery.jsx';
 
 export default function Races() {
   const [seasons, setSeasons] = useState([]);
@@ -44,7 +45,10 @@ export default function Races() {
               {r.car_class && <span className="tag" style={{ marginLeft: 6 }}>{r.car_class}</span>}
               <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 10 }}>{formatDate(r.raced_at)}</span>
             </div>
-            <button className="ghost" onClick={() => remove(r.id)}>Delete</button>
+            <div className="row" style={{ gap: 6 }}>
+              <Link to={`/log?rematch=${r.id}`}><button className="secondary">Rematch</button></Link>
+              <button className="ghost" onClick={() => remove(r.id)}>Delete</button>
+            </div>
           </div>
           <div className="results-list">
             {r.results.map(res => (
@@ -64,6 +68,12 @@ export default function Races() {
             ))}
           </div>
           {r.notes && <div style={{ marginTop: 10, color: 'var(--muted)', fontSize: 13 }}>{r.notes}</div>}
+          <PhotoGallery
+            raceId={r.id}
+            photos={r.photos || []}
+            canEdit={true}
+            onChange={photos => setRaces(rs => rs.map(x => x.id === r.id ? { ...x, photos } : x))}
+          />
         </div>
       ))}
     </>

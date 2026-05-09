@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { formatDate, formatLap } from '../lib/format.js';
+import PhotoGallery from '../components/PhotoGallery.jsx';
 
 export default function Dashboard() {
   const [seasons, setSeasons] = useState([]);
@@ -219,6 +220,7 @@ function Stat({ label, value, sub, accent }) {
 }
 
 function RaceCard({ race }) {
+  const [photos, setPhotos] = useState(race.photos || []);
   const fastestMs = race.results.reduce((acc, r) => (r.fastest_lap_ms != null && (acc == null || r.fastest_lap_ms < acc) ? r.fastest_lap_ms : acc), null);
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
@@ -228,7 +230,10 @@ function RaceCard({ race }) {
           {race.track_discipline && <span className={`tag ${race.track_discipline}`} style={{ marginLeft: 8 }}>{race.track_discipline}</span>}
           {race.car_class && <span className="tag" style={{ marginLeft: 6 }}>{race.car_class}</span>}
         </div>
-        <span style={{ color: 'var(--muted)', fontSize: 12 }}>{formatDate(race.raced_at)}</span>
+        <div className="row" style={{ gap: 6 }}>
+          <span style={{ color: 'var(--muted)', fontSize: 12 }}>{formatDate(race.raced_at)}</span>
+          <Link to={`/log?rematch=${race.id}`}><button className="secondary" style={{ padding: '4px 10px', fontSize: 12 }}>Rematch</button></Link>
+        </div>
       </div>
       <div className="results-list">
         {race.results.map(r => (
@@ -247,6 +252,9 @@ function RaceCard({ race }) {
           </div>
         ))}
       </div>
+      {photos.length > 0 && (
+        <PhotoGallery raceId={race.id} photos={photos} canEdit={false} onChange={setPhotos} />
+      )}
     </div>
   );
 }
