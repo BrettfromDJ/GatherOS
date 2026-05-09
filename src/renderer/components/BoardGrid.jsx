@@ -23,7 +23,7 @@ function BoardTile({
   onRenameCancel,
 }) {
   const thumbs = Array.isArray(board.thumbs) ? board.thumbs.slice(0, 4) : [];
-  const hasThumbs = thumbs.length > 0;
+  const count = thumbs.length;
   return (
     <div
       className={styles.tile}
@@ -44,16 +44,13 @@ function BoardTile({
       onContextMenu={onContextMenu}
     >
       <div className={styles.tileArt}>
-        {hasThumbs ? (
-          <div
-            className={`${styles.tileMosaic} ${styles[`tileMosaic${thumbs.length}`]}`}
-            aria-hidden="true"
-          >
+        {count > 0 ? (
+          <div className={styles.tileStack} aria-hidden="true">
             {thumbs.map((thumb, i) => (
               <img
                 key={`${i}-${thumb}`}
                 src={fileUrl(thumb)}
-                className={styles.tileMosaicImg}
+                className={styles.tileStackImg}
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -63,7 +60,7 @@ function BoardTile({
           </div>
         ) : (
           <span className={styles.tileEmpty} aria-hidden="true">
-            <Frame size={36} strokeWidth={1.4} />
+            <Frame size={32} strokeWidth={1.4} />
           </span>
         )}
       </div>

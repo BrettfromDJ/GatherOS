@@ -28,7 +28,8 @@ function FolderTile({
   onDragLeave,
   onDrop,
 }) {
-  const thumbs = Array.isArray(folder.thumbs) ? folder.thumbs.slice(0, 3) : [];
+  const thumbs = Array.isArray(folder.thumbs) ? folder.thumbs.slice(0, 4) : [];
+  const count = folder.save_count || 0;
   return (
     <div
       className={`${styles.tile}${isDropTarget ? ' ' + styles.tileDropTarget : ''}`}
@@ -68,7 +69,7 @@ function FolderTile({
           </div>
         ) : (
           <span className={styles.tileEmpty} aria-hidden="true">
-            <FolderClosed size={36} strokeWidth={1.4} />
+            <FolderClosed size={32} strokeWidth={1.4} />
           </span>
         )}
       </div>
@@ -95,9 +96,10 @@ function FolderTile({
         ) : (
           <span className={styles.tileName}>{folder.name}</span>
         )}
-        {!isRenaming && folder.save_count > 0 && (
-          <span className={styles.tileCount}>{folder.save_count}</span>
-        )}
+        <span className={styles.tileCount}>
+          <span className={styles.tileCountNum}>{count}</span>
+          <span className={styles.tileCountLabel}> {count === 1 ? 'save' : 'saves'}</span>
+        </span>
       </div>
     </div>
   );

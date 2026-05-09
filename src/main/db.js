@@ -845,11 +845,13 @@ function getAllCollections() {
 }
 
 // Same shape as getAllCollections plus a `thumbs: string[]` field
-// containing up to three of the most-recent thumbnails per bucket.
+// containing up to four of the most-recent thumbnails per bucket.
 // Powers the Folders-mode tile grid where each folder renders its
-// stack-fan artwork. Window function does the per-collection LIMIT 3
-// in a single query; group_concat aggregates the paths into a
-// delimiter-joined string (x'01' = SOH, can never appear in a path).
+// fanned stack artwork — same recipe as FeaturedBuckets' cards on
+// the Library page, which fan four thumbs. Window function does the
+// per-collection LIMIT 4 in a single query; group_concat aggregates
+// the paths into a delimiter-joined string (x'01' = SOH, can never
+// appear in a path).
 function getAllCollectionsWithThumbs() {
   const rows = getDatabase().prepare(`
     WITH ranked AS (
@@ -866,7 +868,7 @@ function getAllCollectionsWithThumbs() {
       SELECT collection_id,
              group_concat(thumb_path, x'01') AS thumbs
       FROM ranked
-      WHERE rn <= 3
+      WHERE rn <= 4
       GROUP BY collection_id
     )
     SELECT c.id, c.name, c.color, c.created_at, c.order_index, c.parent_id,

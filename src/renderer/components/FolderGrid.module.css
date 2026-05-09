@@ -1,8 +1,10 @@
-/* Folders-mode tile grid. Replaces the masonry when the user is on
-   the Folders segment of the mode pill. Each tile is a folder
-   rendered with its existing top-3 thumbs as a fanned stack — the
-   same idiom that previously lived as a hover-only sidebar Easter
-   egg, promoted to primary navigation artwork. */
+/* Folders-mode tile grid. Each tile uses the same card recipe as
+   FeaturedBuckets on the Library page (--surface-1 fill, 1px border,
+   8px radius, ambient shadow, padded interior) so the folder cards
+   feel like the same object whether you're seeing them above the
+   masonry on the Library page or as the primary surface under the
+   Folders tab. The fanned-thumb stack inside also matches: same
+   tilt + offset transforms, same hover spread. */
 
 .scroll {
   flex: 1 1 auto;
@@ -14,22 +16,41 @@
   display: grid;
   gap: 24px 20px;
   padding: 24px 32px 40px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   align-items: start;
 }
 
+/* Card surface — same recipe as .card in FeaturedBuckets. The tile
+   itself carries the shadow / border / radius now; the inner art
+   plate has been collapsed into a transparent fan area. */
 .tile {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 0;
-  background: transparent;
-  border: none;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-align: left;
   color: inherit;
   font: inherit;
   animation: tileIn var(--dur-medium) var(--ease-out) both;
+  transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+}
+
+:root[data-theme="dark"] .tile {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .tile:hover {
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.55);
 }
 
 @keyframes tileIn {
@@ -41,115 +62,112 @@
   .tile { animation: none; }
 }
 
-/* Artwork plate. Fixed aspect so a row of tiles aligns regardless
-   of how many thumbs each folder has. The tile reads as a card,
-   not a free-floating set of images. */
+/* Fan area. Transparent — the card surface is the parent .tile.
+   Fixed height so cards in a row align regardless of how many
+   thumbs each folder has. Perspective gives the fan a hint of
+   depth on rotation. */
 .tileArt {
   position: relative;
-  aspect-ratio: 16 / 11;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--hover-bg-soft);
-  border: 0.5px solid var(--border-subtle);
+  width: 100%;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  perspective: 600px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
-.tile:hover .tileArt {
-  transform: translateY(-2px);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.10),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-}
-
-/* Three-card fan inside the artwork plate. Sized as percentages of
-   the plate so the fan scales with tile width. */
 .tileStack {
   position: absolute;
   inset: 0;
 }
 
+/* Square thumbs anchored to plate center; the per-child transforms
+   below tilt + offset each one to form the fan. Sized larger than
+   FeaturedBuckets' 92px so the card-relative fan reads at a similar
+   visual weight even though the tile is wider. */
 .tileStackImg {
   position: absolute;
-  width: 50%;
-  height: 70%;
+  width: 120px;
+  height: 120px;
   top: 50%;
   left: 50%;
+  margin-top: -60px;
+  margin-left: -60px;
   border-radius: var(--radius-md);
   object-fit: cover;
-  background: var(--hover-bg-soft);
-  border: 0.5px solid var(--border-strong);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
-  transition: transform var(--dur-medium) var(--ease-out);
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  transition: transform var(--dur-pronounced) var(--ease-out);
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.tileStackImg:nth-child(1) {
-  transform: translate(-65%, -52%) rotate(-8deg);
-  z-index: 1;
-}
-.tileStackImg:nth-child(2) {
-  transform: translate(-50%, -50%) rotate(0deg);
-  z-index: 2;
-}
-.tileStackImg:nth-child(3) {
-  transform: translate(-35%, -52%) rotate(8deg);
-  z-index: 3;
-}
+/* Static stacked-and-tilted positions — same fan recipe as
+   FeaturedBuckets, offsets scaled ~1.3x to suit the 120px thumb. */
+.tileStackImg:nth-child(1) { transform: rotate(-7deg) translate(-13px, 5px); z-index: 1; }
+.tileStackImg:nth-child(2) { transform: rotate(-2deg) translate(-4px, 0);    z-index: 2; }
+.tileStackImg:nth-child(3) { transform: rotate(3deg)  translate(7px, 0);     z-index: 3; }
+.tileStackImg:nth-child(4) { transform: rotate(8deg)  translate(15px, 5px);  z-index: 4; }
 
-/* Hover spreads the fan and lifts it slightly — same reward signal
-   the bucket fan-out preview uses elsewhere. */
-.tile:hover .tileStackImg:nth-child(1) {
-  transform: translate(-72%, -55%) rotate(-12deg);
-}
-.tile:hover .tileStackImg:nth-child(3) {
-  transform: translate(-28%, -55%) rotate(12deg);
-}
+/* Hover spreads the fan — same reward signal FeaturedBuckets uses. */
+.tile:hover .tileStackImg:nth-child(1) { transform: rotate(-16deg) translate(-38px, 10px); }
+.tile:hover .tileStackImg:nth-child(2) { transform: rotate(-6deg)  translate(-15px, -2px); }
+.tile:hover .tileStackImg:nth-child(3) { transform: rotate(7deg)   translate(18px, -2px); }
+.tile:hover .tileStackImg:nth-child(4) { transform: rotate(18deg)  translate(40px, 10px); }
 
+/* Empty bucket — bare folder icon, no surrounding tile. Reads as a
+   placeholder, not a card. */
 .tileEmpty {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-tertiary);
+  width: 56px;
+  height: 56px;
+  color: rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="dark"] .tileEmpty {
+  color: rgba(255, 255, 255, 0.22);
 }
 
 .tileMeta {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 4px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .tileName {
   font-size: var(--text-md);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .tileCount {
-  font-size: var(--text-xs);
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
-  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* Empty state — first-launch / brand-new library. The CTA mirrors
-   the sidebar's "+ New folder" affordance so the user has a clear
-   way to start. */
+.tileCountNum,
+.tileCountLabel {
+  display: inline;
+}
+
+/* Empty state — first-launch / brand-new library. */
 .empty {
   flex: 1 1 auto;
   display: flex;
@@ -181,10 +199,6 @@
   text-wrap: pretty;
 }
 
-/* Black primary CTA — same recipe as the toolbar's "+ Add"
-   button. Filled ink, white label, no border. The empty-state
-   case is the single most prominent action on the surface, so
-   this button leads the visual hierarchy. */
 .emptyAction {
   margin-top: 14px;
   padding: 9px 18px;
@@ -205,52 +219,56 @@
 .emptyAction:hover { opacity: 0.92; }
 .emptyAction:active { transform: scale(0.98); }
 
-/* Inline rename input — replaces the tile name when the user is
-   renaming. Sits flush in the meta row so the layout doesn't
-   shift between view and edit states. */
+/* Inline rename input — replaces the name when renaming. Sits flush
+   in the meta row so the layout doesn't shift between view/edit. */
 .tileRenameInput {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 1px 4px;
-  margin: -1px -4px;
-  background: var(--input-bg-focus);
-  border: 0.5px solid var(--accent-ring);
+  padding: 2px 6px;
+  margin: -2px -6px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-sm);
   font-family: var(--font-ui);
   font-size: var(--text-md);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   outline: none;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+  width: 100%;
 }
 
 .tileRenameInput:focus {
+  background: var(--input-bg-focus);
   border-color: var(--accent);
-  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+  box-shadow: 0 0 0 2px var(--accent-bg-medium);
 }
 
-/* "+" new-folder tile — same footprint as a real folder tile so
-   the grid rhythm doesn't break. Empty-fill artwork plate, plus
-   sign centered, label below. */
+/* "+" new-folder tile — same footprint as a real tile so the grid
+   rhythm doesn't break. Dashed border + transparent fill so the
+   call-to-action reads as a placeholder, not as another folder. */
 .tileNew {
   background: transparent;
-}
-
-.tileArtNew {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0.5px dashed var(--border-strong);
-  color: var(--text-tertiary);
+  border: 1px dashed var(--border-strong);
   box-shadow: none;
 }
 
-.tileNew:hover .tileArtNew {
+.tileNew:hover {
   background: var(--hover-bg-soft);
   border-color: var(--text-tertiary);
-  color: var(--text-primary);
   transform: translateY(-2px);
+  box-shadow: none;
+}
+
+.tileArtNew {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.tileNew:hover .tileArtNew {
+  color: var(--text-primary);
 }
 
 .tileNameMuted {
@@ -261,16 +279,15 @@
   color: var(--text-primary);
 }
 
-/* Drag-over state — accent ring around the artwork plate so the
-   user reads it as the active drop target. Matches the
-   FeaturedBuckets dropTarget recipe so the two surfaces stay
-   visually consistent. */
-.tileDropTarget .tileArt {
+/* Drag-over state — accent ring around the card, slight scale.
+   Matches the FeaturedBuckets dropTarget recipe. */
+.tileDropTarget {
   outline: 1.5px solid var(--accent);
   outline-offset: 4px;
   background: var(--accent-bg-faint);
+  transform: translateY(-2px) scale(1.02);
 }
 
-.tileDropTarget .tileArt {
-  transform: translateY(-2px) scale(1.02);
+.tileDropTarget:hover {
+  background: var(--accent-bg-faint);
 }
