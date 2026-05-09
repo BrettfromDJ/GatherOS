@@ -123,6 +123,24 @@
   color: var(--text-primary);
 }
 
+/* Leading library glyph for each library row. Same 16x16 slot as
+   the trailing check so the row gets a balanced [icon][name][check]
+   layout. Tertiary tint so the name stays the primary read; the
+   active row promotes the icon to primary ink to mirror the check. */
+.rowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.rowActive .rowIcon {
+  color: var(--text-primary);
+}
+
 .rowLabel {
   flex: 1;
   min-width: 0;

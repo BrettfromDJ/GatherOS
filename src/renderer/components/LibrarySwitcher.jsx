@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronsUpDown, Check, Plus, Settings as SettingsIcon } from 'lucide-react';
+import { ChevronsUpDown, Check, Plus, Settings as SettingsIcon, Library } from 'lucide-react';
 import styles from './LibrarySwitcher.module.css';
 
 const SwitcherIcon = () => <ChevronsUpDown size={15} strokeWidth={2} aria-hidden="true" />;
 const CheckIcon = () => <Check size={14} strokeWidth={2} aria-hidden="true" />;
 const PlusIcon = () => <Plus size={14} strokeWidth={2} aria-hidden="true" />;
 const ManageIcon = () => <SettingsIcon size={14} strokeWidth={1.8} aria-hidden="true" />;
+const LibraryRowIcon = () => <Library size={14} strokeWidth={1.8} aria-hidden="true" />;
 
 // Top-of-toolbar dropdown that shows the active library and lets the
 // user switch between libraries. The "···" actions button beside the
@@ -114,6 +115,9 @@ export default function LibrarySwitcher({
                   }}
                   style={{ '--idx': idx }}
                 >
+                  <span className={styles.rowIcon}>
+                    <LibraryRowIcon />
+                  </span>
                   <span className={styles.rowLabel}>{lib.name}</span>
                   <span className={styles.rowCheck}>
                     {isActive ? <CheckIcon /> : null}
