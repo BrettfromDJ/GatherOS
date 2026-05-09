@@ -8,11 +8,14 @@
     "client"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "npm run dev --workspace server",
     "dev:client": "npm run dev --workspace client",
     "build": "npm run build --workspace client",
     "start": "npm run start --workspace server",
     "seed": "npm run seed --workspace server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
