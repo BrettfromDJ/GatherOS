@@ -1,42 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronsUpDown, Check, Plus, Settings as SettingsIcon } from 'lucide-react';
 import styles from './LibrarySwitcher.module.css';
-import { CollectionIcon } from './Sidebar.jsx';
-import { fileUrl } from '../lib/fileUrl.js';
 
 const SwitcherIcon = () => <ChevronsUpDown size={15} strokeWidth={2} aria-hidden="true" />;
-const CheckIcon = () => <Check size={11} strokeWidth={1.8} aria-hidden="true" />;
-const PlusIcon = () => <Plus size={11} strokeWidth={1.8} aria-hidden="true" />;
-const ManageIcon = () => <SettingsIcon size={12} strokeWidth={1.8} aria-hidden="true" />;
-
-// Mini fanned thumbnail stack for each library row in the dropdown.
-// Up to three images peek out at gentle tilts; on hover they fan out
-// a little so the row feels alive. Empty libraries get a neutral
-// outlined card with the bucket icon centered, sized identically so
-// the layout doesn't shift between empty and populated rows.
-function ThumbStack({ items }) {
-  const populated = Array.isArray(items) && items.length > 0;
-  return (
-    <div className={styles.thumbStack} aria-hidden="true">
-      {populated ? (
-        items.slice(0, 3).map((s, i) => (
-          <img
-            key={s.id || i}
-            className={styles.thumbStackImg}
-            src={fileUrl(s.thumb_path || s.file_path)}
-            alt=""
-            draggable={false}
-            style={{ '--idx': i }}
-          />
-        ))
-      ) : (
-        <div className={styles.thumbEmpty}>
-          <CollectionIcon />
-        </div>
-      )}
-    </div>
-  );
-}
+const CheckIcon = () => <Check size={14} strokeWidth={2} aria-hidden="true" />;
+const PlusIcon = () => <Plus size={14} strokeWidth={2} aria-hidden="true" />;
+const ManageIcon = () => <SettingsIcon size={14} strokeWidth={1.8} aria-hidden="true" />;
 
 // Top-of-toolbar dropdown that shows the active library and lets the
 // user switch between libraries. The "···" actions button beside the
@@ -53,35 +22,11 @@ export default function LibrarySwitcher({
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createDraft, setCreateDraft] = useState('');
-  const [previews, setPreviews] = useState({});
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
   const createInputRef = useRef(null);
 
   const active = libraries.find((l) => l.id === activeId) || libraries[0];
-
-  // Fetch thumbnail previews for every library when the dropdown
-  // opens. Cheap — read-only DB peek per library, returns at most
-  // 4 rows.
-  useEffect(() => {
-    if (!open) return undefined;
-    let cancelled = false;
-    (async () => {
-      const next = {};
-      await Promise.all(
-        libraries.map(async (lib) => {
-          try {
-            const items = await window.moodmark.libraries.previews(lib.id, 4);
-            next[lib.id] = Array.isArray(items) ? items : [];
-          } catch {
-            next[lib.id] = [];
-          }
-        }),
-      );
-      if (!cancelled) setPreviews(next);
-    })();
-    return () => { cancelled = true; };
-  }, [open, libraries]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -169,7 +114,6 @@ export default function LibrarySwitcher({
                   }}
                   style={{ '--idx': idx }}
                 >
-                  <ThumbStack items={previews[lib.id]} />
                   <span className={styles.rowLabel}>{lib.name}</span>
                   <span className={styles.rowCheck}>
                     {isActive ? <CheckIcon /> : null}

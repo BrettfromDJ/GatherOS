@@ -97,9 +97,11 @@ body[data-board-print="true"] .main-col {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  /* Default left padding for top bars; bumped when the sidebar is hidden
-     so toggle buttons / titles clear the macOS traffic lights. */
-  --titlebar-left-pad: 16px;
+  /* Clear the macOS traffic-light cluster (~78px wide at 16px from
+     the left edge) so the brand mark + library switcher in the
+     toolbar's left cluster don't sit on top of the close/min/max
+     buttons. */
+  --titlebar-left-pad: 84px;
 }
 
 .layout.sidebar-collapsed {

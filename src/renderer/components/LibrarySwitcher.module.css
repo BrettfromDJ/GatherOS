@@ -56,11 +56,11 @@
   top: calc(100% + 6px);
   left: 0;
   z-index: 1000;
-  min-width: 280px;
+  min-width: 240px;
   padding: 6px;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   animation: rise var(--dur-quick) var(--ease-pop);
 }
@@ -80,35 +80,21 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 9px 10px;
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  /* Stagger entrance — each row a beat after the last so the
-     thumbnail stacks settle in like a soft cascade. */
   animation: rowFadeIn var(--dur-medium) var(--ease-out) both;
-  animation-delay: calc(var(--idx, 0) * 28ms);
+  animation-delay: calc(var(--idx, 0) * 22ms);
 }
 
 .row:hover {
   background: var(--hover-bg);
-}
-
-/* Hover the row → fan out the mini thumbnails so the stack feels
-   alive, mirroring the bucket card hover on the masonry grid. */
-.row:hover .thumbStackImg:nth-child(1) {
-  transform: rotate(-12deg) translate(-3px, 1px);
-}
-.row:hover .thumbStackImg:nth-child(2) {
-  transform: rotate(-3deg) translate(0, -1px);
-}
-.row:hover .thumbStackImg:nth-child(3) {
-  transform: rotate(11deg) translate(3px, 1px);
 }
 
 .rowActive {
@@ -131,8 +117,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   color: var(--text-primary);
 }
@@ -185,65 +171,3 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Mini thumbnail stack on each library row ──────────────────────
-   38×26px container with 3 cards at gentle tilts. Sized to feel
-   substantial without dominating the row. */
-.thumbStack {
-  position: relative;
-  width: 38px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
-.thumbStackImg {
-  position: absolute;
-  width: 26px;
-  height: 20px;
-  top: 3px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  background: var(--hover-bg-soft);
-  box-shadow:
-    0 0 0 0.5px var(--border),
-    0 1px 2px rgba(0, 0, 0, 0.1);
-  transition: transform var(--dur-medium) var(--ease-pop);
-}
-
-.thumbStackImg:nth-child(1) {
-  left: 0;
-  transform: rotate(-7deg) translate(-1px, 1px);
-  z-index: 1;
-}
-.thumbStackImg:nth-child(2) {
-  left: 6px;
-  transform: rotate(-1deg);
-  z-index: 2;
-}
-.thumbStackImg:nth-child(3) {
-  left: 12px;
-  transform: rotate(7deg) translate(1px, 1px);
-  z-index: 3;
-}
-
-/* Empty-state placeholder — same footprint as a populated stack so
-   rows don't shift as the library list mixes empty and populated. */
-.thumbEmpty {
-  position: absolute;
-  left: 6px;
-  top: 3px;
-  width: 26px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background:
-    linear-gradient(135deg, var(--hover-bg-soft) 0%, var(--hover-bg-strong) 100%);
-  color: var(--text-tertiary);
-  box-shadow: inset 0 0 0 0.5px var(--border);
-}
-
-.thumbEmpty svg {
-  width: 11px;
-  height: 11px;
-}
