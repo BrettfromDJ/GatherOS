@@ -1,0 +1,18 @@
+{
+  "name": "forza-tracker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Private Forza Horizon 6 racing tracker for a 4-person crew.",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "seed": "npm run seed --workspace server"
+  }
+}
