@@ -236,7 +236,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 56px;
+  /* Right padding clears the floating DetailPanel (300px wide,
+     16px right inset, ~24px breathing) so the image is never
+     drawn behind the overlay. */
+  padding: 32px 340px 32px 56px;
   overflow: hidden;
   background:
     radial-gradient(ellipse at center, rgba(0, 0, 0, 0.015), transparent 65%),
