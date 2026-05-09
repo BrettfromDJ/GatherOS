@@ -173,6 +173,9 @@ function LibrariesPage({
               key={lib.id}
               className={`${styles.libraryRow} ${isActive ? styles.libraryRowActive : ''}`}
             >
+              <span className={styles.libraryRowGlyph} aria-hidden="true">
+                <Library size={16} strokeWidth={1.6} />
+              </span>
               <div className={styles.libraryRowMain}>
                 {isRenaming ? (
                   <input
@@ -242,6 +245,9 @@ function LibrariesPage({
         })}
         {creating ? (
           <div className={styles.libraryRow}>
+            <span className={styles.libraryRowGlyph} aria-hidden="true">
+              <Library size={16} strokeWidth={1.6} />
+            </span>
             <div className={styles.libraryRowMain}>
               <input
                 autoFocus

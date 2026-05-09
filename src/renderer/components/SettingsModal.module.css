@@ -1019,6 +1019,24 @@
      to the name; no surrounding chrome to recolour. */
 }
 
+/* Leading library glyph — same family as the dropdown's row icon
+   so the two surfaces share one visual signature for "this is a
+   library". Tertiary tint to keep the name as the primary read;
+   active row promotes the glyph to primary ink. */
+.libraryRowGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.libraryRowActive .libraryRowGlyph {
+  color: var(--text-primary);
+}
+
 .libraryRowMain {
   flex: 1 1 auto;
   min-width: 0;
