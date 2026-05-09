@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   AlignJustify,
   LayoutDashboard,
+  X as LucideX,
   Settings as SettingsLucide,
   HelpCircle,
   Keyboard,
@@ -112,6 +113,21 @@ function SearchField({
           }
         }}
       />
+      {expanded && search && (
+        <button
+          type="button"
+          className={styles.clearSearchBtn}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            onSearchChange('');
+            searchInputRef?.current?.focus();
+          }}
+          title="Clear search"
+          aria-label="Clear search"
+        >
+          <LucideX size={11} strokeWidth={2.4} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }

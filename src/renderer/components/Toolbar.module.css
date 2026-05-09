@@ -211,21 +211,41 @@
   z-index: 1;
 }
 
+/* Expanded form picks up the same surface recipe as the
+   LibrarySwitcher dropdown panel — surface fill, hairline border,
+   10px radius, soft ambient shadow — so the active search reads
+   as a peer popover rather than an inline pill. Collapsed strips
+   it back to a bare glyph. */
 .searchWrap {
   position: relative;
   flex: 0 0 240px;
   width: 240px;
   -webkit-app-region: no-drag;
-  transition: width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  transition:
+    width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1),
+    background var(--dur-quick) ease,
+    border-color var(--dur-quick) ease,
+    box-shadow var(--dur-quick) ease;
 }
 
-/* Collapsed form — bare magnifying glass, no surrounding container.
-   The input is the same bare element it is when expanded; only the
-   wrap's width and the icon's centering differ. */
+:root[data-theme="dark"] .searchWrap {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Collapsed form — strip the dropdown chrome so it's just the
+   magnifying glass. Width / icon-centering are the only structural
+   differences from the expanded form. */
 .searchWrapCollapsed {
   flex: 0 0 28px;
   width: 28px;
   cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .searchWrapCollapsed .search {
@@ -338,7 +358,7 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  padding: 6px 8px 6px 28px;
+  padding: 6px 32px 6px 28px;
   background: transparent;
   border: none;
   border-radius: 0;
