@@ -84,11 +84,18 @@
   color: var(--text-primary);
 }
 
+/* Hero / artwork section. Stacks the image, the extracted color
+   swatches, and the "Generate variation" CTA so all three read as
+   facets of the same artwork — the user's eye doesn't have to
+   travel to a separate strip lower down to see the palette or
+   trigger a variation. */
 .preview {
-  padding: 16px;
+  padding: 16px 16px 18px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 14px;
   background: transparent;
   border-bottom: 1px solid var(--border);
   /* 3D viewing distance for the imageWrap's rotateX / rotateY. Lower
@@ -153,11 +160,16 @@
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
+/* Color swatches — now a centered chip row directly under the
+   thumbnail (instead of its own section below). The .preview
+   wrapper provides spacing + the section's bottom border, so this
+   element is just the swatch lockup. */
 .palette {
   display: flex;
+  justify-content: center;
   gap: 8px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 0;
+  border: none;
 }
 
 .swatch {
@@ -968,44 +980,51 @@
 }
 
 
-/* Generate-variation button — secondary control surface (white +
-   stroke + soft shadow), matching the rest of the new button
-   system. Sparkle icon up front so the AI affordance reads
-   immediately. */
+/* Generate-variation CTA — anchored at the bottom of the preview
+   section so it reads as the primary action for *this image*
+   rather than as a tail on the prompt block. Picks up the same
+   --ai-tint family as the "Generate prompt" autoTagBtn so both
+   AI affordances feel related, but is wider, taller, and stronger
+   so it leads the hierarchy of buttons in the section. */
 .variantBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 7px 12px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  background: var(--ai-tint-bg);
+  border: 1px solid var(--ai-tint-border);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-control);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: -0.005em;
-  color: var(--text-primary);
+  color: var(--ai-tint);
   cursor: pointer;
   transition:
     background var(--dur-instant) ease,
+    border-color var(--dur-instant) ease,
     transform var(--dur-instant) ease;
 }
 
-.variantBtn:hover { background: var(--hover-bg); }
+.variantBtn:hover {
+  background: color-mix(in srgb, var(--ai-tint) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ai-tint) 36%, transparent);
+}
+
 .variantBtn:active { transform: scale(0.98); }
 
 .variantBtnIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   color: var(--ai-tint);
 }
 
 .variantBtnIcon svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }

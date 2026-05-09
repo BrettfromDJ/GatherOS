@@ -578,6 +578,38 @@ export default function DetailPanel({
             {typeLabel && <div className={styles.typeBadge}>{typeLabel}</div>}
           </div>
         )}
+        {palette.length > 0 && (
+          <div className={styles.palette}>
+            {palette.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={styles.swatch}
+                style={{ background: color }}
+                onClick={() => copyColor(color)}
+                title={`Copy ${color.toUpperCase()}`}
+                aria-label={`Copy ${color}`}
+              >
+                {copiedColor === color && (
+                  <span className={styles.swatchTooltip}>Copied {color.toUpperCase()}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        {aiConfigured && onGenerateVariant && (
+          <button
+            type="button"
+            className={styles.variantBtn}
+            onClick={() => onGenerateVariant(record.id)}
+            title="Generate a fresh variation of this image"
+          >
+            <span className={styles.variantBtnIcon}>
+              <SparkleIcon />
+            </span>
+            Generate variation
+          </button>
+        )}
       </div>
 
       <div className={styles.metaEditSection}>
@@ -733,37 +765,6 @@ export default function DetailPanel({
         {promptError && (
           <div className={styles.autoTagError}>{promptError}</div>
         )}
-        {aiConfigured && onGenerateVariant && (
-          <button
-            type="button"
-            className={styles.variantBtn}
-            onClick={() => onGenerateVariant(record.id)}
-            title="Generate a fresh variation of this image"
-          >
-            <span className={styles.variantBtnIcon}>
-              <SparkleIcon />
-            </span>
-            Generate variation
-          </button>
-        )}
-      </div>
-
-      <div className={styles.palette}>
-        {palette.map((color) => (
-          <button
-            key={color}
-            type="button"
-            className={styles.swatch}
-            style={{ background: color }}
-            onClick={() => copyColor(color)}
-            title={`Copy ${color.toUpperCase()}`}
-            aria-label={`Copy ${color}`}
-          >
-            {copiedColor === color && (
-              <span className={styles.swatchTooltip}>Copied {color.toUpperCase()}</span>
-            )}
-          </button>
-        ))}
       </div>
 
       <div className={styles.collectionsSection}>
