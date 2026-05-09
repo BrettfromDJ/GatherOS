@@ -211,25 +211,26 @@
   z-index: 1;
 }
 
-/* Expanded form picks up the same surface recipe as the
-   LibrarySwitcher dropdown panel — surface fill, 10px radius,
-   soft ambient shadow — so the active search reads as a peer
-   popover rather than an inline pill. No border: the dropdown's
-   stroke felt too visible against the toolbar background, so the
-   shadow alone carries the elevation. Collapsed strips it back
-   to a bare glyph. */
+/* Expanded form mirrors the LibrarySwitcher dropdown panel exactly:
+   --surface-1 fill, 1px --border hairline, 10px radius, soft
+   ambient shadow, 6px interior padding so the input is inset from
+   the edge the same way dropdown rows are. Collapsed strips
+   everything back to a bare glyph. */
 .searchWrap {
   position: relative;
   flex: 0 0 240px;
   width: 240px;
   -webkit-app-region: no-drag;
+  padding: 6px;
   background: var(--surface-1);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   transition:
     width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1),
+    padding var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1),
     background var(--dur-quick) ease,
+    border-color var(--dur-quick) ease,
     box-shadow var(--dur-quick) ease;
 }
 
@@ -243,8 +244,10 @@
 .searchWrapCollapsed {
   flex: 0 0 28px;
   width: 28px;
+  padding: 0;
   cursor: pointer;
   background: transparent;
+  border-color: transparent;
   box-shadow: none;
 }
 
