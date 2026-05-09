@@ -59,8 +59,19 @@ function SearchField({
   onClearRecentSearches,
 }) {
   const [focused, setFocused] = useState(false);
+  // Expanded = full pill input visible. Starts collapsed unless an
+  // existing query is active (e.g. on remount). Click on the
+  // collapsed icon expands and focuses; blur with an empty query
+  // collapses back. Escape clears + collapses in one step.
+  const [expanded, setExpanded] = useState(!!search);
   const wrapRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // External edits to `search` (e.g. quick-switcher → search bar)
+  // should also force the field open so the user sees the query.
+  useEffect(() => {
+    if (search && !expanded) setExpanded(true);
+  }, [search, expanded]);
   // Mirrors the input's bounding rect so the portaled dropdown can
   // align under it. Recomputed on focus, on window resize, and on
   // scroll — covers every case where the input visually moves.
@@ -115,8 +126,19 @@ function SearchField({
   return (
     <div
       ref={wrapRef}
-      className={styles.searchWrap}
+      className={[styles.searchWrap, !expanded && styles.searchWrapCollapsed]
+        .filter(Boolean)
+        .join(' ')}
       data-onboarding="search"
+      onClick={(e) => {
+        if (expanded) return;
+        // Clicking anywhere on the collapsed pill expands it +
+        // focuses the input. Stop the click from propagating into
+        // the toolbar's drag region so the OS doesn't grab it.
+        e.stopPropagation();
+        setExpanded(true);
+        requestAnimationFrame(() => searchInputRef?.current?.focus());
+      }}
     >
       <span
         className={[styles.searchIcon, semanticSearchActive && styles.searchIconAi]
@@ -133,13 +155,19 @@ function SearchField({
         placeholder={semanticSearchActive ? 'Describe what you’re looking for…' : 'Search by title or tag'}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        onFocus={() => setFocused(true)}
+        onFocus={() => { setFocused(true); setExpanded(true); }}
         onBlur={() => {
           // Record the search after a successful "completed" search:
           // the user typed something and is moving on. The recents
           // dropdown handler closes the popover separately, so we
           // don't fight with click-on-recent.
-          if (search && search.trim()) onRecordSearch?.(search);
+          if (search && search.trim()) {
+            onRecordSearch?.(search);
+          } else {
+            // No query → fold the pill back to the icon.
+            setExpanded(false);
+          }
+          setFocused(false);
         }}
         onKeyDown={(e) => {
           // Escape always exits the field. When the input is empty
@@ -150,6 +178,7 @@ function SearchField({
             if (search) onSearchChange('');
             e.currentTarget.blur();
             setFocused(false);
+            setExpanded(false);
           }
         }}
       />
@@ -484,6 +513,16 @@ export default function Toolbar({
       <ModePill mode={mode} onModeChange={onModeChange} compact={modePillCompact} />
 
       <div className={styles.right}>
+        <SearchField
+          search={search}
+          onSearchChange={onSearchChange}
+          searchInputRef={searchInputRef}
+          semanticSearchActive={semanticSearchActive}
+          onOpenQuickSwitcher={onOpenQuickSwitcher}
+          recentSearches={recentSearches}
+          onRecordSearch={onRecordSearch}
+          onClearRecentSearches={onClearRecentSearches}
+        />
         <ThemeToggle className={styles.iconBtn} />
         {onOpenSettings && (
           <button

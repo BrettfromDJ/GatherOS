@@ -213,8 +213,46 @@
 
 .searchWrap {
   position: relative;
-  flex: 0 1 340px;
+  flex: 0 0 240px;
+  width: 240px;
   -webkit-app-region: no-drag;
+  transition: width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1);
+}
+
+/* Collapsed form — only the search icon is visible, dressed as an
+   icon button (~32px square pill). Clicking the wrap expands it
+   back to the full input. Escape or blur-with-empty-query collapses
+   it again. */
+.searchWrapCollapsed {
+  flex: 0 0 32px;
+  width: 32px;
+  cursor: pointer;
+}
+
+.searchWrapCollapsed .search {
+  padding-left: 32px;
+  padding-right: 8px;
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+}
+
+.searchWrapCollapsed .search::placeholder {
+  opacity: 0;
+}
+
+.searchWrapCollapsed .clearSearchBtn,
+.searchWrapCollapsed .qkChip {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.searchWrapCollapsed .searchIcon {
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchWrap { transition: none; }
 }
 
 .searchIcon {
