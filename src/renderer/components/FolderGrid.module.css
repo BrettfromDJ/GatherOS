@@ -142,6 +142,11 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  /* Always reserve room for two lines (name + count) so tiles
+     without a count — e.g. the dashed "+ New folder" placeholder
+     — sit at the same overall height as folders with a count
+     line. Otherwise the row reads as visually misaligned. */
+  min-height: 36px;
 }
 
 .tileName {
