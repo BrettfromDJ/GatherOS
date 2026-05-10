@@ -877,106 +877,68 @@ function registerIpcHandlers() {
   // against the embedding-count signature so repeated opens of the
   // view return instantly; pass force=true to recompute (after a
   // reindex or a wipe).
-  //
-  // Implementation notes:
-  // - umap-js wants `number[][]` — we Array.from each Float32Array
-  //   to avoid any typed-array quirks inside the library.
-  // - fit() runs synchronously and blocks the main process for the
-  //   entire optimization. With high-dim (1536) embeddings that's
-  //   long enough to look hung in the renderer. fitAsync() yields
-  //   between epochs so the event loop can pump progress events.
-  // - For very small libraries (< 4 saves) UMAP isn't meaningful;
-  //   we fall back to a circle layout so the view still renders.
   let constellationCache = null;   // { signature, points }
-  ipcMain.handle('constellation:get-points', async (event, opts = {}) => {
+  ipcMain.handle('constellation:get-points', async (_e, opts = {}) => {
     const force = !!opts.force;
-    try {
-      const rows = getSavesForConstellation();
-      console.log(`[constellation] ${rows.length} embedded saves`);
-      if (rows.length === 0) return [];
-      const signature = `${rows.length}:${rows[rows.length - 1]?.id || ''}`;
-      if (!force && constellationCache?.signature === signature) {
-        console.log('[constellation] cache hit');
-        return constellationCache.points;
-      }
-
-      // Decode + plain-array conversion. For 1536-dim × ~1000 rows
-      // this is ~6 MB — fine, and only held for the UMAP call.
-      console.log('[constellation] decoding embeddings…');
-      const matrix = rows.map((r) => Array.from(bufferToFloat32(r.embedding)));
-
-      let embedding2D;
-      if (rows.length < 4) {
-        // Tiny libraries: lay points on a ring so the renderer has
-        // something visually coherent rather than a single dot.
-        embedding2D = rows.map((_, i) => {
-          const a = (i / rows.length) * Math.PI * 2;
-          return [Math.cos(a), Math.sin(a)];
-        });
-      } else {
-        const { UMAP } = require('umap-js');
-        // nNeighbors must be < rows.length. 15 is the umap default
-        // but we clamp for small libraries.
-        const nNeighbors = Math.max(2, Math.min(15, rows.length - 1));
-        const umap = new UMAP({
-          nComponents: 2,
-          nNeighbors,
-          minDist: 0.1,
-          spread: 1.0,
-          random: () => 0.42,
-        });
-        console.log(`[constellation] umap fitAsync (n=${rows.length}, k=${nNeighbors})…`);
-        const t0 = Date.now();
-        embedding2D = await umap.fitAsync(matrix, async (epoch) => {
-          // Yield every 25 epochs so the main process event loop
-          // can pump IPC, garbage collect, paint, etc. Without this
-          // even fitAsync runs effectively synchronously.
-          if (epoch % 25 === 0) {
-            console.log(`[constellation] umap epoch ${epoch}`);
-            event.sender.send('constellation:progress', { epoch });
-            await new Promise((r) => setImmediate(r));
-          }
-          return true;  // keep going
-        });
-        console.log(`[constellation] umap done in ${Date.now() - t0}ms`);
-      }
-
-      // Normalize to [-1, 1] in both axes so the renderer can pick
-      // any viewport size without needing to re-fit. Keeps clusters
-      // proportional to the longest axis.
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const [x, y] of embedding2D) {
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
-      }
-      const rangeX = (maxX - minX) || 1;
-      const rangeY = (maxY - minY) || 1;
-      const range = Math.max(rangeX, rangeY);
-      const cx = (minX + maxX) / 2;
-      const cy = (minY + maxY) / 2;
-
-      const points = rows.map((r, i) => {
-        const [x, y] = embedding2D[i];
-        let palette = null;
-        try { palette = r.palette ? JSON.parse(r.palette) : null; } catch {}
-        const color = Array.isArray(palette) && palette[0] ? palette[0] : '#ffffff';
-        return {
-          id: r.id,
-          title: r.title || null,
-          file_path: r.file_path,
-          thumb_path: r.thumb_path,
-          color,
-          x: (x - cx) / (range / 2),
-          y: (y - cy) / (range / 2),
-        };
-      });
-
-      constellationCache = { signature, points };
-      return points;
-    } catch (err) {
-      console.error('[constellation] fit failed:', err);
-      throw err;
+    const rows = getSavesForConstellation();
+    if (rows.length === 0) return { points: [], dim: 2 };
+    const signature = `${rows.length}:${rows[rows.length - 1]?.id || ''}`;
+    if (!force && constellationCache?.signature === signature) {
+      return constellationCache.points;
     }
+
+    // Decode the 1536-dim float32 BLOBs into a matrix. UMAP expects a
+    // plain number[][] (or Float32Array[]); we hand it Float32Arrays
+    // for memory + speed.
+    const matrix = rows.map((r) => bufferToFloat32(r.embedding));
+
+    // UMAP runs in pure JS via umap-js. Defaults (15 neighbors, 0.1
+    // min-dist) give a balanced layout — clusters visible, but no
+    // black holes. Seeded random for stable layouts across recomputes
+    // with the same data.
+    const { UMAP } = require('umap-js');
+    const umap = new UMAP({
+      nComponents: 2,
+      nNeighbors: Math.min(15, Math.max(2, rows.length - 1)),
+      minDist: 0.1,
+      spread: 1.0,
+      random: () => 0.42,
+    });
+    const embedding2D = umap.fit(matrix);
+
+    // Normalize to [-1, 1] in both axes so the renderer can pick any
+    // viewport size without needing to re-fit. Keeps clusters
+    // proportional to the longest axis.
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const [x, y] of embedding2D) {
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    const rangeX = (maxX - minX) || 1;
+    const rangeY = (maxY - minY) || 1;
+    const range = Math.max(rangeX, rangeY);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    const points = rows.map((r, i) => {
+      const [x, y] = embedding2D[i];
+      let palette = null;
+      try { palette = r.palette ? JSON.parse(r.palette) : null; } catch {}
+      const color = Array.isArray(palette) && palette[0] ? palette[0] : '#ffffff';
+      return {
+        id: r.id,
+        title: r.title || null,
+        file_path: r.file_path,
+        thumb_path: r.thumb_path,
+        color,
+        // Normalized in [-1, 1] — renderer maps to viewport.
+        x: (x - cx) / (range / 2),
+        y: (y - cy) / (range / 2),
+      };
+    });
+
+    constellationCache = { signature, points };
+    return points;
   });
 
   // Backfill: process every save that has no embedding yet through the
