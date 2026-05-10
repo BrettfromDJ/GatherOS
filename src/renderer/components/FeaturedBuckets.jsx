@@ -26,13 +26,8 @@ function TrashIcon() {
   );
 }
 
-// Two-layer layout for the featured buckets:
-//   1. .cardsRow flows with the masonry — when you scroll, the cards
-//      go up and out of view naturally, no sticky positioning.
-//   2. .pillBar is sticky at top: 0, invisible by default. Once the
-//      sentinel at the bottom of .cardsRow leaves the viewport (i.e.
-//      the cards have scrolled past), pillBar fades in. Scroll back
-//      up and it fades out as the cards come back.
+// Featured-buckets row above the masonry. Cards flow with the
+// grid — when you scroll, they go up and out of view naturally.
 // MIME type the masonry cards use to advertise "I'm a drag of save
 // ids" — declared at module scope so the drop handlers in this file
 // can match without crossing back into App.jsx.
@@ -47,7 +42,6 @@ export default function FeaturedBuckets({
   onAddSavesToBucket,
 }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
-  const [pillsVisible, setPillsVisible] = useState(false);
   // Right-click context menu anchor + the bucket it targets.
   const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection }
   // Inline rename state — when set, the card's name area renders an
@@ -55,7 +49,6 @@ export default function FeaturedBuckets({
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState('');
   const renameInputRef = useRef(null);
-  const sentinelRef = useRef(null);
   // While a save card is being dragged over a folder card, this is
   // the active target. Drives the accent-ring highlight on the card.
   const [dropTargetId, setDropTargetId] = useState(null);
@@ -111,21 +104,6 @@ export default function FeaturedBuckets({
     return () => { cancelled = true; };
   }, [collections]);
 
-  // Sentinel at the bottom of .cardsRow. While it's in the scroll
-  // viewport, cards are still at least partially visible — keep
-  // pills hidden. Once it scrolls out the top, cards have fully
-  // gone behind the title bar — fade pills in.
-  useEffect(() => {
-    const sc = document.querySelector('.grid-scroll');
-    const sentinel = sentinelRef.current;
-    if (!sc || !sentinel || typeof IntersectionObserver === 'undefined') return;
-    const obs = new IntersectionObserver(([entry]) => {
-      setPillsVisible(!entry.isIntersecting);
-    }, { root: sc, threshold: 0 });
-    obs.observe(sentinel);
-    return () => obs.disconnect();
-  }, []);
-
   function handleCardContextMenu(e, collection) {
     e.preventDefault();
     setCtxMenu({ x: e.clientX, y: e.clientY, collection });
@@ -157,65 +135,6 @@ export default function FeaturedBuckets({
 
   return (
     <>
-      {/* Sticky pill bar — always rendered, opacity-controlled.
-          The outer slot is sticky+0-height so it doesn't push the
-          card row down with empty space; the inner element overflows
-          downward visually when pills become visible.
-          pointer-events flips with visibility so clicks don't fall
-          on invisible pills overlaying the masonry. */}
-      <div className={styles.pillBarSlot} aria-hidden="true">
-      <div
-        className={[styles.pillBar, pillsVisible && styles.pillBarVisible]
-          .filter(Boolean)
-          .join(' ')}
-        aria-hidden={!pillsVisible}
-      >
-        <div className={styles.scroller}>
-          {collections.map((c) => {
-            const items = previews[c.id] || [];
-            return (
-              <button
-                key={`pill-${c.id}`}
-                type="button"
-                className={[styles.card, styles.pillCard].join(' ')}
-                onClick={() => onPickBucket?.(c.id)}
-                onContextMenu={(e) => handleCardContextMenu(e, c)}
-                title={c.name}
-                tabIndex={pillsVisible ? 0 : -1}
-              >
-                <div className={styles.stack}>
-                  {items.length === 0 ? (
-                    <div className={styles.stackEmpty}>
-                      <span className={styles.stackEmptyIcon}>
-                        <CollectionIcon />
-                      </span>
-                    </div>
-                  ) : (
-                    items.slice(0, 1).map((s) => (
-                      <img
-                        key={s.id}
-                        src={fileUrl(s.thumb_path || s.file_path)}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        draggable={false}
-                      />
-                    ))
-                  )}
-                </div>
-                <div className={styles.meta}>
-                  <span className={styles.name}>{c.name}</span>
-                  <span className={styles.count}>
-                    <span className={styles.countNum}>{c.save_count}</span>
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      </div>
-
       {/* Cards row — normal flow, scrolls with content. */}
       <div className={styles.cardsRow}>
         <div className={styles.scroller}>
@@ -301,9 +220,6 @@ export default function FeaturedBuckets({
           })}
         </div>
       </div>
-
-      {/* Sentinel at bottom of cards row — drives pillBar visibility. */}
-      <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
 
       {ctxMenu && (
         <ContextMenu

@@ -1,10 +1,5 @@
-/* Two-element layout:
-   - .cardsRow flows with the masonry grid; scrolling moves it up
-     and out of view naturally.
-   - .pillBar is sticky at top:0 and overlays the grid. It's invisible
-     until the sentinel (bottom of .cardsRow) leaves the viewport. */
-
-/* ── Cards row (normal flow) ─────────────────────────────────────────── */
+/* Featured-buckets cards row above the masonry. Flows with the
+   grid; scrolling moves it up and out of view naturally. */
 
 .cardsRow {
   /* Pull the row's bottom up so the scroller's 28px hover-shadow
@@ -22,67 +17,18 @@
   pointer-events: auto;
 }
 
-/* ── Pill bar (sticky, fades in once cards scroll past) ─────────────── */
-
-/* The slot is what's actually sticky. It's 0-height so it doesn't push
-   the card row below it down with empty whitespace at scroll=0; the
-   inner .pillBar overflows downward visually when pills are visible. */
-.pillBarSlot {
-  position: sticky;
-  top: 0;
-  height: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.pillBar {
-  padding: 6px 20px;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity var(--dur-medium) var(--ease-out),
-    transform var(--dur-medium) var(--ease-out);
-}
-
-.pillBar.pillBarVisible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.pillBar .scroller,
-.pillBar .card {
-  pointer-events: auto;
-}
-
-/* Invisible 1px line at the bottom of .cardsRow — when this scrolls
-   out of view, pills fade in. */
-.sentinel {
-  height: 1px;
-}
-
-/* ── Scroller (shared between cardsRow and pillBar) ─────────────────── */
-
 .scroller {
   display: flex;
   gap: 12px;
   overflow-x: auto;
   /* overflow-y is coerced to match overflow-x, so card halos and
      rotated thumbnail edges that extend ABOVE the card get clipped
-     here. Top padding 16px (was 4px) gives the cards real headroom
-     for their outer shadow + the rotated stack's bounding box;
-     .cardsRow padding-top was reduced by 12px to keep the total
-     visible top spacing constant. */
+     here. Top padding 16px gives the cards real headroom for their
+     outer shadow + the rotated stack's bounding box. */
   padding: 16px 16px 28px;
   margin: 0 -16px;
   scroll-behavior: smooth;
   scrollbar-width: none;
-}
-
-.pillBar .scroller {
-  /* Pills don't need the bottom hover-shadow runway. */
-  padding: 4px 16px 8px;
 }
 
 .scroller::-webkit-scrollbar {
@@ -234,93 +180,6 @@
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-/* ── Pill card variant (used inside .pillBar) ───────────────────────── */
-
-.pillCard {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  width: auto;
-  padding: 5px 12px 5px 5px;
-  border-radius: var(--radius-pill);
-  height: 32px;
-  /* Pill carries its own glass surface so the bar can stay
-     transparent and the underlying grid blurs through it. */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.62) 100%);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 14px rgba(0, 0, 0, 0.08);
-}
-
-.pillCard:hover {
-  transform: none;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-.pillCard .stack {
-  width: 22px;
-  height: 22px;
-  margin: 0;
-}
-
-/* Pill thumbnails sit centered as small circles — no tilt, no
-   fan. nth-child selectors are needed to match the specificity
-   of the .card:hover .stack img:nth-child(N) fan-out rules
-   above; without them the fan wins and the thumbnails translate
-   outside the pill's bounds. */
-.pillCard .stack img,
-.pillCard .stack img:nth-child(1),
-.pillCard .stack img:nth-child(2),
-.pillCard .stack img:nth-child(3),
-.pillCard .stack img:nth-child(4) {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-circle);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
-  transform: none;
-}
-
-.pillCard:hover .stack img,
-.pillCard:hover .stack img:nth-child(1),
-.pillCard:hover .stack img:nth-child(2),
-.pillCard:hover .stack img:nth-child(3),
-.pillCard:hover .stack img:nth-child(4) {
-  transform: none;
-}
-
-.pillCard .stackEmpty {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-circle);
-}
-
-.pillCard .stackEmptyIcon {
-  width: 14px;
-  height: 14px;
-}
-
-.pillCard .stackEmptyIcon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.pillCard .meta {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.pillCard .count {
-  font-size: var(--text-xs);
 }
 
 /* Drop-target highlight while a save card is being dragged over a
