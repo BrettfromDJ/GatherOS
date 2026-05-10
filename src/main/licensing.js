@@ -169,6 +169,14 @@ async function exchangeMagicToken(token) {
 //   state: 'error'      → unrecoverable (bad sessionToken, etc.) →
 //                         clear local state and show signin
 async function verifyLicense({ force = false } = {}) {
+  // Dev short-circuit: when running unpackaged (npm run dev), the
+  // licensing Worker isn't running locally and every fetch would
+  // log a noisy ECONNREFUSED. Treat dev sessions as entitled so the
+  // renderer behaves identically to a real paid user without spam.
+  if (!app.isPackaged) {
+    return { state: 'entitled', plan: 'dev', source: 'dev-shortcircuit' };
+  }
+
   const sessionToken = getSessionToken();
   if (!sessionToken) return { state: 'unauth' };
 
