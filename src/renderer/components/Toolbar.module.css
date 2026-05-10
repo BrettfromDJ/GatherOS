@@ -584,7 +584,7 @@
    Three-segment primary nav (Library / Folders / Spaces). Active
    segment fills with --text-primary (true ink) rather than the
    accent color — typographic restraint. Big presence: 54px tall,
-   158px per segment, --text-lg type, sized to read as a primary
+   140px per segment, --text-lg type, sized to read as a primary
    navigation surface rather than a buried control. */
 .modePill {
   position: relative;
@@ -622,20 +622,20 @@
   .modePill { transition: none; }
 }
 
-/* Sliding ink thumb. Each segment is 158px wide; the index drives
-   the X translation in 158px steps. (Width includes room for the
-   inline icon that pops in on active / hover, plus enough margin
-   for the longest label — "Constellation".) */
+/* Sliding ink thumb. Each segment is 140px wide; the index drives
+   the X translation in 140px steps. (Segment width grew from 120 to
+   140 to make room for the inline icon that pops in for the active
+   / hovered segment without forcing a label shift.) */
 .modeThumb {
   position: absolute;
   top: 4px;
   bottom: 4px;
   left: 4px;
-  width: 158px;
+  width: 140px;
   background: var(--text-primary);
   border-radius: var(--radius-pill);
   pointer-events: none;
-  transform: translateX(calc(var(--mode-thumb-index, 0) * 158px));
+  transform: translateX(calc(var(--mode-thumb-index, 0) * 140px));
   transition: transform var(--dur-medium) var(--ease-out);
   z-index: 0;
 }
@@ -646,7 +646,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 158px;
+  min-width: 140px;
   height: 46px;
   padding: 0 18px;
   background: transparent;

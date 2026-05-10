@@ -803,24 +803,6 @@ function getSaveEmbeddings() {
     .all();
 }
 
-// Powers the Constellation view: every save that has a thumbnail
-// AND a precomputed embedding, with just enough metadata to render
-// a labeled, colored point in 2D space and pop a preview on hover.
-// The embedding itself is yielded as a Buffer; the caller is
-// expected to decode it once and feed the matrix to UMAP.
-function getSavesForConstellation() {
-  return getDatabase()
-    .prepare(`
-      SELECT id, file_path, thumb_path, title, palette, created_at, embedding
-        FROM saves
-       WHERE embedding IS NOT NULL
-         AND thumb_path IS NOT NULL
-         AND deleted_at IS NULL
-       ORDER BY created_at ASC
-    `)
-    .all();
-}
-
 function getSavesByIds(ids) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   const placeholders = ids.map(() => '?').join(',');
@@ -1344,7 +1326,6 @@ module.exports = {
   wipeLibrary,
   updateSave,
   getSaveEmbeddings,
-  getSavesForConstellation,
   getSmartViewCounts,
   getSavesByIds,
   getUnindexedSaves,

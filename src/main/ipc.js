@@ -5,7 +5,7 @@ const { spawn } = require('node:child_process');
 const {
   getAllSaves, getSave, deleteSave, restoreSave, permanentlyDeleteSave,
   emptyTrash, wipeLibrary, updateSave, insertSave,
-  getSaveEmbeddings, getSavesByIds, getSavesForConstellation, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
+  getSaveEmbeddings, getSavesByIds, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
   filterByColor, findSimilarByPalette,
   getAllCollections, getAllCollectionsWithThumbs, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionParent,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
@@ -869,76 +869,6 @@ function registerIpcHandlers() {
     const orderById = new Map(ids.map((id, i) => [id, i]));
     records.sort((a, b) => orderById.get(a.id) - orderById.get(b.id));
     return records;
-  });
-
-  // Constellation: take every save with an embedding, reduce the
-  // embedding to 2D via UMAP, and yield a flat array of points the
-  // renderer can render as a starfield. The result is memoized
-  // against the embedding-count signature so repeated opens of the
-  // view return instantly; pass force=true to recompute (after a
-  // reindex or a wipe).
-  let constellationCache = null;   // { signature, points }
-  ipcMain.handle('constellation:get-points', async (_e, opts = {}) => {
-    const force = !!opts.force;
-    const rows = getSavesForConstellation();
-    if (rows.length === 0) return { points: [], dim: 2 };
-    const signature = `${rows.length}:${rows[rows.length - 1]?.id || ''}`;
-    if (!force && constellationCache?.signature === signature) {
-      return constellationCache.points;
-    }
-
-    // Decode the 1536-dim float32 BLOBs into a matrix. UMAP expects a
-    // plain number[][] (or Float32Array[]); we hand it Float32Arrays
-    // for memory + speed.
-    const matrix = rows.map((r) => bufferToFloat32(r.embedding));
-
-    // UMAP runs in pure JS via umap-js. Defaults (15 neighbors, 0.1
-    // min-dist) give a balanced layout — clusters visible, but no
-    // black holes. Seeded random for stable layouts across recomputes
-    // with the same data.
-    const { UMAP } = require('umap-js');
-    const umap = new UMAP({
-      nComponents: 2,
-      nNeighbors: Math.min(15, Math.max(2, rows.length - 1)),
-      minDist: 0.1,
-      spread: 1.0,
-      random: () => 0.42,
-    });
-    const embedding2D = umap.fit(matrix);
-
-    // Normalize to [-1, 1] in both axes so the renderer can pick any
-    // viewport size without needing to re-fit. Keeps clusters
-    // proportional to the longest axis.
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const [x, y] of embedding2D) {
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
-    }
-    const rangeX = (maxX - minX) || 1;
-    const rangeY = (maxY - minY) || 1;
-    const range = Math.max(rangeX, rangeY);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    const points = rows.map((r, i) => {
-      const [x, y] = embedding2D[i];
-      let palette = null;
-      try { palette = r.palette ? JSON.parse(r.palette) : null; } catch {}
-      const color = Array.isArray(palette) && palette[0] ? palette[0] : '#ffffff';
-      return {
-        id: r.id,
-        title: r.title || null,
-        file_path: r.file_path,
-        thumb_path: r.thumb_path,
-        color,
-        // Normalized in [-1, 1] — renderer maps to viewport.
-        x: (x - cx) / (range / 2),
-        y: (y - cy) / (range / 2),
-      };
-    });
-
-    constellationCache = { signature, points };
-    return points;
   });
 
   // Backfill: process every save that has no embedding yet through the

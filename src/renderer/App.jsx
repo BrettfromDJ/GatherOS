@@ -20,7 +20,6 @@ import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
-import ConstellationView from './components/ConstellationView.jsx';
 import SmartChipRail from './components/SmartChipRail.jsx';
 import DetailPanel from './components/DetailPanel.jsx';
 import FocusedView from './components/FocusedView.jsx';
@@ -1989,24 +1988,13 @@ export default function App() {
       // Cmd/Ctrl combos always claim the key, even from inputs — these
       // are global app commands.
 
-      // Cmd+1 / Cmd+2 / Cmd+3 / Cmd+4 — flip the toolbar mode pill.
-      // Don't claim digits when typing into a field (input rename,
-      // new-folder name, search bar, etc.) so users can still type
-      // "1". Cmd+G is also bound below as a discoverable alias for
-      // Constellation since that view rewards keyboard-first access.
-      if (cmd && !e.shiftKey && !typing && (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4')) {
+      // Cmd+1 / Cmd+2 / Cmd+3 — flip the toolbar mode pill. Don't
+      // claim digits when typing into a field (input rename, new-
+      // folder name, search bar, etc.) so users can still type "1".
+      if (cmd && !e.shiftKey && !typing && (e.key === '1' || e.key === '2' || e.key === '3')) {
         e.preventDefault();
-        const target = e.key === '1' ? 'library'
-                     : e.key === '2' ? 'folders'
-                     : e.key === '3' ? 'boards'
-                     : 'constellation';
+        const target = e.key === '1' ? 'library' : e.key === '2' ? 'folders' : 'boards';
         handleModeChange(target);
-        return;
-      }
-      // Cmd+G — jump to the Constellation map.
-      if (cmd && !e.shiftKey && !typing && (e.key === 'g' || e.key === 'G')) {
-        e.preventDefault();
-        handleModeChange('constellation');
         return;
       }
 
@@ -2399,12 +2387,7 @@ export default function App() {
                 }}
                 onUpload={handleUploadClick}
               />
-              {appMode === 'constellation' ? (
-                // Constellation mode → 2D UMAP map of every embedded
-                // save in the library. Dbl-click a star to open it in
-                // the focused view.
-                <ConstellationView onPickSave={setFocusedId} />
-              ) : appMode === 'folders' && view.type === 'all' ? (
+              {appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of
                 // root-level folders. Clicking a tile sets view to
                 // that collection; back-to-all returns here.
