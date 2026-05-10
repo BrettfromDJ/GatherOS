@@ -2267,6 +2267,29 @@ export default function App() {
     if (lastId) focusAfterDrop();
   }, [focusAfterDrop]);
 
+  // Drop Finder files directly onto a featured-buckets / folder-grid
+  // card. Imports each file via the standard dropFile pipeline, then
+  // routes the resulting save ids through handleAddSavesToBucket so
+  // the same fly-to-collection animation + undo entry as an in-app
+  // drop fires. Filters out non-images so dragging a PDF or random
+  // file doesn't half-succeed.
+  const handleDropFilesToBucket = useCallback(async (bucketId, fileList) => {
+    if (!bucketId) return;
+    const files = [...(fileList || [])].filter((f) => f.type && f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const newIds = [];
+    for (const file of files) {
+      try {
+        const record = await window.moodmark.saves.dropFile(file);
+        if (record?.id) newIds.push(record.id);
+      } catch (err) {
+        console.error('Drop-to-bucket failed:', err);
+      }
+    }
+    if (newIds.length === 0) return;
+    await handleAddSavesToBucket(bucketId, newIds);
+  }, [handleAddSavesToBucket]);
+
   return (
     <div
       className={`app-shell${dragging ? ' drag-over' : ''}`}
@@ -2380,6 +2403,7 @@ export default function App() {
                   onRenameFolder={handleRenameCollection}
                   onDeleteFolder={handleDeleteCollection}
                   onAddSavesToBucket={handleAddSavesToBucket}
+                  onDropFilesToBucket={handleDropFilesToBucket}
                 />
               ) : appMode === 'boards' ? (
                 // Boards mode → tile grid of every board. Clicking
@@ -2427,6 +2451,7 @@ export default function App() {
                     onDeleteCollection={handleDeleteCollection}
                     onShuffleView={handleShuffleView}
                     onAddSavesToBucket={handleAddSavesToBucket}
+                    onDropFilesToBucket={handleDropFilesToBucket}
                   />
                 )}
                 <Grid

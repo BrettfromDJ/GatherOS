@@ -136,6 +136,7 @@ export default function FolderGrid({
   onRenameFolder,
   onDeleteFolder,
   onAddSavesToBucket,
+  onDropFilesToBucket,
 }) {
   const visible = (folders || []).filter(
     (f) => (f.parent_id || null) === parentId,
@@ -172,9 +173,12 @@ export default function FolderGrid({
   function isSaveDrag(e) {
     return e.dataTransfer.types.includes(SAVE_DROP_MIME);
   }
+  function isFileDrag(e) {
+    return e.dataTransfer.types.includes('Files');
+  }
 
   function handleTileDragOver(e, id) {
-    if (!isSaveDrag(e)) return;
+    if (!isSaveDrag(e) && !isFileDrag(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     if (dropTargetId !== id) setDropTargetId(id);
@@ -183,10 +187,14 @@ export default function FolderGrid({
     if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetId(null);
   }
   async function handleTileDrop(e, id) {
-    if (!isSaveDrag(e)) return;
+    if (!isSaveDrag(e) && !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     setDropTargetId(null);
+    if (isFileDrag(e) && e.dataTransfer.files?.length > 0) {
+      await onDropFilesToBucket?.(id, e.dataTransfer.files);
+      return;
+    }
     let ids;
     try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
     catch { return; }

@@ -40,6 +40,7 @@ export default function FeaturedBuckets({
   onDeleteCollection,
   onShuffleView,
   onAddSavesToBucket,
+  onDropFilesToBucket,
 }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
   // Right-click context menu anchor + the bucket it targets.
@@ -56,9 +57,14 @@ export default function FeaturedBuckets({
   function isSaveDrag(e) {
     return e.dataTransfer.types.includes(SAVE_DROP_MIME);
   }
+  // Finder / external file-system drag — dataTransfer.types includes
+  // 'Files' when the user is dragging real OS files into the window.
+  function isFileDrag(e) {
+    return e.dataTransfer.types.includes('Files');
+  }
 
   function handleCardDragOver(e, bucketId) {
-    if (!isSaveDrag(e)) return;
+    if (!isSaveDrag(e) && !isFileDrag(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
     if (dropTargetId !== bucketId) setDropTargetId(bucketId);
@@ -70,10 +76,17 @@ export default function FeaturedBuckets({
   }
 
   async function handleCardDrop(e, bucketId) {
-    if (!isSaveDrag(e)) return;
+    if (!isSaveDrag(e) && !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     setDropTargetId(null);
+    // Files take priority — if the user drags both an in-app card
+    // AND an OS file, only one of those branches will be true at a
+    // time in practice.
+    if (isFileDrag(e) && e.dataTransfer.files?.length > 0) {
+      await onDropFilesToBucket?.(bucketId, e.dataTransfer.files);
+      return;
+    }
     let ids;
     try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
     catch { return; }
