@@ -211,44 +211,29 @@
   z-index: 1;
 }
 
-/* Expanded form mirrors the LibrarySwitcher dropdown panel exactly:
-   --surface-1 fill, 1px --border hairline, 10px radius, soft
-   ambient shadow, 6px interior padding so the input is inset from
-   the edge the same way dropdown rows are. Collapsed strips
-   everything back to a bare glyph. */
+/* No container at any state — the wrap is just a positioning
+   anchor for the icon + input + clear-X. Click the magnifying
+   glass and a cursor appears next to it; type, then clear with
+   the trailing × or with Escape. */
 .searchWrap {
   position: relative;
   flex: 0 0 240px;
   width: 240px;
   -webkit-app-region: no-drag;
-  padding: 6px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-  transition:
-    width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1),
-    padding var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1),
-    background var(--dur-quick) ease,
-    border-color var(--dur-quick) ease,
-    box-shadow var(--dur-quick) ease;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  transition: width var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1);
 }
 
-:root[data-theme="dark"] .searchWrap {
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
-}
-
-/* Collapsed form — strip the dropdown chrome so it's just the
-   magnifying glass. Width / icon-centering are the only structural
-   differences from the expanded form. */
+/* Collapsed form — just the magnifying glass, centered in a 28px
+   slot so it sits like the other toolbar icons. */
 .searchWrapCollapsed {
   flex: 0 0 28px;
   width: 28px;
-  padding: 0;
   cursor: pointer;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
 }
 
 .searchWrapCollapsed .search {
@@ -396,28 +381,29 @@
    anchor so the visual position is identical — the user just sees
    the affordance change from "open quick switcher" to "clear what
    I just typed." */
+/* Bare clear-X — no container. Sits flush against the right edge
+   of the search wrap, picks up colour on hover so it still feels
+   like a click target without painting a circle. */
 .clearSearchBtn {
   position: absolute;
-  right: 8px;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
-  background: var(--hover-bg-strong);
+  background: transparent;
   border: none;
-  border-radius: var(--radius-circle);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   cursor: pointer;
   -webkit-app-region: no-drag;
-  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+  transition: color var(--dur-instant) ease;
 }
 
 .clearSearchBtn:hover {
-  background: var(--border-strong);
   color: var(--text-primary);
 }
 
