@@ -241,12 +241,6 @@
   cursor: pointer;
 }
 
-.searchWrapCollapsed .searchIcon {
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--text-secondary);
-}
-
 .searchWrapCollapsed:hover .searchIcon {
   color: var(--text-primary);
 }
@@ -257,7 +251,11 @@
 
 .searchIcon {
   position: absolute;
-  left: 10px;
+  /* 7px lands the 14px glyph perfectly centered inside the 28px
+     collapsed slot AND keeps it at the same screen x once the
+     wrap expands to 240px — so the icon doesn't drift sideways
+     between the two states. */
+  left: 7px;
   top: 50%;
   transform: translateY(-50%);
   width: 14px;
