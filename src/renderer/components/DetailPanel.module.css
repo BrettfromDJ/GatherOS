@@ -511,7 +511,7 @@
 .promptLabel {
   flex: 1 1 auto;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);
@@ -621,7 +621,7 @@
   align-items: center;
   gap: 5px;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);
@@ -797,7 +797,7 @@
   align-items: center;
   gap: 5px;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);
@@ -901,7 +901,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);
@@ -1009,7 +1009,7 @@
   align-items: center;
   gap: 5px;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);

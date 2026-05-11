@@ -348,12 +348,12 @@ export default function Toolbar({
               "gathering" silhouette). currentColor so the glyph
               inherits --text-primary and flips with the theme. */}
           <svg viewBox="0 0 27 26" width="22" height="21" aria-hidden="true">
-            <rect y="19.2234"               width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect x="9.68091" y="19.2234"   width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect x="19.3616" y="19.2234"   width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect x="4.84033" y="9.5426"    width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect x="14.5212" y="9.5426"    width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect x="9.68091"               width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="0" y="19.2234"             width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="1" x="9.68091" y="19.2234" width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="2" x="19.3616" y="19.2234" width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="3" x="4.84033" y="9.5426"  width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="4" x="14.5212" y="9.5426"  width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect className={styles.brandDot} data-i="5" x="9.68091"             width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
           </svg>
         </span>
         {Array.isArray(libraries) && libraries.length > 0 && (

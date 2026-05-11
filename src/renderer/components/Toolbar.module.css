@@ -936,3 +936,69 @@
   color: var(--text-primary);
   -webkit-app-region: no-drag;
 }
+
+/* Each dot in the brand mark animates to a neighbour's slot when
+   the user hovers the library switcher. transform-box: fill-box
+   anchors percentages to the dot itself (each dot is 6.7766
+   user-units square inside a 27x26 viewBox, so 100% = 6.7766
+   units of motion). When hover ends, the animation lifts off
+   and the transition rule eases each dot back to its base spot. */
+.brandDot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 700ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Pairs that swap with each other (deltas in fill-box %):
+     0 ↔ 4: bottom-left ↔ middle-right
+     1 ↔ 5: bottom-middle ↔ top
+     2 ↔ 3: bottom-right ↔ middle-left
+   Each pair runs its own keyframe so they don't all move at
+   once; the staggered animation-delay below spreads the start
+   times so the row visibly "circulates" instead of pulsing. */
+.librarySwitcherSlot:hover ~ * .brandDot,
+.left:has(.librarySwitcherSlot:hover) .brandDot {
+  /* Selector needs both forms so we don't depend on either-or:
+     :has() is preferred; the ~ form is a fallback if anything
+     odd happens with order. */
+}
+
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="0"] {
+  animation: brandSwap04 1.6s cubic-bezier(0.5, 0, 0.5, 1) 0ms infinite alternate;
+}
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="4"] {
+  animation: brandSwap40 1.6s cubic-bezier(0.5, 0, 0.5, 1) 0ms infinite alternate;
+}
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="1"] {
+  animation: brandSwap15 1.6s cubic-bezier(0.5, 0, 0.5, 1) 140ms infinite alternate;
+}
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="5"] {
+  animation: brandSwap51 1.6s cubic-bezier(0.5, 0, 0.5, 1) 140ms infinite alternate;
+}
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="2"] {
+  animation: brandSwap23 1.6s cubic-bezier(0.5, 0, 0.5, 1) 280ms infinite alternate;
+}
+.left:has(.librarySwitcherSlot:hover) .brandDot[data-i="3"] {
+  animation: brandSwap32 1.6s cubic-bezier(0.5, 0, 0.5, 1) 280ms infinite alternate;
+}
+
+/* 0 (bottom-left, 0,19.22) → 4 (middle-right, 14.52,9.54)
+   Δx = +14.52 = +214.3%, Δy = -9.68 = -142.8% */
+@keyframes brandSwap04 { to { transform: translate(214.3%, -142.8%); } }
+/* 4 → 0 */
+@keyframes brandSwap40 { to { transform: translate(-214.3%, 142.8%); } }
+
+/* 1 (bottom-mid, 9.68,19.22) ↔ 5 (top, 9.68,0)
+   Δy = -19.22 = -283.5% */
+@keyframes brandSwap15 { to { transform: translate(0, -283.5%); } }
+@keyframes brandSwap51 { to { transform: translate(0, 283.5%); } }
+
+/* 2 (bottom-right, 19.36,19.22) → 3 (middle-left, 4.84,9.54)
+   Δx = -14.52 = -214.3%, Δy = -9.68 = -142.8% */
+@keyframes brandSwap23 { to { transform: translate(-214.3%, -142.8%); } }
+@keyframes brandSwap32 { to { transform: translate(214.3%, 142.8%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .brandDot { transition: none; }
+  .left:has(.librarySwitcherSlot:hover) .brandDot { animation: none; }
+}
