@@ -2493,7 +2493,16 @@ export default function App() {
             onUpdateMeta={undoableUpdateSaveMeta}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSave={(id) => setFocusedId(id)}
-            onGenerateVariant={(id) => openVariantModal(id, true)}
+            onGenerateVariant={(id) => {
+              // Drop back to the grid before the variant modal opens
+              // — once generation starts, a pending placeholder card
+              // appears in the masonry, and we want the user
+              // watching that land rather than staring at the
+              // source save. openOnComplete: false keeps them in
+              // the grid when the new save actually arrives.
+              setFocusedId(null);
+              openVariantModal(id, false);
+            }}
           />
         )}
       </div>
