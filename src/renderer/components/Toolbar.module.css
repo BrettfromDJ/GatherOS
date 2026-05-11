@@ -678,19 +678,15 @@
   padding: 0 18px;
 }
 
-/* Light-grey hover surface for inactive segments. Active is
-   already filled by the ink thumb behind it, so it doesn't take
-   the bg. */
-.modeSegment:not(.modeSegmentActive):hover {
-  background: var(--hover-bg);
-}
-
 .modeSegmentActive,
 .modeSegmentActive:hover {
   color: var(--surface-1);
 }
 
-/* Icon — always visible, no entry / hover / active animations. */
+/* Icon — always visible. Subtle "lean" on hover for inactive
+   segments so the icon tilts toward the label as it reveals,
+   and a slow breathing pulse on the active segment so the
+   selected state feels alive (not throbbing). */
 .modeSegmentIcon {
   display: inline-flex;
   align-items: center;
@@ -699,12 +695,27 @@
   height: 16px;
   flex-shrink: 0;
   pointer-events: none;
+  transform-origin: center;
+  transition: transform var(--dur-medium) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modeSegmentIcon svg {
   width: 16px;
   height: 16px;
   display: block;
+}
+
+.modeSegment:not(.modeSegmentActive):hover .modeSegmentIcon {
+  transform: rotate(6deg);
+}
+
+.modeSegmentActive .modeSegmentIcon {
+  animation: modeIconBreathe 4.2s ease-in-out infinite;
+}
+
+@keyframes modeIconBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
 }
 
 /* Label — hidden by default. Reveals on hover or when this is
@@ -732,20 +743,7 @@
   transform: translateX(0);
 }
 
-/* Only one label at a time: when the user is hovering an inactive
-   segment, the active segment's label collapses back to icon-only
-   so the hovered one is the only "wide" pill in the row. */
-.modePill:has(.modeSegment:not(.modeSegmentActive):hover) .modeSegmentActive .modeSegmentLabel {
-  max-width: 0;
-  opacity: 0;
-  transform: translateX(-6px);
-}
-
-.modePill:has(.modeSegment:not(.modeSegmentActive):hover) .modeSegmentActive {
-  padding: 0 14px;
-}
-
-/* Tiny tap-confirm — the segment compresses 3% on click so the
+/* Tiny tap-confirm — the segment compresses 2% on click so the
    activation feels mechanical. Combined with the thumb's spring,
    the selection lands with a beat. */
 .modeSegment:active {
@@ -756,7 +754,10 @@
 @media (prefers-reduced-motion: reduce) {
   .modeThumb,
   .modeSegment,
+  .modeSegmentIcon,
   .modeSegmentLabel { transition: none; }
+  .modeSegmentActive .modeSegmentIcon { animation: none; }
+  .modeSegment:not(.modeSegmentActive):hover .modeSegmentIcon { transform: none; }
 }
 
 /* Right-edge cluster of single-icon affordances — relocated from
