@@ -23,14 +23,6 @@
   z-index: 50;
 }
 
-/* Each panel section ends with its own border-bottom, which made
-   the last visible section's divider sit adjacent to the panel's
-   own bottom border and read as a doubled stroke. Strip it off
-   whichever section happens to be last. */
-.panel > :last-child {
-  border-bottom: none;
-}
-
 /* Stagger-in compressed to three stages: header + image arrive
    together (the hero), the editable metadata block follows, and
    everything below (tags, similar, meta dl) lands as the third
@@ -62,7 +54,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   flex: 0 0 auto;
 }
 
@@ -180,7 +172,7 @@
   justify-content: flex-start;
   gap: 14px;
   background: transparent;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   /* 3D viewing distance for the imageWrap's rotateX / rotateY. Lower
      values exaggerate the tilt; 900px gives a soft, photographic feel. */
   perspective: 900px;
@@ -344,7 +336,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .metaField {
@@ -484,7 +476,7 @@
 
 .promptSection {
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .promptHeader {
@@ -599,7 +591,7 @@
 
 .collectionsSection {
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .collectionsLabel {
@@ -775,7 +767,7 @@
   position: relative;
   z-index: 3;
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .tagsLabel {
@@ -876,7 +868,7 @@
 
 .fontSection {
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -987,7 +979,7 @@
    save in the focused view. */
 .similarSection {
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .similarLabel {
