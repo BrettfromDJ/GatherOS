@@ -6,14 +6,15 @@
 
 const env = (typeof process !== 'undefined' && process.env) || {};
 
-// Where the licensing Worker lives. wrangler dev defaults to
-// http://localhost:8787; the production deploy will live at
-// https://api.gatheros.co.
+// Where the licensing + AI Worker lives. Defaults to the
+// production deploy in both dev and packaged builds — most
+// contributors aren't running `wrangler dev` locally, and the
+// production endpoints are session-token gated anyway. Set
+// GATHEROS_API_BASE_URL=http://localhost:8787 when running dev
+// against a local Worker.
 const API_BASE_URL =
   env.GATHEROS_API_BASE_URL ||
-  (env.NODE_ENV === 'production'
-    ? 'https://api.gatheros.co'
-    : 'http://localhost:8787');
+  'https://api.gatheros.co';
 
 // Custom URL scheme registered by the desktop app — magic-link
 // emails redirect into `gatheros://auth/verify?token=…` and the
