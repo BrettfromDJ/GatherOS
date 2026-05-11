@@ -1,18 +1,17 @@
-/* Full-screen splash that covers the app while it boots. A spinning
-   sphere of image tiles fills the viewport; the counter sits over
-   it center-stage. At 100% the sphere bursts outward and fades. */
+/* Splash screen — centered tagline + bottom-center loader. */
 
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
   background: var(--content-bg);
-  background-image:
-    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0, 0, 0, 0.04), transparent 70%),
-    radial-gradient(ellipse 70% 50% at 50% 80%, rgba(255, 149, 0, 0.04), transparent 70%);
   -webkit-app-region: drag;
   user-select: none;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   animation: overlayIn var(--dur-medium) ease-out both;
 }
 
@@ -21,24 +20,13 @@
   pointer-events: none;
 }
 
-@keyframes overlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+@keyframes overlayIn { from { opacity: 0; } to   { opacity: 1; } }
+@keyframes overlayOut { from { opacity: 1; } to   { opacity: 0; } }
 
-@keyframes overlayOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-/* Version chip in the top-right. Sits above the sphere and outside the
-   draggable region so the trailing whitespace of the title bar still
-   moves the window. */
 .version {
   position: absolute;
   top: 14px;
   right: 18px;
-  z-index: 2;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: rgba(0, 0, 0, 0.32);
@@ -49,138 +37,92 @@
   pointer-events: auto;
 }
 
-/* ── Sphere ───────────────────────────────────────────────────────── */
-
-/* Sphere container fills the viewport so the per-tile absolute
-   positioning has a stable rendering surface. The actual sphere
-   "origin" lives at 50%/50% — tiles each anchor there and translate
-   outward via the rAF loop. */
-.sphere {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  animation: sphereIn var(--dur-long) var(--ease-out) both;
-}
-
-@keyframes sphereIn {
-  from { opacity: 0; transform: scale(0.7); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-/* Each tile is a square image card. Anchored at viewport center via
-   50%/50% + the -55px margin; the rAF loop appends translate(x, y) +
-   rotate + scale every frame. */
-.tile {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 92px;
-  height: 92px;
-  margin-top: -46px;
-  margin-left: -46px;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.04);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    0 8px 22px rgba(0, 0, 0, 0.10);
-  will-change: transform, opacity;
-}
-
-.tileImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  pointer-events: none;
-  -webkit-user-drag: none;
-}
-
-.tileEmpty {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0.05));
-}
-
-/* Exit — burst the sphere outward. We can't easily target individual
-   tile transforms from CSS (rAF owns them), so we explode the parent:
-   scale up 1.5x, fade out, blur slightly. Reads as the sphere
-   rushing toward / past the camera. */
-.overlay.exiting .sphere {
-  animation: sphereOut var(--dur-long) var(--ease-out) forwards;
-}
-
-@keyframes sphereOut {
-  from { opacity: 1; transform: scale(1); filter: blur(0px); }
-  to   { opacity: 0; transform: scale(1.6); filter: blur(8px); }
-}
-
-/* ── Counter ────────────────────────────────────────────────────────
-   Pinned to the bottom-left so the spinning sphere has the full
-   center-stage. No background plate — percent / bar / label float
-   directly over whatever the sphere paints behind them. */
-
-.counter {
-  position: absolute;
-  bottom: 32px;
-  left: 36px;
-  z-index: 5;
+/* Tagline lives in the middle of the screen. Constrained max-width so
+   it wraps to two cleanish lines on most window sizes; line-height
+   eased so the two lines feel paired rather than stacked. */
+.heroWrap {
+  flex: 1 1 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  -webkit-app-region: no-drag;
-  animation: counterIn var(--dur-long) var(--ease-out) both;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 40px;
+  animation: heroIn var(--dur-long) var(--ease-out) both;
 }
 
-@keyframes counterIn {
-  from { opacity: 0; transform: translateY(8px); }
+.hero {
+  margin: 0;
+  max-width: 560px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.percent {
-  font-family: var(--font-mono);
-  font-size: var(--text-display);
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.percent .sign {
-  font-size: var(--text-lg);
+/* Loader signal — bottom-center pill: tiny ring spinner + muted
+   label. No surface, no border; rides directly on the overlay so
+   the splash stays calm. */
+.signal {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text-tertiary);
-  margin-left: 2px;
-  vertical-align: 2px;
-}
-
-.bar {
-  width: 240px;
-  height: 3px;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.barFill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), #6c63ff);
-  border-radius: var(--radius-sm);
-  transition: width var(--dur-instant) linear;
-}
-
-.label {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  animation: signalIn var(--dur-long) var(--ease-out) 200ms both;
 }
 
-.overlay.exiting .counter {
-  animation: counterOut var(--dur-pronounced) ease-out forwards;
+@keyframes signalIn {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
-@keyframes counterOut {
-  to { opacity: 0; transform: translateY(8px); }
+/* Tiny SVG ring spinner. strokeDasharray="14 56" leaves a single
+   sweeping arc on a 9px-radius circle (~56px circumference), the
+   whole element rotates at a steady speed. */
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  animation: signalSpin 1s linear infinite;
+}
+
+.spinner svg {
+  display: block;
+}
+
+@keyframes signalSpin {
+  to { transform: rotate(360deg); }
+}
+
+.signalLabel {
+  white-space: nowrap;
+}
+
+.overlay.exiting .heroWrap,
+.overlay.exiting .signal {
+  animation: signalOut var(--dur-pronounced) ease-out forwards;
+}
+
+@keyframes signalOut {
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
 }

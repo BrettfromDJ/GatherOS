@@ -65,7 +65,6 @@ export default function SmartChipRail({
         ) : (
           CHIPS.map(({ id, label }) => {
             const isActive = activeViewType === id;
-            const count = counts[id] ?? 0;
             return (
               <button
                 key={id}
@@ -76,9 +75,6 @@ export default function SmartChipRail({
                 onClick={() => onPick({ type: id })}
               >
                 <span className={styles.chipLabel}>{label}</span>
-                {count > 0 && (
-                  <span className={styles.chipBadge}>{count}</span>
-                )}
               </button>
             );
           })
