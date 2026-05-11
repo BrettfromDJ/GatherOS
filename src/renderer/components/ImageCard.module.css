@@ -252,9 +252,13 @@
   transform: scale(1.08);
 }
 
-/* No tint over the image itself — just a dark gradient at the
-   bottom so the white label has contrast. The top 60% of the
-   card stays as just-the-blurred-thumb. */
+/* Smooth bottom-weighted darkness so the label has contrast at
+   the bottom without painting a visible "start line" mid-image.
+   The previous gradient had a hard stop at 55% where alpha
+   jumped off zero, which renders as a faint horizontal seam in
+   some compositor paths. This runs the full height from 0.78
+   at the bottom to 0 at the top with no intermediate stops, so
+   there's no kink to render as a line. */
 .pendingOverlay {
   position: absolute;
   inset: 0;
@@ -265,9 +269,9 @@
   padding-bottom: 18px;
   overflow: hidden;
   background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 55%,
-    rgba(0, 0, 0, 0.75) 100%
+    to top,
+    rgba(0, 0, 0, 0.78) 0%,
+    rgba(0, 0, 0, 0) 100%
   );
   pointer-events: none;
 }
