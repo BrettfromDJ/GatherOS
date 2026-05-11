@@ -15,7 +15,7 @@ import {
   Keyboard,
   Megaphone,
   Plus,
-  Library as LibraryIcon,
+  BookMarked as LibraryIcon,
   Folder as FolderIcon,
   Layers as LayersIcon,
 } from 'lucide-react';

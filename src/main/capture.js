@@ -69,6 +69,33 @@ function unregisterCaptureHotkey() {
   activeAccelerator = null;
 }
 
+// Honor the Settings → Capture → "Drop folder" preference: if a
+// folder is set AND exists, write a copy of the captured buffer
+// there as a real PNG file alongside saving it into the library.
+// Best-effort: any failure (missing folder, permission denied,
+// FS error) only logs; the in-library save is the source of truth.
+function writeToDropFolder(buffer) {
+  try {
+    const settings = require('./settings');
+    const dropFolder = settings.getPref('captureDropFolder', null);
+    if (!dropFolder) return;
+    if (!fs.existsSync(dropFolder)) {
+      console.warn('[capture] drop-folder missing:', dropFolder);
+      return;
+    }
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .replace('T', '_')
+      .slice(0, 19);
+    const dest = path.join(dropFolder, `GatherOS-${stamp}.png`);
+    fs.writeFileSync(dest, buffer);
+    console.log('[capture] copied to drop folder:', dest);
+  } catch (err) {
+    console.warn('[capture] drop-folder write failed:', err.message);
+  }
+}
+
 async function ensureScreenRecordingPermission() {
   if (process.platform !== 'darwin') return true;
 
@@ -219,6 +246,8 @@ async function handleOverlayComplete(rect) {
     const cropped = await captureAndCrop(rect);
     if (!win.isDestroyed()) win.close();
 
+    writeToDropFolder(cropped);
+
     const { saveImageFromBuffer } = require('./storage');
     const { insertSave } = require('./db');
     const { notifySaved, notifyDuplicate } = require('./notify');
@@ -291,10 +320,12 @@ async function captureFullscreen() {
   if (!source) return;
 
   try {
+    const png = source.thumbnail.toPNG();
+    writeToDropFolder(png);
     const { saveImageFromBuffer } = require('./storage');
     const { insertSave } = require('./db');
     const { notifySaved, notifyDuplicate } = require('./notify');
-    const imgData = await saveImageFromBuffer(source.thumbnail.toPNG(), 'png');
+    const imgData = await saveImageFromBuffer(png, 'png');
     if (imgData.duplicateOf) {
       notifyDuplicate(imgData.existing);
     } else {
@@ -356,6 +387,8 @@ async function captureWindow() {
     const raw = fs.readFileSync(tmpPath);
     console.log(`[gatheros] captureWindow: read ${raw.length} bytes`);
     const framed = await padWindowImage(raw);
+
+    writeToDropFolder(framed);
 
     const { saveImageFromBuffer } = require('./storage');
     const { insertSave } = require('./db');

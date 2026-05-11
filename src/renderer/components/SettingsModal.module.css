@@ -47,7 +47,7 @@
   color: var(--text-secondary);
   font-size: var(--text-lg);
   line-height: 1;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   padding: 0;
 }
@@ -373,7 +373,7 @@
    The default for any button that isn't the page's primary CTA. */
 .btn {
   padding: 7px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-primary);
@@ -423,7 +423,7 @@
    the highest-emphasis action on a page. */
 .btnPrimary {
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--text-primary);
   color: var(--surface-1);
   box-shadow: none;
@@ -858,7 +858,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-circle);
   color: var(--text-tertiary);
   cursor: pointer;
   transition: color var(--dur-instant) ease, background var(--dur-instant) ease;
@@ -888,7 +888,7 @@
   padding: 8px 10px;
   background: var(--input-bg);
   border: 0.5px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-family: var(--font-ui);
   color: var(--text-secondary);
@@ -1109,7 +1109,7 @@
   padding: 8px 14px;
   background: transparent;
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
   font-size: var(--text-md);
   font-weight: 500;
@@ -1307,7 +1307,7 @@
   padding: 8px 14px;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -1346,7 +1346,7 @@
   padding: 8px 14px;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   color: var(--text-primary);

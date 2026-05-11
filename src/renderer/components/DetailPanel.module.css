@@ -21,6 +21,30 @@
   z-index: 50;
 }
 
+/* Inset section dividers — each immediate panel child gets a
+   hairline at its bottom that stops 16px shy of either side
+   instead of running corner-to-corner. The last child has no
+   divider, so the panel doesn't doubled-stroke against its own
+   border. */
+.panel > * {
+  position: relative;
+}
+
+.panel > *::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.panel > :last-child::after {
+  display: none;
+}
+
 /* Stagger-in compressed to three stages: header + image arrive
    together (the hero), the editable metadata block follows, and
    everything below (tags, similar, meta dl) lands as the third

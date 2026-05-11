@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import {
-  History, User, Sparkles, Hash, Database, Info, Trash2, Library, Pencil, Plus, ArrowRight,
+  History, User, Sparkles, Hash, Database, Info, Trash2, BookMarked as Library, Pencil, Plus, ArrowRight,
   Palette as PaletteIcon,
   SlidersHorizontal as SlidersIcon,
   Camera as CameraIcon,

@@ -137,7 +137,11 @@
      stack so anything that mounts before the font file resolves
      still gets clean ink. */
   --font-ui: 'Geist Variable', 'Geist', 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Mono token now aliases the UI font — every place that used to
+     ride the monospace family (counts, mono labels, code-ish hints)
+     renders in the same proportional Geist instead. tabular-nums
+     handles number alignment where needed. */
+  --font-mono: var(--font-ui);
 
   /* ── Type scale ──────────────────────────────────────────────────────
      Six steps, no half-pixels. Components reach for these tokens; if a
