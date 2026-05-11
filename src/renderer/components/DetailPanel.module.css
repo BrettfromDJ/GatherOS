@@ -368,7 +368,7 @@
 .metaFieldLabel {
   display: block;
   font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-tertiary);
