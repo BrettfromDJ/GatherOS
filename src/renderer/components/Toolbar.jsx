@@ -344,12 +344,16 @@ export default function Toolbar({
     >
       <div className={styles.left}>
         <span className={styles.brand} aria-hidden="true">
-          {/* Minimal triangle brand mark — placeholder for the
-              eventual GatherOS logo. Sized to read as ink at the
-              leftmost edge of the toolbar without competing with
-              the library switcher beside it. */}
-          <svg viewBox="0 0 16 14" width="22" height="20" aria-hidden="true">
-            <path d="M8 0 L16 14 L0 14 Z" fill="currentColor" />
+          {/* GatherOS brand mark — six dots arranged 1/2/3 (pyramid /
+              "gathering" silhouette). currentColor so the glyph
+              inherits --text-primary and flips with the theme. */}
+          <svg viewBox="0 0 27 26" width="22" height="21" aria-hidden="true">
+            <rect y="19.2234"               width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect x="9.68091" y="19.2234"   width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect x="19.3616" y="19.2234"   width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect x="4.84033" y="9.5426"    width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect x="14.5212" y="9.5426"    width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+            <rect x="9.68091"               width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
           </svg>
         </span>
         {Array.isArray(libraries) && libraries.length > 0 && (
