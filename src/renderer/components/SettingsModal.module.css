@@ -269,7 +269,7 @@
   font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--text-secondary);
-  margin: 0 0 20px;
+  margin: 0 0 10px;
 }
 
 .fieldLabelRow {
@@ -368,7 +368,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 4px;
 }
 
 /* Secondary button — white surface, hairline border, soft shadow.
