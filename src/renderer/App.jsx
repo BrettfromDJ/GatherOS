@@ -108,8 +108,12 @@ export default function App() {
   const [appMode, setAppMode] = useState(() => {
     try {
       const raw = localStorage.getItem('moodmark.appMode');
-      return raw === 'folders' || raw === 'boards' ? raw : 'library';
-    } catch { return 'library'; }
+      if (raw === 'folders' || raw === 'boards' || raw === 'library') return raw;
+    } catch {}
+    // First launch fallback — read the Settings → Defaults pref.
+    const def = window.moodmark?.app?.defaults?.defaultMode;
+    if (def === 'folders' || def === 'boards' || def === 'library') return def;
+    return 'library';
   });
   useEffect(() => {
     try { localStorage.setItem('moodmark.appMode', appMode); } catch {}
@@ -257,7 +261,11 @@ export default function App() {
   }, [colorFilter, setColorFilter, undoStack]);
 
   const [selected, setSelected] = useState(() => new Set());
-  const [gridColumns, setGridColumns] = useState(3);
+  const [gridColumns, setGridColumns] = useState(() => {
+    const def = window.moodmark?.app?.defaults?.defaultColumns;
+    if (typeof def === 'number' && def >= 2 && def <= 8) return def;
+    return 3;
+  });
 
   // In-flight image variant generations. Each entry is a placeholder
   // that prepends to the masonry while the OpenAI call is running so
@@ -273,8 +281,11 @@ export default function App() {
   const [sortMode, setSortMode] = useState(() => {
     try {
       const raw = localStorage.getItem('moodmark.sortMode');
-      if (raw === 'oldest' || raw === 'name_asc' || raw === 'name_desc') return raw;
+      if (raw === 'oldest' || raw === 'name_asc' || raw === 'name_desc' || raw === 'recent') return raw;
     } catch {}
+    // First launch fallback — read the Settings → Defaults pref.
+    const def = window.moodmark?.app?.defaults?.defaultSort;
+    if (def === 'oldest' || def === 'name_asc' || def === 'name_desc' || def === 'recent') return def;
     return 'recent';
   });
   useEffect(() => {

@@ -18,27 +18,55 @@ const DEV_URL = 'http://localhost:5173';
 
 let overlayWin = null;
 
+// Default accelerator if no pref is set / pref returns junk.
+const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+S';
+
+let activeAccelerator = null;
+
+function readShortcutPref() {
+  try {
+    const settings = require('./settings');
+    return settings.getPref('captureShortcut', DEFAULT_ACCELERATOR);
+  } catch {
+    return DEFAULT_ACCELERATOR;
+  }
+}
+
 function registerCaptureHotkey() {
-  const accelerator = 'CommandOrControl+Shift+S';
-  const registered = globalShortcut.register(accelerator, () => {
-    console.log('[moodmark] ⌘⇧S fired');
+  applyShortcut(readShortcutPref());
+}
+
+// Swap to a new accelerator. Called by settings:set-pref's
+// side-effect block when the user changes `captureShortcut` in
+// the Capture settings page.
+function applyShortcut(accelerator) {
+  const next = accelerator || DEFAULT_ACCELERATOR;
+  if (activeAccelerator) {
+    try { globalShortcut.unregister(activeAccelerator); } catch {}
+  }
+  const registered = globalShortcut.register(next, () => {
+    console.log(`[moodmark] ${next} fired`);
     startScreenshotCapture().catch((err) =>
       console.error('[moodmark] capture failed:', err),
     );
   });
-  const isRegistered = globalShortcut.isRegistered(accelerator);
+  const isRegistered = globalShortcut.isRegistered(next);
   console.log(
-    `[moodmark] globalShortcut.register('${accelerator}') → returned=${registered}, isRegistered=${isRegistered}`,
+    `[moodmark] globalShortcut.register('${next}') → returned=${registered}, isRegistered=${isRegistered}`,
   );
   if (!isRegistered) {
     console.warn(
-      '[moodmark] Hotkey not registered — another app may own ⌘⇧S, or macOS is blocking it.',
+      `[moodmark] Hotkey not registered — another app may own ${next}, or macOS is blocking it.`,
     );
+    activeAccelerator = null;
+  } else {
+    activeAccelerator = next;
   }
 }
 
 function unregisterCaptureHotkey() {
   globalShortcut.unregisterAll();
+  activeAccelerator = null;
 }
 
 async function ensureScreenRecordingPermission() {
@@ -371,6 +399,7 @@ async function padWindowImage(pngBuffer) {
 module.exports = {
   registerCaptureHotkey,
   unregisterCaptureHotkey,
+  applyShortcut,
   startScreenshotCapture,
   handleOverlayComplete,
   handleOverlayCancel,

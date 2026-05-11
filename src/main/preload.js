@@ -22,13 +22,30 @@ const initialWindowState = (() => {
   catch { return null; }
 })();
 
+// Default sort / columns / mode — read once at boot so App.jsx can
+// use them as the fallback when localStorage doesn't have a stored
+// per-session override.
+const initialDefaults = (() => {
+  try { return ipcRenderer.sendSync('app:get-defaults') || {}; }
+  catch { return {}; }
+})();
+
 contextBridge.exposeInMainWorld('moodmark', {
   app: {
     version: appVersion,
     theme: initialTheme,
+    // Live re-read of the current theme pref — used by main.jsx's
+    // prefers-color-scheme listener so the "system" branch can stay
+    // accurate after the user picks a different value in Settings →
+    // Appearance.
+    themePref: () => {
+      try { return ipcRenderer.sendSync('app:get-theme') || 'system'; }
+      catch { return 'system'; }
+    },
     setTheme: (theme) => ipcRenderer.invoke('app:set-theme', theme),
     windowState: initialWindowState,
     setWindowState: (state) => ipcRenderer.invoke('app:set-window-state', state),
+    defaults: initialDefaults,
   },
   saves: {
     getAll: (opts) => ipcRenderer.invoke('saves:get-all', opts ?? {}),
@@ -141,6 +158,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   settings: {
     getPrefs: () => ipcRenderer.invoke('settings:get-prefs'),
     setPref: (name, value) => ipcRenderer.invoke('settings:set-pref', { name, value }),
+    pickFolder: () => ipcRenderer.invoke('settings:pick-folder'),
   },
   ai: {
     // Server-proxied AI features. The licensing session token in
@@ -157,6 +175,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   },
   updater: {
     install: () => ipcRenderer.invoke('updater:install'),
+    check: () => ipcRenderer.invoke('updater:check'),
   },
   licensing: {
     requestMagicLink: (email) => ipcRenderer.invoke('licensing:request-magic-link', email),

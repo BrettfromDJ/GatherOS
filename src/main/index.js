@@ -578,7 +578,16 @@ ipcMain.on('app:get-version', (event) => {
 // paint, avoiding a flash of light theme on a dark-pref'd launch.
 ipcMain.on('app:get-theme', (event) => {
   const settings = require('./settings');
-  event.returnValue = settings.getPref('theme', 'light');
+  event.returnValue = settings.getPref('theme', 'system');
+});
+
+ipcMain.on('app:get-defaults', (event) => {
+  const settings = require('./settings');
+  event.returnValue = {
+    defaultSort: settings.getPref('defaultSort', 'recent'),
+    defaultColumns: settings.getPref('defaultColumns', 4),
+    defaultMode: settings.getPref('defaultMode', 'library'),
+  };
 });
 
 // Reports the result of the PRAGMA integrity_check that ran during
@@ -720,6 +729,27 @@ app.whenReady().then(() => {
   createTray();
   registerCaptureHotkey();
   initUpdater(mainWindow);
+
+  // Trash auto-purge: if the Settings → "Auto-empty trash" pref is
+  // > 0, hard-delete any soft-trashed saves older than that retention
+  // window. Runs once at boot; users get fresh state without us
+  // having to schedule a background sweep.
+  try {
+    const settings = require('./settings');
+    const days = Number(settings.getPref('trashAutoEmptyDays', 0)) || 0;
+    if (days > 0) {
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      const { purgeTrashBefore } = require('./db');
+      const { deleteImageFiles } = require('./storage');
+      const result = purgeTrashBefore(cutoff);
+      if (result?.ok && result.ids.length > 0) {
+        console.log(`[trash] auto-purged ${result.ids.length} saves older than ${days}d`);
+        for (const f of result.files) deleteImageFiles(f.filePath, f.thumbPath);
+      }
+    }
+  } catch (err) {
+    console.warn('[trash] auto-purge failed:', err.message);
+  }
 
   // Storage + DB are now ready; drain any Dock-drop paths or URLs
   // that accumulated during launch (and unblock subsequent drops).

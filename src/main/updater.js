@@ -17,12 +17,45 @@
 
 const { autoUpdater } = require('electron-updater');
 const { app } = require('electron');
+const settings = require('./settings');
 
 let mainWin = null;
 
 function send(channel, payload) {
   if (mainWin && !mainWin.isDestroyed()) {
     mainWin.webContents.send(channel, payload);
+  }
+}
+
+// Re-read prefs and apply to the live autoUpdater instance. Called
+// at boot and whenever the renderer changes updatesAuto /
+// updatesChannel via settings:set-pref.
+function applyPrefs() {
+  if (!app.isPackaged) return;
+  const prefs = settings.getPrefs();
+  autoUpdater.autoDownload = prefs.updatesAuto !== false;
+  autoUpdater.channel = prefs.updatesChannel || 'latest';
+  console.log(
+    `[updater] applied prefs: autoDownload=${autoUpdater.autoDownload}, channel=${autoUpdater.channel}`,
+  );
+}
+
+// Manual check, used by the Updates settings page. Returns a coarse
+// status: { upToDate } | { downloading } | { error }. Detailed
+// progress + completion still flow through the existing event
+// channels (update-ready, update-error).
+async function checkNow() {
+  if (!app.isPackaged) return { unsupported: true };
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const current = app.getVersion();
+    const available = result?.updateInfo?.version;
+    if (!available || available === current) {
+      return { upToDate: true, currentVersion: current };
+    }
+    return { downloading: true, version: available };
+  } catch (err) {
+    return { error: err?.message || String(err) };
   }
 }
 
@@ -33,7 +66,7 @@ function initUpdater(window) {
   // Pipe updater logs through console; helpful for the asar console
   // log without pulling in electron-log as a dependency.
   autoUpdater.logger = console;
-  autoUpdater.autoDownload = true;
+  applyPrefs();
   autoUpdater.autoInstallOnAppQuit = true;
 
   // Diagnostic: print where the running .app actually lives. If this
@@ -85,4 +118,4 @@ function quitAndInstall() {
   }
 }
 
-module.exports = { initUpdater, quitAndInstall };
+module.exports = { initUpdater, quitAndInstall, applyPrefs, checkNow };

@@ -1126,3 +1126,262 @@
   color: var(--text-primary);
   border-color: var(--text-tertiary);
 }
+
+/* ── New settings controls (Appearance / Defaults / Capture /
+   Updates / Trash retention). Generic field rows + segmented
+   pickers + toggle switches + shortcut capture + folder
+   picker. Designed to slot into any settings page. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fieldHint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 32px 8px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.rangeInput {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rangeInput::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+
+.rangeInput::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-circle);
+  background: var(--text-primary);
+  margin-top: -5.5px;
+  border: none;
+}
+
+/* Segmented picker — used for theme, mode, capture mode. The
+   active option fills with --text-primary on a hairline-pill
+   surface. */
+.segmentedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  align-self: flex-start;
+}
+
+.segmentBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.segmentBtn:hover {
+  color: var(--text-primary);
+}
+
+.segmentBtnActive,
+.segmentBtnActive:hover {
+  background: var(--text-primary);
+  color: var(--surface-1);
+}
+
+/* Toggle switch — modern iOS-style. Pill background, thumb
+   slides on activation. */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.toggleRow:last-child {
+  border-bottom: none;
+}
+
+.toggleLabel {
+  font-size: var(--text-md);
+  color: var(--text-primary);
+}
+
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  background: var(--border-strong);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease;
+}
+
+.toggleSwitchOn {
+  background: var(--text-primary);
+}
+
+.toggleSwitchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: var(--radius-circle);
+  transition: transform var(--dur-medium) cubic-bezier(0.34, 1.18, 0.40, 1);
+}
+
+.toggleSwitchOn .toggleSwitchThumb {
+  transform: translateX(14px);
+}
+
+/* Shortcut capture — a button-styled input that, when "armed",
+   listens for the next keystroke and emits an Electron-style
+   accelerator string. */
+.shortcutCapture {
+  display: inline-flex;
+}
+
+.shortcutCaptureBtn {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 8px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.shortcutCaptureBtnActive {
+  background: var(--accent-bg-faint);
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: 2px solid var(--accent-bg-medium);
+  outline-offset: -1px;
+}
+
+/* Folder picker — shows the current path + "Choose…" button. */
+.folderPicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folderPickerPath {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folderPickerBtn {
+  padding: 8px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.folderPickerBtn:hover {
+  background: var(--hover-bg);
+}
+
+.primaryBtn {
+  padding: 9px 18px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: var(--radius-pill);
+  color: var(--surface-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: opacity var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

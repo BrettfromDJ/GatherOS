@@ -796,7 +796,48 @@ function registerIpcHandlers() {
 
   ipcMain.handle('settings:set-pref', (_e, payload = {}) => {
     if (!payload.name) return { ok: false, reason: 'no-name' };
-    return settings.setPref(payload.name, payload.value);
+    const result = settings.setPref(payload.name, payload.value);
+    // Side-effects: a couple of prefs need to push their new value to
+    // wherever it's consumed in the main process (the renderer's
+    // pref read happens on next mount, which is fine for everything
+    // else).
+    try {
+      if (payload.name === 'captureShortcut') {
+        const capture = require('./capture');
+        capture.applyShortcut?.(payload.value);
+      } else if (payload.name === 'updatesAuto' || payload.name === 'updatesChannel') {
+        const updater = require('./updater');
+        updater.applyPrefs?.();
+      }
+    } catch (err) {
+      console.warn('[settings] pref side-effect failed:', err.message);
+    }
+    return result;
+  });
+
+  // Native folder picker — used by the Capture settings page to set
+  // the drop-folder where screenshots also land as files.
+  ipcMain.handle('settings:pick-folder', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory'],
+      buttonLabel: 'Choose folder',
+    });
+    if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+    return { path: result.filePaths[0] };
+  });
+
+  // Manual "Check for updates" trigger from the Updates settings page.
+  // Returns a coarse status so the UI can show feedback immediately
+  // (background download events come through the existing update-ready
+  // / update-error channels).
+  ipcMain.handle('updater:check', async () => {
+    if (!app.isPackaged) return { unsupported: true };
+    try {
+      const updater = require('./updater');
+      return await updater.checkNow();
+    } catch (err) {
+      return { error: err?.message || String(err) };
+    }
   });
 
   // ── AI: auto-tag a save ─────────────────────────────────────────────────

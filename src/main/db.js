@@ -715,6 +715,38 @@ function emptyTrash() {
   };
 }
 
+// Auto-purge variant: deletes only the trashed rows older than
+// `cutoff` ms (deleted_at < cutoff). Honors the Settings →
+// "Auto-empty trash" retention pref. Returns the same shape as
+// emptyTrash so the caller can unlink the files.
+function purgeTrashBefore(cutoff) {
+  const db = getDatabase();
+  const rows = db
+    .prepare(
+      'SELECT id, file_path, thumb_path FROM saves WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+    )
+    .all(cutoff);
+  if (rows.length === 0) return { ok: true, files: [], ids: [] };
+  const ids = rows.map((r) => r.id);
+  const tx = db.transaction(() => {
+    const placeholders = ids.map(() => '?').join(',');
+    db.prepare(
+      `DELETE FROM board_items
+       WHERE type = 'image'
+         AND json_extract(data, '$.saveId') IN (${placeholders})`
+    ).run(...ids);
+    db.prepare(
+      `DELETE FROM saves WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
+    ).run(cutoff);
+  });
+  tx();
+  return {
+    ok: true,
+    ids,
+    files: rows.map((r) => ({ filePath: r.file_path, thumbPath: r.thumb_path })),
+  };
+}
+
 // Nuclear "Erase Library" — wipes every save (including trashed
 // ones), every bucket, every tag, in one transaction. Returns the
 // list of file paths so ipc.js can unlink them off disk afterward.
@@ -1323,6 +1355,7 @@ module.exports = {
   restoreSave,
   permanentlyDeleteSave,
   emptyTrash,
+  purgeTrashBefore,
   wipeLibrary,
   updateSave,
   getSaveEmbeddings,

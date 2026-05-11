@@ -12,7 +12,26 @@ const PREFS_FILE = 'prefs.json';
 const DEFAULT_PREFS = {
   autoNameOnSave: true,
   semanticSearch: false,
-  theme: 'light',
+  // Theme: 'light' | 'dark' | 'system'. 'system' tracks the OS
+  // preference via the renderer's matchMedia hook.
+  theme: 'system',
+
+  // ── Default app behaviour ────────────────────────────────────
+  defaultSort: 'recent',   // 'recent' | 'oldest' | 'name_asc' | 'name_desc'
+  defaultColumns: 4,       // 2..8 — initial grid density
+  defaultMode: 'library',  // 'library' | 'folders' | 'boards'
+
+  // ── Capture / screenshot ─────────────────────────────────────
+  captureShortcut: 'CommandOrControl+Shift+S',
+  captureMode: 'region',   // 'fullscreen' | 'window' | 'region'
+  captureDropFolder: null, // absolute path, null = save normally
+
+  // ── Auto-update ──────────────────────────────────────────────
+  updatesAuto: true,       // auto-download new versions
+  updatesChannel: 'latest',// 'latest' (stable) | 'beta'
+
+  // ── Trash retention ──────────────────────────────────────────
+  trashAutoEmptyDays: 0,   // 0 = disabled; otherwise N days
 };
 
 function prefsFilePath() {

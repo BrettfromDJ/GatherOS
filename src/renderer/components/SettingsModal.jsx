@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { History, User, Sparkles, Hash, Database, Info, Trash2, Library, Pencil, Plus, ArrowRight } from 'lucide-react';
+import {
+  History, User, Sparkles, Hash, Database, Info, Trash2, Library, Pencil, Plus, ArrowRight,
+  Palette as PaletteIcon,
+  SlidersHorizontal as SlidersIcon,
+  Camera as CameraIcon,
+  Download as DownloadIcon,
+  Monitor as MonitorIcon,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+} from 'lucide-react';
 import styles from './SettingsModal.module.css';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
 import PrivacyModal from './PrivacyModal.jsx';
@@ -13,12 +22,16 @@ const SUPPORT_EMAIL = 'hello@designjoy.co';
 // in the content switch below — beats the old drawer accordion as
 // the surface area grows.
 const NAV_ITEMS = [
-  { id: 'account',   label: 'Account',   Icon: User },
-  { id: 'libraries', label: 'Libraries', Icon: Library },
-  { id: 'ai',        label: 'AI',        Icon: Sparkles },
-  { id: 'tags',      label: 'Tags',      Icon: Hash },
-  { id: 'data',      label: 'Data',      Icon: Database },
-  { id: 'about',     label: 'About',     Icon: Info },
+  { id: 'account',    label: 'Account',    Icon: User },
+  { id: 'appearance', label: 'Appearance', Icon: PaletteIcon },
+  { id: 'defaults',   label: 'Defaults',   Icon: SlidersIcon },
+  { id: 'libraries',  label: 'Libraries',  Icon: Library },
+  { id: 'ai',         label: 'AI',         Icon: Sparkles },
+  { id: 'tags',       label: 'Tags',       Icon: Hash },
+  { id: 'capture',    label: 'Capture',    Icon: CameraIcon },
+  { id: 'updates',    label: 'Updates',    Icon: DownloadIcon },
+  { id: 'data',       label: 'Data',       Icon: Database },
+  { id: 'about',      label: 'About',      Icon: Info },
 ];
 
 function formatPlanLabel(account) {
@@ -328,6 +341,198 @@ function EraseIcon() {
   );
 }
 
+// Accelerator capture input — focus it, press a key combo, and the
+// resulting Electron-style "CommandOrControl+Shift+S" string is
+// stored. Esc cancels; clearing falls back to the default.
+function ShortcutCapture({ value, onChange }) {
+  const [capturing, setCapturing] = useState(false);
+
+  function format(e) {
+    const parts = [];
+    if (e.metaKey || e.ctrlKey) parts.push('CommandOrControl');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.altKey) parts.push('Alt');
+    let key = e.key;
+    if (key === ' ') key = 'Space';
+    if (key.length === 1) key = key.toUpperCase();
+    if (['Control', 'Meta', 'Shift', 'Alt'].includes(key)) return null;
+    parts.push(key);
+    return parts.join('+');
+  }
+
+  function handleKeyDown(e) {
+    if (!capturing) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setCapturing(false);
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    const combo = format(e);
+    if (combo) {
+      onChange?.(combo);
+      setCapturing(false);
+    }
+  }
+
+  return (
+    <div className={styles.shortcutCapture}>
+      <button
+        type="button"
+        className={`${styles.shortcutCaptureBtn} ${capturing ? styles.shortcutCaptureBtnActive : ''}`}
+        onClick={() => setCapturing((v) => !v)}
+        onKeyDown={handleKeyDown}
+      >
+        {capturing ? 'Press a key combo…' : (value || 'Set a shortcut')}
+      </button>
+    </div>
+  );
+}
+
+// Folder picker — shows the selected path (truncated mid-string) and
+// a button that opens the native folder picker via the dialog IPC.
+function FolderPickerRow({ value, onChange }) {
+  const display = value
+    ? value.replace(/^.*\/(.{0,40})$/, (m, tail) => (m.length > 50 ? `…/${tail}` : m))
+    : 'No folder selected';
+  async function pick() {
+    const result = await window.moodmark.settings.pickFolder?.();
+    if (result?.path) onChange?.(result.path);
+  }
+  return (
+    <div className={styles.folderPicker}>
+      <span className={styles.folderPickerPath} title={value || ''}>
+        {display}
+      </span>
+      <button type="button" className={styles.folderPickerBtn} onClick={pick}>
+        Choose…
+      </button>
+      {value && (
+        <button
+          type="button"
+          className={styles.folderPickerBtn}
+          onClick={() => onChange?.(null)}
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Updates page — auto-update toggle, manual check button, beta opt-in.
+// Talks to the existing electron-updater pipeline via new IPCs added
+// alongside this commit.
+function UpdatesPage({ prefs, updatePref }) {
+  const [state, setState] = useState({ checking: false, status: null, version: null });
+
+  useEffect(() => {
+    if (!window.moodmark?.on) return undefined;
+    const off1 = window.moodmark.on('update-ready', (info) => {
+      setState({ checking: false, status: 'ready', version: info?.version || null });
+    });
+    const off2 = window.moodmark.on('update-error', (info) => {
+      setState({ checking: false, status: 'error', message: info?.message });
+    });
+    return () => {
+      off1?.();
+      off2?.();
+    };
+  }, []);
+
+  async function handleCheck() {
+    setState({ checking: true, status: null });
+    const result = await window.moodmark.updater.check?.();
+    if (!result) {
+      setState({ checking: false, status: 'unsupported' });
+      return;
+    }
+    if (result.upToDate) {
+      setState({ checking: false, status: 'up-to-date' });
+    } else if (result.error) {
+      setState({ checking: false, status: 'error', message: result.error });
+    } else {
+      setState({ checking: false, status: 'downloading' });
+    }
+  }
+
+  async function handleInstall() {
+    await window.moodmark.updater.install();
+  }
+
+  return (
+    <div className={styles.page}>
+      <p className={styles.sectionHint}>
+        GatherOS checks for updates in the background and installs
+        them the next time you quit.
+      </p>
+
+      <div className={styles.toggleRow}>
+        <span className={styles.toggleLabel}>Download updates automatically</span>
+        <ToggleSwitch
+          on={prefs.updatesAuto !== false}
+          onChange={(v) => updatePref('updatesAuto', v)}
+        />
+      </div>
+
+      <div className={styles.toggleRow}>
+        <span className={styles.toggleLabel}>Beta channel</span>
+        <ToggleSwitch
+          on={prefs.updatesChannel === 'beta'}
+          onChange={(v) => updatePref('updatesChannel', v ? 'beta' : 'latest')}
+        />
+      </div>
+
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          onClick={handleCheck}
+          disabled={state.checking}
+        >
+          {state.checking ? 'Checking…' : 'Check for updates'}
+        </button>
+        {state.status === 'ready' && (
+          <button type="button" className={styles.primaryBtn} onClick={handleInstall}>
+            Restart and install{state.version ? ` v${state.version}` : ''}
+          </button>
+        )}
+      </div>
+
+      {state.status === 'up-to-date' && (
+        <p className={styles.sectionHint}>You're on the latest version.</p>
+      )}
+      {state.status === 'downloading' && (
+        <p className={styles.sectionHint}>Downloading update in the background…</p>
+      )}
+      {state.status === 'error' && (
+        <p className={styles.sectionHint}>Update failed: {state.message || 'unknown'}</p>
+      )}
+      {state.status === 'unsupported' && (
+        <p className={styles.sectionHint}>
+          Updates aren't available in this build (dev mode).
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Tiny on/off toggle pill — used for boolean prefs.
+function ToggleSwitch({ on, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      className={`${styles.toggleSwitch} ${on ? styles.toggleSwitchOn : ''}`}
+      onClick={() => onChange?.(!on)}
+    >
+      <span className={styles.toggleSwitchThumb} aria-hidden="true" />
+    </button>
+  );
+}
+
 export default function SettingsModal({
   open,
   drawerHint,
@@ -461,6 +666,26 @@ export default function SettingsModal({
     const updated = { ...prefs, [name]: next };
     setPrefs(updated);
     await window.moodmark.settings.setPref(name, next);
+    onPrefsChange?.(updated);
+  }
+
+  // Generic pref setter — used by the new Appearance / Defaults /
+  // Capture / Updates / Trash-retention controls below.
+  async function updatePref(name, value) {
+    const updated = { ...prefs, [name]: value };
+    setPrefs(updated);
+    await window.moodmark.settings.setPref(name, value);
+
+    // Theme is the only pref whose side-effect needs to be visible
+    // before the next app launch — flip the live <html data-theme>
+    // attribute so the swap happens during the same frame.
+    if (name === 'theme') {
+      const resolved = value === 'system'
+        ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : value;
+      document.documentElement.setAttribute('data-theme', resolved);
+    }
+
     onPrefsChange?.(updated);
   }
 
@@ -740,6 +965,152 @@ export default function SettingsModal({
             </div>
           )}
 
+          {activePage === 'appearance' && (
+            <div className={styles.page}>
+              <p className={styles.sectionHint}>
+                Pick a theme. "System" follows your Mac's appearance
+                setting and updates automatically when it changes.
+              </p>
+              <div className={styles.segmentedRow}>
+                {[
+                  { value: 'light',  label: 'Light',  Icon: SunIcon },
+                  { value: 'dark',   label: 'Dark',   Icon: MoonIcon },
+                  { value: 'system', label: 'System', Icon: MonitorIcon },
+                ].map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`${styles.segmentBtn} ${prefs.theme === value ? styles.segmentBtnActive : ''}`}
+                    onClick={() => updatePref('theme', value)}
+                    aria-pressed={prefs.theme === value}
+                  >
+                    <Icon size={14} strokeWidth={1.7} aria-hidden="true" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activePage === 'defaults' && (
+            <div className={styles.page}>
+              <p className={styles.sectionHint}>
+                Where the app lands when you launch it.
+              </p>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Sort</label>
+                <select
+                  className={styles.select}
+                  value={prefs.defaultSort || 'recent'}
+                  onChange={(e) => updatePref('defaultSort', e.target.value)}
+                >
+                  <option value="recent">Most recent</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="name_asc">Name A→Z</option>
+                  <option value="name_desc">Name Z→A</option>
+                </select>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>
+                  Grid columns
+                  <span className={styles.fieldHint}>{prefs.defaultColumns ?? 4}</span>
+                </label>
+                <input
+                  type="range"
+                  min={2}
+                  max={8}
+                  step={1}
+                  value={prefs.defaultColumns ?? 4}
+                  onChange={(e) => updatePref('defaultColumns', Number(e.target.value))}
+                  className={styles.rangeInput}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Starting view</label>
+                <div className={styles.segmentedRow}>
+                  {[
+                    { value: 'library', label: 'Library' },
+                    { value: 'folders', label: 'Collections' },
+                    { value: 'boards',  label: 'Spaces' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`${styles.segmentBtn} ${prefs.defaultMode === value ? styles.segmentBtnActive : ''}`}
+                      onClick={() => updatePref('defaultMode', value)}
+                      aria-pressed={prefs.defaultMode === value}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activePage === 'capture' && (
+            <div className={styles.page}>
+              <p className={styles.sectionHint}>
+                Configure the global screenshot shortcut and where
+                captures land. Shortcut changes apply on next launch.
+              </p>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Global shortcut</label>
+                <ShortcutCapture
+                  value={prefs.captureShortcut || 'CommandOrControl+Shift+S'}
+                  onChange={(next) => updatePref('captureShortcut', next)}
+                />
+                <span className={styles.fieldHint}>
+                  Captures the next key combo you press. Esc cancels.
+                </span>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Default mode</label>
+                <div className={styles.segmentedRow}>
+                  {[
+                    { value: 'region',     label: 'Region' },
+                    { value: 'window',     label: 'Window' },
+                    { value: 'fullscreen', label: 'Fullscreen' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`${styles.segmentBtn} ${prefs.captureMode === value ? styles.segmentBtnActive : ''}`}
+                      onClick={() => updatePref('captureMode', value)}
+                      aria-pressed={prefs.captureMode === value}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Drop folder</label>
+                <FolderPickerRow
+                  value={prefs.captureDropFolder}
+                  onChange={(next) => updatePref('captureDropFolder', next)}
+                />
+                <span className={styles.fieldHint}>
+                  When set, screenshots also land here as files. Leave
+                  empty to keep them in your library only.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {activePage === 'updates' && (
+            <UpdatesPage
+              prefs={prefs}
+              updatePref={updatePref}
+            />
+          )}
+
           {activePage === 'libraries' && (
             <div className={styles.page}>
               <p className={styles.sectionHint}>
@@ -972,6 +1343,33 @@ export default function SettingsModal({
 
           {activePage === 'data' && (
             <div className={styles.page}>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>
+                  Auto-empty trash
+                  <span className={styles.fieldHint}>
+                    {prefs.trashAutoEmptyDays > 0
+                      ? `After ${prefs.trashAutoEmptyDays} ${prefs.trashAutoEmptyDays === 1 ? 'day' : 'days'}`
+                      : 'Never'}
+                  </span>
+                </label>
+                <select
+                  className={styles.select}
+                  value={prefs.trashAutoEmptyDays ?? 0}
+                  onChange={(e) => updatePref('trashAutoEmptyDays', Number(e.target.value))}
+                >
+                  <option value={0}>Never</option>
+                  <option value={7}>After 7 days</option>
+                  <option value={14}>After 14 days</option>
+                  <option value={30}>After 30 days</option>
+                  <option value={90}>After 90 days</option>
+                </select>
+                <span className={styles.fieldHint}>
+                  Soft-deleted saves are permanently removed on
+                  launch once they exceed the retention period.
+                </span>
+              </div>
+
               <p className={styles.sectionHint}>
             Export your entire library — the GatherOS database plus every
             saved image and thumbnail — into a single .zip backup. You can
