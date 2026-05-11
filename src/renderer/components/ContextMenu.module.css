@@ -158,13 +158,13 @@
   color: var(--status-error);
 }
 
-/* Separator was a 1px hairline; we're trading it for whitespace so
-   the right-click menu reads consistently with the library actions
-   popover and the other ContextMenu consumers, none of which use
-   visible dividers. The grouping is still preserved by the gap. */
+/* Group dividers used to insert a 6px asymmetric break between
+   "Find similar / Generate variation" and "Copy image / Share"
+   etc. — the resulting uneven gaps read as a layout bug. Zeroed
+   out so every menu item sits at the same vertical rhythm. */
 .separator {
   height: 0;
-  margin: 4px 0 2px;
+  margin: 0;
   background: transparent;
 }
 
