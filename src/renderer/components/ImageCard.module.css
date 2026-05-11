@@ -244,10 +244,13 @@
   pointer-events: none;
 }
 
-/* Dim the source thumb so the overlay reads as the hero element. */
+/* Dim + heavily blur the source thumb so the overlay reads as
+   the hero element and the user perceives the image as being
+   actively composed rather than just dimmed. */
 .imagePending {
-  opacity: 0.35;
-  filter: saturate(0.6);
+  opacity: 0.5;
+  filter: saturate(0.6) blur(18px);
+  transform: scale(1.08);
 }
 
 .pendingOverlay {
