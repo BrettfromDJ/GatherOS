@@ -6,11 +6,10 @@
    FocusedView's top bar span the full app width below it. */
 .panel {
   position: fixed;
-  /* Sits below the FocusedView top bar (38 padding + 28 button +
-     10 padding + 1 border ≈ 77) with ~11px breathing. Bumping the
-     top bar's clearance for the traffic lights pushed this down
-     from 70 → 88. */
-  top: 88px;
+  /* Sits below the FocusedView top bar (~77px tall) with 16px
+     breathing, matching the right + bottom inset so the panel
+     has symmetric padding on all three exposed edges. */
+  top: 93px;
   right: 16px;
   bottom: 16px;
   width: 300px;
@@ -71,6 +70,12 @@
   color: var(--text-tertiary);
 }
 
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .closeBtn {
   width: 22px;
   height: 22px;
@@ -86,6 +91,76 @@
 .closeBtn:hover {
   background: var(--hover-bg);
   color: var(--text-primary);
+}
+
+/* Icon button used in the header for the (i) file-info popover.
+   Same hit area as the close button so the two read as a pair. */
+.headerIconBtn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.headerIconBtn:hover,
+.headerIconBtnActive {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* File-info popover. Portaled to body so it isn't clipped by the
+   panel's overflow / radius. Surface treatment matches the
+   LibrarySwitcher / context-menu dropdown family. */
+.infoPopover {
+  position: fixed;
+  z-index: 60;
+  min-width: 200px;
+  padding: 8px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  animation: infoPopIn var(--dur-quick) var(--ease-pop);
+}
+
+:root[data-theme="dark"] .infoPopover {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+@keyframes infoPopIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.infoList {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.infoList dt {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.infoList dd {
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
 }
 
 /* Hero / artwork section. Stacks the image, the extracted color
@@ -958,30 +1033,6 @@
   display: block;
 }
 
-.meta {
-  display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 8px 12px;
-  padding: 14px 16px;
-  margin: 0;
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-sm);
-}
-
-.meta dt {
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 0;
-}
-
-.meta dd {
-  color: var(--text-primary);
-  margin: 0;
-  word-break: break-word;
-}
 
 
 /* Generate-variation CTA — anchored at the bottom of the preview

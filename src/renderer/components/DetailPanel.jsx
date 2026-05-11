@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
+import { Info as InfoIcon } from 'lucide-react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
@@ -546,14 +548,91 @@ export default function DetailPanel({
     }
   };
 
+  // File-info popover anchored to the (i) button in the header.
+  // Replaces the inline metadata <dl> that used to live at the bottom
+  // of the panel — the data wasn't earning the vertical space.
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoAnchor, setInfoAnchor] = useState(null);
+  const infoBtnRef = useRef(null);
+  const infoPopoverRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!infoOpen || !infoBtnRef.current) return;
+    const r = infoBtnRef.current.getBoundingClientRect();
+    // Anchor below the button, right-aligned to its right edge so
+    // the popover hangs into the panel from the header.
+    setInfoAnchor({ top: r.bottom + 6, right: window.innerWidth - r.right });
+  }, [infoOpen]);
+
+  useEffect(() => {
+    if (!infoOpen) return undefined;
+    function onDown(e) {
+      if (
+        infoPopoverRef.current && !infoPopoverRef.current.contains(e.target) &&
+        infoBtnRef.current && !infoBtnRef.current.contains(e.target)
+      ) setInfoOpen(false);
+    }
+    function onEsc(e) { if (e.key === 'Escape') setInfoOpen(false); }
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [infoOpen]);
+
   return (
     <aside className={styles.panel}>
       <header className={styles.header}>
         <span className={styles.headerLabel}>Details</span>
-        <button className={styles.closeBtn} onClick={onClose} title="Close">
-          ×
-        </button>
+        <div className={styles.headerActions}>
+          <button
+            ref={infoBtnRef}
+            type="button"
+            className={`${styles.headerIconBtn} ${infoOpen ? styles.headerIconBtnActive : ''}`}
+            onClick={() => setInfoOpen((v) => !v)}
+            title="File info"
+            aria-label="File info"
+            aria-haspopup="dialog"
+            aria-expanded={infoOpen}
+          >
+            <InfoIcon size={14} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button className={styles.closeBtn} onClick={onClose} title="Close">
+            ×
+          </button>
+        </div>
       </header>
+
+      {infoOpen && infoAnchor && ReactDOM.createPortal(
+        <div
+          ref={infoPopoverRef}
+          className={styles.infoPopover}
+          role="dialog"
+          aria-label="File info"
+          style={{ top: infoAnchor.top, right: infoAnchor.right }}
+        >
+          <dl className={styles.infoList}>
+            <dt>Saved</dt>
+            <dd title={formatAbsoluteDate(record.created_at)}>
+              {formatRelativeDate(record.created_at)}
+            </dd>
+            {record.width && record.height && (
+              <>
+                <dt>Dimensions</dt>
+                <dd>{record.width} × {record.height}</dd>
+              </>
+            )}
+            {record.file_size ? (
+              <>
+                <dt>Size</dt>
+                <dd>{formatBytes(record.file_size)}</dd>
+              </>
+            ) : null}
+          </dl>
+        </div>,
+        document.body,
+      )}
 
       <div
         className={styles.preview}
@@ -981,27 +1060,6 @@ export default function DetailPanel({
           </div>
         </div>
       )}
-
-      <dl className={styles.meta}>
-        <dt>Saved</dt>
-        <dd title={formatAbsoluteDate(record.created_at)}>
-          {formatRelativeDate(record.created_at)}
-        </dd>
-        {record.width && record.height && (
-          <>
-            <dt>Dimensions</dt>
-            <dd>
-              {record.width} × {record.height}
-            </dd>
-          </>
-        )}
-        {record.file_size ? (
-          <>
-            <dt>Size</dt>
-            <dd>{formatBytes(record.file_size)}</dd>
-          </>
-        ) : null}
-      </dl>
 
       {picker && (
         <ContextMenu
