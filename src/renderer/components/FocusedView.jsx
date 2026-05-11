@@ -6,6 +6,7 @@ import {
   Download,
   Pipette,
   Trash2,
+  X as LucideX,
 } from 'lucide-react';
 import styles from './FocusedView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -22,6 +23,7 @@ const ExportIcon = () => <Download {...FV_ICON} />;
 // Lucide's Pipette is the canonical eyedropper.
 const EyedropperIcon = () => <Pipette {...FV_ICON} />;
 const TrashIcon = () => <Trash2 {...FV_ICON} />;
+const CloseIcon = () => <LucideX {...FV_ICON} strokeWidth={1.8} />;
 
 function defaultExportName(record) {
   const ext = (record.file_path.split('.').pop() || 'png').toLowerCase();
@@ -206,6 +208,18 @@ export default function FocusedView({
             onClick={() => onDelete(record.id)}
           >
             <TrashIcon />
+          </button>
+
+          <span className={styles.divider} aria-hidden="true" />
+
+          <button
+            type="button"
+            className={styles.iconBtn}
+            title="Close (Esc)"
+            aria-label="Close focused view"
+            onClick={onBack}
+          >
+            <CloseIcon />
           </button>
         </div>
       </div>
