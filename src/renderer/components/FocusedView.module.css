@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 16px 10px var(--titlebar-left-pad, 16px);
+  padding: 28px 16px 10px var(--titlebar-left-pad, 16px);
   background: var(--content-bg);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
@@ -275,10 +275,17 @@
 }
 
 .navHint {
+  /* Center inside the stage's content box (not the box itself).
+     The stage reserves 340px on the right for the floating
+     DetailPanel and 56px on the left for breathing — using those
+     same insets here + margin-inline:auto + width:fit-content
+     parks the pill exactly under the centered image. */
   position: absolute;
   bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 56px;
+  right: 340px;
+  margin-inline: auto;
+  width: fit-content;
   display: flex;
   align-items: center;
   gap: 6px;
