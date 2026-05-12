@@ -1108,25 +1108,25 @@
   gap: 8px;
   align-self: flex-start;
   margin-top: 14px;
-  padding: 8px 14px;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
+  padding: 9px 18px;
+  background: var(--text-primary);
+  border: none;
   border-radius: var(--radius-pill);
-  color: var(--text-secondary);
+  color: var(--surface-1);
   font-size: var(--text-md);
   font-weight: 500;
   font-family: var(--font-ui);
+  letter-spacing: -0.005em;
   cursor: pointer;
-  transition:
-    background var(--dur-instant) ease,
-    color var(--dur-instant) ease,
-    border-color var(--dur-instant) ease;
+  transition: opacity var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
 
 .libraryAddBtn:hover {
-  background: var(--hover-bg-soft);
-  color: var(--text-primary);
-  border-color: var(--text-tertiary);
+  opacity: 0.9;
+}
+
+.libraryAddBtn:active {
+  transform: scale(0.98);
 }
 
 /* ── New settings controls (Appearance / Defaults / Capture /
