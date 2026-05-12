@@ -346,6 +346,56 @@ function EraseIcon() {
 // Accelerator capture input — focus it, press a key combo, and the
 // resulting Electron-style "CommandOrControl+Shift+S" string is
 // stored. Esc cancels; clearing falls back to the default.
+//
+// Display side renders each token as a separate keycap so the combo
+// reads at a glance (⌘ ⇧ S) instead of as a debug string.
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || '');
+
+function acceleratorToKeys(value) {
+  if (!value) return [];
+  return value.split('+').map((tok) => {
+    const t = tok.trim();
+    switch (t) {
+      case 'CommandOrControl':
+      case 'CmdOrCtrl':
+        return IS_MAC ? '⌘' : 'Ctrl';
+      case 'Command':
+      case 'Cmd':
+      case 'Meta':
+      case 'Super':
+        return '⌘';
+      case 'Control':
+      case 'Ctrl':
+        return IS_MAC ? '⌃' : 'Ctrl';
+      case 'Shift':
+        return '⇧';
+      case 'Alt':
+      case 'Option':
+        return IS_MAC ? '⌥' : 'Alt';
+      case 'Space':
+        return 'Space';
+      case 'Enter':
+      case 'Return':
+        return '⏎';
+      case 'Backspace':
+        return '⌫';
+      case 'Delete':
+        return '⌦';
+      case 'Tab':
+        return '⇥';
+      case 'Escape':
+      case 'Esc':
+        return 'Esc';
+      case 'Up':    return '↑';
+      case 'Down':  return '↓';
+      case 'Left':  return '←';
+      case 'Right': return '→';
+      default:
+        return t.length === 1 ? t.toUpperCase() : t;
+    }
+  });
+}
+
 function ShortcutCapture({ value, onChange }) {
   const [capturing, setCapturing] = useState(false);
 
@@ -378,6 +428,8 @@ function ShortcutCapture({ value, onChange }) {
     }
   }
 
+  const keys = acceleratorToKeys(value);
+
   return (
     <div className={styles.shortcutCapture}>
       <button
@@ -386,7 +438,17 @@ function ShortcutCapture({ value, onChange }) {
         onClick={() => setCapturing((v) => !v)}
         onKeyDown={handleKeyDown}
       >
-        {capturing ? 'Press a key combo…' : (value || 'Set a shortcut')}
+        {capturing ? (
+          <span className={styles.shortcutCapturePrompt}>Press a key combo…</span>
+        ) : keys.length > 0 ? (
+          <span className={styles.shortcutKeys}>
+            {keys.map((k, i) => (
+              <kbd key={i} className={styles.shortcutKey}>{k}</kbd>
+            ))}
+          </span>
+        ) : (
+          <span className={styles.shortcutCapturePrompt}>Set a shortcut</span>
+        )}
       </button>
     </div>
   );
@@ -408,7 +470,7 @@ function FolderPickerRow({ value, onChange }) {
         {display}
       </span>
       <button type="button" className={styles.folderPickerBtn} onClick={pick}>
-        Choose…
+        Choose location
       </button>
       {value && (
         <button

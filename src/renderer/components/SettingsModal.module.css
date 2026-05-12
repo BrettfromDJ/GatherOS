@@ -1323,14 +1323,46 @@
 }
 
 .shortcutCaptureBtn {
-  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
   font-size: var(--text-sm);
-  padding: 8px 14px;
+  padding: 6px 10px;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.shortcutCapturePrompt {
+  padding: 2px 4px;
+  color: var(--text-tertiary);
+}
+
+.shortcutKeys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcutKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .shortcutCaptureBtnActive {
