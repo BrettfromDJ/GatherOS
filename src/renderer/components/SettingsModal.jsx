@@ -484,7 +484,7 @@ function UpdatesPage({ prefs, updatePref }) {
         />
       </div>
 
-      <div className={styles.actions}>
+      <div className={styles.actions} style={{ marginTop: 20 }}>
         <button
           type="button"
           className={styles.primaryBtn}
@@ -501,16 +501,16 @@ function UpdatesPage({ prefs, updatePref }) {
       </div>
 
       {state.status === 'up-to-date' && (
-        <p className={styles.sectionHint}>You're on the latest version.</p>
+        <p className={styles.sectionHint} style={{ textAlign: 'right' }}>You're on the latest version.</p>
       )}
       {state.status === 'downloading' && (
-        <p className={styles.sectionHint}>Downloading update in the background…</p>
+        <p className={styles.sectionHint} style={{ textAlign: 'right' }}>Downloading update in the background…</p>
       )}
       {state.status === 'error' && (
-        <p className={styles.sectionHint}>Update failed: {state.message || 'unknown'}</p>
+        <p className={styles.sectionHint} style={{ textAlign: 'right' }}>Update failed: {state.message || 'unknown'}</p>
       )}
       {state.status === 'unsupported' && (
-        <p className={styles.sectionHint}>
+        <p className={styles.sectionHint} style={{ textAlign: 'right' }}>
           Updates aren't available in this build (dev mode).
         </p>
       )}
