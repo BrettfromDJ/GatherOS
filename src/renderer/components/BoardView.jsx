@@ -36,6 +36,7 @@ import {
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
 import BoardLibraryDrawer from './BoardLibraryDrawer.jsx';
+import { consumePending } from '../lib/boardPendingAdds.js';
 import ContextMenu from './ContextMenu.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -960,6 +961,21 @@ export default function BoardView({
       setZoom(INITIAL_ZOOM);
       setSelectedIds(new Set());
       setEditingItemId(null);
+
+      // Flush any "Add to space" requests that fired while this board
+      // wasn't open. requestAnimationFrame so the canvas DOM is up
+      // and pan/zoom state is committed; otherwise the listener's
+      // viewport-centre math reads pre-mount dimensions.
+      const pending = consumePending(boardId);
+      if (pending.length > 0) {
+        requestAnimationFrame(() => {
+          pending.forEach(({ ids }) => {
+            window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
+              detail: { boardId, ids },
+            }));
+          });
+        });
+      }
     })();
     return () => { cancelled = true; };
   }, [boardId]);

@@ -55,6 +55,7 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
+import { pushPending as pushPendingBoardAdds } from './lib/boardPendingAdds.js';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -1931,71 +1932,24 @@ export default function App() {
       : [...selected];
     if (ids.length === 0 || !boardId) return;
 
-    // If the user is actively viewing the target board, let it handle
-    // the drop at its current viewport centre. The active BoardView
-    // listens for this event and places the items in a small grid
-    // around its on-screen centre. When the user isn't viewing the
-    // board, fall back to a deterministic grid at the world origin.
     const liveActive = view.type === 'board' && view.id === boardId;
     if (liveActive) {
+      // Active BoardView listens for this event and drops the saves
+      // around the current world viewport centre via handleDropImage.
       window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
         detail: { boardId, ids },
       }));
     } else {
-      const cols = Math.min(ids.length, 5);
-      const cell = 240;
-      const gap = 24;
-      const zBase = Date.now() / 1000;
-      for (let i = 0; i < ids.length; i += 1) {
-        const saveId = ids[i];
-        const save = saves.find((s) => s.id === saveId);
-        if (!save) continue;
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const aspect = save.width && save.height ? save.width / save.height : 1;
-        const w = aspect >= 1 ? cell : Math.round(cell * aspect);
-        const h = aspect >= 1 ? Math.round(cell / aspect) : cell;
-        // Center the grid around the world origin so a fresh board
-        // doesn't dump everything to the bottom-right of (0, 0).
-        const totalW = cols * cell + (cols - 1) * gap;
-        const x = col * (cell + gap) - totalW / 2;
-        const y = row * (cell + gap) - cell;
-        const now = Date.now();
-        const item = {
-          id: crypto.randomUUID(),
-          board_id: boardId,
-          type: 'image',
-          x, y, width: w, height: h,
-          rotation: 0,
-          z_index: Math.floor(zBase + i),
-          data: {
-            saveId,
-            fileUrl: fileUrl(save.file_path),
-            intrinsicWidth: save.width || null,
-            intrinsicHeight: save.height || null,
-          },
-          created_at: now,
-          updated_at: now,
-        };
-        try {
-          await window.moodmark.boards.upsertItem({ boardId, item });
-        } catch (err) {
-          console.error('Add to space failed for', saveId, err);
-        }
-      }
+      // Push the adds onto a tiny pending-queue and navigate to the
+      // target board. BoardView consumes the queue after mount and
+      // dispatches the same event so placement still lands at the
+      // freshly-opened viewport's centre rather than the world origin.
+      pushPendingBoardAdds(boardId, ids);
+      handleViewChange({ type: 'board', id: boardId });
     }
 
-    const board = boards.find((b) => b.id === boardId);
-    const label = `Added ${ids.length} to ${board?.name || 'space'}`;
-    showActionToast({
-      message: label,
-      action: liveActive
-        ? null
-        : { label: 'Open', run: () => handleViewChange({ type: 'board', id: boardId }) },
-      durationMs: 3200,
-    });
     if (!explicitIds) setSelected(new Set());
-  }, [selected, saves, boards, view, showActionToast, handleViewChange, setSelected]);
+  }, [selected, view, handleViewChange, setSelected]);
 
   // Keep the ref used by the card right-click menu in sync with the
   // live callback so the menu always invokes the latest closure.
