@@ -478,14 +478,6 @@ function UpdatesPage({ prefs, updatePref }) {
         />
       </div>
 
-      <div className={styles.toggleRow}>
-        <span className={styles.toggleLabel}>Beta channel</span>
-        <ToggleSwitch
-          on={prefs.updatesChannel === 'beta'}
-          onChange={(v) => updatePref('updatesChannel', v ? 'beta' : 'latest')}
-        />
-      </div>
-
       <div className={styles.actions} style={{ marginTop: 20 }}>
         <button
           type="button"
