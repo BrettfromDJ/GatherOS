@@ -1435,12 +1435,17 @@
   gap: 6px;
   font-family: var(--font-ui);
   font-size: var(--text-sm);
-  padding: 6px 10px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   cursor: pointer;
+  transition: background var(--dur-instant) ease;
+}
+
+.shortcutCaptureBtn:hover {
+  background: var(--hover-bg-soft);
 }
 
 .shortcutCapturePrompt {
