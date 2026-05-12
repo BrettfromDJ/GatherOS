@@ -1200,7 +1200,8 @@
 .rangeInput {
   -webkit-appearance: none;
   appearance: none;
-  width: 100%;
+  align-self: flex-start;
+  width: 220px;
   height: 16px;
   background: transparent;
   cursor: pointer;
