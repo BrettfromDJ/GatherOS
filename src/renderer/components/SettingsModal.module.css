@@ -685,31 +685,27 @@
 .libraryList {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   margin-top: 8px;
 }
 
-/* Hairline-divided rows. Card chrome (border / radius / shadow)
-   was removed in favour of a single bottom divider so the list
-   reads as a continuous register rather than a stack of tiles —
-   the screen stays calmer when more libraries get added. */
+/* Each row is its own card — surface-1 fill, hairline border,
+   rounded corners — so the icon, name, meta, and actions menu read
+   as a single anchored object instead of three elements floating
+   across an empty stripe. */
 .libraryRow {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 4px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.libraryRow:not(:last-of-type) {
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-control);
 }
 
 .libraryRowActive {
-  /* Active state is now carried entirely by the "Active" tag next
-     to the name; no surrounding chrome to recolour. */
+  border-color: var(--border-strong);
 }
 
 /* Leading library glyph — same family as the dropdown's row icon
@@ -853,24 +849,34 @@
   font-weight: 500;
 }
 
+/* Card-shaped form that wraps both the input row and the action
+   row when the user is creating a new library. The inner libraryRow
+   keeps the icon + input layout but inherits the card chrome from
+   here rather than its own. */
 .libraryCreateRow {
   display: flex;
   flex-direction: column;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-control);
 }
 
 .libraryCreateRow .libraryRow {
-  padding-bottom: 6px;
-  border-bottom: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .libraryCreateActions {
   display: flex;
   justify-content: flex-start;
   gap: 8px;
-  padding-left: 34px;
-  margin-top: 8px;
+  padding-left: 30px;
+  margin-top: 10px;
 }
 
 /* Inherits the .btn + .btnPrimary recipe; this class just owns
