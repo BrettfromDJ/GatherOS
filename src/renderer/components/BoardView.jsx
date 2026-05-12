@@ -1316,7 +1316,7 @@ export default function BoardView({
     const size = activeTool === 'sticky'
       ? DEFAULT_STICKY
       : activeTool === 'shape'
-        ? DEFAULT_SHAPE
+        ? (shapeKind === 'ellipse' ? { width: 140, height: 140 } : DEFAULT_SHAPE)
         : DEFAULT_TEXT;
     // Text items launch unsized so the inner editor drives the
     // bounding box (matching the reference: a small "Type something"

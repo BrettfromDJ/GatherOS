@@ -1298,6 +1298,15 @@ export default function BoardCanvas({
           newW = Math.max(MIN, initial.width * s);
           newH = Math.max(MIN, initial.height * s);
         }
+        // Ellipse: lock to 1:1 so it stays a circle rather than
+        // stretching into an oval. Uses the larger of the two pulled
+        // dimensions so legacy oval ellipses round up to a circle on
+        // first resize.
+        if (type === 'shape' && initial.data?.kind === 'ellipse') {
+          const size = Math.max(MIN, newW, newH);
+          newW = size;
+          newH = size;
+        }
 
         // Anchor the opposite corner: shift x/y so the corner the
         // user is NOT holding stays put.
