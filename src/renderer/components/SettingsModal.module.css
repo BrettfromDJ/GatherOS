@@ -1172,6 +1172,12 @@
 .select {
   appearance: none;
   -webkit-appearance: none;
+  /* Auto-size to label + chevron padding so the dropdown sits as
+     a hit-target the size of its content rather than spanning the
+     full column width. */
+  align-self: flex-start;
+  width: auto;
+  min-width: 160px;
   padding: 8px 32px 8px 12px;
   background: var(--surface-1);
   border: 1px solid var(--border);
