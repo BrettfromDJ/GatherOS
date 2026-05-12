@@ -1276,9 +1276,10 @@
 .select {
   appearance: none;
   -webkit-appearance: none;
-  /* Auto-size to label + chevron padding so the dropdown sits as
-     a hit-target the size of its content rather than spanning the
-     full column width. */
+  /* Hug the *currently selected* option rather than the widest one
+     in the list (default browser behavior). field-sizing: content
+     ships with Chromium 123+, which Electron 41 includes. */
+  field-sizing: content;
   align-self: flex-start;
   width: auto;
   min-width: 0;
