@@ -425,17 +425,14 @@ body[data-board-print="true"] .main-col {
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background:
-    linear-gradient(180deg, var(--glass-from) 0%, var(--glass-to) 100%);
-  border: 0.5px solid var(--glass-border);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--text-md);
   cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 var(--glass-inset),
-    0 1px 1px rgba(0, 0, 0, 0.04);
-  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
+  box-shadow: var(--shadow-control);
+  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
 
 .selection-btn-icon {
@@ -459,10 +456,6 @@ body[data-board-print="true"] .main-col {
 .selection-btn-icon svg {
   width: 14px;
   height: 14px;
-}
-
-.selection-btn-danger .selection-btn-icon {
-  color: #fff;
 }
 
 /* Compact buttons: icon-only. Hover surfaces a [data-tooltip] above
@@ -531,12 +524,7 @@ body[data-board-print="true"] .main-col {
 }
 
 .selection-btn:hover {
-  background:
-    linear-gradient(180deg, var(--glass-from-hover) 0%, var(--glass-to-hover) 100%);
-  box-shadow:
-    inset 0 1px 0 var(--glass-inset-hover),
-    0 1px 1px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(0, 0, 0, 0.06);
+  background: var(--hover-bg-soft);
 }
 
 .selection-btn:active {
@@ -544,25 +532,19 @@ body[data-board-print="true"] .main-col {
 }
 
 .selection-btn-danger {
-  background:
-    linear-gradient(180deg, rgba(255, 75, 60, 1) 0%, rgba(255, 59, 48, 1) 100%);
-  border-color: rgba(170, 25, 18, 0.4);
-  color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -0.5px 0 rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(255, 59, 48, 0.25),
-    0 6px 14px rgba(255, 59, 48, 0.18);
+  background: var(--surface-1);
+  border-color: var(--border);
+  color: var(--status-error);
+  box-shadow: var(--shadow-control);
+}
+
+.selection-btn-danger .selection-btn-icon {
+  color: var(--status-error);
 }
 
 .selection-btn-danger:hover {
-  background:
-    linear-gradient(180deg, rgba(255, 95, 80, 1) 0%, rgba(255, 79, 68, 1) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -0.5px 0 rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(255, 59, 48, 0.3),
-    0 8px 18px rgba(255, 59, 48, 0.22);
+  background: color-mix(in srgb, var(--status-error) 8%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--status-error) 35%, var(--border));
 }
 
 /* ── Grid ↔ focused-view image morph ─────────────────────────────────
