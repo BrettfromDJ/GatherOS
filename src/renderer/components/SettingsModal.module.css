@@ -1089,6 +1089,75 @@
   gap: 5px;
 }
 
+.libraryRowMenuWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.libraryRowMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-circle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.libraryRowMenuTrigger:hover {
+  background: var(--hover-bg-soft);
+  color: var(--text-primary);
+}
+
+.libraryRowMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.libraryRowMenuItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.libraryRowMenuItem:hover {
+  background: var(--hover-bg-soft);
+}
+
+.libraryRowMenuItemDanger {
+  color: var(--danger, #c0392b);
+}
+
+.libraryRowMenuItemDanger:hover {
+  background: var(--danger-bg-soft, rgba(192, 57, 43, 0.08));
+}
+
 .libraryRenameInput {
   width: 100%;
   padding: 6px 10px;

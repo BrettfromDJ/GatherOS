@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import {
-  History, User, Sparkles, Hash, Database, Info, Trash2, BookMarked as Library, Pencil, Plus, RefreshCw,
+  History, User, Sparkles, Hash, Database, Info, Trash2, BookMarked as Library, Pencil, Plus, RefreshCw, MoreHorizontal,
   Palette as PaletteIcon,
   SlidersHorizontal as SlidersIcon,
   Camera as CameraIcon,
@@ -152,6 +152,24 @@ function LibrariesPage({
   const [renameDraft, setRenameDraft] = React.useState('');
   const [creatingDraft, setCreatingDraft] = React.useState('');
   const [creating, setCreating] = React.useState(false);
+  const [openMenuId, setOpenMenuId] = React.useState(null);
+
+  // Close the row menu when clicking anywhere outside it or pressing Esc.
+  React.useEffect(() => {
+    if (!openMenuId) return undefined;
+    const onDocDown = (e) => {
+      if (e.target.closest?.(`.${styles.libraryRowMenu}`)) return;
+      if (e.target.closest?.(`.${styles.libraryRowMenuTrigger}`)) return;
+      setOpenMenuId(null);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setOpenMenuId(null); };
+    document.addEventListener('mousedown', onDocDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [openMenuId]);
 
   function startRename(lib) {
     setRenamingId(lib.id);
@@ -222,37 +240,65 @@ function LibrariesPage({
                 </span>
               </div>
               <div className={styles.libraryRowActions}>
-                {!isRenaming && !isActive && (
-                  <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => onSwitch?.(lib.id)}
-                  >
-                    <RefreshCw size={13} strokeWidth={1.7} aria-hidden="true" />
-                    Switch
-                  </button>
-                )}
                 {!isRenaming && (
-                  <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => startRename(lib)}
-                    aria-label={`Rename ${lib.name}`}
-                  >
-                    <Pencil size={13} strokeWidth={1.7} aria-hidden="true" />
-                    Rename
-                  </button>
-                )}
-                {!isRenaming && libraries.length > 1 && (
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.btnDanger}`}
-                    onClick={() => onDelete?.(lib.id)}
-                    aria-label={`Delete ${lib.name}`}
-                  >
-                    <Trash2 size={13} strokeWidth={1.7} aria-hidden="true" />
-                    Delete
-                  </button>
+                  <div className={styles.libraryRowMenuWrap}>
+                    <button
+                      type="button"
+                      className={styles.libraryRowMenuTrigger}
+                      onClick={() =>
+                        setOpenMenuId((id) => (id === lib.id ? null : lib.id))
+                      }
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuId === lib.id}
+                      aria-label={`Actions for ${lib.name}`}
+                    >
+                      <MoreHorizontal size={16} strokeWidth={1.8} aria-hidden="true" />
+                    </button>
+                    {openMenuId === lib.id && (
+                      <div className={styles.libraryRowMenu} role="menu">
+                        {!isActive && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className={styles.libraryRowMenuItem}
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              onSwitch?.(lib.id);
+                            }}
+                          >
+                            <RefreshCw size={14} strokeWidth={1.7} aria-hidden="true" />
+                            Switch
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={styles.libraryRowMenuItem}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            startRename(lib);
+                          }}
+                        >
+                          <Pencil size={14} strokeWidth={1.7} aria-hidden="true" />
+                          Rename
+                        </button>
+                        {libraries.length > 1 && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className={`${styles.libraryRowMenuItem} ${styles.libraryRowMenuItemDanger}`}
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              onDelete?.(lib.id);
+                            }}
+                          >
+                            <Trash2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
