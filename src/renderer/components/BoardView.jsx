@@ -2037,7 +2037,13 @@ export default function BoardView({
         <BoardLibraryDrawer
           collections={collections}
           boardId={boardId}
-          onClose={() => setDrawerOpen(false)}
+          onClose={() => {
+            setDrawerOpen(false);
+            // Closing the image drawer pops the tool back to select so
+            // the cursor doesn't linger in image-pick mode (which would
+            // otherwise keep the next canvas click "image-armed").
+            setTool('select');
+          }}
         />
       )}
 
