@@ -1014,7 +1014,7 @@ export default function SettingsModal({
               </div>
 
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>
+                <label className={styles.fieldLabel} style={{ width: 220 }}>
                   Grid columns
                   <span className={styles.fieldHint}>{prefs.defaultColumns ?? 4}</span>
                 </label>
