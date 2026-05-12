@@ -1278,7 +1278,7 @@
      full column width. */
   align-self: flex-start;
   width: auto;
-  min-width: 160px;
+  min-width: 0;
   padding: 8px 32px 8px 12px;
   background: var(--surface-1);
   border: 1px solid var(--border);
