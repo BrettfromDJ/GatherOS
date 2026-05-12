@@ -1130,19 +1130,31 @@ export default function SettingsModal({
               </p>
 
               <div className={`${styles.field} ${styles.fieldNarrow}`}>
-                <div className={styles.fieldLabelRow}>
-                  <span className={styles.fieldLabel}>Grid columns</span>
-                  <span className={styles.fieldHint}>{prefs.defaultColumns ?? 4}</span>
-                </div>
-                <input
-                  type="range"
-                  min={2}
-                  max={8}
-                  step={1}
-                  value={prefs.defaultColumns ?? 4}
-                  onChange={(e) => updatePref('defaultColumns', Number(e.target.value))}
-                  className={styles.rangeInput}
-                />
+                <label className={styles.fieldLabel}>Grid columns</label>
+                {(() => {
+                  const min = 2;
+                  const max = 8;
+                  const value = prefs.defaultColumns ?? 4;
+                  const frac = (value - min) / (max - min);
+                  return (
+                    <div className={styles.slider} style={{ '--slider-frac': frac }}>
+                      <span className={styles.sliderValue}>{value}</span>
+                      <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={1}
+                        value={value}
+                        onChange={(e) => updatePref('defaultColumns', Number(e.target.value))}
+                        className={styles.rangeInput}
+                      />
+                      <div className={styles.sliderScale} aria-hidden="true">
+                        <span>{min}</span>
+                        <span>{max}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className={styles.field}>
