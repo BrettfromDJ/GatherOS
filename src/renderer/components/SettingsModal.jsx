@@ -9,6 +9,8 @@ import {
   Monitor as MonitorIcon,
   Sun as SunIcon,
   Moon as MoonIcon,
+  Folder as FolderIcon,
+  Layers as LayersIcon,
 } from 'lucide-react';
 import styles from './SettingsModal.module.css';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
@@ -1033,20 +1035,24 @@ export default function SettingsModal({
                 <label className={styles.fieldLabel}>Starting view</label>
                 <div className={styles.segmentedRow}>
                   {[
-                    { value: 'library', label: 'Library' },
-                    { value: 'folders', label: 'Collections' },
-                    { value: 'boards',  label: 'Spaces' },
-                  ].map(({ value, label }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`${styles.segmentBtn} ${prefs.defaultMode === value ? styles.segmentBtnActive : ''}`}
-                      onClick={() => updatePref('defaultMode', value)}
-                      aria-pressed={prefs.defaultMode === value}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                    { value: 'library', label: 'Library',     Icon: Library },
+                    { value: 'folders', label: 'Collections', Icon: FolderIcon },
+                    { value: 'boards',  label: 'Spaces',      Icon: LayersIcon },
+                  ].map(({ value, label, Icon }) => {
+                    const active = prefs.defaultMode === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`${styles.segmentBtn} ${active ? styles.segmentBtnActive : ''}`}
+                        onClick={() => updatePref('defaultMode', value)}
+                        aria-pressed={active}
+                      >
+                        {active && <Icon size={14} strokeWidth={1.8} aria-hidden="true" />}
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
