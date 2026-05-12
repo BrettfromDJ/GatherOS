@@ -216,6 +216,7 @@
 /* "+" new-board tile — same footprint as a real tile so the grid
    rhythm doesn't break. */
 .tileNew {
+  position: relative;
   background: transparent;
   border: 1px dashed var(--border-strong);
   box-shadow: none;
@@ -228,11 +229,16 @@
   box-shadow: none;
 }
 
+/* New-tile variant: absolute-center the "+" against the whole card
+   so the label below doesn't pull the icon visually above center. */
 .tileArtNew {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
+  pointer-events: none;
 }
 
 .tileNew:hover .tileArtNew {

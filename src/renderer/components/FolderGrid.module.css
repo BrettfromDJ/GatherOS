@@ -274,11 +274,20 @@
   box-shadow: none;
 }
 
+/* New-tile variant: absolute-center the "+" against the whole card
+   so the label below doesn't pull the icon visually above center. */
+.tileNew {
+  position: relative;
+}
+
 .tileArtNew {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
+  pointer-events: none;
 }
 
 .tileNew:hover .tileArtNew {
