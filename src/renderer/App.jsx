@@ -675,101 +675,23 @@ export default function App() {
     if (!loading) loadCollections();
   }, [loading, saves.length, loadCollections]);
 
-  // First-launch starter-pack install. Once the initial library
-  // load resolves and we know the user has zero saves AND the
-  // localStorage flag isn't set, kick off the install. The save:
-  // created notifications fired by the main-process handler stream
-  // in via the existing save:created listener and refresh the grid.
-  const starterInstallStartedRef = useRef(false);
+  // First-launch welcome modal. Opens once when the library boots
+  // empty (no saves, no collections) and the welcomeShown flag has
+  // not yet been set. The flag is persisted before opening so a
+  // re-render mid-flow can't re-trigger it.
   useEffect(() => {
-    if (starterInstallStartedRef.current) return;
-    if (loading) return; // wait for the first saves.getAll to resolve
-    let installed = false;
-    try { installed = localStorage.getItem('moodmark.starterInstalled') === '1'; }
+    if (loading) return;
+    let alreadyShown = false;
+    try { alreadyShown = localStorage.getItem('moodmark.welcomeShown') === '1'; }
     catch {}
-    if (installed) return;
+    if (alreadyShown) return;
     if (smartCounts.all > 0 || collections.length > 0) {
-      // The user already has data — they migrated in or the install
-      // ran on a prior launch before the flag was written. Mark the
-      // flag and skip.
-      try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
+      try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
       return;
     }
-    starterInstallStartedRef.current = true;
-    (async () => {
-      try {
-        const result = await window.moodmark.library.installStarter();
-        if (result?.ok) {
-          try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
-          loadCollections();
-          // Show the welcome walkthrough once on first successful
-          // install. The flag is written *before* opening the modal
-          // so a re-render mid-flow doesn't re-trigger it.
-          let alreadyShown = false;
-          try { alreadyShown = localStorage.getItem('moodmark.welcomeShown') === '1'; }
-          catch {}
-          if (!alreadyShown) {
-            try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
-            setWelcomeOpen(true);
-          }
-        } else {
-          // Don't pin the flag — leave room for a retry on next launch
-          // (or via the Restore toast) instead of locking the user into
-          // a permanently-empty library.
-          console.error('Starter pack install returned not-ok:', result);
-          starterInstallStartedRef.current = false;
-        }
-      } catch (err) {
-        console.error('Starter pack install failed:', err);
-        starterInstallStartedRef.current = false;
-      }
-    })();
-  }, [loading, smartCounts.all, collections.length, loadCollections]);
-
-  // Post-wipe restore-starter toast. Surfaces a "Restore starter
-  // pack?" pill if the user has already onboarded (starterInstalled
-  // is set) AND the library is currently empty AND they haven't
-  // permanently dismissed the toast via its X. Dismiss is persisted
-  // in localStorage so the toast goes away forever on that device.
-  const [starterToastDismissed, setStarterToastDismissed] = useState(() => {
-    try { return localStorage.getItem('moodmark.starterToastDismissed') === '1'; }
-    catch { return false; }
-  });
-  const [starterRestoreError, setStarterRestoreError] = useState(false);
-  // Re-read the starterInstalled flag whenever it might change. We
-  // don't observe localStorage directly; instead we just refresh on
-  // the same triggers the auto-install effect uses.
-  const starterInstalled = (() => {
-    try { return localStorage.getItem('moodmark.starterInstalled') === '1'; }
-    catch { return false; }
-  })();
-  const showStarterToast = !loading
-    && starterInstalled
-    && !starterToastDismissed
-    && smartCounts.all === 0
-    && collections.length === 0
-    && !focusedId;
-
-  const handleRestoreStarterPack = useCallback(async () => {
-    setStarterRestoreError(false);
-    try {
-      const result = await window.moodmark.library.installStarter();
-      if (!result?.ok) {
-        setStarterRestoreError(true);
-        return;
-      }
-      loadCollections();
-      reload();
-    } catch (err) {
-      console.error('Restore starter pack failed:', err);
-      setStarterRestoreError(true);
-    }
-  }, [loadCollections, reload]);
-
-  const handleDismissStarterToast = useCallback(() => {
-    try { localStorage.setItem('moodmark.starterToastDismissed', '1'); } catch {}
-    setStarterToastDismissed(true);
-  }, []);
+    try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
+    setWelcomeOpen(true);
+  }, [loading, smartCounts.all, collections.length]);
 
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
@@ -2678,34 +2600,6 @@ export default function App() {
         </div>
       )}
 
-      {showStarterToast && (
-        <div className="selection-bar" role="status">
-          <div className="selection-status">
-            <span className="selection-count">
-              {starterRestoreError ? 'Restore failed — try restarting the app' : 'Restore the starter pack?'}
-            </span>
-          </div>
-          {!starterRestoreError && (
-            <button
-              type="button"
-              className="selection-btn"
-              onClick={handleRestoreStarterPack}
-            >
-              Restore
-            </button>
-          )}
-          <button
-            type="button"
-            className="selection-bar-close"
-            onClick={handleDismissStarterToast}
-            data-tooltip="Dismiss forever"
-            aria-label="Dismiss forever"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       {dragging && (
         <div className="drop-overlay">
           <span className="drop-message">Drop to save</span>
@@ -2882,9 +2776,7 @@ export default function App() {
         onLibraryWiped={() => {
           // Reset focus + selection in case the user was viewing a
           // save mid-wipe, then re-pull collections/saves so the UI
-          // reflects the now-empty library. The starterInstalled
-          // localStorage flag is set inside SettingsModal before
-          // this callback fires, so the auto-install effect skips.
+          // reflects the now-empty library.
           setFocusedId(null);
           setSelected(new Set());
           loadCollections();

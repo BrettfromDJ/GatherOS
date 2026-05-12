@@ -700,9 +700,6 @@ export default function SettingsModal({
     try {
       const result = await window.moodmark.library.wipeAll();
       if (result?.ok) {
-        // Pin starter-pack as already-installed so the auto-install
-        // effect in App.jsx doesn't repopulate after the wipe.
-        try { localStorage.setItem('moodmark.starterInstalled', '1'); } catch {}
         setWipeState({ running: false, message: `Erased ${result.removed} saves` });
         onLibraryWiped?.();
       } else if (result?.canceled) {

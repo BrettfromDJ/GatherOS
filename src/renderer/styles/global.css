@@ -259,31 +259,6 @@ body[data-board-print="true"] .main-col {
   border-radius: var(--radius-sm);
 }
 
-/* Dismiss-X for the post-wipe starter-restore toast. Sits inside the
-   .selection-bar pill at the right edge. Tooltip lives on the
-   element via [data-tooltip]. */
-.selection-bar-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin-right: 4px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-pill);
-  color: var(--text-tertiary);
-  font-size: var(--text-lg);
-  line-height: 1;
-  cursor: pointer;
-  transition: color var(--dur-instant) ease, background var(--dur-instant) ease;
-}
-
-.selection-bar-close:hover {
-  color: var(--text-primary);
-  background: var(--hover-bg);
-}
-
 /* Floating action — pinned bottom-right, liquid-glass pill that
    pops in only when the user has unsorted saves to triage. Same
    aesthetic as the multi-select bar (.selection-bar) so the user's

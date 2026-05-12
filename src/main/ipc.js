@@ -30,7 +30,6 @@ const {
 const { notifySaved, notifyDuplicate, refreshTray } = require('./notify');
 const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
-const { buildStarterPack } = require('./starterPack');
 const { quitAndInstall } = require('./updater');
 const {
   hasSession: hasAiSession,
@@ -672,50 +671,6 @@ function registerIpcHandlers() {
     const result = wipeLibrary();
     for (const f of result.files) deleteImageFiles(f.filePath, f.thumbPath);
     return { ok: true, removed: result.files.length };
-  });
-
-  // First-launch starter pack: rasterizes 6 bundled SVG cards into
-  // PNGs, runs them through the standard save pipeline (so palette
-  // extraction + thumbnails happen as for any real save), creates a
-  // "Welcome" bucket, and adds them all to it. Idempotent guard at
-  // the renderer side via localStorage; this handler still installs
-  // unconditionally if invoked, so pair with that flag.
-  ipcMain.handle('library:install-starter', async () => {
-    let cards;
-    try {
-      cards = await buildStarterPack();
-    } catch (err) {
-      console.error('[install-starter] buildStarterPack failed:', err);
-      return { ok: false, reason: 'build-failed', error: err.message };
-    }
-    if (!cards || cards.length === 0) {
-      return { ok: false, reason: 'no-cards' };
-    }
-    const collection = createCollection({ name: 'Starter Pack', color: '#af52de' });
-    let installed = 0;
-    for (const card of cards) {
-      try {
-        const imgData = await saveImageFromBuffer(card.buffer, card.ext);
-        if (imgData.duplicateOf) {
-          // Fresh-library install shouldn't hit this, but if it does
-          // just attach the existing save to the starter bucket and
-          // move on — no notification, this is a seed flow.
-          addSaveToCollection({ collectionId: collection.id, saveId: imgData.existing.id });
-          installed += 1;
-          continue;
-        }
-        const record = insertSave({ ...imgData, title: card.title });
-        addSaveToCollection({ collectionId: collection.id, saveId: record.id });
-        notifySaved(record);
-        installed += 1;
-      } catch (err) {
-        console.error('Starter card failed:', card.title, err);
-      }
-    }
-    if (installed === 0) {
-      return { ok: false, reason: 'all-cards-failed' };
-    }
-    return { ok: true, collectionId: collection.id, installed };
   });
 
   // PNG snapshot of the current board view. Renderer measures the

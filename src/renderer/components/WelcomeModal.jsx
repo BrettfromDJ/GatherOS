@@ -125,7 +125,7 @@ export default function WelcomeModal({ open, onClose }) {
           />
           <h2 className={styles.title}>Welcome to GatherOS</h2>
           <p className={styles.subtitle}>
-            We dropped a few starter images in to get you going. Here’s how to add your own.
+            Here’s how to start building your library.
           </p>
         </div>
 
