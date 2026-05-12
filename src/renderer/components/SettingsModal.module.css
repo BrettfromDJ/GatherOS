@@ -3,7 +3,6 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   z-index: 9000;
   display: flex;
   align-items: center;
@@ -164,44 +163,6 @@
   flex-direction: column;
 }
 
-/* Legacy .section / .sectionTitle / .drawerSection no longer wrap
-   anything — pages set their own spacing — but keep the rules so
-   any remaining usages don't lose styling. .section now provides
-   no padding because the page container handles it. */
-.section { padding: 0; }
-
-.sectionTitle {
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text-tertiary);
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Drawer-style section header — clickable row that toggles the
-   section's body. The plain .sectionTitle styling carries the
-   typography; this row adds the chevron + click affordance. */
-.drawerHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  margin-bottom: 0;
-}
-
-.drawerHeader .sectionTitle {
-  margin-bottom: 0;
-}
-
 .drawerChevron {
   display: inline-flex;
   align-items: center;
@@ -215,17 +176,6 @@
 
 .drawerChevron.drawerChevronOpen {
   transform: rotate(0deg);
-}
-
-.drawerHeader:hover .drawerChevron {
-  color: var(--text-primary);
-}
-
-.drawerBody {
-  padding: 8px 0 12px;
-  border-top: 0.5px solid var(--border-subtle);
-  margin-top: 2px;
-  animation: drawerIn var(--dur-quick) ease-out;
 }
 
 .aboutRow {
@@ -281,46 +231,6 @@
   margin-bottom: 5px;
 }
 
-.helpLink {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--dur-instant) ease;
-}
-
-.helpLink:hover {
-  color: var(--accent);
-}
-
-.input {
-  width: 100%;
-  padding: 7px 10px;
-  background: var(--input-bg);
-  border: 0.5px solid var(--input-border);
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  outline: none;
-  box-sizing: border-box;
-  transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
-}
-
-.input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.input:focus {
-  background: var(--input-bg-focus);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
-}
-
 .statusRow {
   margin-top: 8px;
   min-height: 18px;
@@ -337,22 +247,6 @@
   color: var(--text-tertiary);
 }
 
-.statusOk {
-  color: var(--status-success);
-}
-
-.statusError {
-  color: var(--status-error);
-}
-
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  background: var(--status-success-dot);
-  box-shadow: 0 0 0 2px var(--status-success-halo);
-}
 
 .actions {
   display: flex;
@@ -526,20 +420,6 @@
 
 .subDrawerHeader:hover { color: var(--text-primary); }
 
-.toggleRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggleRow:has(input:disabled) {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
 .toggleText {
   flex: 1 1 auto;
   display: flex;
@@ -548,71 +428,10 @@
   min-width: 0;
 }
 
-.toggleLabel {
-  font-size: var(--text-md);
-  color: var(--text-primary);
-  line-height: 1.3;
-}
-
 .toggleSub {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
   line-height: 1.4;
-}
-
-/* iOS-style switch. Hidden checkbox does the focus / a11y work; the
-   styled track + knob ride on top. Sibling selectors against the
-   :checked input flip the colors and slide the knob. */
-.switch {
-  position: relative;
-  flex: 0 0 auto;
-  width: 40px;
-  height: 24px;
-}
-
-.switch input {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: inherit;
-  z-index: 1;
-}
-
-.switchTrack {
-  position: absolute;
-  inset: 0;
-  background: var(--border-strong);
-  border-radius: var(--radius-pill);
-  transition: background var(--dur-medium) var(--ease-out);
-}
-
-.switchKnob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: #ffffff;
-  border-radius: var(--radius-circle);
-  box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.04),
-    0 1px 1px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.18);
-  transition: transform var(--dur-medium) var(--ease-out);
-}
-
-.switch input:checked ~ .switchTrack {
-  background: var(--accent);
-}
-
-.switch input:checked ~ .switchTrack .switchKnob {
-  transform: translateX(16px);
-}
-
-.switch input:focus-visible ~ .switchTrack {
-  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .reindexBox {
@@ -820,64 +639,6 @@
 }
 
 .tagDeleteBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Light/Dark picker — two segmented chips with a preview swatch.
-   Selected state mirrors the soft button surface so it reads as
-   "this one is on" without a hard accent fill. */
-.themeRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 4px 0 6px;
-}
-
-.themeOption {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  background: var(--input-bg);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  color: var(--text-secondary);
-  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
-}
-
-.themeOption:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
-
-.themeOptionActive,
-.themeOptionActive:hover {
-  background: var(--input-bg-focus);
-  border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
-}
-
-.themeSwatch {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-circle);
-  border: 0.5px solid var(--border-strong);
-}
-
-.themeSwatchLight {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F1F1EE 100%);
-}
-
-.themeSwatchDark {
-  background: linear-gradient(135deg, #2E2E30 0%, #1C1C1E 100%);
-}
-
-.themeLabel {
-  font-size: var(--text-md);
-  font-weight: 500;
-}
 
 /* AI usage meter — lives on the AI page when the user is signed in.
    Thin bar against the soft cap; tints amber when nearing it and
@@ -1319,6 +1080,7 @@
 .toggleLabel {
   font-size: var(--text-md);
   color: var(--text-primary);
+  line-height: 1.3;
 }
 
 .toggleSwitch {
