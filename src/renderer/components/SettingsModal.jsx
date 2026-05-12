@@ -1354,11 +1354,6 @@ export default function SettingsModal({
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>
                   Auto-empty trash
-                  <span className={styles.fieldHint}>
-                    {prefs.trashAutoEmptyDays > 0
-                      ? `After ${prefs.trashAutoEmptyDays} ${prefs.trashAutoEmptyDays === 1 ? 'day' : 'days'}`
-                      : 'Never'}
-                  </span>
                 </label>
                 <select
                   className={styles.select}
