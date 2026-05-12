@@ -900,11 +900,12 @@
   margin-bottom: 0;
 }
 
-/* Narrow variant — constrains the field to its control width so an
-   inline label + value hint (e.g. Grid columns: 4) reads adjacent
-   to the slider track rather than at the page edge. */
-.fieldNarrow {
-  align-items: stretch;
+/* Narrow variant — constrains the field's inner content to its
+   control width so an inline label + value hint (e.g. Grid columns:
+   4) reads adjacent to the slider track rather than at the page
+   edge. The field box itself stays full-width so the bottom divider
+   still spans the page. */
+.fieldNarrow > * {
   max-width: 220px;
 }
 
