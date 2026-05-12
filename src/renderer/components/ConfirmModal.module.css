@@ -1,0 +1,100 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--dur-quick) ease;
+}
+
+.modal {
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  animation: rise var(--dur-quick) var(--ease-pop);
+  overflow: hidden;
+}
+
+.body {
+  padding: 20px 22px 8px;
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.message {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px 16px;
+}
+
+.cancelBtn,
+.confirmBtn {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--dur-instant) ease, transform var(--dur-instant) ease, background var(--dur-instant) ease;
+}
+
+.cancelBtn {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.cancelBtn:hover {
+  background: var(--hover-bg-soft);
+}
+
+.confirmBtn {
+  background: var(--text-primary);
+  border: none;
+  color: var(--surface-1);
+}
+
+.confirmBtn:hover {
+  opacity: 0.9;
+}
+
+.confirmBtn:active {
+  transform: scale(0.98);
+}
+
+.confirmBtnDanger {
+  background: var(--status-error, #c0392b);
+  color: #fff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

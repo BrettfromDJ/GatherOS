@@ -15,6 +15,7 @@ import WelcomeModal from './components/WelcomeModal.jsx';
 import WhatsNewModal from './components/WhatsNewModal.jsx';
 import { pickNotesForUpgrade, RELEASE_NOTES } from './data/releaseNotes.js';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
+import ConfirmHost from './components/ConfirmHost.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
@@ -2798,6 +2799,8 @@ export default function App() {
         open={welcomeOpen}
         onClose={() => setWelcomeOpen(false)}
       />
+
+      <ConfirmHost />
 
 <WhatsNewModal
         open={!!whatsNewNotes}

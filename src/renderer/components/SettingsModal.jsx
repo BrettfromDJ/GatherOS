@@ -16,6 +16,7 @@ import {
   Maximize as MaximizeIcon,
 } from 'lucide-react';
 import styles from './SettingsModal.module.css';
+import { confirm } from '../lib/confirm.js';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
 import PrivacyModal from './PrivacyModal.jsx';
 
@@ -290,11 +291,14 @@ function LibrariesPage({
                             type="button"
                             role="menuitem"
                             className={`${styles.libraryRowMenuItem} ${styles.libraryRowMenuItemDanger}`}
-                            onClick={() => {
+                            onClick={async () => {
                               setOpenMenuId(null);
-                              const ok = window.confirm(
-                                `Delete "${lib.name}"? This permanently removes the library and all of its saves. This can't be undone.`,
-                              );
+                              const ok = await confirm({
+                                title: `Delete "${lib.name}"?`,
+                                message: "This permanently removes the library and all of its saves. This can't be undone.",
+                                confirmLabel: 'Delete',
+                                destructive: true,
+                              });
                               if (ok) onDelete?.(lib.id);
                             }}
                           >
