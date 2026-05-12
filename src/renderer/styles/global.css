@@ -532,10 +532,10 @@ body[data-board-print="true"] .main-col {
 }
 
 .selection-btn-danger {
-  background: var(--surface-1);
-  border-color: var(--border);
+  background: color-mix(in srgb, var(--status-error) 10%, var(--surface-1));
+  border-color: transparent;
   color: var(--status-error);
-  box-shadow: var(--shadow-control);
+  box-shadow: none;
 }
 
 .selection-btn-danger .selection-btn-icon {
@@ -543,8 +543,7 @@ body[data-board-print="true"] .main-col {
 }
 
 .selection-btn-danger:hover {
-  background: color-mix(in srgb, var(--status-error) 8%, var(--surface-1));
-  border-color: color-mix(in srgb, var(--status-error) 35%, var(--border));
+  background: color-mix(in srgb, var(--status-error) 16%, var(--surface-1));
 }
 
 /* ── Grid ↔ focused-view image morph ─────────────────────────────────
