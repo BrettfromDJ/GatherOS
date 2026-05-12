@@ -22,9 +22,9 @@ const SUPPORT_EMAIL = 'hello@designjoy.co';
 // in the content switch below — beats the old drawer accordion as
 // the surface area grows.
 const NAV_ITEMS = [
+  { id: 'defaults',   label: 'Defaults',   Icon: SlidersIcon },
   { id: 'account',    label: 'Account',    Icon: User },
   { id: 'appearance', label: 'Appearance', Icon: PaletteIcon },
-  { id: 'defaults',   label: 'Defaults',   Icon: SlidersIcon },
   { id: 'libraries',  label: 'Libraries',  Icon: Library },
   { id: 'ai',         label: 'AI',         Icon: Sparkles },
   { id: 'tags',       label: 'Tags',       Icon: Hash },
@@ -562,7 +562,7 @@ export default function SettingsModal({
   const [snapshots, setSnapshots] = useState([]);
   const [snapshotState, setSnapshotState] = useState({ running: false, message: null });
   const [snapshotsListOpen, setSnapshotsListOpen] = useState(false);
-  const [activePage, setActivePage] = useState('account');
+  const [activePage, setActivePage] = useState('defaults');
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState({ id: null, name: '' });
   const [tagBusy, setTagBusy] = useState(false);
