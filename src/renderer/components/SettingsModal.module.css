@@ -372,6 +372,12 @@
   margin-top: 4px;
 }
 
+/* Left-anchored variant — most settings pages put their CTA cluster
+   under the field stack flush-left. */
+.actionsStart {
+  justify-content: flex-start;
+}
+
 /* Secondary button — white surface, hairline border, soft shadow.
    The default for any button that isn't the page's primary CTA. */
 .btn {

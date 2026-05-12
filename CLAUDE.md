@@ -8,3 +8,6 @@
   ```
   cd /Users/brett/GatherOS && npm run dev
   ```
+
+- Always use **sentence case** for CTAs / button labels / headings — not Title
+  Case. ("Export library as zip", not "Export Library as Zip".)

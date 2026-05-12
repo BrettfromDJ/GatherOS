@@ -632,7 +632,7 @@ function UpdatesPage({ prefs, updatePref }) {
         />
       </div>
 
-      <div className={styles.actions} style={{ marginTop: 20, justifyContent: 'flex-start' }}>
+      <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginTop: 20 }}>
         <button
           type="button"
           className={styles.primaryBtn}
@@ -873,9 +873,11 @@ export default function SettingsModal({
   }
 
   async function handleSignOut() {
-    const ok = window.confirm(
-      'Sign out of GatherOS?\n\nYour library stays on this Mac. You can sign back in any time with the same email.',
-    );
+    const ok = await confirm({
+      title: 'Sign out of GatherOS?',
+      message: 'Your library stays on this Mac. You can sign back in any time with the same email.',
+      confirmLabel: 'Sign out',
+    });
     if (!ok) return;
     await window.moodmark.licensing.signOut();
     // Closing settings before AppGate flips back to the SigninScreen
@@ -897,13 +899,15 @@ export default function SettingsModal({
 
   async function handleRestoreSnapshot(snapshot) {
     const stamp = formatRelativeTimestamp(snapshot.timestamp);
-    const ok = window.confirm(
-      `Restore the library from the snapshot taken ${stamp}?\n\n`
-      + 'Saves added since that snapshot will disappear from the library. '
-      + 'The image files on disk are untouched, so nothing is permanently '
-      + 'lost — re-importing those files would resurface them.\n\n'
-      + 'A fresh snapshot of the current state is taken first as a safety net.',
-    );
+    const ok = await confirm({
+      title: `Restore snapshot from ${stamp}?`,
+      message:
+        "Saves added since that snapshot will disappear from the library. "
+        + "The image files on disk are untouched, so nothing is permanently "
+        + "lost — re-importing those files would resurface them. A fresh "
+        + "snapshot of the current state is taken first as a safety net.",
+      confirmLabel: 'Restore',
+    });
     if (!ok) return;
     setSnapshotState({ running: true, message: null });
     const result = await window.moodmark.backup.restore(snapshot.path);
@@ -960,11 +964,14 @@ export default function SettingsModal({
   }
 
   async function handleTagDelete(tag) {
-    const ok = window.confirm(
-      tag.save_count > 0
-        ? `Delete the tag "${tag.name}"? It's currently on ${tag.save_count} ${tag.save_count === 1 ? 'save' : 'saves'} — they'll keep the save, just not the tag.`
-        : `Delete the unused tag "${tag.name}"?`,
-    );
+    const ok = await confirm({
+      title: `Delete the tag "${tag.name}"?`,
+      message: tag.save_count > 0
+        ? `It's currently on ${tag.save_count} ${tag.save_count === 1 ? 'save' : 'saves'} — they'll keep the save, just not the tag.`
+        : 'This tag isn’t applied to any saves.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     setTagBusy(true);
     await window.moodmark.tags.delete(tag.id);
@@ -976,9 +983,12 @@ export default function SettingsModal({
   async function handleDeleteUnusedTags() {
     const unusedCount = tags.filter((t) => (t.save_count || 0) === 0).length;
     if (unusedCount === 0) return;
-    const ok = window.confirm(
-      `Delete ${unusedCount} unused ${unusedCount === 1 ? 'tag' : 'tags'}? They aren't applied to any saves.`,
-    );
+    const ok = await confirm({
+      title: `Delete ${unusedCount} unused ${unusedCount === 1 ? 'tag' : 'tags'}?`,
+      message: "They aren't applied to any saves.",
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     setTagBusy(true);
     await window.moodmark.tags.deleteUnused();
@@ -1089,7 +1099,7 @@ export default function SettingsModal({
                   </span>
                 </div>
               )}
-              <div className={styles.actions} style={{ marginTop: 14, justifyContent: 'flex-start' }}>
+              <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginTop: 14 }}>
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnDanger}`}
@@ -1536,7 +1546,7 @@ export default function SettingsModal({
             restore later by replacing the contents of the app's data
             folder with this archive's contents.
           </p>
-          <div className={styles.actions} style={{ justifyContent: 'flex-start' }}>
+          <div className={`${styles.actions} ${styles.actionsStart}`}>
             <button
               type="button"
               className={`${styles.btn} ${styles.btnWithIcon}`}
@@ -1559,7 +1569,7 @@ export default function SettingsModal({
             GatherOS saves daily snapshots of your library so you can
             restore if necessary.
           </p>
-          <div className={styles.actions} style={{ justifyContent: 'flex-start', marginBottom: 6 }}>
+          <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginBottom: 6 }}>
             <button
               type="button"
               className={`${styles.btn} ${styles.btnWithIcon}`}
@@ -1635,7 +1645,7 @@ export default function SettingsModal({
             underlying image files are deleted from disk. This cannot be
             undone.
           </p>
-          <div className={styles.actions} style={{ justifyContent: 'flex-start' }}>
+          <div className={`${styles.actions} ${styles.actionsStart}`}>
             <button
               type="button"
               className={`${styles.btn} ${styles.btnDanger} ${styles.btnWithIcon}`}
