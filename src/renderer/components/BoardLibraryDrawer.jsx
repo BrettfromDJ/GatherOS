@@ -23,7 +23,7 @@ const STATIC_OPTIONS = [
 // full library, narrow by folder, and drag thumbnails onto the
 // board. Self-fetches its filtered save list so the parent doesn't
 // have to thread search/collection state through every render.
-export default function BoardLibraryDrawer({ collections, onClose }) {
+export default function BoardLibraryDrawer({ collections, boardId, onClose }) {
   const [search, setSearch] = useState('');
   const [collectionId, setCollectionId] = useState('all'); // 'all' | 'unsorted' | <collection-id>
   const [saves, setSaves] = useState([]);
@@ -242,6 +242,8 @@ export default function BoardLibraryDrawer({ collections, onClose }) {
                 key={s.id}
                 className={styles.drawerThumb}
                 draggable
+                role="button"
+                tabIndex={0}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = 'copy';
                   e.dataTransfer.setData(
@@ -249,10 +251,25 @@ export default function BoardLibraryDrawer({ collections, onClose }) {
                     JSON.stringify({ saveId: s.id }),
                   );
                 }}
-                title={s.title || ''}
+                onClick={() => {
+                  if (!boardId) return;
+                  window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
+                    detail: { boardId, ids: [s.id] },
+                  }));
+                }}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && boardId) {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
+                      detail: { boardId, ids: [s.id] },
+                    }));
+                  }
+                }}
+                title={s.title ? `${s.title} — click to add to canvas` : 'Click to add to canvas'}
                 style={{
                   aspectRatio:
                     s.width && s.height ? `${s.width} / ${s.height}` : '1',
+                  cursor: 'pointer',
                 }}
               >
                 <img

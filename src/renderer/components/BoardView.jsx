@@ -1069,6 +1069,40 @@ export default function BoardView({
     persistItem(item);
   }, [saves, items, boardId, persistItem, pushHistory]);
 
+  // Listen for the global "add saves to this board" event fired from
+  // App.jsx (right-click → Add to space, multi-select bar → Add to
+  // space). When the active boardId matches, drop each save onto the
+  // viewport's current world centre with a small wrapping offset so
+  // multiple drops don't stack on the same point.
+  useEffect(() => {
+    function onAddSaves(e) {
+      const { boardId: targetId, ids } = e.detail || {};
+      if (targetId !== boardId || !Array.isArray(ids) || ids.length === 0) return;
+      const el = canvasNodeRef.current;
+      const rect = el ? el.getBoundingClientRect() : { width: 800, height: 600 };
+      const centerWorld = {
+        x: (rect.width / 2 - pan.x) / zoom,
+        y: (rect.height / 2 - pan.y) / zoom,
+      };
+      const cols = Math.min(ids.length, 5);
+      const cell = 240;
+      const gap = 24;
+      const totalW = cols * cell + (cols - 1) * gap;
+      ids.forEach((saveId, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const dx = col * (cell + gap) - totalW / 2 + cell / 2;
+        const dy = row * (cell + gap);
+        handleDropImage({
+          saveId,
+          world: { x: centerWorld.x + dx, y: centerWorld.y + dy },
+        });
+      });
+    }
+    window.addEventListener('moodmark:add-saves-to-board', onAddSaves);
+    return () => window.removeEventListener('moodmark:add-saves-to-board', onAddSaves);
+  }, [boardId, pan, zoom, handleDropImage]);
+
   // ── Undo / redo ──────────────────────────────────────────────
   // Apply a snapshot to the items state and persist the diff: any
   // items present in the snapshot are upserted; any items currently
@@ -2002,6 +2036,7 @@ export default function BoardView({
       {drawerOpen && (
         <BoardLibraryDrawer
           collections={collections}
+          boardId={boardId}
           onClose={() => setDrawerOpen(false)}
         />
       )}

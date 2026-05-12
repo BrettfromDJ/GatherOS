@@ -1001,6 +1001,25 @@ export default function App() {
         submenu,
       });
     }
+
+    // Add to space (board) submenu. Lists every existing board plus an
+    // option to drop the saves into a brand new space. Items land at
+    // the receiving board's current viewport centre (or the world
+    // origin if it hasn't been opened yet) via handleBulkAddToBoard.
+    if (boards && boards.length > 0) {
+      if (items.length > 0) items.push({ type: 'separator' });
+      const spaceSubmenu = boards.map((b) => ({
+        label: b.name || 'Untitled space',
+        icon: <FrameIcon />,
+        onClick: () => handleBulkAddToBoard(b.id, targetIds),
+      }));
+      items.push({
+        label: `Add to space${suffix}`,
+        icon: <FrameIcon />,
+        submenu: spaceSubmenu,
+      });
+    }
+
     // Find similar — single-save action only (multi-select doesn't
     // make semantic sense; we'd need to merge anchors). Hidden when
     // already viewing a similar-to set anchored on this same save.
@@ -1899,57 +1918,78 @@ export default function App() {
     setBulkSpacePicker({ x: rect.left + rect.width / 2, y: rect.top });
   }, [selected]);
 
-  const handleBulkAddToBoard = useCallback(async (boardId) => {
+  const handleBulkAddToBoard = useCallback(async (boardId, explicitIds = null) => {
     setBulkSpacePicker(null);
-    const ids = [...selected];
+    const ids = Array.isArray(explicitIds) && explicitIds.length > 0
+      ? explicitIds
+      : [...selected];
     if (ids.length === 0 || !boardId) return;
-    const cols = Math.min(ids.length, 5);
-    const cell = 240;
-    const gap = 24;
-    let zBase = Date.now() / 1000;
-    for (let i = 0; i < ids.length; i += 1) {
-      const saveId = ids[i];
-      const save = saves.find((s) => s.id === saveId);
-      if (!save) continue;
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = col * (cell + gap);
-      const y = row * (cell + gap);
-      const aspect = save.width && save.height ? save.width / save.height : 1;
-      const w = aspect >= 1 ? cell : Math.round(cell * aspect);
-      const h = aspect >= 1 ? Math.round(cell / aspect) : cell;
-      const now = Date.now();
-      const item = {
-        id: crypto.randomUUID(),
-        board_id: boardId,
-        type: 'image',
-        x, y, width: w, height: h,
-        rotation: 0,
-        z_index: Math.floor(zBase + i),
-        data: {
-          saveId,
-          fileUrl: fileUrl(save.file_path),
-          intrinsicWidth: save.width || null,
-          intrinsicHeight: save.height || null,
-        },
-        created_at: now,
-        updated_at: now,
-      };
-      try {
-        await window.moodmark.boards.upsertItem({ boardId, item });
-      } catch (err) {
-        console.error('Add to space failed for', saveId, err);
+
+    // If the user is actively viewing the target board, let it handle
+    // the drop at its current viewport centre. The active BoardView
+    // listens for this event and places the items in a small grid
+    // around its on-screen centre. When the user isn't viewing the
+    // board, fall back to a deterministic grid at the world origin.
+    const liveActive = view.type === 'board' && view.id === boardId;
+    if (liveActive) {
+      window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
+        detail: { boardId, ids },
+      }));
+    } else {
+      const cols = Math.min(ids.length, 5);
+      const cell = 240;
+      const gap = 24;
+      const zBase = Date.now() / 1000;
+      for (let i = 0; i < ids.length; i += 1) {
+        const saveId = ids[i];
+        const save = saves.find((s) => s.id === saveId);
+        if (!save) continue;
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const aspect = save.width && save.height ? save.width / save.height : 1;
+        const w = aspect >= 1 ? cell : Math.round(cell * aspect);
+        const h = aspect >= 1 ? Math.round(cell / aspect) : cell;
+        // Center the grid around the world origin so a fresh board
+        // doesn't dump everything to the bottom-right of (0, 0).
+        const totalW = cols * cell + (cols - 1) * gap;
+        const x = col * (cell + gap) - totalW / 2;
+        const y = row * (cell + gap) - cell;
+        const now = Date.now();
+        const item = {
+          id: crypto.randomUUID(),
+          board_id: boardId,
+          type: 'image',
+          x, y, width: w, height: h,
+          rotation: 0,
+          z_index: Math.floor(zBase + i),
+          data: {
+            saveId,
+            fileUrl: fileUrl(save.file_path),
+            intrinsicWidth: save.width || null,
+            intrinsicHeight: save.height || null,
+          },
+          created_at: now,
+          updated_at: now,
+        };
+        try {
+          await window.moodmark.boards.upsertItem({ boardId, item });
+        } catch (err) {
+          console.error('Add to space failed for', saveId, err);
+        }
       }
     }
+
     const board = boards.find((b) => b.id === boardId);
     const label = `Added ${ids.length} to ${board?.name || 'space'}`;
     showActionToast({
       message: label,
-      action: { label: 'Open', run: () => handleViewChange({ type: 'board', id: boardId }) },
+      action: liveActive
+        ? null
+        : { label: 'Open', run: () => handleViewChange({ type: 'board', id: boardId }) },
       durationMs: 3200,
     });
-    setSelected(new Set());
-  }, [selected, saves, boards, showActionToast, handleViewChange, setSelected]);
+    if (!explicitIds) setSelected(new Set());
+  }, [selected, saves, boards, view, showActionToast, handleViewChange, setSelected]);
 
   const handleBulkApplyTag = useCallback(async (name) => {
     if (selected.size === 0 || !name) return;
