@@ -14,6 +14,8 @@ import {
   Crop as CropIcon,
   AppWindow as AppWindowIcon,
   Maximize as MaximizeIcon,
+  LogOut as LogOutIcon,
+  CreditCard as CreditCardIcon,
 } from 'lucide-react';
 import styles from './SettingsModal.module.css';
 import { confirm } from '../lib/confirm.js';
@@ -637,6 +639,7 @@ function UpdatesPage({ prefs, updatePref }) {
           onClick={handleCheck}
           disabled={state.checking}
         >
+          <DownloadIcon size={14} strokeWidth={1.7} aria-hidden="true" />
           {state.checking ? 'Checking…' : 'Check for updates'}
         </button>
         {state.status === 'ready' && (
@@ -1091,14 +1094,20 @@ export default function SettingsModal({
                   type="button"
                   className={`${styles.btn} ${styles.btnDanger}`}
                   onClick={handleSignOut}
-                >Sign out</button>
+                >
+                  <LogOutIcon size={14} strokeWidth={1.7} aria-hidden="true" />
+                  Sign out
+                </button>
                 {account?.subscription && (
                   <button
                     type="button"
                     className={`${styles.btn} ${styles.btnPrimary}`}
                     onClick={handleOpenCustomerPortal}
                     disabled={portalState.running}
-                  >{portalState.running ? 'Opening…' : 'Manage subscription'}</button>
+                  >
+                    <CreditCardIcon size={14} strokeWidth={1.7} aria-hidden="true" />
+                    {portalState.running ? 'Opening…' : 'Manage subscription'}
+                  </button>
                 )}
               </div>
               {portalState.message && (

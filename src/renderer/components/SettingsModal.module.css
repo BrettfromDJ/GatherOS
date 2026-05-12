@@ -375,6 +375,9 @@
 /* Secondary button — white surface, hairline border, soft shadow.
    The default for any button that isn't the page's primary CTA. */
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px 14px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
@@ -1539,6 +1542,9 @@
 }
 
 .primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 9px 18px;
   background: var(--text-primary);
   border: none;
