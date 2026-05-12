@@ -286,6 +286,10 @@
 .tileArtNew {
   position: absolute;
   inset: 0;
+  /* .tileArt locks a fixed 122px height — clear it so `inset: 0` can
+     stretch the layer to the full card and the + centers against the
+     whole box rather than the upper 122px. */
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
