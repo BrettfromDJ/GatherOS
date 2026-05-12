@@ -46,7 +46,7 @@ import {
   Hash,
   Share,
   Sparkles,
-  Frame,
+  Layers,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -73,7 +73,7 @@ const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
 const ClipboardIcon = () => <Clipboard {...ICON} />;
 const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
 const HashIcon = () => <Hash {...ICON} />;
-const FrameIcon = () => <Frame {...ICON} />;
+const SpacesIcon = () => <Layers {...ICON} />;
 const ShareIcon = () => <Share {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
@@ -884,6 +884,12 @@ export default function App() {
     setVariantOptions({ saveId, openOnComplete });
   }, []);
 
+  // handleBulkAddToBoard is defined later in this component (after
+  // handleViewChange + showActionToast), so the menu builder below
+  // accesses it through a ref to avoid the temporal-dead-zone error
+  // that would come from listing it directly as a useCallback dep.
+  const handleBulkAddToBoardRef = useRef(null);
+
   const buildCardMenuItems = useCallback((saveId, memberIds) => {
     // If the right-clicked save is part of an active multi-selection,
     // every menu action operates on the full selection. Otherwise
@@ -1010,12 +1016,12 @@ export default function App() {
       if (items.length > 0) items.push({ type: 'separator' });
       const spaceSubmenu = boards.map((b) => ({
         label: b.name || 'Untitled space',
-        icon: <FrameIcon />,
-        onClick: () => handleBulkAddToBoard(b.id, targetIds),
+        icon: <SpacesIcon />,
+        onClick: () => handleBulkAddToBoardRef.current?.(b.id, targetIds),
       }));
       items.push({
         label: `Add to space${suffix}`,
-        icon: <FrameIcon />,
+        icon: <SpacesIcon />,
         submenu: spaceSubmenu,
       });
     }
@@ -1114,7 +1120,7 @@ export default function App() {
       },
     });
     return items;
-  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, openVariantModal]);
+  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, openVariantModal, boards]);
 
   const handleCardContextMenu = useCallback(async (saveId, x, y) => {
     // Resolve the bucket memberships used to filter the Add-to-Bucket
@@ -1991,6 +1997,12 @@ export default function App() {
     if (!explicitIds) setSelected(new Set());
   }, [selected, saves, boards, view, showActionToast, handleViewChange, setSelected]);
 
+  // Keep the ref used by the card right-click menu in sync with the
+  // live callback so the menu always invokes the latest closure.
+  useEffect(() => {
+    handleBulkAddToBoardRef.current = handleBulkAddToBoard;
+  }, [handleBulkAddToBoard]);
+
   const handleBulkApplyTag = useCallback(async (name) => {
     if (selected.size === 0 || !name) return;
     const ids = [...selected];
@@ -2696,7 +2708,7 @@ export default function App() {
             data-tooltip="Add to space"
             aria-label="Add to space"
           >
-            <span className="selection-btn-icon"><FrameIcon /></span>
+            <span className="selection-btn-icon"><SpacesIcon /></span>
           </button>
           <button
             type="button"
