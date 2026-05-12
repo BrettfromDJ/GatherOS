@@ -275,9 +275,14 @@
 }
 
 /* New-tile variant: absolute-center the "+" against the whole card
-   so the label below doesn't pull the icon visually above center. */
+   so the label below doesn't pull the icon visually above center.
+   Min-height matches the body-height of a real tile (art 122 + gap
+   12 + meta 36 + padding 26) so the card retains its full size even
+   though the absolute-positioned tileArtNew no longer contributes
+   to the flex column's intrinsic height. */
 .tileNew {
   position: relative;
+  min-height: 196px;
 }
 
 .tileArtNew {

@@ -217,6 +217,10 @@
    rhythm doesn't break. */
 .tileNew {
   position: relative;
+  /* Match a real board tile's body height (art 140 + gap 12 + meta
+     22 + padding 26) so the dashed-outline card keeps its size even
+     after .tileArtNew goes absolute. */
+  min-height: 200px;
   background: transparent;
   border: 1px dashed var(--border-strong);
   box-shadow: none;
