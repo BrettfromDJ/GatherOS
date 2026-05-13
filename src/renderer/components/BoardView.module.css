@@ -727,8 +727,7 @@
 
 .drawerThumb:focus,
 .drawerThumb:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: none;
 }
 
 .drawerThumb:hover {

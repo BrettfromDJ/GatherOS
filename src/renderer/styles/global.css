@@ -510,7 +510,11 @@ body:has(.selection-bar) .trash-toast {
 
 [data-tooltip]::before {
   content: '';
-  bottom: calc(100% + 3px);
+  /* Arrow sits flush against the pill's bottom — pill is at
+     bottom:100%+8px, arrow border-top is 4px tall, so the arrow's
+     bottom needs to be at 100%+4 so the arrow's top edge meets the
+     pill exactly. */
+  bottom: calc(100% + 4px);
   width: 0;
   height: 0;
   border-left: 4px solid transparent;
