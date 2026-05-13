@@ -754,6 +754,7 @@ function ImageActionBar({
   onSendToBack,
   onDownload,
   onCopyImage,
+  onToggleLock,
   onRemoveFromBoard,
 }) {
   const [pos, setPos] = useState(null);
@@ -822,6 +823,19 @@ function ImageActionBar({
         onClick={onSendToBack}
       >
         <ArrowDownToLine size={14} strokeWidth={1.8} />
+      </button>
+      <div className={styles.tt_sep} />
+      <button
+        type="button"
+        className={`${styles.tt_btn} ${item.data?.locked ? styles.tt_btn_active : ''}`}
+        data-tooltip={item.data?.locked ? 'Unlock' : 'Lock'}
+        title={item.data?.locked ? 'Unlock' : 'Lock'}
+        aria-pressed={!!item.data?.locked}
+        onClick={onToggleLock}
+      >
+        {item.data?.locked
+          ? <Lock size={14} strokeWidth={1.8} />
+          : <Unlock size={14} strokeWidth={1.8} />}
       </button>
       <div className={styles.tt_sep} />
       <button
@@ -2087,6 +2101,7 @@ export default function BoardView({
           onSendToBack={handleSendToBack}
           onDownload={handleDownloadItem}
           onCopyImage={handleCopyImageItem}
+          onToggleLock={() => setLockOnIds([imageBarItem.id], !imageBarItem.data?.locked)}
           onRemoveFromBoard={handleRemoveFromBoard}
         />
       )}
