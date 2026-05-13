@@ -528,8 +528,8 @@
 
 .promptBody {
   padding: 10px 12px;
-  background: var(--ai-tint-bg);
-  border: 0.5px solid var(--ai-tint-border);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   line-height: 1.55;
