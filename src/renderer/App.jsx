@@ -8,7 +8,6 @@ import { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import BulkTagPicker from './components/BulkTagPicker.jsx';
-import BulkSpacePicker from './components/BulkSpacePicker.jsx';
 import RediscoverMode from './components/RediscoverMode.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
@@ -830,7 +829,6 @@ export default function App() {
   // Bulk "Add to Collection" picker, anchored above the selection bar.
   const [bulkPicker, setBulkPicker] = useState(null); // { x, y }
   const [bulkTagPicker, setBulkTagPicker] = useState(null); // { x, y } | null
-  const [bulkSpacePicker, setBulkSpacePicker] = useState(null); // { x, y } | null
   const [rediscoverOpen, setRediscoverOpen] = useState(false);
 
   // Modal-backed variant generation. The opener (right-click or
@@ -1915,16 +1913,6 @@ export default function App() {
     setBulkTagPicker({ x: rect.left + rect.width / 2, y: rect.top });
   }, [selected]);
 
-  // Bulk add the selected saves to a space (board). Opens a small
-  // anchored menu listing every board; clicking one drops each save
-  // onto the canvas as an image item in a wrapping grid near the
-  // origin so they're easy to grab and rearrange.
-  const openBulkSpacePicker = useCallback((e) => {
-    if (selected.size === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    setBulkSpacePicker({ x: rect.left + rect.width / 2, y: rect.top });
-  }, [selected]);
-
   const handleBulkAddToBoard = useCallback(async (boardId, explicitIds = null) => {
     setBulkSpacePicker(null);
     const ids = Array.isArray(explicitIds) && explicitIds.length > 0
@@ -2660,15 +2648,6 @@ export default function App() {
           <button
             type="button"
             className="selection-btn selection-btn-compact"
-            onClick={openBulkSpacePicker}
-            data-tooltip="Add to space"
-            aria-label="Add to space"
-          >
-            <span className="selection-btn-icon"><SpacesIcon /></span>
-          </button>
-          <button
-            type="button"
-            className="selection-btn selection-btn-compact"
             onClick={(e) => openBulkTagPicker(e.currentTarget.getBoundingClientRect())}
             data-tooltip="Add tag"
             aria-label="Add tag to selection"
@@ -2847,26 +2826,6 @@ export default function App() {
           y={bulkPicker.y}
           items={bulkPickerItems}
           onClose={() => setBulkPicker(null)}
-        />
-      )}
-
-      {bulkSpacePicker && (
-        <BulkSpacePicker
-          anchor={bulkSpacePicker}
-          boards={boards || []}
-          count={selected.size}
-          onPick={handleBulkAddToBoard}
-          onCreate={async (name) => {
-            try {
-              const created = await window.moodmark.boards.create({ name });
-              await loadBoards();
-              if (created?.id) handleBulkAddToBoard(created.id);
-            } catch (err) {
-              console.error('Create-and-add to space failed:', err);
-              setBulkSpacePicker(null);
-            }
-          }}
-          onClose={() => setBulkSpacePicker(null)}
         />
       )}
 
