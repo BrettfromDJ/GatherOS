@@ -181,13 +181,10 @@
      lightbox open. */
   pointer-events: auto;
   /* JS-driven FLIP (Web Animations API) handles the entrance — see
-     ImageCard.jsx. Start invisible so we don't paint the un-FLIPped
-     centred state for one frame before the animation takes over.
-     The animation runs with fill: 'both' so it parks at opacity 1
-     and never falls back to this rule once played. */
-  opacity: 0;
+     ImageCard.jsx. transform-origin keeps any composited tween
+     centred on the image itself. */
   transform-origin: center center;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 @keyframes lightboxIn {

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -92,70 +92,11 @@ export default function ImageCard({
     cancelClose();
     closeTimerRef.current = setTimeout(() => {
       setPeeking(false);
-      setSourceRect(null);
       closeTimerRef.current = null;
     }, delay);
   };
 
   useEffect(() => () => { cancelOpen(); cancelClose(); }, []);
-
-  // FLIP the lightbox image from the card's on-screen rect to its
-  // final centred position. Runs once per peek session — useLayoutEffect
-  // ensures we measure after commit but before the user sees any
-  // un-animated paint. Wait for the <img>'s load before measuring so
-  // target.getBoundingClientRect() reflects the natural-aspect layout
-  // instead of a 0×0 pre-decode box (the source of the previous
-  // scale-to-Infinity flashing).
-  useLayoutEffect(() => {
-    if (!peeking || !sourceRect) return undefined;
-    const img = peekImgRef.current;
-    if (!img) return undefined;
-    let animation = null;
-    let cancelled = false;
-    function run() {
-      if (cancelled) return;
-      const target = img.getBoundingClientRect();
-      if (!target.width || !target.height) return;
-      const dx = sourceRect.left + sourceRect.width / 2
-        - (target.left + target.width / 2);
-      const dy = sourceRect.top + sourceRect.height / 2
-        - (target.top + target.height / 2);
-      const sx = sourceRect.width / target.width;
-      const sy = sourceRect.height / target.height;
-      try {
-        animation = img.animate(
-          [
-            {
-              transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
-              borderRadius: '8px',
-              opacity: 0.92,
-            },
-            {
-              transform: 'translate(0, 0) scale(1, 1)',
-              borderRadius: 'var(--radius-xl)',
-              opacity: 1,
-            },
-          ],
-          { duration: 340, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'both' },
-        );
-      } catch { /* WAAPI unavailable — let CSS handle the entrance */ }
-    }
-    if (img.complete && img.naturalWidth > 0) {
-      run();
-    } else {
-      const onLoad = () => run();
-      img.addEventListener('load', onLoad, { once: true });
-      return () => {
-        cancelled = true;
-        img.removeEventListener('load', onLoad);
-        animation?.cancel?.();
-      };
-    }
-    return () => {
-      cancelled = true;
-      animation?.cancel?.();
-    };
-  }, [peeking, sourceRect]);
 
   // Force Touch on macOS — the trackpad fires webkitmouseforceclick
   // when the user presses harder past the second click stage. React
@@ -324,16 +265,48 @@ export default function ImageCard({
       {peeking && src && createPortal(
         <div
           className={styles.lightbox}
+          // Cursor can pass over the dim backdrop on its way to the
+          // image without dismissing — the close decision lives on
+          // the image's own enter/leave below.
           aria-hidden="true"
         >
           <img
-            ref={peekImgRef}
+            ref={(el) => {
+              peekImgRef.current = el;
+              if (!el || !sourceRect) return;
+              // FLIP: measure where the image WILL sit centered, then
+              // apply an inverse transform that places it at the source
+              // rect and animate to identity. WAAPI handles the
+              // composited tween off the React thread.
+              const target = el.getBoundingClientRect();
+              const dx = sourceRect.left + sourceRect.width / 2 - (target.left + target.width / 2);
+              const dy = sourceRect.top + sourceRect.height / 2 - (target.top + target.height / 2);
+              const sx = sourceRect.width / target.width;
+              const sy = sourceRect.height / target.height;
+              try {
+                el.animate(
+                  [
+                    {
+                      transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
+                      borderRadius: '8px',
+                      opacity: 0.92,
+                    },
+                    {
+                      transform: 'translate(0, 0) scale(1, 1)',
+                      borderRadius: 'var(--radius-xl)',
+                      opacity: 1,
+                    },
+                  ],
+                  { duration: 340, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'both' },
+                );
+              } catch { /* ignore Animations API failure */ }
+            }}
             src={src}
             alt=""
             className={styles.lightboxImage}
             decoding="async"
             onMouseEnter={cancelClose}
-            onMouseLeave={() => { setPeeking(false); setSourceRect(null); }}
+            onMouseLeave={() => setPeeking(false)}
             draggable={false}
           />
         </div>,
