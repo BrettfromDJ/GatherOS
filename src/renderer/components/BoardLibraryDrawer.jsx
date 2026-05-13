@@ -275,7 +275,6 @@ export default function BoardLibraryDrawer({ collections, boardId, onClose }) {
                   className={[styles.drawerThumb, inSpace && styles.drawerThumbInSpace].filter(Boolean).join(' ')}
                   draggable
                   role="button"
-                  tabIndex={0}
                   onDragStart={(e) => {
                     e.dataTransfer.effectAllowed = 'copy';
                     e.dataTransfer.setData(
@@ -288,14 +287,6 @@ export default function BoardLibraryDrawer({ collections, boardId, onClose }) {
                     window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
                       detail: { boardId, ids: [s.id] },
                     }));
-                  }}
-                  onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ' ') && boardId) {
-                      e.preventDefault();
-                      window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
-                        detail: { boardId, ids: [s.id] },
-                      }));
-                    }
                   }}
                   title={
                     inSpace

@@ -510,17 +510,17 @@ body:has(.selection-bar) .trash-toast {
 
 [data-tooltip]::before {
   content: '';
-  /* Arrow sits flush against the pill's bottom — pill is at
-     bottom:100%+8px, arrow border-top is 4px tall, so the arrow's
-     bottom needs to be at 100%+4 so the arrow's top edge meets the
-     pill exactly. */
-  bottom: calc(100% + 4px);
+  /* Pill bottom sits at 100%+8px. Arrow border-top is 4px tall. We
+     overlap the arrow base 2px INTO the pill (instead of butting
+     them at the exact same y) so subpixel antialiasing never paints
+     a thin hairline gap between them. */
+  bottom: calc(100% + 6px);
   width: 0;
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-top: 4px solid var(--tooltip-bg);
-  z-index: 70;
+  z-index: 71;
 }
 
 [data-tooltip]:hover::after,
