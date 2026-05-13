@@ -36,7 +36,6 @@ import {
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
 import BoardLibraryDrawer from './BoardLibraryDrawer.jsx';
-import { consumePending } from '../lib/boardPendingAdds.js';
 import ContextMenu from './ContextMenu.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 
@@ -961,21 +960,6 @@ export default function BoardView({
       setZoom(INITIAL_ZOOM);
       setSelectedIds(new Set());
       setEditingItemId(null);
-
-      // Flush any "Add to space" requests that fired while this board
-      // wasn't open. requestAnimationFrame so the canvas DOM is up
-      // and pan/zoom state is committed; otherwise the listener's
-      // viewport-centre math reads pre-mount dimensions.
-      const pending = consumePending(boardId);
-      if (pending.length > 0) {
-        requestAnimationFrame(() => {
-          pending.forEach(({ ids }) => {
-            window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
-              detail: { boardId, ids },
-            }));
-          });
-        });
-      }
     })();
     return () => { cancelled = true; };
   }, [boardId]);
@@ -1085,10 +1069,11 @@ export default function BoardView({
     persistItem(item);
   }, [saves, items, boardId, persistItem, pushHistory]);
 
-  // Listen for the global "add saves to this board" event fired from
-  // App.jsx (right-click → Add to space, multi-select bar → Add to
-  // space). When the active boardId matches, drop each save onto the
-  // viewport's current world centre with a small wrapping offset so
+  // Listen for the global "add saves to this board" event fired by
+  // the BoardLibraryDrawer when the user clicks a thumb to drop it
+  // onto the canvas. When the active boardId matches, drop each save
+  // onto the viewport's current world centre with a small wrapping
+  // offset so
   // multiple drops don't stack on the same point.
   useEffect(() => {
     function onAddSaves(e) {

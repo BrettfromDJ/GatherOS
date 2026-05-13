@@ -45,7 +45,6 @@ import {
   Hash,
   Share,
   Sparkles,
-  Layers,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -54,7 +53,6 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
-import { pushPending as pushPendingBoardAdds } from './lib/boardPendingAdds.js';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -73,7 +71,6 @@ const SortFabIcon = () => <ArrowRightFromLine {...ICON} />;
 const ClipboardIcon = () => <Clipboard {...ICON} />;
 const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
 const HashIcon = () => <Hash {...ICON} />;
-const SpacesIcon = () => <Layers {...ICON} />;
 const ShareIcon = () => <Share {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
@@ -883,12 +880,6 @@ export default function App() {
     setVariantOptions({ saveId, openOnComplete });
   }, []);
 
-  // handleBulkAddToBoard is defined later in this component (after
-  // handleViewChange + showActionToast), so the menu builder below
-  // accesses it through a ref to avoid the temporal-dead-zone error
-  // that would come from listing it directly as a useCallback dep.
-  const handleBulkAddToBoardRef = useRef(null);
-
   const buildCardMenuItems = useCallback((saveId, memberIds) => {
     // If the right-clicked save is part of an active multi-selection,
     // every menu action operates on the full selection. Otherwise
@@ -1007,24 +998,6 @@ export default function App() {
       });
     }
 
-    // Add to space (board) submenu. Lists every existing board plus an
-    // option to drop the saves into a brand new space. Items land at
-    // the receiving board's current viewport centre (or the world
-    // origin if it hasn't been opened yet) via handleBulkAddToBoard.
-    if (boards && boards.length > 0) {
-      if (items.length > 0) items.push({ type: 'separator' });
-      const spaceSubmenu = boards.map((b) => ({
-        label: b.name || 'Untitled space',
-        icon: <SpacesIcon />,
-        onClick: () => handleBulkAddToBoardRef.current?.(b.id, targetIds),
-      }));
-      items.push({
-        label: `Add to space${suffix}`,
-        icon: <SpacesIcon />,
-        submenu: spaceSubmenu,
-      });
-    }
-
     // Find similar — single-save action only (multi-select doesn't
     // make semantic sense; we'd need to merge anchors). Hidden when
     // already viewing a similar-to set anchored on this same save.
@@ -1119,7 +1092,7 @@ export default function App() {
       },
     });
     return items;
-  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, openVariantModal, boards]);
+  }, [selected, collections, view, reload, loadCollections, restoreSave, showRestoreToast, showPermanentDeleteToast, deleteSave, showTrashToast, focusedId, saves, undoStack, similarTo, setSimilarTo, showActionToast, aiConfigured, openVariantModal]);
 
   const handleCardContextMenu = useCallback(async (saveId, x, y) => {
     // Resolve the bucket memberships used to filter the Add-to-Bucket
@@ -1912,38 +1885,6 @@ export default function App() {
     if (!rect || selected.size === 0) return;
     setBulkTagPicker({ x: rect.left + rect.width / 2, y: rect.top });
   }, [selected]);
-
-  const handleBulkAddToBoard = useCallback(async (boardId, explicitIds = null) => {
-    setBulkSpacePicker(null);
-    const ids = Array.isArray(explicitIds) && explicitIds.length > 0
-      ? explicitIds
-      : [...selected];
-    if (ids.length === 0 || !boardId) return;
-
-    const liveActive = view.type === 'board' && view.id === boardId;
-    if (liveActive) {
-      // Active BoardView listens for this event and drops the saves
-      // around the current world viewport centre via handleDropImage.
-      window.dispatchEvent(new CustomEvent('moodmark:add-saves-to-board', {
-        detail: { boardId, ids },
-      }));
-    } else {
-      // Push the adds onto a tiny pending-queue and navigate to the
-      // target board. BoardView consumes the queue after mount and
-      // dispatches the same event so placement still lands at the
-      // freshly-opened viewport's centre rather than the world origin.
-      pushPendingBoardAdds(boardId, ids);
-      handleViewChange({ type: 'board', id: boardId });
-    }
-
-    if (!explicitIds) setSelected(new Set());
-  }, [selected, view, handleViewChange, setSelected]);
-
-  // Keep the ref used by the card right-click menu in sync with the
-  // live callback so the menu always invokes the latest closure.
-  useEffect(() => {
-    handleBulkAddToBoardRef.current = handleBulkAddToBoard;
-  }, [handleBulkAddToBoard]);
 
   const handleBulkApplyTag = useCallback(async (name) => {
     if (selected.size === 0 || !name) return;
