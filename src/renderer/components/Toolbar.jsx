@@ -344,16 +344,13 @@ export default function Toolbar({
     >
       <div className={styles.left}>
         <span className={styles.brand} aria-hidden="true">
-          {/* GatherOS brand mark — six dots arranged 1/2/3 (pyramid /
-              "gathering" silhouette). currentColor so the glyph
-              inherits --text-primary and flips with the theme. */}
-          <svg viewBox="0 0 27 26" width="22" height="21" aria-hidden="true">
-            <rect className={styles.brandDot} data-i="0" y="19.2234"             width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect className={styles.brandDot} data-i="1" x="9.68091" y="19.2234" width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect className={styles.brandDot} data-i="2" x="19.3616" y="19.2234" width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect className={styles.brandDot} data-i="3" x="4.84033" y="9.5426"  width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect className={styles.brandDot} data-i="4" x="14.5212" y="9.5426"  width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
-            <rect className={styles.brandDot} data-i="5" x="9.68091"             width="6.7766" height="6.7766" rx="3.3883" fill="currentColor" />
+          {/* GatherOS brand mark. currentColor so the glyph inherits
+              --text-primary and flips with the theme. */}
+          <svg viewBox="0 0 46 46" width="22" height="22" aria-hidden="true">
+            <path
+              d="M44.022 15.6399H32.384C31.556 15.6399 30.682 16.3759 30.682 17.4799V22.5399C30.682 24.3339 30.452 25.7139 29.532 27.1859C28.566 28.6579 27.14 30.2219 24.61 30.3599C22.908 30.4979 21.16 30.3599 19.596 29.3939C17.48 28.1059 15.916 25.9439 15.916 22.9999C15.916 20.8839 17.02 18.6759 18.814 17.3419C19.964 16.4219 21.436 15.5939 23.46 15.5019H28.98C30.084 15.5019 30.682 14.7659 30.636 13.7999V2.57594C30.636 1.70194 29.946 0.965942 28.934 0.965942H22.77C20.47 0.965942 17.894 1.24194 15.456 2.11594C8.97005 4.41594 2.16205 10.1659 0.736047 19.2739C0.552047 20.4239 0.506047 21.4359 0.506047 22.5859C0.460047 29.8999 4.09405 36.8919 9.38405 40.5259C12.834 42.9639 16.882 44.8039 22.034 45.0339H28.934C30.13 45.0339 30.636 44.2059 30.636 43.3319V38.2259C30.636 35.6959 31.602 34.2239 33.166 32.5219C34.592 30.9579 36.11 30.4059 38.18 30.4059H44.252C45.034 30.4059 45.586 29.6699 45.586 28.7959V17.4339C45.494 16.6059 45.034 15.6399 44.022 15.6399Z"
+              fill="currentColor"
+            />
           </svg>
         </span>
         {Array.isArray(libraries) && libraries.length > 0 && (
