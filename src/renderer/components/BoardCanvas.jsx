@@ -900,6 +900,7 @@ export default function BoardCanvas({
   // mousemove listener below applies dx/dy to the right edges and
   // anchors the opposite corner.
   const handleItemResizeStart = (item, corner, e) => {
+    if (item?.data?.locked) return;
     const itemEl = canvasRef.current.querySelector(`[data-item-id="${item.id}"]`);
     let measuredW = item.width;
     let measuredH = item.height;
@@ -939,6 +940,11 @@ export default function BoardCanvas({
   // re-size each one relative to the anchored corner.
   const handleGroupResizeStart = (corner, e) => {
     if (!groupBbox) return;
+    // Skip the resize if every selected item is locked. With at least
+    // one unlocked item the resize still runs — the inner per-item
+    // resize loop below skips locked ones so their geometry stays put.
+    const selectedItems = items.filter((it) => selectedIds.has(it.id));
+    if (selectedItems.length > 0 && selectedItems.every((it) => it.data?.locked)) return;
     const cnv = canvasRef.current;
     if (!cnv) return;
     const cr = cnv.getBoundingClientRect();
@@ -975,6 +981,10 @@ export default function BoardCanvas({
   // via window-level listeners so the cursor can wander outside the
   // canvas during a drag without the move getting stuck.
   const handleItemMoveStart = (item, e) => {
+    // Locked items can't be dragged. Keep the click-to-select
+    // behaviour by still letting onSelectIds run via the canvas's
+    // normal mousedown bubbling — just abort the move setup here.
+    if (item?.data?.locked) return;
     // A drag that started on top of a contentEditable's text node will
     // also start a native text selection, which sticks even after the
     // drag ends. Clear any pending selection at the start of a move
