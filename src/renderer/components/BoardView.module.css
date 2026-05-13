@@ -1257,10 +1257,17 @@
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  /* Drop --shadow-card's inset white highlight (which read as a faint
+     inner ring on this small floating element) and keep just the
+     ambient drop shadow. */
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   white-space: nowrap;
   font-size: var(--text-md);
   color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .textToolbar {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .tt_group {
