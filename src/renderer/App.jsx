@@ -1532,8 +1532,14 @@ export default function App() {
       try { await window.moodmark.boards.upsertItem({ boardId: board.id, item }); }
       catch (err) { console.error('Open-as-space item insert failed:', save.id, err); }
     }
+    // Refresh collections before navigating so the Folders-mode tile
+    // grid renders fresh fanned thumbs when the user comes back. The
+    // generic view→loading→loadCollections refresh chain races the
+    // FolderGrid remount on back-nav and sometimes loses, leaving the
+    // opened collection's tile with a stale empty thumbs array.
+    await loadCollections();
     handleViewChange({ type: 'board', id: board.id });
-  }, [collections, loadBoards, handleViewChange]);
+  }, [collections, loadBoards, loadCollections, handleViewChange]);
 
   const handleReorderCollections = useCallback(async (orderedIds) => {
     const previousOrder = collections.map((c) => c.id);
