@@ -633,8 +633,13 @@
   border-radius: var(--radius-pill);
   box-shadow: none;
   font-size: var(--text-xs);
-  color: var(--text-primary);
+  color: #000000;
   max-width: 100%;
+}
+
+:root[data-theme="dark"] .collectionPill {
+  background: #3A3A3C;
+  color: #FFFFFF;
 }
 
 .collectionPillIcon {
@@ -642,6 +647,11 @@
   width: 12px;
   height: 12px;
   color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .collectionPillIcon,
+:root[data-theme="dark"] .collectionPillRemove {
+  color: #FFFFFF;
 }
 
 .collectionPillIcon svg {
@@ -803,9 +813,19 @@
   max-width: 100%;
 }
 
+:root[data-theme="dark"] .tagPill {
+  background: #3A3A3C;
+  color: #FFFFFF;
+}
+
 .tagHash {
   color: #000000;
   margin-right: 1px;
+}
+
+:root[data-theme="dark"] .tagHash,
+:root[data-theme="dark"] .tagRemove {
+  color: #FFFFFF;
 }
 
 .tagName {

@@ -103,6 +103,13 @@
   color: #fff;
 }
 
+/* In dark mode the --accent token is white, so the white "check"
+   glyph disappeared on top of a white pill. Flip the check stroke to
+   the dark surface tone so the marker remains visible. */
+:root[data-theme="dark"] .checkboxOn {
+  color: var(--surface-1);
+}
+
 .checkbox:hover:not(.checkboxOn) {
   background: rgba(255, 255, 255, 0.8);
 }
