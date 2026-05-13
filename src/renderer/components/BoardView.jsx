@@ -829,7 +829,7 @@ function ImageActionBar({
         type="button"
         className={`${styles.tt_btn} ${item.data?.locked ? styles.tt_btn_active : ''}`}
         data-tooltip={item.data?.locked ? 'Unlock' : 'Lock'}
-        title={item.data?.locked ? 'Unlock' : 'Lock'}
+        aria-label={item.data?.locked ? 'Unlock' : 'Lock'}
         aria-pressed={!!item.data?.locked}
         onClick={onToggleLock}
       >
