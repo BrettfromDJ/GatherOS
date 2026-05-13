@@ -81,6 +81,14 @@ export default function SmartChipRail({
         )}
       </div>
       <div className={styles.right}>
+        {onSortChange && (
+          <Dropdown
+            value={sortMode}
+            options={SORT_OPTIONS}
+            onChange={onSortChange}
+            ariaLabel="Sort by"
+          />
+        )}
         {onColumnsChange && (
           <div className={styles.zoom} title="Card size">
             <input
@@ -96,14 +104,6 @@ export default function SmartChipRail({
               aria-label="Card size"
             />
           </div>
-        )}
-        {onSortChange && (
-          <Dropdown
-            value={sortMode}
-            options={SORT_OPTIONS}
-            onChange={onSortChange}
-            ariaLabel="Sort by"
-          />
         )}
       </div>
     </div>

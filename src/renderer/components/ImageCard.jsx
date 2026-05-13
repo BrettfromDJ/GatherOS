@@ -56,12 +56,8 @@ export default function ImageCard({
   const OPEN_DELAY = 220;
   const CLOSE_GRACE = 150;
   const [peeking, setPeeking] = useState(false);
-  // Source rect captured at peek-open so the lightbox image can FLIP
-  // from the card's on-screen position into the centered preview.
-  const [sourceRect, setSourceRect] = useState(null);
   const openTimerRef = useRef(null);
   const closeTimerRef = useRef(null);
-  const peekImgRef = useRef(null);
 
   const cancelOpen = () => {
     if (openTimerRef.current) {
@@ -73,12 +69,6 @@ export default function ImageCard({
     cancelOpen();
     openTimerRef.current = setTimeout(() => {
       openTimerRef.current = null;
-      // Capture the card's on-screen rect so the lightbox image can
-      // FLIP into place from where the card currently sits.
-      const wrapper = wrapperRef.current;
-      const inner = wrapper?.querySelector('img');
-      const el = inner || wrapper;
-      if (el) setSourceRect(el.getBoundingClientRect());
       setPeeking(true);
     }, OPEN_DELAY);
   };
@@ -271,36 +261,6 @@ export default function ImageCard({
           aria-hidden="true"
         >
           <img
-            ref={(el) => {
-              peekImgRef.current = el;
-              if (!el || !sourceRect) return;
-              // FLIP: measure where the image WILL sit centered, then
-              // apply an inverse transform that places it at the source
-              // rect and animate to identity. WAAPI handles the
-              // composited tween off the React thread.
-              const target = el.getBoundingClientRect();
-              const dx = sourceRect.left + sourceRect.width / 2 - (target.left + target.width / 2);
-              const dy = sourceRect.top + sourceRect.height / 2 - (target.top + target.height / 2);
-              const sx = sourceRect.width / target.width;
-              const sy = sourceRect.height / target.height;
-              try {
-                el.animate(
-                  [
-                    {
-                      transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
-                      borderRadius: '8px',
-                      opacity: 0.92,
-                    },
-                    {
-                      transform: 'translate(0, 0) scale(1, 1)',
-                      borderRadius: 'var(--radius-xl)',
-                      opacity: 1,
-                    },
-                  ],
-                  { duration: 340, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'both' },
-                );
-              } catch { /* ignore Animations API failure */ }
-            }}
             src={src}
             alt=""
             className={styles.lightboxImage}

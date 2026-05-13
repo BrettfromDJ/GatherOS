@@ -157,11 +157,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 10, 0.55);
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  background: rgba(10, 10, 10, 0.45);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
   pointer-events: none;
-  animation: lightboxIn 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: lightboxIn var(--dur-quick) ease-out;
 }
 
 .lightboxImage {
@@ -180,16 +180,17 @@
      event; the image itself is the hover target that keeps the
      lightbox open. */
   pointer-events: auto;
-  /* JS-driven FLIP (Web Animations API) handles the entrance — see
-     ImageCard.jsx. transform-origin keeps any composited tween
-     centred on the image itself. */
-  transform-origin: center center;
-  will-change: transform;
+  animation: lightboxImageIn var(--dur-medium) var(--ease-out);
 }
 
 @keyframes lightboxIn {
-  from { opacity: 0; backdrop-filter: blur(0) saturate(1); -webkit-backdrop-filter: blur(0) saturate(1); }
+  from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes lightboxImageIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* "Just arrived" affordance — runs once when a save lands in the
