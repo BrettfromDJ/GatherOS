@@ -716,17 +716,19 @@
               box-shadow var(--dur-instant) ease;
 }
 
-/* Suppress the browser's default focus outline on mouse-click — the
-   role="button" + tabIndex=0 wrapper kept a lingering ring after a
-   thumb was clicked. Keyboard users still get a visible ring via
-   :focus-visible below. */
-.drawerThumb:focus {
+/* Suppress every focus / outline / tap-highlight indicator on the
+   thumb. role="button" + tabIndex=0 made the browser keep painting a
+   ring after a click (especially in dark mode where the :focus-visible
+   ring was white). The action itself is a single click — no need to
+   linger on the previously-clicked thumb. */
+.drawerThumb,
+.drawerThumb:focus,
+.drawerThumb:focus-visible {
   outline: none;
 }
 
-.drawerThumb:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.drawerThumb {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .drawerThumb:hover {
