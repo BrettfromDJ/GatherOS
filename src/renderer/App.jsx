@@ -1502,8 +1502,8 @@ export default function App() {
     const gap = 24;
     const totalW = cols * cell + (cols - 1) * gap;
     const zBase = Math.floor(Date.now() / 1000);
-    for (let i = 0; i < list.length; i += 1) {
-      const save = list[i];
+    const now = Date.now();
+    const items = list.map((save, i) => {
       const colIdx = i % cols;
       const row = Math.floor(i / cols);
       const aspect = save.width && save.height ? save.width / save.height : 1;
@@ -1511,8 +1511,7 @@ export default function App() {
       const h = aspect >= 1 ? Math.round(cell / aspect) : cell;
       const x = colIdx * (cell + gap) - totalW / 2;
       const y = row * (cell + gap) - cell;
-      const now = Date.now();
-      const item = {
+      return {
         id: crypto.randomUUID(),
         board_id: board.id,
         type: 'image',
@@ -1528,8 +1527,13 @@ export default function App() {
         created_at: now,
         updated_at: now,
       };
-      try { await window.moodmark.boards.upsertItem({ boardId: board.id, item }); }
-      catch (err) { console.error('Open-as-space item insert failed:', save.id, err); }
+    });
+    if (items.length > 0) {
+      try {
+        await window.moodmark.boards.bulkUpdateItems({ boardId: board.id, items });
+      } catch (err) {
+        console.error('Open-as-space bulk insert failed:', err);
+      }
     }
     // Refresh boards *after* items land so the new space's tile picks
     // up its 2x2 mosaic thumbs from listWithThumbs. Refreshing earlier
