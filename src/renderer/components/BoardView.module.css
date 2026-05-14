@@ -89,29 +89,30 @@
   position: absolute;
   top: 50px;
   left: 14px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 12px 0 8px;
+  justify-content: center;
+  padding: 0;
   background: var(--surface-1);
-  border: 1px solid var(--btn-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-circle);
   box-shadow: var(--shadow-control);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
+  flex-shrink: 0;
   z-index: 5;
-  transition: filter var(--dur-instant) ease, transform var(--dur-instant) ease;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
 
 .backBtn:hover {
-  filter: brightness(0.98);
+  background: var(--hover-bg-soft);
+  color: var(--text-primary);
 }
 
 .backBtn:active {
-  transform: scale(0.97);
+  transform: scale(0.94);
 }
 
 .titleBar {

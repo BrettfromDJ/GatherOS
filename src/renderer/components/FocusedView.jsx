@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import {
   PanelLeft,
+  ChevronLeft,
   ExternalLink,
   Download,
   Pipette,
@@ -130,14 +131,13 @@ export default function FocusedView({
           </button>
         )}
         <button
+          type="button"
           className={styles.backBtn}
           onClick={onBack}
           aria-label="Back to grid"
           title="Back to grid (Esc)"
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M9.5 3 L4.5 8 L9.5 13" />
-          </svg>
+          <ChevronLeft size={18} strokeWidth={1.6} aria-hidden="true" />
         </button>
 
         {total > 1 && (

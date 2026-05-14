@@ -198,28 +198,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-circle);
+  color: var(--text-secondary);
   cursor: pointer;
+  flex-shrink: 0;
   -webkit-app-region: no-drag;
-  transition: color var(--dur-instant) ease, transform var(--dur-instant) ease;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
 
 .backBtn:hover {
+  background: var(--hover-bg-soft);
   color: var(--text-primary);
 }
 
 .backBtn:active {
-  transform: scale(0.92);
-}
-
-.backBtn svg {
-  width: 14px;
-  height: 14px;
+  transform: scale(0.94);
 }
 
 .counter {
