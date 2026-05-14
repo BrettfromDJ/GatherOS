@@ -984,10 +984,11 @@ export default function BoardView({
       setSelectedIds(new Set());
       setEditingItemId(null);
 
-      // Auto-centre the viewport on the items' bounding box so a
-      // newly-opened board appears with content already in view.
-      // requestAnimationFrame so canvasNodeRef has been populated by
-      // the just-rendered <BoardCanvas>.
+      // Auto-centre the viewport on the items' bounding box so newly-
+      // opened boards (especially "Open as space" results, which lay
+      // items out around the world origin) appear with content
+      // already in view. requestAnimationFrame so canvasNodeRef has
+      // been populated by the just-rendered <BoardCanvas>.
       if (list.length === 0) {
         setPan(INITIAL_PAN);
         return;

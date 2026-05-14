@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FolderClosed, Pencil, Trash2, Plus } from 'lucide-react';
+import { FolderClosed, Pencil, Trash2, Plus, Layers } from 'lucide-react';
 import styles from './FolderGrid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
@@ -154,6 +154,7 @@ export default function FolderGrid({
   onAddSavesToBucket,
   onDropFilesToBucket,
   onSetAppDragging,
+  onOpenCollectionAsSpace,
 }) {
   const visible = (folders || []).filter(
     (f) => (f.parent_id || null) === parentId,
@@ -338,6 +339,11 @@ export default function FolderGrid({
               icon: <PencilIcon />,
               onClick: () => startRename(ctxMenu.folder),
             },
+            ...(onOpenCollectionAsSpace ? [{
+              label: 'Open as space',
+              icon: <Layers size={14} strokeWidth={1.6} aria-hidden="true" />,
+              onClick: () => onOpenCollectionAsSpace(ctxMenu.folder.id),
+            }] : []),
             {
               label: 'Delete collection',
               icon: <TrashIcon />,

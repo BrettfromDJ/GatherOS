@@ -902,7 +902,11 @@ function getAllCollections() {
 function getAllCollectionsWithThumbs() {
   const rows = getDatabase().prepare(`
     WITH ranked AS (
-      SELECT ci.collection_id, s.thumb_path, s.created_at,
+      -- thumb_or_file mirrors the FeaturedBuckets fallback so legacy
+      -- saves with empty thumb_path still feed the fanned tile.
+      SELECT ci.collection_id,
+             COALESCE(NULLIF(s.thumb_path, ''), s.file_path) AS thumb_or_file,
+             s.created_at,
              ROW_NUMBER() OVER (
                PARTITION BY ci.collection_id
                ORDER BY s.created_at DESC
@@ -913,7 +917,7 @@ function getAllCollectionsWithThumbs() {
     ),
     top_thumbs AS (
       SELECT collection_id,
-             group_concat(thumb_path, x'01') AS thumbs
+             group_concat(thumb_or_file, x'01') AS thumbs
       FROM ranked
       WHERE rn <= 4
       GROUP BY collection_id
@@ -1204,8 +1208,13 @@ function listBoardsWithThumbs() {
          AND json_extract(bi.data, '$.saveId') IS NOT NULL
     ),
     top_thumbs AS (
+      -- Fall back to file_path when thumb_path is empty so the tile
+      -- mosaic mirrors what the FeaturedBuckets row already does
+      -- (s.thumb_path || s.file_path). Without the fallback, saves
+      -- imported before the thumbnail pipeline existed render the
+      -- board tile blank even though the canvas shows them fine.
       SELECT r.board_id,
-             group_concat(s.thumb_path, x'01') AS thumbs
+             group_concat(COALESCE(NULLIF(s.thumb_path, ''), s.file_path), x'01') AS thumbs
         FROM ranked r
         JOIN saves s ON s.id = r.save_id
        WHERE r.rn <= 4 AND s.deleted_at IS NULL
