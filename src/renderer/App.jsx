@@ -1535,11 +1535,27 @@ export default function App() {
         console.error('Open-as-space bulk insert failed:', err);
       }
     }
-    // Refresh boards *after* items land so the new space's tile picks
-    // up its 2x2 mosaic thumbs from listWithThumbs. Refreshing earlier
-    // (right after boards.create) snapshots the board with zero items
-    // and leaves the tile rendering the empty Frame placeholder.
-    await loadBoards();
+    // Seed the new board into the React boards state with thumbs
+    // computed from the same `list` we just inserted. listBoardsWithThumbs
+    // has been observed to return the new board with an empty thumbs
+    // array even after bulkUpdateItems resolves — possibly a
+    // better-sqlite3 visibility nuance with the freshly-committed
+    // transaction. Whatever the cause, the renderer already knows the
+    // exact thumb paths, so just put them into state directly. A
+    // background loadBoards still runs for any other state that
+    // changed.
+    const newThumbs = list
+      .slice(0, 4)
+      .map((s) => s.thumb_path || s.file_path)
+      .filter(Boolean);
+    setBoards((prev) => {
+      const without = prev.filter((b) => b.id !== board.id);
+      return [
+        ...without,
+        { ...board, order_index: without.length, thumbs: newThumbs },
+      ];
+    });
+    loadBoards();
     handleViewChange({ type: 'board', id: board.id });
   }, [collections, loadBoards, handleViewChange]);
 
