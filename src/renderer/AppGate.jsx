@@ -34,6 +34,28 @@ export default function AppGate() {
   // tick. We don't reset it during the same unauth visit — once
   // they've saved, the gate is up.
   const [guestSaveLanded, setGuestSaveLanded] = useState(false);
+  // Latches true when the user explicitly requests signin from
+  // somewhere inside the app (Settings → Account → Sign in). Same
+  // effect as guestSaveLanded — escapes guest mode for the duration
+  // of this unauth visit and shows the SigninScreen.
+  const [signinRequested, setSigninRequested] = useState(false);
+
+  useEffect(() => {
+    function onRequest() { setSigninRequested(true); }
+    window.addEventListener('moodmark:request-signin', onRequest);
+    return () => window.removeEventListener('moodmark:request-signin', onRequest);
+  }, []);
+
+  // Settings dispatches this when the user confirms the sign-out
+  // dialog. Routing through here (instead of calling the licensing
+  // IPC directly from Settings) means useLicense's setState fires in
+  // the same tick, so AppGate flips to SigninScreen immediately
+  // rather than waiting for the next focus-triggered verify.
+  useEffect(() => {
+    function onRequest() { signOut(); }
+    window.addEventListener('moodmark:request-signout', onRequest);
+    return () => window.removeEventListener('moodmark:request-signout', onRequest);
+  }, [signOut]);
 
   useEffect(() => {
     if (state.status === 'expired' && checkoutPollRef.current == null) {
@@ -70,6 +92,7 @@ export default function AppGate() {
     if (state.status !== 'unauth') {
       setGuestSaveCount(null);
       setGuestSaveLanded(false);
+      setSigninRequested(false);
       return undefined;
     }
     let cancelled = false;
@@ -103,7 +126,7 @@ export default function AppGate() {
   if (state.status === 'unauth' || state.status === 'error') {
     // Guest mode: empty library + no session = let them in for one
     // save. Once guestSaveLanded latches, fall through to signin.
-    if (state.status === 'unauth' && guestSaveCount === 0 && !guestSaveLanded) {
+    if (state.status === 'unauth' && guestSaveCount === 0 && !guestSaveLanded && !signinRequested) {
       return (
         <>
           <App />

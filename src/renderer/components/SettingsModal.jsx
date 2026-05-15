@@ -844,7 +844,11 @@ export default function SettingsModal({
       confirmLabel: 'Sign out',
     });
     if (!ok) return;
-    await window.moodmark.licensing.signOut();
+    // Route through AppGate so useLicense flips state to unauth in
+    // the same tick. Calling the IPC directly here would leave the
+    // renderer thinking it was still entitled until the next focus-
+    // triggered verify, which is exactly the delay users see.
+    window.dispatchEvent(new CustomEvent('moodmark:request-signout'));
     // Closing settings before AppGate flips back to the SigninScreen
     // avoids a brief flash of Settings on top of the new takeover.
     onClose?.();
@@ -1038,57 +1042,81 @@ export default function SettingsModal({
 
           {activePage === 'account' && (
             <div className={styles.page}>
-              <div className={styles.aboutRow}>
-                <span className={styles.aboutLabel}>Email</span>
-                <span className={styles.aboutValue}>
-                  {account?.user?.email || '—'}
-                </span>
-              </div>
-              <div className={styles.aboutRow}>
-                <span className={styles.aboutLabel}>Plan</span>
-                <span className={styles.aboutValue}>
-                  {formatPlanLabel(account)}
-                </span>
-              </div>
-              {account?.subscription?.current_period_end && (
-                <div className={styles.aboutRow}>
-                  <span className={styles.aboutLabel}>
-                    {account.subscription.cancel_at_period_end
-                      ? 'Ends'
-                      : account.subscription.status === 'trialing'
-                        ? 'Trial ends'
-                        : 'Renews'}
-                  </span>
-                  <span className={styles.aboutValue}>
-                    {formatPeriodEnd(account.subscription.current_period_end)}
-                  </span>
-                </div>
-              )}
-              <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginTop: 14 }}>
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.btnDanger}`}
-                  onClick={handleSignOut}
-                >
-                  <LogOutIcon size={14} strokeWidth={1.7} aria-hidden="true" />
-                  Sign out
-                </button>
-                {account?.subscription && (
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.btnPrimary}`}
-                    onClick={handleOpenCustomerPortal}
-                    disabled={portalState.running}
-                  >
-                    <CreditCardIcon size={14} strokeWidth={1.7} aria-hidden="true" />
-                    {portalState.running ? 'Opening…' : 'Manage subscription'}
-                  </button>
-                )}
-              </div>
-              {portalState.message && (
-                <div className={styles.sectionHint} style={{ marginTop: 8 }}>
-                  {portalState.message}
-                </div>
+              {account?.state === 'unauth' ? (
+                <>
+                  <p className={styles.sectionHint}>
+                    You're signed out. Sign back in to sync your AI
+                    usage and manage your subscription. Your library
+                    stays on this Mac either way.
+                  </p>
+                  <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('moodmark:request-signin'));
+                        onClose?.();
+                      }}
+                    >
+                      Sign in
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.aboutRow}>
+                    <span className={styles.aboutLabel}>Email</span>
+                    <span className={styles.aboutValue}>
+                      {account?.user?.email || '—'}
+                    </span>
+                  </div>
+                  <div className={styles.aboutRow}>
+                    <span className={styles.aboutLabel}>Plan</span>
+                    <span className={styles.aboutValue}>
+                      {formatPlanLabel(account)}
+                    </span>
+                  </div>
+                  {account?.subscription?.current_period_end && (
+                    <div className={styles.aboutRow}>
+                      <span className={styles.aboutLabel}>
+                        {account.subscription.cancel_at_period_end
+                          ? 'Ends'
+                          : account.subscription.status === 'trialing'
+                            ? 'Trial ends'
+                            : 'Renews'}
+                      </span>
+                      <span className={styles.aboutValue}>
+                        {formatPeriodEnd(account.subscription.current_period_end)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`${styles.actions} ${styles.actionsStart}`} style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnDanger}`}
+                      onClick={handleSignOut}
+                    >
+                      <LogOutIcon size={14} strokeWidth={1.7} aria-hidden="true" />
+                      Sign out
+                    </button>
+                    {account?.subscription && (
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        onClick={handleOpenCustomerPortal}
+                        disabled={portalState.running}
+                      >
+                        <CreditCardIcon size={14} strokeWidth={1.7} aria-hidden="true" />
+                        {portalState.running ? 'Opening…' : 'Manage subscription'}
+                      </button>
+                    )}
+                  </div>
+                  {portalState.message && (
+                    <div className={styles.sectionHint} style={{ marginTop: 8 }}>
+                      {portalState.message}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
