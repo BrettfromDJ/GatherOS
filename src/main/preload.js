@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     exportBulk: (ids) => ipcRenderer.invoke('saves:export-bulk', ids),
     exportBulkZip: (ids) => ipcRenderer.invoke('saves:export-bulk-zip', ids),
     confirmDelete: (count) => ipcRenderer.invoke('saves:confirm-delete', count),
+    revealInFinder: (filePath) => ipcRenderer.invoke('saves:reveal-in-finder', filePath),
     dropFile: (file) => {
       // Electron 32+ removed File.path; webUtils.getPathForFile is the
       // sanctioned replacement and must be called from the preload.

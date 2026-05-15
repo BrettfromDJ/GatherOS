@@ -45,6 +45,7 @@ import {
   Hash,
   Share,
   Sparkles,
+  FolderOpen,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -72,6 +73,7 @@ const ClipboardIcon = () => <Clipboard {...ICON} />;
 const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
 const HashIcon = () => <Hash {...ICON} />;
 const ShareIcon = () => <Share {...ICON} />;
+const RevealIcon = () => <FolderOpen {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
 export default function App() {
@@ -543,7 +545,7 @@ export default function App() {
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
-  const [prefs, setPrefs] = useState({ autoNameOnSave: true, semanticSearch: false });
+  const [prefs, setPrefs] = useState({ autoNameOnSave: true, semanticSearch: true });
 
   // Imperative handles for the global keyboard shortcuts.
   const searchInputRef = useRef(null);
@@ -1067,6 +1069,23 @@ export default function App() {
               filePath: anchor.file_path,
               sourceUrl: anchor.source_url || null,
             });
+          },
+        });
+      }
+      // Open the OS file manager with this save's file highlighted.
+      // Label tracks the OS so macOS users get "Reveal in Finder"
+      // verbatim from the platform vocabulary.
+      if (anchor?.file_path) {
+        const isMac = typeof navigator !== 'undefined'
+          && /Mac|iPhone|iPad/i.test(navigator.platform || '');
+        items.push({
+          label: isMac ? 'Reveal in Finder' : 'Show in folder',
+          icon: <RevealIcon />,
+          onClick: async () => {
+            const result = await window.moodmark.saves.revealInFinder(anchor.file_path);
+            if (!result?.ok) {
+              showActionToast({ message: 'Could not reveal file', durationMs: 2400 });
+            }
           },
         });
       }

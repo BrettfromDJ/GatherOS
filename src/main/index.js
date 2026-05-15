@@ -303,7 +303,7 @@ async function maybeAIIndexInBackground(record) {
   if (!hasAiSession()) return;
 
   const wantName = getPref('autoNameOnSave', true) && !(record.title && record.title.trim());
-  const wantSemantic = getPref('semanticSearch', false);
+  const wantSemantic = getPref('semanticSearch', true);
   if (!wantName && !wantSemantic) return;
 
   // Tell the renderer this save is being processed so the UI can show

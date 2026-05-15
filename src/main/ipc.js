@@ -134,7 +134,7 @@ function registerIpcHandlers() {
   }
 
   ipcMain.handle('saves:get-all', async (_e, opts = {}) => {
-    const semanticEnabled = settings.getPref('semanticSearch', false);
+    const semanticEnabled = settings.getPref('semanticSearch', true);
     const haveAi = hasAiSession();
     const rawSearch = (opts.search || '').trim();
 
@@ -283,6 +283,20 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('saves:counts', () => getSmartViewCounts());
+
+  // Open the OS file manager with the save's file selected. Returns
+  // { ok: false } when the path is missing or can't be resolved so the
+  // renderer can show a generic "couldn't reveal" toast.
+  ipcMain.handle('saves:reveal-in-finder', (_e, filePath) => {
+    if (!filePath || typeof filePath !== 'string') return { ok: false };
+    try {
+      shell.showItemInFolder(filePath);
+      return { ok: true };
+    } catch (err) {
+      console.error('reveal-in-finder failed:', err);
+      return { ok: false };
+    }
+  });
 
   ipcMain.handle('saves:confirm-delete', async (e, count) => {
     const owner = BrowserWindow.fromWebContents(e.sender);
