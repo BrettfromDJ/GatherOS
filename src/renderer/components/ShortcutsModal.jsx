@@ -19,6 +19,8 @@ const SECTIONS = [
   {
     title: 'Selection',
     items: [
+      { keys: ['⌘', 'A'], label: 'Select all visible images' },
+      { keys: ['⌘ ⇧', 'A'], label: 'Clear selection' },
       { keys: ['Delete'], label: 'Delete selected images' },
       { keys: ['Esc'], label: 'Clear selection' },
     ],

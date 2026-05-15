@@ -46,6 +46,7 @@ import {
   Share,
   Sparkles,
   FolderOpen,
+  Link2,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -74,6 +75,7 @@ const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
 const HashIcon = () => <Hash {...ICON} />;
 const ShareIcon = () => <Share {...ICON} />;
 const RevealIcon = () => <FolderOpen {...ICON} />;
+const LinkIcon = () => <Link2 {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
 export default function App() {
@@ -1097,6 +1099,31 @@ export default function App() {
           },
         });
       }
+      // Source-URL actions — only meaningful for saves that came in
+      // with a captured source (clipboard URL, drag-from-browser, web
+      // capture). Open in the system browser, or copy the link to the
+      // clipboard so the user can paste it elsewhere.
+      if (anchor?.source_url) {
+        items.push({
+          label: 'Open source',
+          icon: <ExternalLinkIcon />,
+          onClick: () => {
+            window.moodmark.shell.openUrl(anchor.source_url);
+          },
+        });
+        items.push({
+          label: 'Copy source URL',
+          icon: <LinkIcon />,
+          onClick: async () => {
+            try {
+              await navigator.clipboard.writeText(anchor.source_url);
+              showActionToast({ message: 'Link copied', durationMs: 1400 });
+            } catch {
+              showActionToast({ message: 'Could not copy link', durationMs: 2400 });
+            }
+          },
+        });
+      }
       // Open the OS file manager with this save's file highlighted.
       // Label tracks the OS so macOS users get "Reveal in Finder"
       // verbatim from the platform vocabulary.
@@ -2096,6 +2123,20 @@ export default function App() {
         return;
       }
 
+      // Cmd+A — select all visible saves. Cmd+Shift+A clears the
+      // selection. Skipped while typing so Cmd+A in an input still
+      // selects the field's text.
+      if (cmd && (e.key === 'a' || e.key === 'A')) {
+        if (typing) return;
+        e.preventDefault();
+        if (e.shiftKey) {
+          setSelected(new Set());
+        } else {
+          setSelected(new Set(visibleSaves.map((s) => s.id)));
+        }
+        return;
+      }
+
       // Single-key shortcuts: skip when typing so we don't eat real input.
       if (typing) return;
 
@@ -2142,7 +2183,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev, peekedSaveId, hoveredSaveId, handleModeChange]);
+  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev, peekedSaveId, hoveredSaveId, handleModeChange, visibleSaves]);
 
   // Menu's "Quick Look" item (no accelerator on the menu side because
   // a menu-bound Space would steal keystrokes from text fields). The
