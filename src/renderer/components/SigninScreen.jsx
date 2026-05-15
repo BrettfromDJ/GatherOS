@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from './SigninScreen.module.css';
+import brandIconUrl from '../assets/welcome-icon.svg';
 
 // Full-screen signin / magic-link request. Rendered as the only
 // thing the user sees when there's no session — the rest of the app
@@ -45,7 +46,12 @@ export default function SigninScreen({ onRequestMagicLink, reason }) {
   return (
     <div className={styles.scrim}>
       <div className={styles.card}>
-        <div className={styles.brand}>GatherOS</div>
+        <img
+          className={styles.brand}
+          src={brandIconUrl}
+          alt="GatherOS"
+          draggable={false}
+        />
         {sent ? (
           <div className={styles.sentBlock}>
             <h1 className={styles.heading}>Check your email</h1>
