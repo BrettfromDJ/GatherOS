@@ -499,15 +499,12 @@ export default function Toolbar({
         {onOpenRediscover && (
           <button
             type="button"
-            className={styles.rediscoverPill}
+            className={styles.iconBtn}
             onClick={onOpenRediscover}
             title="Rediscover (⌘⇧R)"
             aria-label="Rediscover"
           >
-            <span className={styles.rediscoverPillIcon} aria-hidden="true">
-              <RediscoverIcon />
-            </span>
-            <span className={styles.rediscoverPillLabel}>Rediscover</span>
+            <RediscoverIcon />
           </button>
         )}
         <ThemeToggle className={styles.iconBtn} />
