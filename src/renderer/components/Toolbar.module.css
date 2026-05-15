@@ -59,6 +59,56 @@
   color: var(--text-primary);
 }
 
+/* Rediscover entry point — labeled pill so the feature is visible to
+   new users without memorising ⌘⇧R. Secondary weight: surface + border
+   rather than the filled primary treatment the Add CTA owns. */
+.rediscoverPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  margin-right: 4px;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.rediscoverPill:hover {
+  background: var(--hover-bg-soft);
+}
+
+.rediscoverPill:active {
+  transform: scale(0.97);
+}
+
+.rediscoverPillIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.rediscoverPillIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rediscoverPillLabel {
+  white-space: nowrap;
+}
+
 /* Bare back-chevron — matches FocusedView's .backBtn so the bucket
    view and detail view share the exact same back affordance: 22x22
    button, 14x14 chevron, no container, color-only hover. */
