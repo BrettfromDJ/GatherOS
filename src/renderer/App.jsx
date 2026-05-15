@@ -122,6 +122,31 @@ export default function App() {
     try { localStorage.setItem('moodmark.appMode', appMode); } catch {}
   }, [appMode]);
 
+  // Strip the leftover focus ring after Escape closes a modal/popover.
+  // Chromium promotes :focus-visible on Escape (keyboard event), so the
+  // trigger button you clicked with the mouse ends up with the
+  // outline even though you never used the keyboard to focus it. Blur
+  // the active element on the next frame — after the modal has had a
+  // chance to handle Escape and return focus to the trigger. Skip
+  // inputs/textareas/contenteditable so typing isn't disrupted by the
+  // Esc-to-cancel idiom.
+  useEffect(() => {
+    function onEscape(e) {
+      if (e.key !== 'Escape') return;
+      requestAnimationFrame(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return;
+        const tag = el.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable) return;
+        if (tag === 'BUTTON' || el.getAttribute('role') === 'button') {
+          el.blur();
+        }
+      });
+    }
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, []);
+
   // Switching the pill always returns to the mode's "root" — Library
   // shows the unfiltered masonry, Folders shows the tile grid (root
   // level), Boards shows the boards grid. Without this, switching to
