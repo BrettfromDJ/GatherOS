@@ -243,6 +243,11 @@
 
 .searchWrapCollapsed .search {
   cursor: pointer;
+  /* While collapsed the wrap owns the click — route everything to the
+     Quick Switcher. Letting the input keep pointer-events meant a
+     click on the input's overflow area focused it before the wrap's
+     onClick fired, so the user got the inline expand instead. */
+  pointer-events: none;
 }
 
 .searchWrapCollapsed:hover .searchIcon {
