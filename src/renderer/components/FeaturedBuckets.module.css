@@ -57,6 +57,11 @@
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
   text-align: left;
   cursor: pointer;
+  /* translate3d on the baseline pins each card to its own GPU layer
+     so fast horizontal scrolls don't drop the layer (the perspective
+     on .stack below creates a 3D context whose children otherwise
+     re-rasterise mid-scroll and flicker out for a frame or two). */
+  transform: translate3d(0, 0, 0);
   transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
 }
 
@@ -65,7 +70,7 @@
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
   box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
 }
 
