@@ -481,7 +481,13 @@ function BoardItem({
     // wrapper's bounding box still hugs the frame rect, not the tab).
     // onCommitEdit gets the new title — handleCommitEdit in BoardView
     // detects type === 'frame' and writes it into data.title.
-    const fill = item.data?.fill || '#FFFFFF';
+    // Treat the legacy #FFFFFF default as "auto theme" so frames
+    // adopt the surface colour in both modes. A user who deliberately
+    // picks white loses that bit, but white-on-dark frames were the
+    // pain point. Other custom colours still pass through verbatim.
+    const rawFill = item.data?.fill || '#FFFFFF';
+    const isDefaultFill = /^#?ffffff$/i.test(rawFill.replace(/^#/, ''));
+    const fill = isDefaultFill ? 'var(--surface-1)' : rawFill;
     const title = item.data?.title || '';
     content = (
       <>
