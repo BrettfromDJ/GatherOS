@@ -6,22 +6,7 @@
   display: flex;
   min-height: 0;
   background: var(--content-bg);
-  -webkit-app-region: no-drag;
-}
-
-/* Narrow drag strip at the top of the board so the user can still
-   move the window (traffic lights row). Everything below stays
-   interactive — without this, app-region: drag on .root made the
-   entire canvas a window-drag handle and swallowed clicks. */
-.dragStrip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 38px;
   -webkit-app-region: drag;
-  z-index: 1;
-  pointer-events: none;
 }
 
 /* Print-mode toggle: hide every floating UI affordance the board

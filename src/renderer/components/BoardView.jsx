@@ -1934,7 +1934,6 @@ export default function BoardView({
 
   return (
     <div ref={rootRef} className={styles.root}>
-      <div className={styles.dragStrip} aria-hidden="true" />
       {onExit && (
         <button
           type="button"
