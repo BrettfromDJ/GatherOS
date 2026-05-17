@@ -56,6 +56,20 @@ export default function FeaturedBuckets({
   // While a save card is being dragged over a folder card, this is
   // the active target. Drives the accent-ring highlight on the card.
   const [dropTargetId, setDropTargetId] = useState(null);
+  // Suppress click-to-open right after a horizontal scroll fires.
+  // When the user scrolls fast and hits the boundary, Chromium fires
+  // a synthetic click on whichever card the pointer ends over —
+  // tracking scroll timestamp + bailing on stale clicks blocks that
+  // without breaking real deliberate clicks.
+  const scrollerRef = useRef(null);
+  const lastScrollAt = useRef(0);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return undefined;
+    const onScroll = () => { lastScrollAt.current = Date.now(); };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   function isSaveDrag(e) {
     return e.dataTransfer.types.includes(SAVE_DROP_MIME);
@@ -159,7 +173,7 @@ export default function FeaturedBuckets({
     <>
       {/* Cards row — normal flow, scrolls with content. */}
       <div className={styles.cardsRow}>
-        <div className={styles.scroller}>
+        <div ref={scrollerRef} className={styles.scroller}>
           {collections.map((c) => {
             const items = previews[c.id] || [];
             const isRenaming = renamingId === c.id;
@@ -174,6 +188,11 @@ export default function FeaturedBuckets({
                   // Ignore clicks that originated on the rename input
                   // (browsers re-bubble through the wrapping div).
                   if (e.target.closest(`.${styles.cardRenameInput}`)) return;
+                  // Bail on clicks that arrive within ~250ms of a
+                  // scroll — that's the post-momentum synthetic click
+                  // Chromium fires when horizontal scroll bottoms out
+                  // over a card.
+                  if (Date.now() - lastScrollAt.current < 250) return;
                   onPickBucket?.(c.id);
                 }}
                 onKeyDown={(e) => {
