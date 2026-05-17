@@ -1,0 +1,1238 @@
+/* Floating overlay — same card recipe as FeaturedBuckets on the
+   Library page (surface fill, hairline border, soft ambient
+   shadow) so the metadata pane reads as a peer card to the rest
+   of the surface family rather than as a separate rail. Fixed
+   positioning takes it out of the flex row, which lets the
+   FocusedView's top bar span the full app width below it. */
+.panel {
+  position: fixed;
+  /* Sits below the FocusedView top bar (~77px tall) with 16px
+     breathing on top, right, and bottom — full available height. */
+  top: 93px;
+  right: 16px;
+  bottom: 16px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+/* Inset section dividers — each immediate panel child gets a
+   hairline at its bottom that stops 16px shy of either side
+   instead of running corner-to-corner. The last child has no
+   divider, so the panel doesn't doubled-stroke against its own
+   border. */
+.panel > * {
+  position: relative;
+}
+
+.panel > *::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.panel > :last-child::after {
+  display: none;
+}
+
+/* Stagger-in compressed to three stages: header + image arrive
+   together (the hero), the editable metadata block follows, and
+   everything below (tags, similar, meta dl) lands as the third
+   wave. Total cascade is ~--dur-medium instead of the prior 12-
+   step 800ms — the panel feels alive without becoming a slow
+   choreographed reveal that interrupts the user. */
+.panel > * {
+  animation: detailItemIn var(--dur-medium) var(--ease-out) both;
+}
+.panel > :nth-child(-n+2)         { animation-delay: 0ms; }
+.panel > :nth-child(n+3):nth-child(-n+5) {
+  animation-delay: var(--dur-instant);
+}
+.panel > :nth-child(n+6) {
+  animation-delay: var(--dur-quick);
+}
+
+@keyframes detailItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel > * { animation: none; }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: none;
+  flex: 0 0 auto;
+}
+
+.headerLabel {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.closeBtn {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Icon button used in the header for the (i) file-info popover.
+   Same hit area as the close button so the two read as a pair. */
+.headerIconBtn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.headerIconBtn:hover,
+.headerIconBtnActive {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* File-info popover. Portaled to body so it isn't clipped by the
+   panel's overflow / radius. Surface treatment matches the
+   LibrarySwitcher / context-menu dropdown family. */
+.infoPopover {
+  position: fixed;
+  z-index: 60;
+  min-width: 200px;
+  padding: 8px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  animation: infoPopIn var(--dur-quick) var(--ease-pop);
+}
+
+:root[data-theme="dark"] .infoPopover {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+@keyframes infoPopIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.infoList {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.infoList dt {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.infoList dd {
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
+}
+
+/* Hero / artwork section. Stacks the image, the extracted color
+   swatches, and the "Generate variation" CTA so all three read as
+   facets of the same artwork — the user's eye doesn't have to
+   travel to a separate strip lower down to see the palette or
+   trigger a variation. */
+.preview {
+  padding: 16px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  background: transparent;
+  border-bottom: none;
+  /* 3D viewing distance for the imageWrap's rotateX / rotateY. Lower
+     values exaggerate the tilt; 900px gives a soft, photographic feel. */
+  perspective: 900px;
+}
+
+.imageWrap {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  /* CSS vars set by JS as the cursor moves; transform maps them to a
+     3D rotation. Defaults are 0 so the resting state is flat. The
+     longer eased transition is the spring-back when the cursor
+     leaves; the .imageWrapTilting class swaps in a fast linear
+     transition during live tracking so the tilt feels responsive
+     instead of laggy. */
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform var(--dur-pronounced) var(--ease-out);
+  will-change: transform;
+}
+
+.imageWrapTilting {
+  transition: transform var(--dur-instant) linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imageWrap {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+.typeBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 7px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  box-shadow: var(--shadow-control);
+}
+
+.image {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  object-fit: contain;
+  background: var(--surface-1);
+}
+
+:root[data-theme="dark"] .image {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Color swatches — now a centered chip row directly under the
+   thumbnail (instead of its own section below). The .preview
+   wrapper provides spacing + the section's bottom border, so this
+   element is just the swatch lockup. */
+.palette {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+}
+
+.swatch {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-circle);
+  border: 0.5px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  transition: transform var(--dur-instant) ease;
+  /* Lift the swatch above sibling sections so its absolutely-positioned
+     tooltip isn't painted behind .preview / .imageWrap when it extends
+     above the swatch row. */
+  z-index: 1;
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}
+
+.swatch:active {
+  transform: scale(0.95);
+}
+
+.swatchTooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  animation: tooltipIn var(--dur-instant) ease;
+  z-index: 10;
+}
+
+.swatchTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--tooltip-bg);
+}
+
+/* The first two swatches sit close enough to the panel's left padding
+   that the centered tooltip extends past the panel's left edge and
+   gets clipped (overflow-y: auto forces overflow-x: auto per CSS
+   spec). Anchor the tooltip's left edge to the swatch's left and
+   shift the arrow to keep it pointed at the swatch's center. Use a
+   dedicated keyframe so the intro animation doesn't briefly snap to
+   the centered position. */
+.swatch:nth-child(-n+2) .swatchTooltip {
+  left: 0;
+  transform: translateX(0);
+  animation: tooltipInLeft var(--dur-instant) ease;
+}
+
+.swatch:nth-child(-n+2) .swatchTooltip::after {
+  left: 9px;
+}
+
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes tooltipInLeft {
+  from { opacity: 0; transform: translate(0, 4px); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+
+.metaEditSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.metaField {
+  display: block;
+}
+
+.metaFieldLabel {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  margin-bottom: 5px;
+}
+
+/* Canonical input surface — same recipe used by .notesInput and
+   .fontInput so the whole metadata block reads as one family.
+   1px hairline border, 8px radius, --shadow-control for the
+   resting lift, accent ring + tinted halo on focus. */
+.metaInput {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
+}
+
+.metaInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.metaInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+}
+
+/* Notes — collapsed-by-default. The "+ Add a note" link is the
+   subtle CTA; click expands into an auto-growing textarea via
+   field-sizing: content. Once notes exist, the textarea is shown
+   directly on subsequent visits. */
+.addNoteBtn {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 2px 6px 2px 0;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--dur-instant) ease;
+}
+
+.addNoteBtn:hover {
+  color: var(--text-primary);
+}
+
+.notesInput {
+  composes: inputCanonical from '../styles/forms.module.css';
+  resize: none;
+  field-sizing: content;
+  min-height: 32px;
+}
+
+.metaInputRow {
+  position: relative;
+}
+
+/* Reserve room on the right for the inset open-link button so the
+   user's typed URL doesn't slide under it. */
+.metaInputRow .metaInput {
+  width: 100%;
+  padding-right: 30px;
+}
+
+.openLinkBtn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.openLinkBtn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.openLinkBtn:hover {
+  background: var(--accent-bg-soft);
+  color: var(--accent);
+}
+
+.promptSection {
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.promptHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.promptLabel {
+  flex: 1 1 auto;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+}
+
+.promptHeaderActions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.promptIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  background: transparent;
+  border: 0.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.promptIconBtn:hover:not(:disabled) {
+  background: var(--hover-bg-soft);
+  color: var(--text-primary);
+}
+
+.promptIconBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.promptBody {
+  padding: 10px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* Cap height at ~5 lines (line-height 1.55 × font-size 12px = 18.6px;
+     5 × 18.6 = 93px, plus 20px vertical padding → 113px). Past that
+     the panel scrolls internally rather than pushing the rest of the
+     detail panel down. */
+  max-height: calc(12px * 1.55 * 5 + 20px);
+  overflow-y: auto;
+}
+
+.promptBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.promptBody::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+/* Three-dot loading indicator inside the Name input while the AI
+   pipeline is naming a freshly-saved image. Pointer-events: none so
+   it doesn't block clicks into the field if the user wants to type
+   their own name. */
+.loadingDots {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.loadingDots span {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-circle);
+  background: var(--text-tertiary);
+  animation: dotPulse 1.1s ease-in-out infinite;
+}
+
+.loadingDots span:nth-child(2) { animation-delay: 0.15s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.7); }
+  40%           { opacity: 1;    transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingDots span { animation: none; opacity: 0.6; }
+}
+
+.collectionsSection {
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.collectionsLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.sectionLabelIcon {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+.sectionLabelIcon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.collectionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Spaces this save appears on. Same shape as the collections row
+   above, just a different icon + click handler. */
+.spacesSection {
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.spacesLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.spacePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spacePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: #EAEAEA;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  font-size: var(--text-xs);
+  color: #000000;
+  cursor: pointer;
+  max-width: 100%;
+  transition: background var(--dur-instant) ease;
+}
+
+.spacePill:hover {
+  background: #DCDCDC;
+}
+
+:root[data-theme="dark"] .spacePill {
+  background: #3A3A3C;
+  color: #FFFFFF;
+}
+
+:root[data-theme="dark"] .spacePill:hover {
+  background: #48484A;
+}
+
+.spacePillIcon {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .spacePillIcon { color: #FFFFFF; }
+
+.spacePillName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collectionPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 8px;
+  background: #EAEAEA;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  font-size: var(--text-xs);
+  color: #000000;
+  max-width: 100%;
+}
+
+:root[data-theme="dark"] .collectionPill {
+  background: #3A3A3C;
+  color: #FFFFFF;
+}
+
+.collectionPillIcon {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .collectionPillIcon,
+:root[data-theme="dark"] .collectionPillRemove {
+  color: #FFFFFF;
+}
+
+.collectionPillIcon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.collectionPillName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collectionPillRemove {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-circle);
+  color: var(--text-tertiary);
+  font-size: var(--text-md);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.collectionPillRemove:hover {
+  background: var(--hover-bg-strong);
+  color: var(--text-primary);
+}
+
+.addPillBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: transparent;
+  border: 0.5px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.addPillBtn:hover {
+  background: var(--accent-bg-faint);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.autoTagBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 11px 3px 9px;
+  background: var(--surface-1);
+  border: 1px solid var(--ai-tint-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--ai-tint);
+  cursor: pointer;
+  transition:
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
+}
+
+.autoTagBtn:hover:not(:disabled) {
+  background: var(--ai-tint-bg);
+}
+
+.autoTagBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.autoTagBtn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.autoTagBtnLoading {
+  animation: autoTagPulse 1.4s ease-in-out infinite;
+}
+
+.autoTagIcon {
+  display: inline-flex;
+  width: 11px;
+  height: 11px;
+  color: var(--ai-tint);
+}
+
+.autoTagIcon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.autoTagError {
+  font-size: var(--text-xs);
+  color: var(--status-error);
+  margin-top: 6px;
+}
+
+@keyframes autoTagPulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+.collectionsEmpty {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.tagsSection {
+  /* Lift the whole section above the later sibling sections (font,
+     similar, meta dl). The TagSuggestions popover is absolutely-
+     positioned inside this section but later siblings would otherwise
+     paint on top of it regardless of the popover's own z-index — this
+     is a stacking-context fix, not a paint-order one. */
+  position: relative;
+  z-index: 3;
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.tagsLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.tagPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 2px 2px 6px;
+  background: #EAEAEA;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: #000000;
+  max-width: 100%;
+}
+
+:root[data-theme="dark"] .tagPill {
+  background: #3A3A3C;
+  color: #FFFFFF;
+}
+
+.tagHash {
+  color: #000000;
+  margin-right: 1px;
+}
+
+:root[data-theme="dark"] .tagHash,
+:root[data-theme="dark"] .tagRemove {
+  color: #FFFFFF;
+}
+
+.tagName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagRemove {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-circle);
+  color: var(--text-tertiary);
+  font-size: var(--text-md);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 1px;
+}
+
+.tagRemove:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.tagInputAnchor {
+  /* Positioning context for the autocomplete popover so it
+     aligns to the input rather than the whole tag pill row. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tagInput {
+  /* Match the .addPillBtn footprint when empty, then grow with content. */
+  padding: 3px 10px;
+  min-width: 50px;
+  background: transparent;
+  border: 0.5px solid var(--accent);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  outline: none;
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+  field-sizing: content;
+}
+
+.tagInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ── Font section (visible only when the save has the "font" tag) ───── */
+
+.fontSection {
+  padding: 12px 16px 14px;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fontSectionLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+}
+
+.fontSectionRemove {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--text-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.fontSectionRemove:hover {
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
+}
+
+.fontField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fontFieldLabel {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.fontInput {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
+}
+
+.fontInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2.5px var(--accent-bg-medium);
+}
+
+.fontInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.fontUrlRow {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.fontUrlRow .fontInput {
+  flex: 1 1 auto;
+}
+
+.fontOpenBtn {
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--dur-instant) ease, border-color var(--dur-instant) ease;
+}
+
+.fontOpenBtn:hover {
+  background: var(--hover-bg-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* "More like this" — 5-up row of similar saves pulled from the
+   embeddings table. Each tile is a square button that opens that
+   save in the focused view. */
+.similarSection {
+  padding: 12px 16px 14px;
+  border-bottom: none;
+}
+
+.similarLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.similarTile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--hover-bg-soft);
+  cursor: pointer;
+  box-shadow: var(--shadow-control);
+  transition: transform var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
+}
+
+.similarTile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .similarTile:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.50);
+}
+
+.similarTile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+
+/* Generate-variation CTA — anchored at the bottom of the preview
+   section so it reads as the primary action for *this image*.
+   Same white-button recipe used elsewhere in the app (surface
+   fill, hairline border, soft ambient shadow) so AI affordances
+   read as plain typographic controls instead of a separate
+   coloured channel. */
+.variantBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
+}
+
+.variantBtn:hover { background: var(--hover-bg); }
+.variantBtn:active { transform: scale(0.98); }
+
+.variantBtnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-primary);
+}
+
+.variantBtnIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── V2 additions ────────────────────────────────────────────────── */
+
+/* Compact action row that lives between the preview and the Name
+   field. Replaces V1's full-width pill so Generate variation reads as
+   one capability among many, not the dominant CTA. */
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.actionBtn:hover { background: var(--hover-bg); }
+.actionBtn:active { transform: scale(0.97); }
+
+.actionBtnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.actionBtnIcon svg { width: 14px; height: 14px; }
+
+/* "More details" expander — URL, Note, Image Prompt collapse here so
+   first-open of the panel reads as scannable. Toggle is a quiet text
+   button so it doesn't steal weight from the primary fields. */
+.moreSection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.moreToggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--dur-instant) ease;
+}
+
+.moreToggle:hover { color: var(--text-primary); }
+
+.moreBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}

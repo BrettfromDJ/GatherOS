@@ -22,7 +22,20 @@ import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
 import SmartChipRail from './components/SmartChipRail.jsx';
-import DetailPanel from './components/DetailPanel.jsx';
+import DetailPanelV1 from './components/DetailPanel.jsx';
+import DetailPanelV2 from './components/DetailPanelV2.jsx';
+// Active detail-panel implementation. V2 is the new compact layout
+// with secondary metadata behind a "More" toggle; V1 stays one flag
+// away so reverting is `localStorage.setItem('moodmark.dev.detailPanel', 'v1')`.
+const DetailPanel = (() => {
+  try {
+    return localStorage.getItem('moodmark.dev.detailPanel') === 'v1'
+      ? DetailPanelV1
+      : DetailPanelV2;
+  } catch {
+    return DetailPanelV2;
+  }
+})();
 import FocusedView from './components/FocusedView.jsx';
 import BoardView from './components/BoardView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
