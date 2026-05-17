@@ -3,14 +3,11 @@ import ReactDOM from 'react-dom';
 import {
   History, User, Sparkles, Hash, Database, Info, Trash2, BookMarked as Library, Pencil, Plus, RefreshCw, MoreHorizontal,
   Palette as PaletteIcon,
-  SlidersHorizontal as SlidersIcon,
   Camera as CameraIcon,
   Download as DownloadIcon,
   Monitor as MonitorIcon,
   Sun as SunIcon,
   Moon as MoonIcon,
-  Folder as FolderIcon,
-  Layers as LayersIcon,
   Crop as CropIcon,
   AppWindow as AppWindowIcon,
   Maximize as MaximizeIcon,
@@ -32,7 +29,6 @@ const SUPPORT_EMAIL = 'hello@designjoy.co';
 // in the content switch below — beats the old drawer accordion as
 // the surface area grows.
 const NAV_ITEMS = [
-  { id: 'defaults',   label: 'Defaults',   Icon: SlidersIcon },
   { id: 'account',    label: 'Account',    Icon: User },
   { id: 'appearance', label: 'Appearance', Icon: PaletteIcon },
   { id: 'libraries',  label: 'Libraries',  Icon: Library },
@@ -676,7 +672,7 @@ export default function SettingsModal({
   const [snapshots, setSnapshots] = useState([]);
   const [snapshotState, setSnapshotState] = useState({ running: false, message: null });
   const [snapshotsListOpen, setSnapshotsListOpen] = useState(false);
-  const [activePage, setActivePage] = useState('defaults');
+  const [activePage, setActivePage] = useState('account');
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState({ id: null, name: '' });
   const [tagBusy, setTagBusy] = useState(false);
@@ -1147,73 +1143,6 @@ export default function SettingsModal({
                     </button>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {activePage === 'defaults' && (
-            <div className={styles.page}>
-              <p className={styles.sectionHint}>
-                Defaults that apply each time you open GatherOS.
-              </p>
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Grid columns</label>
-                <div className={styles.segmentedRow}>
-                  {[2, 3, 4, 5, 6, 7, 8].map((n) => {
-                    const active = prefs.defaultColumns === n;
-                    return (
-                      <button
-                        key={n}
-                        type="button"
-                        className={`${styles.segmentBtn} ${active ? styles.segmentBtnActive : ''}`}
-                        onClick={() => updatePref('defaultColumns', n)}
-                        aria-pressed={active}
-                      >
-                        {n}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Sort</label>
-                <select
-                  className={styles.select}
-                  value={prefs.defaultSort || 'recent'}
-                  onChange={(e) => updatePref('defaultSort', e.target.value)}
-                >
-                  <option value="recent">Most recent</option>
-                  <option value="oldest">Oldest first</option>
-                  <option value="name_asc">Name A→Z</option>
-                  <option value="name_desc">Name Z→A</option>
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Starting view</label>
-                <div className={styles.segmentedRow}>
-                  {[
-                    { value: 'library', label: 'Library',     Icon: Library },
-                    { value: 'folders', label: 'Collections', Icon: FolderIcon },
-                    { value: 'boards',  label: 'Spaces',      Icon: LayersIcon },
-                  ].map(({ value, label, Icon }) => {
-                    const active = prefs.defaultMode === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`${styles.segmentBtn} ${active ? styles.segmentBtnActive : ''}`}
-                        onClick={() => updatePref('defaultMode', value)}
-                        aria-pressed={active}
-                      >
-                        {active && <Icon size={14} strokeWidth={1.8} aria-hidden="true" />}
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           )}
