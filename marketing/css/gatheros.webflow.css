@@ -109,6 +109,13 @@ h1 {
   margin-right: auto;
 }
 
+.feature-list {
+  position: fixed;
+  bottom: 5%;
+  left: 5%;
+  z-index: 2;
+}
+
 @media screen and (max-width: 991px) {
   .hero {
     padding-top: 32px;
@@ -132,6 +139,10 @@ h1 {
 
   .div-block-3 {
     max-width: 420px;
+  }
+
+  .feature-list {
+    position: static;
   }
 }
 
