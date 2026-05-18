@@ -29,7 +29,31 @@
   margin: 0 -16px;
   scroll-behavior: smooth;
   scrollbar-width: none;
+  /* Edge fade — mask-image fades the scroller out on the side that
+     has more content beyond view. .scrollerAtStart / .scrollerAtEnd
+     swap the fade colour to opaque on the relevant edge so we don't
+     also fade the side the user can't scroll to. */
+  --fade-start: transparent;
+  --fade-end: transparent;
+  --fade-width: 36px;
+  mask-image: linear-gradient(
+    to right,
+    var(--fade-start) 0,
+    black var(--fade-width),
+    black calc(100% - var(--fade-width)),
+    var(--fade-end) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    var(--fade-start) 0,
+    black var(--fade-width),
+    black calc(100% - var(--fade-width)),
+    var(--fade-end) 100%
+  );
 }
+
+.scrollerAtStart { --fade-start: black; }
+.scrollerAtEnd   { --fade-end: black; }
 
 .scroller::-webkit-scrollbar {
   display: none;

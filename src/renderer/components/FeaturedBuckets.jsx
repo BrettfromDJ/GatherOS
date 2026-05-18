@@ -63,13 +63,37 @@ export default function FeaturedBuckets({
   // without breaking real deliberate clicks.
   const scrollerRef = useRef(null);
   const lastScrollAt = useRef(0);
+  // atStart / atEnd drive the mask-image fade on the scroller so the
+  // user gets a visual hint that more cards exist beyond the edge.
+  // Recomputed on scroll + on resize so the fade resyncs when the
+  // window width changes which side has overflow.
+  const [edges, setEdges] = useState({ start: true, end: true });
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return undefined;
-    const onScroll = () => { lastScrollAt.current = Date.now(); };
+    function recomputeEdges() {
+      const max = el.scrollWidth - el.clientWidth;
+      // 1px slack on either side so we don't blink the fade in/out
+      // at the exact extrema (Chromium leaves sub-pixel drift).
+      const atStart = el.scrollLeft <= 1;
+      const atEnd = max <= 1 || el.scrollLeft >= max - 1;
+      setEdges((prev) => (prev.start === atStart && prev.end === atEnd
+        ? prev
+        : { start: atStart, end: atEnd }));
+    }
+    function onScroll() {
+      lastScrollAt.current = Date.now();
+      recomputeEdges();
+    }
     el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
+    recomputeEdges();
+    const ro = new ResizeObserver(recomputeEdges);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+    };
+  }, [collections.length]);
 
   function isSaveDrag(e) {
     return e.dataTransfer.types.includes(SAVE_DROP_MIME);
@@ -175,7 +199,11 @@ export default function FeaturedBuckets({
       <div className={styles.cardsRow}>
         <div
           ref={scrollerRef}
-          className={styles.scroller}
+          className={[
+            styles.scroller,
+            edges.start && styles.scrollerAtStart,
+            edges.end && styles.scrollerAtEnd,
+          ].filter(Boolean).join(' ')}
           /* Opt this scroller out of the app-shell's horizontal-swipe
              navigation. Without this, swiping the cards row triggers
              the global wheel handler that flips collections. */
