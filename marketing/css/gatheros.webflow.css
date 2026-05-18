@@ -1,0 +1,174 @@
+@font-face {
+  font-family: Fg Culturetrial;
+  src: url('../fonts/FG_CultureTRIAL-SemiBold.otf') format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Fg Culturetrial;
+  src: url('../fonts/FG_CultureTRIAL-Bold.otf') format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Geist;
+  src: url('../fonts/Geist-Regular.otf') format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+h1 {
+  margin-top: 20px;
+  margin-bottom: 16px;
+  font-family: Fg Culturetrial, Arial, sans-serif;
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 44px;
+}
+
+.hero {
+  height: 100vh;
+  padding-top: 90px;
+  padding-left: 5%;
+  padding-right: 5%;
+  display: block;
+  overflow: hidden;
+}
+
+.div-block {
+  grid-column-gap: 60px;
+  grid-row-gap: 60px;
+  justify-content: space-between;
+  align-items: stretch;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+}
+
+.div-block-2 {
+  flex-flow: column;
+  flex: none;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 420px;
+  display: flex;
+}
+
+.body {
+  color: #000;
+}
+
+.p {
+  color: #00000080;
+  font-family: Geist, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.p.small {
+  margin-bottom: 2px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.link-block {
+  grid-column-gap: 12px;
+  grid-row-gap: 12px;
+  color: #fff;
+  background-color: #000;
+  border-radius: 100vw;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 12px;
+  padding: 15px 31px 15px 22px;
+  font-family: Geist, Arial, sans-serif;
+  font-size: 16px;
+  text-decoration: none;
+  transition: all .2s;
+  display: inline-flex;
+}
+
+.link-block:hover {
+  background-color: #1f1f1f;
+}
+
+.image {
+  flex: none;
+  display: none;
+}
+
+.div-block-4 {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media screen and (max-width: 991px) {
+  .hero {
+    padding-top: 32px;
+  }
+
+  .div-block {
+    flex-flow: column;
+  }
+
+  .div-block-2 {
+    grid-column-gap: 40px;
+    grid-row-gap: 40px;
+    flex-flow: row;
+    width: 100%;
+  }
+
+  .image {
+    flex: 0 auto;
+    display: none;
+  }
+
+  .div-block-3 {
+    max-width: 420px;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .hero {
+    height: auto;
+  }
+
+  .div-block {
+    grid-column-gap: 30px;
+    grid-row-gap: 30px;
+  }
+
+  .div-block-2 {
+    flex-flow: column;
+  }
+}
+
+
+@font-face {
+  font-family: 'Fg Culturetrial';
+  src: url('../fonts/FG_CultureTRIAL-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fg Culturetrial';
+  src: url('../fonts/FG_CultureTRIAL-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('../fonts/Geist-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
