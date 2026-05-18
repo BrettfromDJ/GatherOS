@@ -35,7 +35,7 @@
      also fade the side the user can't scroll to. */
   --fade-start: transparent;
   --fade-end: transparent;
-  --fade-width: 36px;
+  --fade-width: 72px;
   mask-image: linear-gradient(
     to right,
     var(--fade-start) 0,
