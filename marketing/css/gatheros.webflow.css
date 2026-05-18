@@ -116,6 +116,19 @@ h1 {
   z-index: 2;
 }
 
+@media screen and (max-height: 700px) {
+  .hero {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .feature-list {
+    position: static;
+    margin-top: 32px;
+  }
+}
+
 @media screen and (max-width: 991px) {
   .hero {
     padding-top: 32px;
