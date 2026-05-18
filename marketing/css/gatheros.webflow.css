@@ -121,7 +121,7 @@ h1 {
   .div-block-2 {
     grid-column-gap: 40px;
     grid-row-gap: 40px;
-    flex-flow: row;
+    flex-flow: column;
     width: 100%;
   }
 
