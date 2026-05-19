@@ -6,8 +6,12 @@ directories:
   output: dist/build
   buildResources: build
 files:
-  - src/main/**/*
-  - src/shared/**/*
+  # Bundle everything under src/ except the renderer source (already
+  # built into dist/renderer). Broad-by-default so future code under
+  # src/<new-dir>/ doesn't need a separate entry — and never silently
+  # crashes the packaged app with "Cannot find module".
+  - src/**/*
+  - '!src/renderer/**/*'
   - dist/renderer/**/*
   - build/tray-icon*.png
   - package.json

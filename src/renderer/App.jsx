@@ -333,13 +333,10 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('moodmark.sortMode', sortMode); } catch {}
   }, [sortMode]);
-  const [gridLayout, setGridLayout] = useState(() => {
-    try { return localStorage.getItem('moodmark.gridLayout') || 'masonry'; }
-    catch { return 'masonry'; }
-  });
+  const [gridLayout, setGridLayout] = useState('masonry');
   useEffect(() => {
-    try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
-  }, [gridLayout]);
+    try { localStorage.removeItem('moodmark.gridLayout'); } catch {}
+  }, []);
   // Restore the focused-view save on launch from the persisted
   // window state. If the save no longer exists we'll clear it once
   // the saves list loads (see effect below) so the focused view
