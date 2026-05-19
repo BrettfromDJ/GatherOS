@@ -11,7 +11,6 @@ import BulkTagPicker from './components/BulkTagPicker.jsx';
 import RediscoverMode from './components/RediscoverMode.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
-import WelcomeModal from './components/WelcomeModal.jsx';
 import WhatsNewModal from './components/WhatsNewModal.jsx';
 import { pickNotesForUpgrade, RELEASE_NOTES } from './data/releaseNotes.js';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
@@ -514,7 +513,6 @@ export default function App() {
   // can effect-listen for it without us tracking dirty flags here.
   const [settingsDrawerHint, setSettingsDrawerHint] = useState(null);
   const [aiUnlockedOpen, setAiUnlockedOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [whatsNewNotes, setWhatsNewNotes] = useState(null);
   // Tracks the last version whose release notes the user explicitly
   // clicked through via the sidebar's "What's New" button. Drives the
@@ -567,7 +565,6 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.__moodmarkDebug = {
-      showWelcome: () => setWelcomeOpen(true),
       showAIUnlocked: () => setAiUnlockedOpen(true),
       showWhatsNew: (version) => {
         const target = version
@@ -722,24 +719,6 @@ export default function App() {
   useEffect(() => {
     if (!loading) loadCollections();
   }, [loading, saves.length, loadCollections]);
-
-  // First-launch welcome modal. Opens once when the library boots
-  // empty (no saves, no collections) and the welcomeShown flag has
-  // not yet been set. The flag is persisted before opening so a
-  // re-render mid-flow can't re-trigger it.
-  useEffect(() => {
-    if (loading) return;
-    let alreadyShown = false;
-    try { alreadyShown = localStorage.getItem('moodmark.welcomeShown') === '1'; }
-    catch {}
-    if (alreadyShown) return;
-    if (smartCounts.all > 0 || collections.length > 0) {
-      try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
-      return;
-    }
-    try { localStorage.setItem('moodmark.welcomeShown', '1'); } catch {}
-    setWelcomeOpen(true);
-  }, [loading, smartCounts.all, collections.length]);
 
   // Tags state — used by DetailPanel for autocomplete suggestions.
   const [allTags, setAllTags] = useState([]);
@@ -3056,11 +3035,6 @@ export default function App() {
       <AIUnlockedModal
         open={aiUnlockedOpen}
         onClose={() => setAiUnlockedOpen(false)}
-      />
-
-      <WelcomeModal
-        open={welcomeOpen}
-        onClose={() => setWelcomeOpen(false)}
       />
 
       <ConfirmHost />
