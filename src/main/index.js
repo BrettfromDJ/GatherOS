@@ -439,6 +439,11 @@ function buildTrayIcon() {
   if (icon.isEmpty()) {
     console.error('Tray icon not found at', iconPath);
   }
+  // Mark as a template image so macOS handles the colour treatment:
+  // black in light mode, white in dark mode, dimmed when the menu bar
+  // is inactive. Requires the PNG itself to be pure black + alpha —
+  // any colour in the source bleeds through unchanged.
+  icon.setTemplateImage(true);
   return icon;
 }
 
