@@ -41,12 +41,16 @@ function CaptureOverlay() {
       window.captureOverlay.cancel();
       return;
     }
-    const dpr = window.devicePixelRatio || 1;
+    // Send rect in CSS pixels — main process now picks the target
+    // display by the rect's centre and applies that display's
+    // scaleFactor when capturing. The overlay spans the union of all
+    // displays so devicePixelRatio here doesn't represent any single
+    // monitor reliably.
     window.captureOverlay.complete({
-      x: Math.round(rect.x * dpr),
-      y: Math.round(rect.y * dpr),
-      w: Math.round(rect.w * dpr),
-      h: Math.round(rect.h * dpr),
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      w: Math.round(rect.w),
+      h: Math.round(rect.h),
     });
   }, [drag]);
 

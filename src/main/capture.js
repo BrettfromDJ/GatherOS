@@ -153,9 +153,24 @@ async function startScreenshotCapture() {
   const ok = await ensureScreenRecordingPermission();
   if (!ok) return;
 
-  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-  overlayDisplay = display;
-  const { x, y, width, height } = display.bounds;
+  // Span every display with a single overlay so the user can drag a
+  // selection across monitors. The overlay is positioned at the
+  // union of all display bounds in global screen space; the renderer
+  // sees one big canvas in CSS pixels and reports the rect back in
+  // those same coordinates. captureAndCrop figures out which
+  // physical display the rect lives on.
+  const displays = screen.getAllDisplays();
+  const minX = Math.min(...displays.map((d) => d.bounds.x));
+  const minY = Math.min(...displays.map((d) => d.bounds.y));
+  const maxX = Math.max(...displays.map((d) => d.bounds.x + d.bounds.width));
+  const maxY = Math.max(...displays.map((d) => d.bounds.y + d.bounds.height));
+  const x = minX;
+  const y = minY;
+  const width = maxX - minX;
+  const height = maxY - minY;
+  // Stash the union origin so captureAndCrop can translate rect
+  // coords (overlay-local) into global screen coords.
+  overlayDisplay = { unionOrigin: { x: minX, y: minY } };
 
   overlayWin = new BrowserWindow({
     x, y, width, height,
@@ -283,8 +298,28 @@ async function handleOverlayComplete(rect) {
 
 async function captureAndCrop(rect) {
   const sharp = require('sharp');
-  const display = overlayDisplay || screen.getPrimaryDisplay();
+  // rect is in CSS pixels relative to the overlay window, which spans
+  // the union of all displays. Translate to global screen coords by
+  // adding the union origin, then pick the display the rect's centre
+  // falls on. That's the display we capture from, and we re-express
+  // the rect in that display's local CSS coords before scaling to
+  // device pixels.
+  const origin = (overlayDisplay && overlayDisplay.unionOrigin) || { x: 0, y: 0 };
+  const centreGlobal = {
+    x: origin.x + rect.x + rect.w / 2,
+    y: origin.y + rect.y + rect.h / 2,
+  };
+  const display = screen.getDisplayNearestPoint(centreGlobal);
   const sf = display.scaleFactor || 1;
+
+  // Local CSS rect on the chosen display, clamped to its bounds.
+  const localX = origin.x + rect.x - display.bounds.x;
+  const localY = origin.y + rect.y - display.bounds.y;
+  const clampedLeft = Math.max(0, Math.min(display.bounds.width - 1, localX));
+  const clampedTop = Math.max(0, Math.min(display.bounds.height - 1, localY));
+  const clampedRight = Math.max(clampedLeft + 1, Math.min(display.bounds.width, localX + rect.w));
+  const clampedBottom = Math.max(clampedTop + 1, Math.min(display.bounds.height, localY + rect.h));
+
   const targetWidth = Math.round(display.size.width * sf);
   const targetHeight = Math.round(display.size.height * sf);
 
@@ -297,14 +332,13 @@ async function captureAndCrop(rect) {
 
   const pngBuffer = source.thumbnail.toPNG();
 
-  // Clamp the rect to the actual thumbnail size.
   const thumbSize = source.thumbnail.getSize();
-  const scaleX = thumbSize.width / targetWidth;
-  const scaleY = thumbSize.height / targetHeight;
-  const left = Math.max(0, Math.min(thumbSize.width - 1, Math.round(rect.x * scaleX)));
-  const top = Math.max(0, Math.min(thumbSize.height - 1, Math.round(rect.y * scaleY)));
-  const width = Math.max(1, Math.min(thumbSize.width - left, Math.round(rect.w * scaleX)));
-  const height = Math.max(1, Math.min(thumbSize.height - top, Math.round(rect.h * scaleY)));
+  const scaleX = thumbSize.width / display.bounds.width;
+  const scaleY = thumbSize.height / display.bounds.height;
+  const left = Math.max(0, Math.min(thumbSize.width - 1, Math.round(clampedLeft * scaleX)));
+  const top = Math.max(0, Math.min(thumbSize.height - 1, Math.round(clampedTop * scaleY)));
+  const width = Math.max(1, Math.min(thumbSize.width - left, Math.round((clampedRight - clampedLeft) * scaleX)));
+  const height = Math.max(1, Math.min(thumbSize.height - top, Math.round((clampedBottom - clampedTop) * scaleY)));
 
   return sharp(pngBuffer).extract({ left, top, width, height }).png().toBuffer();
 }
