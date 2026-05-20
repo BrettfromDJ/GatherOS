@@ -42,6 +42,13 @@ if (process.defaultApp) {
 const pendingLicenseTokens = [];
 let rendererReady = false;
 
+// Hard caps on the magic-link token. The server issues short opaque
+// tokens (~40 chars of base64url); any incoming token outside this
+// shape is an attempt to abuse the deep-link handler (DoS via large
+// payload, weird characters used as a probe for parser quirks).
+const MAGIC_TOKEN_MAX_LENGTH = 256;
+const MAGIC_TOKEN_PATTERN = /^[A-Za-z0-9._\-]+$/;
+
 async function handleLicensingDeepLink(url) {
   let parsed;
   try {
@@ -53,6 +60,10 @@ async function handleLicensingDeepLink(url) {
   if (parsed.hostname !== 'auth' || parsed.pathname !== '/verify') return;
   const token = parsed.searchParams.get('token');
   if (!token) return;
+  if (token.length > MAGIC_TOKEN_MAX_LENGTH || !MAGIC_TOKEN_PATTERN.test(token)) {
+    console.warn('[licensing] rejecting deep-link token: invalid shape');
+    return;
+  }
 
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
