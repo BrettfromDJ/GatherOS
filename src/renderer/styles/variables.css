@@ -118,6 +118,11 @@
   --tooltip-bg: rgba(28, 28, 30, 0.94);
   --tooltip-fg: #fff;
 
+  /* Solid muted gray for placeholder / empty-state glyphs. Reads as
+     "faded" without the alpha-stacking artefacts of an rgba colour
+     when SVG strokes overlap (intersections darken twice). */
+  --icon-muted: #c2c2c2;
+
   /* Sidebar icon palette (matches Finder's section colors) */
   --icon-blue: #007aff;
   --icon-yellow: #ffcc00;
@@ -236,6 +241,7 @@
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.6);
   --text-tertiary: rgba(255, 255, 255, 0.42);
+  --icon-muted: #5a5a5a;
   /* Accent flips to the primary ink in dark mode (white) so
      accented surfaces stay visible on the dark canvas. Text on top
      of the accent flips back to black to keep contrast. Alphas a

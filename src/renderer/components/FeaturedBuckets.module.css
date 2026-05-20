@@ -152,16 +152,7 @@
   display: inline-flex;
   width: 28px;
   height: 28px;
-  /* Solid colour + element-level opacity (not rgba alpha) so
-     overlapping SVG strokes don't double up to a darker line where
-     they intersect — fades the rendered icon as a single layer. */
-  color: black;
-  opacity: 0.22;
-}
-
-:root[data-theme="dark"] .stackEmptyIcon {
-  color: white;
-  opacity: 0.32;
+  color: var(--icon-muted);
 }
 
 .stackEmptyIcon svg {

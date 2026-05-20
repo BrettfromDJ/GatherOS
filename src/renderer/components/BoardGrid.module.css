@@ -152,7 +152,7 @@
 }
 
 .emptyIcon {
-  color: var(--text-tertiary);
+  color: var(--icon-muted);
   margin-bottom: 4px;
 }
 
