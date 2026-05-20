@@ -205,6 +205,20 @@ async function startScreenshotCapture() {
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
   overlayWin.setIgnoreMouseEvents(false);
 
+  // Sanity check — log what the OS actually gave us. If the actual
+  // bounds don't match the requested ones, macOS is clamping the
+  // overlay to a single display (the most common cause of "cursor
+  // works on monitor 1 but disappears on monitor 2").
+  console.log('[capture] requested overlay bounds:', { x, y, width, height });
+  console.log('[capture] actual overlay bounds:', overlayWin.getBounds());
+  console.log('[capture] all displays at overlay creation:', screen.getAllDisplays().map((d) => ({
+    id: d.id,
+    bounds: d.bounds,
+    scaleFactor: d.scaleFactor,
+    internal: d.internal,
+    primary: d.id === screen.getPrimaryDisplay().id,
+  })));
+
   // Backstop for the renderer's keydown listener: while the overlay
   // is open, Escape is wired through the OS shortcut layer too. If
   // focus ever slips (tray menu held it, another app stole it, etc.)
