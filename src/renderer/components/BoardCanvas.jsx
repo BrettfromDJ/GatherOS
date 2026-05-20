@@ -1866,12 +1866,6 @@ export default function BoardCanvas({
           return handles;
         })()}
       </div>
-
-      {items.length === 0 && (
-        <div className={styles.empty}>
-          Drag images here to get started.
-        </div>
-      )}
     </div>
   );
 }
