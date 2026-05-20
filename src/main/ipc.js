@@ -22,8 +22,6 @@ const {
   composeMoodBoard,
 } = require('./storage');
 const {
-  handleOverlayComplete,
-  handleOverlayCancel,
   startScreenshotCapture,
   captureFullscreen,
   captureWindow,
@@ -418,17 +416,6 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
-  ipcMain.handle('overlay:complete', (e, payload) => {
-    // Pass the sender so capture.js can identify which per-display
-    // overlay sent the rect (multi-monitor setups need this).
-    handleOverlayComplete(payload, e.sender);
-    return { ok: true };
-  });
-
-  ipcMain.handle('overlay:cancel', () => {
-    handleOverlayCancel();
-    return { ok: true };
-  });
 
   ipcMain.handle('capture:fullscreen', () => {
     captureFullscreen();
