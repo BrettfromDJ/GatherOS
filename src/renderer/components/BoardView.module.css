@@ -908,7 +908,7 @@
    doesn't change the item's box model — drag/move math stays
    accurate, and the handles sit exactly on the corners. */
 .item.itemSelected {
-  outline: calc(1.5px / var(--board-zoom, 1)) solid var(--accent, #000000);
+  outline: calc(0.75px / var(--board-zoom, 1)) solid var(--accent, #000000);
   outline-offset: 0;
 }
 
@@ -1226,39 +1226,46 @@
 
 /* Snap line — extends along the locked axis across the canvas.
    Repeating linear gradient gives a dashed look without an SVG.
-   Stroke / dash size counter-zoom so the visual stays consistent. */
+   Stroke / dash size counter-zoom so the visual stays consistent.
+   Light grey rather than full accent — the line is a hint, not a
+   commitment. */
 .snapLineH,
 .snapLineV {
   position: absolute;
   pointer-events: none;
   z-index: 998;
-  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  --snap-color: #c8c8c8;
+}
+
+:root[data-theme="dark"] .snapLineH,
+:root[data-theme="dark"] .snapLineV {
+  --snap-color: #4a4a4a;
 }
 
 .snapLineH {
   height: calc(1px / var(--board-zoom, 1));
   background-image: repeating-linear-gradient(
     to right,
-    color-mix(in srgb, var(--accent) 75%, transparent) 0,
-    color-mix(in srgb, var(--accent) 75%, transparent) 5px,
-    transparent 5px,
-    transparent 10px
+    var(--snap-color) 0,
+    var(--snap-color) 3px,
+    transparent 3px,
+    transparent 7px
   );
   background-color: transparent;
-  background-size: calc(10px / var(--board-zoom, 1)) 100%;
+  background-size: calc(7px / var(--board-zoom, 1)) 100%;
 }
 
 .snapLineV {
   width: calc(1px / var(--board-zoom, 1));
   background-image: repeating-linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--accent) 75%, transparent) 0,
-    color-mix(in srgb, var(--accent) 75%, transparent) 5px,
-    transparent 5px,
-    transparent 10px
+    var(--snap-color) 0,
+    var(--snap-color) 3px,
+    transparent 3px,
+    transparent 7px
   );
   background-color: transparent;
-  background-size: 100% calc(10px / var(--board-zoom, 1));
+  background-size: 100% calc(7px / var(--board-zoom, 1));
 }
 
 .itemText {
