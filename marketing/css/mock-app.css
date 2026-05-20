@@ -1,0 +1,292 @@
+/* ------------------------------------------------------------------
+   Interactive landing mock — a static HTML/CSS approximation of the
+   GatherOS app UI that lives where the desktop screenshot used to.
+   No JS, no real data. Hovering a featured-bucket card fans out the
+   stacked thumbnails (same recipe as the real app's FeaturedBuckets).
+   Hidden below 991px — the existing media query already hides the
+   right-column screenshot at that breakpoint, so the mobile layout
+   stays untouched.
+   ------------------------------------------------------------------ */
+
+.mock {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  /* Tilt the whole window into a subtle perspective so it reads as
+     "this is a product, not a flat hero image". Match the rotation
+     direction of the original screenshot. */
+  perspective: 1800px;
+}
+
+.mock-window {
+  width: 100%;
+  max-width: 920px;
+  background: #fafafa;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 30px 60px -20px rgba(0, 0, 0, 0.18),
+    0 12px 24px -16px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  transform: rotateY(-3deg) rotateX(2deg);
+  transform-origin: left center;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  color: #111;
+}
+
+/* --- Title bar -------------------------------------------------- */
+
+.mock-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mock-traffic {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.mock-traffic span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #d4d4d4;
+}
+
+.mock-traffic span:nth-child(1) { background: #ff5f57; }
+.mock-traffic span:nth-child(2) { background: #febc2e; }
+.mock-traffic span:nth-child(3) { background: #28c840; }
+
+.mock-library-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.mock-library-switcher .mock-chev {
+  font-size: 10px;
+  opacity: 0.4;
+}
+
+.mock-search-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+}
+
+.mock-tabs {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 999px;
+  padding: 3px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mock-tab {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.7);
+  padding: 5px 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mock-tab.is-active {
+  background: #000;
+  color: #fff;
+}
+
+.mock-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.mock-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.mock-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mock-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #000;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 13px 6px 11px;
+  border-radius: 999px;
+}
+
+/* --- Sub-tabs / sort -------------------------------------------- */
+
+.mock-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px 14px;
+  font-size: 13px;
+}
+
+.mock-subtab {
+  color: rgba(0, 0, 0, 0.5);
+  padding-bottom: 2px;
+}
+
+.mock-subtab.is-active {
+  color: #000;
+  border-bottom: 1.5px solid #000;
+}
+
+.mock-sort {
+  margin-left: auto;
+  color: rgba(0, 0, 0, 0.6);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+/* --- Featured-bucket cards row ---------------------------------- */
+
+.mock-cards-row {
+  display: flex;
+  gap: 10px;
+  padding: 4px 20px 18px;
+  overflow: hidden;
+}
+
+.mock-card {
+  flex-shrink: 0;
+  width: 132px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 10px 10px 9px;
+  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.04);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+  /* GPU layer to keep the fan animation smooth. */
+  transform: translate3d(0, 0, 0);
+}
+
+.mock-card:hover {
+  transform: translate3d(0, -2px, 0);
+  box-shadow: 0 8px 22px 0 rgba(0, 0, 0, 0.08);
+}
+
+.mock-card-stack {
+  position: relative;
+  width: 100%;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+  margin-bottom: 8px;
+}
+
+.mock-card-stack img {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Resting fan — same nth-child recipe as the real
+   FeaturedBuckets.module.css, scaled down for the smaller mock. */
+.mock-card-stack img:nth-child(1) { transform: rotate(-7deg) translate(-8px, 3px);  z-index: 1; }
+.mock-card-stack img:nth-child(2) { transform: rotate(-2deg) translate(-2px, 0);    z-index: 2; }
+.mock-card-stack img:nth-child(3) { transform: rotate(3deg)  translate(3px, 0);     z-index: 3; }
+.mock-card-stack img:nth-child(4) { transform: rotate(8deg)  translate(8px, 3px);   z-index: 4; }
+
+/* Hover state — fan out further. */
+.mock-card:hover .mock-card-stack img:nth-child(1) { transform: rotate(-14deg) translate(-22px, 6px); }
+.mock-card:hover .mock-card-stack img:nth-child(2) { transform: rotate(-5deg)  translate(-9px, -1px); }
+.mock-card:hover .mock-card-stack img:nth-child(3) { transform: rotate(6deg)   translate(10px, -1px); }
+.mock-card:hover .mock-card-stack img:nth-child(4) { transform: rotate(15deg)  translate(23px, 6px); }
+
+.mock-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-card-count {
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 1px;
+}
+
+/* --- Masonry grid below ---------------------------------------- */
+
+.mock-grid {
+  column-count: 4;
+  column-gap: 6px;
+  padding: 0 20px 20px;
+}
+
+.mock-grid img {
+  width: 100%;
+  display: block;
+  margin: 0 0 6px;
+  border-radius: 6px;
+  break-inside: avoid;
+  transition: transform 220ms ease;
+}
+
+.mock-grid img:hover {
+  transform: scale(1.015);
+}
+
+/* --- Responsive: hide the mock at narrow widths --------------- */
+
+@media (max-width: 991px) {
+  .mock {
+    display: none;
+  }
+}
