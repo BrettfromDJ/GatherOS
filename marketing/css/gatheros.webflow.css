@@ -130,7 +130,13 @@ h1 {
 }
 
 @media screen and (max-width: 991px) {
+  /* Narrow viewports: let the hero grow with its content so the
+     features list at the bottom of the heading column isn't clipped
+     by the 100vh + overflow:hidden combo from the desktop layout. */
   .hero {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
     padding-top: 32px;
   }
 
@@ -142,6 +148,7 @@ h1 {
     grid-column-gap: 40px;
     grid-row-gap: 40px;
     flex-flow: column;
+    justify-content: flex-start;
     width: 100%;
   }
 
@@ -152,6 +159,12 @@ h1 {
 
   .div-block-3 {
     max-width: 420px;
+  }
+
+  /* Tuck features close to the button instead of pushed to the
+     bottom of a column that's now as-tall-as-its-content. */
+  .feature-list {
+    margin-top: 32px;
   }
 }
 
