@@ -423,7 +423,13 @@ function createMainWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // Sandbox the renderer process. Combined with contextIsolation
+      // this is the defense-in-depth pair Electron security
+      // recommends: even if a renderer XSS lands, the process can't
+      // touch fs / child_process directly. The preload only uses
+      // electron's ipcRenderer + contextBridge, both of which work
+      // under sandbox.
+      sandbox: true,
     },
   });
 

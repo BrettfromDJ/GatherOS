@@ -39,7 +39,9 @@ function ensureToastWindow() {
       preload: path.join(__dirname, 'preload-toast.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // Renderer is sandboxed; preload only needs electron's
+      // ipcRenderer + contextBridge which both work under sandbox.
+      sandbox: true,
     },
   });
 
