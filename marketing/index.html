@@ -49,70 +49,66 @@
           <!-- Toolbar -->
           <div class="mock-toolbar">
             <div class="mock-toolbar-left">
-              <!-- Brand mark — inlined SVG with the gradient tile + glyph.
-                   Drop shadow comes from CSS filter: drop-shadow() in
-                   mock-app.css so it renders outside the element bounds
-                   regardless of overflow:visible / browser quirks. -->
-              <svg class="mock-brand" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <g clip-path="url(#mockBrandClip)">
-                  <g filter="url(#mockBrandTileInner)">
-                    <rect x="4" width="38" height="38" rx="9.87013" fill="url(#mockBrandTileGrad)"/>
-                  </g>
-                  <g filter="url(#mockBrandGlyphInner)">
-                    <path d="M11.6689 22.9428H17.9518C18.3999 22.9428 18.8695 22.5434 18.8695 21.9496V19.2184C18.8695 18.2522 18.9936 17.5073 19.4902 16.7085C20.0138 15.915 20.7802 15.0676 22.1458 14.9974C23.0635 14.9218 24.008 14.9974 24.8501 15.521C25.9944 16.2173 26.8364 17.3832 26.8364 18.9701C26.8364 20.1144 26.2427 21.3019 25.2711 22.0252C24.6504 22.5218 23.8569 22.9698 22.7612 23.0184H19.7817C19.1879 23.0184 18.8641 23.4178 18.8856 23.936V29.9922C18.8856 30.4618 19.2581 30.8612 19.8033 30.8612H23.1282C24.3697 30.8612 25.7623 30.7101 27.0739 30.2405C30.577 28.999 34.2475 25.8953 35.0193 20.978C35.1165 20.3573 35.1435 19.8121 35.1435 19.1914C35.1705 15.2457 33.2057 11.4673 30.3503 9.50796C28.4881 8.19093 26.3021 7.19776 23.5223 7.07361H19.7979C19.1501 7.07361 18.8802 7.52162 18.8802 7.99121C18.8802 9.08155 19.0206 10.269 18.8263 11.3378C18.4754 13.3025 16.8507 14.965 14.805 14.965H11.5448C11.1238 14.965 10.8269 15.3645 10.8269 15.8341V21.9658C10.8755 22.4138 11.1238 22.932 11.6689 22.932V22.9428Z" fill="url(#mockBrandGlyphGrad)"/>
-                  </g>
-                  <mask id="mockBrandMask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="10" y="7" width="26" height="24">
-                    <path d="M11.6689 22.9428H17.9518C18.3999 22.9428 18.8695 22.5434 18.8695 21.9496V19.2184C18.8695 18.2522 18.9936 17.5073 19.4902 16.7085C20.0138 15.915 20.7802 15.0676 22.1458 14.9974C23.0635 14.9218 24.008 14.9974 24.8501 15.521C25.9944 16.2173 26.8364 17.3832 26.8364 18.9701C26.8364 20.1144 26.2427 21.3019 25.2711 22.0252C24.6504 22.5218 23.8569 22.9698 22.7612 23.0184H19.7817C19.1879 23.0184 18.8641 23.4178 18.8856 23.936V29.9922C18.8856 30.4618 19.2581 30.8612 19.8033 30.8612H23.1282C24.3697 30.8612 25.7623 30.7101 27.0739 30.2405C30.577 28.999 34.2475 25.8953 35.0193 20.978C35.1165 20.3573 35.1435 19.8121 35.1435 19.1914C35.1705 15.2457 33.2057 11.4673 30.3503 9.50796C28.4881 8.19093 26.3021 7.19776 23.5223 7.07361H19.7979C19.1501 7.07361 18.8802 7.52162 18.8802 7.99121C18.8802 9.08155 19.0206 10.269 18.8263 11.3378C18.4754 13.3025 16.8507 14.965 14.805 14.965H11.5448C11.1238 14.965 10.8269 15.3645 10.8269 15.8341V21.9658C10.8755 22.4138 11.1238 22.932 11.6689 22.932V22.9428Z" fill="#ADB2B5"/>
-                  </mask>
-                  <g mask="url(#mockBrandMask)">
-                    <g filter="url(#mockBrandBlur1)"><path d="M38.7471 29.4012L18.9467 24.0291L16.9469 25.4131C18.497 30.0565 21.8431 40.0456 22.8266 42.8555C23.8102 45.6653 29.3571 40.94 32.0077 38.2261L38.7471 29.4012Z" fill="#85AABC"/></g>
-                    <g filter="url(#mockBrandBlur2)"><path d="M52.0447 13.4661L32.2443 8.09395L26.845 6.99563C37.2786 16.6368 35.1407 24.1105 36.1243 26.9204C37.1078 29.7302 42.6548 25.0049 45.3053 22.2909L52.0447 13.4661Z" fill="#8A71B0"/></g>
-                    <g filter="url(#mockBrandBlur3)"><path d="M52.7049 24.9122L32.9044 19.5401L30.9047 20.9241C32.4548 25.5675 35.8009 35.5566 36.7844 38.3665C37.7679 41.1763 43.3149 36.451 45.9654 33.737L52.7049 24.9122Z" fill="#BBB58D"/></g>
-                    <g filter="url(#mockBrandBlur4)"><path d="M18.6124 22.9322L10.9523 14.6558H9.5435C8.75108 17.1358 7.05177 22.4744 6.59392 23.9888C6.13608 25.5032 10.3359 25.1187 12.4931 24.7372L18.6124 22.9322Z" fill="#85AABC"/></g>
-                  </g>
+              <!-- Brand mark — clean version provided by user (no in-SVG
+                   shadow). viewBox 0 0 35 35 fills the element edge-to-edge.
+                   Drop shadow rendered externally via CSS filter on .mock-brand. -->
+              <svg class="mock-brand" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g filter="url(#mockBrandTileInner)">
+                  <rect width="34.03" height="34.03" rx="8.83896" fill="url(#mockBrandTileGrad)"/>
+                </g>
+                <g filter="url(#mockBrandGlyphInner)">
+                  <path d="M6.86833 20.546H12.4948C12.896 20.546 13.3166 20.1883 13.3166 19.6566V17.2107C13.3166 16.3455 13.4278 15.6784 13.8725 14.963C14.3413 14.2524 15.0277 13.4935 16.2507 13.4307C17.0724 13.363 17.9183 13.4307 18.6724 13.8996C19.6972 14.5231 20.4512 15.5672 20.4512 16.9883C20.4512 18.0131 19.9195 19.0765 19.0494 19.7243C18.4935 20.169 17.783 20.5702 16.8017 20.6137H14.1335C13.6018 20.6137 13.3117 20.9714 13.3311 21.4354V26.8589C13.3311 27.2794 13.6646 27.6371 14.1528 27.6371H17.1304C18.2422 27.6371 19.4893 27.5018 20.6639 27.0813C23.801 25.9695 27.088 23.1901 27.7792 18.7865C27.8662 18.2306 27.8904 17.7424 27.8904 17.1865C27.9146 13.653 26.1551 10.2694 23.598 8.51475C21.9304 7.33531 19.9727 6.44589 17.4833 6.33472H14.148C13.5679 6.33472 13.3262 6.73592 13.3262 7.15646C13.3262 8.13288 13.4519 9.19631 13.2779 10.1534C12.9637 11.9129 11.5087 13.4017 9.67675 13.4017H6.75715C6.38012 13.4017 6.11426 13.7594 6.11426 14.1799V19.6711C6.15776 20.0723 6.38012 20.5363 6.86833 20.5363V20.546Z" fill="url(#mockBrandGlyphGrad)"/>
+                </g>
+                <mask id="mockBrandMask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="6" y="6" width="22" height="22">
+                  <path d="M6.86833 20.546H12.4948C12.896 20.546 13.3166 20.1883 13.3166 19.6566V17.2107C13.3166 16.3455 13.4278 15.6784 13.8725 14.963C14.3413 14.2524 15.0277 13.4935 16.2507 13.4307C17.0724 13.363 17.9183 13.4307 18.6724 13.8996C19.6972 14.5231 20.4512 15.5672 20.4512 16.9883C20.4512 18.0131 19.9195 19.0765 19.0494 19.7243C18.4935 20.169 17.783 20.5702 16.8017 20.6137H14.1335C13.6018 20.6137 13.3117 20.9714 13.3311 21.4354V26.8589C13.3311 27.2794 13.6646 27.6371 14.1528 27.6371H17.1304C18.2422 27.6371 19.4893 27.5018 20.6639 27.0813C23.801 25.9695 27.088 23.1901 27.7792 18.7865C27.8662 18.2306 27.8904 17.7424 27.8904 17.1865C27.9146 13.653 26.1551 10.2694 23.598 8.51475C21.9304 7.33531 19.9727 6.44589 17.4833 6.33472H14.148C13.5679 6.33472 13.3262 6.73592 13.3262 7.15646C13.3262 8.13288 13.4519 9.19631 13.2779 10.1534C12.9637 11.9129 11.5087 13.4017 9.67675 13.4017H6.75715C6.38012 13.4017 6.11426 13.7594 6.11426 14.1799V19.6711C6.15776 20.0723 6.38012 20.5363 6.86833 20.5363V20.546Z" fill="#ADB2B5"/>
+                </mask>
+                <g mask="url(#mockBrandMask)">
+                  <g filter="url(#mockBrandBlur1)"><path d="M31.1178 26.3296L13.386 21.5187L11.5952 22.7581C12.9834 26.9164 15.9798 35.8619 16.8606 38.3782C17.7414 40.8945 22.7089 36.6628 25.0825 34.2324L31.1178 26.3296Z" fill="#85AABC"/></g>
+                  <g filter="url(#mockBrandBlur2)"><path d="M43.026 12.0591L25.2942 7.24823L20.459 6.26465C29.8025 14.8986 27.888 21.5915 28.7688 24.1078C29.6496 26.6241 34.617 22.3924 36.9906 19.962L43.026 12.0591Z" fill="#8A71B0"/></g>
+                  <g filter="url(#mockBrandBlur3)"><path d="M43.6178 22.3094L25.886 17.4985L24.0952 18.738C25.4834 22.8962 28.4798 31.8418 29.3606 34.3581C30.2414 36.8744 35.2089 32.6427 37.5825 30.2123L43.6178 22.3094Z" fill="#BBB58D"/></g>
+                  <g filter="url(#mockBrandBlur4)"><path d="M13.0868 20.5364L6.22696 13.1246H4.96537C4.25574 15.3455 2.73396 20.1264 2.32395 21.4826C1.91394 22.8388 5.67502 22.4945 7.60681 22.1528L13.0868 20.5364Z" fill="#85AABC"/></g>
                 </g>
                 <defs>
-                  <filter id="mockBrandTileInner" x="4" y="0" width="38.2468" height="38.1645" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandTileInner" x="0" y="0" width="34.2512" height="34.1773" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/>
                     <feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
                     <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                    <feOffset dx="0.246753" dy="0.164502"/><feGaussianBlur stdDeviation="0.164502"/>
+                    <feOffset dx="0.220974" dy="0.147316"/><feGaussianBlur stdDeviation="0.147316"/>
                     <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
                     <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0"/>
                     <feBlend mode="normal" in2="shape"/>
                   </filter>
-                  <filter id="mockBrandGlyphInner" x="10.8269" y="7.07361" width="24.3169" height="24.4039" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandGlyphInner" x="6.11426" y="6.33472" width="21.7764" height="21.8543" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/>
                     <feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
                     <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                    <feOffset dy="0.616331"/><feGaussianBlur stdDeviation="0.308166"/>
+                    <feOffset dy="0.551941"/><feGaussianBlur stdDeviation="0.275971"/>
                     <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
                     <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0"/>
                     <feBlend mode="normal" in2="shape"/>
                   </filter>
-                  <filter id="mockBrandBlur1" x="14.5697" y="21.6518" width="26.5546" height="24.4433" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandBlur1" x="9.46581" y="19.3898" width="23.7813" height="21.8895" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
-                    <feGaussianBlur stdDeviation="1.18864"/>
+                    <feGaussianBlur stdDeviation="1.06446"/>
                   </filter>
-                  <filter id="mockBrandBlur2" x="24.4677" y="4.61833" width="29.9543" height="25.5417" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandBlur2" x="18.3301" y="4.13573" width="26.8252" height="22.8732" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
-                    <feGaussianBlur stdDeviation="1.18864"/>
+                    <feGaussianBlur stdDeviation="1.06446"/>
                   </filter>
-                  <filter id="mockBrandBlur3" x="28.5275" y="17.1628" width="26.5546" height="24.4433" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandBlur3" x="21.9658" y="15.3696" width="23.7813" height="21.8895" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
-                    <feGaussianBlur stdDeviation="1.18864"/>
+                    <feGaussianBlur stdDeviation="1.06446"/>
                   </filter>
-                  <filter id="mockBrandBlur4" x="4.18205" y="12.2785" width="16.8075" height="15.1795" filterUnits="userSpaceOnUse">
+                  <filter id="mockBrandBlur4" x="0.164053" y="10.9957" width="15.0518" height="13.5936" filterUnits="userSpaceOnUse">
                     <feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/>
-                    <feGaussianBlur stdDeviation="1.18864"/>
+                    <feGaussianBlur stdDeviation="1.06446"/>
                   </filter>
-                  <linearGradient id="mockBrandTileGrad" x1="23" y1="0" x2="23" y2="38" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="mockBrandTileGrad" x1="17.015" y1="0" x2="17.015" y2="34.03" gradientUnits="userSpaceOnUse">
                     <stop stop-color="#3F3F3F"/><stop offset="1"/>
                   </linearGradient>
-                  <linearGradient id="mockBrandGlyphGrad" x1="22.9853" y1="7.07361" x2="22.9853" y2="30.8612" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="mockBrandGlyphGrad" x1="17.0024" y1="6.33472" x2="17.0024" y2="27.6371" gradientUnits="userSpaceOnUse">
                     <stop stop-color="#ADB2B5"/><stop offset="1" stop-color="#ADB2B5"/>
                   </linearGradient>
-                  <clipPath id="mockBrandClip"><rect width="46" height="46" fill="white"/></clipPath>
                 </defs>
               </svg>
               <div class="mock-library-switcher">
