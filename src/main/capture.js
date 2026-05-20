@@ -17,6 +17,10 @@ const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
 
 let overlayWin = null;
+// The display the current overlay is bound to — captured at open
+// time so the crop step (which fires after the overlay is dismissed)
+// reads pixels from the right monitor on a multi-display setup.
+let overlayDisplay = null;
 
 // Default accelerator if no pref is set / pref returns junk.
 const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+S';
@@ -149,7 +153,8 @@ async function startScreenshotCapture() {
   const ok = await ensureScreenRecordingPermission();
   if (!ok) return;
 
-  const display = screen.getPrimaryDisplay();
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  overlayDisplay = display;
   const { x, y, width, height } = display.bounds;
 
   overlayWin = new BrowserWindow({
@@ -190,6 +195,7 @@ async function startScreenshotCapture() {
 
   overlayWin.on('closed', () => {
     overlayWin = null;
+    overlayDisplay = null;
     if (escRegistered) {
       try { globalShortcut.unregister(escAccelerator); } catch {}
       escRegistered = false;
@@ -268,7 +274,7 @@ async function handleOverlayComplete(rect) {
 
 async function captureAndCrop(rect) {
   const sharp = require('sharp');
-  const display = screen.getPrimaryDisplay();
+  const display = overlayDisplay || screen.getPrimaryDisplay();
   const sf = display.scaleFactor || 1;
   const targetWidth = Math.round(display.size.width * sf);
   const targetHeight = Math.round(display.size.height * sf);
@@ -300,13 +306,13 @@ function handleOverlayCancel() {
   }
 }
 
-// Capture the entire primary display in one shot — no overlay,
-// no picker. Saves straight to the active library.
+// Capture the entire display under the cursor in one shot — no
+// overlay, no picker. Saves straight to the active library.
 async function captureFullscreen() {
   const ok = await ensureScreenRecordingPermission();
   if (!ok) return;
 
-  const display = screen.getPrimaryDisplay();
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const sf = display.scaleFactor || 1;
   const targetWidth = Math.round(display.size.width * sf);
   const targetHeight = Math.round(display.size.height * sf);
