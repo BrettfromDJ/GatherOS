@@ -179,6 +179,15 @@ async function startScreenshotCapture() {
       frame: false,
       transparent: true,
       alwaysOnTop: true,
+      // Don't compete for keyboard focus — only one window can be
+      // "frontmost" at a time on macOS, and the unfocused overlay's
+      // cursor lags the focused one's (default arrow until first
+      // mousedown). Marking both non-focusable means macOS tracks
+      // cursor purely by which window the pointer is over, so the
+      // crosshair shows immediately on either monitor. Escape still
+      // works because it's registered via globalShortcut, not the
+      // renderer's keydown listener.
+      focusable: false,
       resizable: false,
       movable: false,
       hasShadow: false,
@@ -192,8 +201,6 @@ async function startScreenshotCapture() {
         sandbox: false,
       },
     });
-    // Re-assert bounds — macOS occasionally rounds non-primary
-    // origins to the nearest valid display point at construction.
     win.setBounds({ x, y, width, height });
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     win.setAlwaysOnTop(true, 'screen-saver');
@@ -208,17 +215,6 @@ async function startScreenshotCapture() {
         escRegistered = false;
       }
     });
-
-    const stealFocus = () => {
-      if (win.isDestroyed()) return;
-      if (process.platform === 'darwin') {
-        try { app.focus({ steal: true }); } catch {}
-      }
-      try { win.focus(); } catch {}
-    };
-    win.once('ready-to-show', stealFocus);
-    win.webContents.once('did-finish-load', stealFocus);
-    win.on('show', stealFocus);
 
     if (isDev) {
       win.loadURL(`${DEV_URL}/overlay.html`);
