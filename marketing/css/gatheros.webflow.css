@@ -31,10 +31,6 @@ h1 {
   line-height: 44px;
 }
 
-/* min-height instead of height + overflow:visible so the features
-   list at the bottom of the heading column is never clipped by a
-   short viewport. The desktop screenshot can extend below the fold
-   if the user scrolls — better that than losing the features. */
 .hero {
   min-height: 100vh;
   padding-top: 90px;
@@ -47,17 +43,20 @@ h1 {
   grid-column-gap: 60px;
   grid-row-gap: 60px;
   justify-content: space-between;
-  align-items: stretch;
+  align-items: flex-start;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   display: flex;
 }
 
+/* Stack heading + features tight together at the top of the column.
+   align-items: flex-start on the parent (.div-block) keeps the column
+   from stretching to match the screenshot's height. */
 .div-block-2 {
   flex-flow: column;
   flex: none;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: stretch;
   width: 420px;
   display: flex;
@@ -112,11 +111,8 @@ h1 {
   margin-right: auto;
 }
 
-/* Features list flows at the bottom of the heading column
-   (.div-block-2 has justify-content: space-between) so it always
-   left-aligns with the heading text instead of pinning to the
-   viewport edge. */
 .feature-list {
+  margin-top: 40px;
   z-index: 2;
 }
 
@@ -133,7 +129,6 @@ h1 {
     grid-column-gap: 40px;
     grid-row-gap: 40px;
     flex-flow: column;
-    justify-content: flex-start;
     width: 100%;
   }
 
@@ -144,12 +139,6 @@ h1 {
 
   .div-block-3 {
     max-width: 420px;
-  }
-
-  /* Tuck features close to the button instead of pushed to the
-     bottom of a column that's now as-tall-as-its-content. */
-  .feature-list {
-    margin-top: 32px;
   }
 }
 
