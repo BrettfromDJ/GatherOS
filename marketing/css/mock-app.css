@@ -7,19 +7,11 @@
    FeaturedBuckets uses, just rendered in plain CSS.
    ------------------------------------------------------------------ */
 
-/* Match the heading-block + logo containers so their left edges line
-   up at the same x — Webflow shipped them at different max-widths
-   (.div-block-4 at 1200 vs .div-block at 1200, then we widened the
-   second one for the mock). 1500px centred on viewport for both. */
 .hero .div-block,
 .hero .div-block-4 {
   max-width: 1500px;
 }
 
-/* Mock container — explicit width that always exceeds the available
-   space on the right of the heading column, so the app preview
-   "flows off" the right edge of the viewport at every viewport
-   size. .hero { overflow-x: hidden } clips the runoff. */
 .mock {
   --m-content-bg: #FAFAF9;
   --m-surface-1: #FAFAF9;
@@ -35,8 +27,6 @@
   --m-text-xs: 11px;
   --m-text-lg: 18px;
 
-  /* flex: 0 0 auto so the explicit width below isn't shrunk by the
-     parent flex container's space-between layout. */
   flex: 0 0 auto;
   width: calc(100vw - 100px);
   min-width: 880px;
@@ -49,8 +39,6 @@
 .mock-window {
   width: 100%;
   min-width: 880px;
-  /* No max-width — the .mock container's calc(100vw - 100px) is the
-     source of truth for how big the window gets. */
   background: var(--m-content-bg);
   border: 1px solid var(--m-border);
   border-radius: 14px;
@@ -451,8 +439,12 @@
 
 /* ── Masonry grid ─────────────────────────────────────────────── */
 
+/* column-width instead of column-count so the browser fits as many
+   fixed-size columns as the container allows — keeps individual
+   thumbnails at a sensible size on wide viewports instead of letting
+   four columns stretch out to ridiculous widths. */
 .mock-grid {
-  column-count: 4;
+  column-width: 220px;
   column-gap: 10px;
   padding: 0 24px 24px;
 }
