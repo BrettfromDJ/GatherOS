@@ -1,4 +1,4 @@
-<svg width="46" height="58" viewBox="0 0 46 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
 <g clip-path="url(#clip0_23_13)">
 <g filter="url(#filter0_dddd_23_13)">
 <g filter="url(#filter1_i_23_13)">
@@ -100,7 +100,7 @@
 <stop offset="1" stop-color="#ADB2B5"/>
 </linearGradient>
 <clipPath id="clip0_23_13">
-<rect width="46" height="58" fill="white"/>
+<rect width="46" height="46" fill="white"/>
 </clipPath>
 </defs>
 </svg>
