@@ -129,10 +129,10 @@ dmg:
   iconSize: 100
   contents:
     - x: 140
-      y: 200
+      y: 170
       type: file
     - x: 400
-      y: 200
+      y: 170
       type: link
       path: /Applications
 publish:

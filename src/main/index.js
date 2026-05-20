@@ -709,6 +709,18 @@ app.whenReady().then(() => {
     const settings = require('./settings');
     const themePref = settings.getPref('theme', 'light');
     nativeTheme.themeSource = themePref === 'dark' ? 'dark' : 'light';
+    // Match the Dock icon in dev to the packaged build. electron-builder
+    // bakes build/icon.icns into the bundle at release time, but in
+    // `npm run dev` macOS falls back to Electron's default icon. Setting
+    // it explicitly at runtime keeps the visual identity consistent.
+    try {
+      const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.icns');
+      if (fs.existsSync(iconPath) && app.dock) {
+        app.dock.setIcon(nativeImage.createFromPath(iconPath));
+      }
+    } catch (err) {
+      console.warn('[gatheros] dock.setIcon failed:', err?.message || err);
+    }
   }
   setSaveNotifier(notifySaved);
   setDuplicateNotifier(notifyDuplicateInRenderer);
