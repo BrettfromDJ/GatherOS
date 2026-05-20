@@ -878,7 +878,7 @@
    so the user can grab them. */
 .groupBbox {
   position: absolute;
-  outline: calc(1.5px / var(--board-zoom, 1)) solid var(--accent, #000000);
+  outline: calc(0.75px / var(--board-zoom, 1)) solid var(--accent, #000000);
   outline-offset: 0;
   pointer-events: none;
   z-index: 998;
