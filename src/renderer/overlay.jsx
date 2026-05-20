@@ -126,31 +126,6 @@ function CaptureOverlay() {
           {Math.round(sel.w)}×{Math.round(sel.h)}
         </div>
       )}
-
-      {/* Resting hint floats near the cursor. The overlay window
-          spans every display in a multi-monitor setup, so anchoring
-          to 50% of the window would land at the seam between
-          monitors. Following the cursor keeps the hint on the
-          display the user is actually looking at. */}
-      {!sel && cursor && (
-        <div style={{
-          position: 'fixed',
-          left: cursor.x,
-          top: cursor.y + 24,
-          transform: 'translateX(-50%)',
-          padding: '7px 14px',
-          background: 'rgba(0, 0, 0, 0.78)',
-          color: '#fff',
-          borderRadius: 999,
-          fontSize: 'var(--text-sm)',
-          letterSpacing: 0.2,
-          boxShadow: '0 6px 24px rgba(0, 0, 0, 0.35)',
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-        }}>
-          Drag to capture · <span style={{ opacity: 0.65 }}>Esc to cancel</span>
-        </div>
-      )}
     </div>
   );
 }

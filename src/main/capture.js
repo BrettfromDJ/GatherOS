@@ -312,6 +312,23 @@ async function captureAndCrop(rect) {
   const display = screen.getDisplayNearestPoint(centreGlobal);
   const sf = display.scaleFactor || 1;
 
+  console.log('[capture] rect (overlay-local CSS px):', rect);
+  console.log('[capture] union origin:', origin);
+  console.log('[capture] rect centre (global CSS px):', centreGlobal);
+  console.log('[capture] chosen display:', {
+    id: display.id,
+    bounds: display.bounds,
+    size: display.size,
+    scaleFactor: sf,
+    rotation: display.rotation,
+    internal: display.internal,
+  });
+  console.log('[capture] all displays:', screen.getAllDisplays().map((d) => ({
+    id: d.id,
+    bounds: d.bounds,
+    scaleFactor: d.scaleFactor,
+  })));
+
   // Local CSS rect on the chosen display, clamped to its bounds.
   const localX = origin.x + rect.x - display.bounds.x;
   const localY = origin.y + rect.y - display.bounds.y;
@@ -320,6 +337,10 @@ async function captureAndCrop(rect) {
   const clampedRight = Math.max(clampedLeft + 1, Math.min(display.bounds.width, localX + rect.w));
   const clampedBottom = Math.max(clampedTop + 1, Math.min(display.bounds.height, localY + rect.h));
 
+  console.log('[capture] local clamped rect (CSS px on display):', {
+    left: clampedLeft, top: clampedTop, right: clampedRight, bottom: clampedBottom,
+  });
+
   const targetWidth = Math.round(display.size.width * sf);
   const targetHeight = Math.round(display.size.height * sf);
 
@@ -327,6 +348,15 @@ async function captureAndCrop(rect) {
     types: ['screen'],
     thumbnailSize: { width: targetWidth, height: targetHeight },
   });
+  console.log('[capture] desktopCapturer sources:', sources.map((s, i) => ({
+    idx: i,
+    id: s.id,
+    display_id: s.display_id,
+    display_id_num: Number(s.display_id),
+    name: s.name,
+    thumbSize: s.thumbnail.getSize(),
+  })));
+
   // display_id matching is unreliable on some Electron / macOS
   // builds — it can come back as an empty string per source, in
   // which case the strict ID match fails and the silent fallback to
@@ -334,15 +364,20 @@ async function captureAndCrop(rect) {
   // ID first, then fall back to index alignment with
   // screen.getAllDisplays(), then bail rather than guessing.
   let source = sources.find((s) => Number(s.display_id) === display.id);
+  let matchVia = 'display_id';
   if (!source) {
     const allDisplays = screen.getAllDisplays();
     const idx = allDisplays.findIndex((d) => d.id === display.id);
-    if (idx >= 0 && sources[idx]) source = sources[idx];
+    if (idx >= 0 && sources[idx]) {
+      source = sources[idx];
+      matchVia = `index ${idx}`;
+    }
   }
   if (!source) {
-    console.error('[capture] no desktopCapturer source for display', display.id, 'sources:', sources.map((s) => ({ id: s.id, display_id: s.display_id, name: s.name })));
+    console.error('[capture] no desktopCapturer source for display', display.id);
     throw new Error('Could not locate screen source for the active display.');
   }
+  console.log('[capture] matched source via', matchVia, '→', { id: source.id, display_id: source.display_id });
 
   const pngBuffer = source.thumbnail.toPNG();
 
@@ -353,6 +388,8 @@ async function captureAndCrop(rect) {
   const top = Math.max(0, Math.min(thumbSize.height - 1, Math.round(clampedTop * scaleY)));
   const width = Math.max(1, Math.min(thumbSize.width - left, Math.round((clampedRight - clampedLeft) * scaleX)));
   const height = Math.max(1, Math.min(thumbSize.height - top, Math.round((clampedBottom - clampedTop) * scaleY)));
+
+  console.log('[capture] final crop in thumbnail (device px):', { left, top, width, height, thumbSize });
 
   return sharp(pngBuffer).extract({ left, top, width, height }).png().toBuffer();
 }
