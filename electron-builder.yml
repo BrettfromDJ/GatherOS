@@ -108,6 +108,26 @@ mac:
           - public.url
           - public.file-url
         NSReturnTypes: []
+# Custom install-window design. background.png lives under
+# directories.buildResources (i.e. build/), and electron-builder
+# auto-picks background@2x.png for retina. Window dimensions match
+# the 1x background so the image fills edge to edge. Icon coords are
+# in the same CSS-pixel space as the background — adjust if your
+# design has hot spots at different positions.
+dmg:
+  background: build/background.png
+  window:
+    width: 540
+    height: 380
+  iconSize: 100
+  contents:
+    - x: 140
+      y: 200
+      type: file
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
 publish:
   provider: github
   owner: BrettfromDJ
