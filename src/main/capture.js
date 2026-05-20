@@ -162,7 +162,11 @@ async function startScreenshotCapture() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    simpleFullscreen: true,
+    // Don't use simpleFullscreen — it locks the window to the
+    // primary display on macOS regardless of the x/y passed in,
+    // breaking capture on every non-primary monitor. The window is
+    // already sized to display.bounds and the screen-saver always-
+    // on-top level (set below) places it above the menu bar.
     resizable: false,
     movable: false,
     hasShadow: false,
@@ -176,6 +180,11 @@ async function startScreenshotCapture() {
       sandbox: false,
     },
   });
+
+  // Re-assert the bounds after construction — on multi-display
+  // setups BrowserWindow occasionally rounds x/y to the primary
+  // display's origin if the OS thinks the chosen point is invalid.
+  overlayWin.setBounds({ x, y, width, height });
 
   overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
