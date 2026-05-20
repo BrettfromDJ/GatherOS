@@ -7,6 +7,14 @@
    FeaturedBuckets uses, just rendered in plain CSS.
    ------------------------------------------------------------------ */
 
+/* Widen the heading-row container so the mock has real room. The
+   default 1200px gets eaten by the 420px heading column + 60px gap,
+   leaving the mock squeezed under its own min-width. Override here
+   rather than touching the Webflow file. */
+.hero .div-block {
+  max-width: 1500px;
+}
+
 /* Match the real app's design tokens locally so the mock doesn't
    inherit anything from gatheros.webflow.css. */
 .mock {
@@ -39,7 +47,7 @@
 .mock-window {
   width: 100%;
   min-width: 880px;
-  max-width: 1180px;
+  max-width: 1320px;
   background: var(--m-content-bg);
   border: 1px solid var(--m-border);
   border-radius: 14px;
@@ -94,20 +102,18 @@
   justify-self: start;
 }
 
-/* Real GatherOS brand mark — same SVG the app renders, with the
-   tighter 46x46 viewBox so the icon body fills the element. Sized
-   28x28 to match the toolbar's other interactive controls; the
-   drop shadow inside the SVG extends past the element bounds via
-   the SVG's own overflow:visible. */
+/* Brand mark — inline SVG with the gradient tile + glyph. Inline
+   (rather than <img>) so the SVG's own drop-shadow filter can
+   extend past the 46x46 bounds via overflow: visible — an <img>
+   element would clip the shadow at the rasterised img bounds.
+   translateY nudges the icon body's optical centre to line up with
+   the library-switcher text baseline next to it. */
 .mock-brand {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  display: block;
   overflow: visible;
-  -webkit-user-select: none;
-  user-select: none;
-  pointer-events: none;
+  transform: translateY(2px);
 }
 
 .mock-library-switcher {
@@ -473,9 +479,6 @@
 
 /* ── Containing the mock — kill horizontal scroll ─────────────── */
 
-/* Hero owns horizontal overflow so the wider mock can't introduce
-   a page-level scrollbar when min-width pushes it past the
-   1200px .div-block ceiling. */
 .hero {
   overflow-x: hidden;
 }
