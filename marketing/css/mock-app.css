@@ -12,6 +12,32 @@
   max-width: 1500px;
 }
 
+/* Brand link in the top-left of the hero. Force the anchor to a
+   block-level element pinned to the very left of its container with
+   no surprises from Webflow's .w-inline-block defaults — so the
+   logo lines up exactly with where the H1 starts below. The img
+   itself is set in HTML to 180x45 (1.33x of the 135x34 PNG render);
+   browser downsamples the @2x PNG accordingly. */
+.hero .div-block-4 .brand-link {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+}
+
+.hero .div-block-4 .brand-logo {
+  display: block;
+  width: 180px;
+  height: 45px;
+  margin: 0;
+}
+
+@media (max-width: 991px) {
+  .hero .div-block-4 .brand-logo {
+    width: 150px;
+    height: 38px;
+  }
+}
+
 .mock {
   --m-content-bg: #FAFAF9;
   --m-surface-1: #FAFAF9;
