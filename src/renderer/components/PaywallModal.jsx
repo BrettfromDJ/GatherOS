@@ -85,18 +85,20 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
         </div>
         <div className={styles.priceNote}>{subnote}</div>
 
-        <button
-          type="button"
-          className={styles.cta}
-          disabled={opening}
-          onClick={handleSubscribe}
-        >
-          {opening ? 'Opening…' : 'Start free trial'}
-        </button>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.cta}
+            disabled={opening}
+            onClick={handleSubscribe}
+          >
+            {opening ? 'Opening…' : 'Start free trial'}
+          </button>
 
-        <button type="button" className={styles.signOutLink} onClick={onSignOut}>
-          Sign out
-        </button>
+          <button type="button" className={styles.signOutLink} onClick={onSignOut}>
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );
