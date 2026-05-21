@@ -13,7 +13,7 @@ import {
   PanelLeft,
   Settings,
   Keyboard,
-  FolderClosed,
+  Folder as FolderClosed,
   Inbox,
   Trash2,
   Check as LucideCheck,

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FolderClosed, Pencil, Trash2, Plus, Eclipse as Layers } from 'lucide-react';
+import { Folder as FolderClosed, Pencil, Trash2, Plus, Eclipse as Layers } from 'lucide-react';
 import styles from './FolderGrid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';

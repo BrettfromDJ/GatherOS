@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   X,
-  FolderClosed,
+  Folder as FolderClosed,
   LayoutGrid,
   Inbox,
   ChevronDown,
