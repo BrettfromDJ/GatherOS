@@ -160,6 +160,16 @@ function buildAppMenu({ getMainWindow }) {
           label: 'GatherOS Website',
           click: () => shell.openExternal(SUPPORT_URL),
         },
+        {
+          // Surfaces ~/Library/Logs/GatherOS/main.log in Finder so
+          // users can attach it to a support email after a crash.
+          label: 'Reveal Logs in Finder',
+          click: () => {
+            const { getLogFilePath } = require('./logger');
+            const p = getLogFilePath();
+            if (p) shell.showItemInFolder(p);
+          },
+        },
       ],
     },
   ];

@@ -13,6 +13,26 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 
+// Tee console.* into ~/Library/Logs/GatherOS/main.log and capture
+// uncaughtException / renderer crashes. Must run before the rest of
+// the module so any init-time throws are recorded.
+require('./logger').setup();
+
+// Single-instance lock. Two processes sharing one SQLite file would
+// race writes and corrupt the library — we only ever want one. If
+// we fail to get the lock, focus the existing window via the
+// 'second-instance' event below and exit immediately.
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0);
+}
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 const {
   initDatabase, closeDatabase, insertSave, getSave, updateSave, getTagsForSave,
 } = require('./db');
