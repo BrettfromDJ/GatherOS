@@ -611,8 +611,14 @@
 
 .active .icon {
   color: var(--active-row-fg);
+  opacity: 1;
 }
 
+/* Render the SVG at fully opaque ink and dim the *wrapper* — multi-
+   path lucide icons (Inbox, Trash2, etc.) would otherwise paint each
+   stroke with alpha, and stroke endpoints that meet on the body would
+   double up the alpha and read as a darker seam. Compositing once at
+   the wrapper avoids that entirely. */
 .icon {
   width: 18px;
   height: 18px;
@@ -620,7 +626,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  opacity: 0.55;
+}
+
+:root[data-theme="dark"] .icon {
+  opacity: 0.65;
 }
 
 .icon svg {

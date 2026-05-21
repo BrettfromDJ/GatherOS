@@ -86,7 +86,7 @@
   border-radius: var(--radius-md);
   font-family: inherit;
   font-size: var(--text-md);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   text-align: left;
   cursor: pointer;
   animation: rowFadeIn var(--dur-medium) var(--ease-out) both;
@@ -95,10 +95,12 @@
 
 .row:hover {
   background: var(--hover-bg);
+  color: var(--text-primary);
 }
 
-.rowActive {
-  /* No accent — the checkmark on the left does the lifting. */
+.rowActive,
+.rowActive:hover {
+  color: var(--text-primary);
 }
 
 .rowAction {
