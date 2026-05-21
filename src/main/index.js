@@ -13,6 +13,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 
+// Native messaging host short-circuit. When Chrome spawns this
+// binary as the extension's host (via the --native-host flag), we
+// hand off to a stdin/stdout relay BEFORE touching the logger,
+// single-instance lock, or anything else that would interfere with
+// the running main app. The host process exits when stdin closes.
+if (process.argv.includes('--native-host')) {
+  require('./native-host').run();
+  return;
+}
+
 // Tee console.* into ~/Library/Logs/GatherOS/main.log and capture
 // uncaughtException / renderer crashes. Must run before the rest of
 // the module so any init-time throws are recorded.
@@ -767,6 +777,12 @@ app.whenReady().then(() => {
   createTray();
   registerCaptureHotkey();
   extensionServer.start();
+  // Drop the native-messaging host manifest into every Chromium-
+  // family browser's user dir so the extension can connect without
+  // the user ever touching the filesystem.
+  try { require('./native-host-installer').install(); } catch (err) {
+    console.warn('[native-host] install failed:', err?.message || err);
+  }
   initUpdater(mainWindow);
 
   // Trash auto-purge: if the Settings → "Auto-empty trash" pref is
