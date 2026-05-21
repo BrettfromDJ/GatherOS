@@ -36,8 +36,8 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
   const price = interval === 'yearly' ? '$49' : '$5';
   const unit = interval === 'yearly' ? '/yr' : '/mo';
   const subnote = interval === 'yearly'
-    ? 'Save ~18% — about $4.08/mo'
-    : 'Cancel anytime';
+    ? 'Free for 14 days, then $49/yr — save ~18%'
+    : 'Free for 14 days, then $5/mo — cancel anytime';
 
   return (
     <div className={styles.scrim}>
@@ -48,10 +48,10 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
           alt="GatherOS"
           draggable={false}
         />
-        <h1 className={styles.heading}>Subscribe to GatherOS</h1>
+        <h1 className={styles.heading}>Start your 14-day free trial</h1>
         <p className={styles.body}>
-          Unlock the full library — saves, collections, spaces, and AI
-          search. Billed automatically; cancel any time.
+          Full access to GatherOS for 14 days. We&rsquo;ll only charge
+          your card if you keep going.
         </p>
 
         <div
@@ -91,11 +91,12 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
           disabled={opening}
           onClick={handleSubscribe}
         >
-          {opening ? 'Opening…' : 'Subscribe'}
+          {opening ? 'Opening…' : 'Start free trial'}
         </button>
 
         <p className={styles.fineprint}>
-          Billing is handled securely by Lemon Squeezy.
+          Card required. Billed automatically after the trial. Cancel
+          any time from your account. Billing by Lemon Squeezy.
         </p>
 
         <button type="button" className={styles.signOutLink} onClick={onSignOut}>
