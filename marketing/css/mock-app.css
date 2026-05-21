@@ -30,14 +30,20 @@
   display: block;
   width: 180px;
   height: 45px;
-  margin: 0 0 0 -6px;
+  /* Logo is wordmark-heavy (icon ~25% of the width, text ~75%), so
+     the icon's 26% corner radius creates a visible indent at the top.
+     Negative margin-left pulls the whole logo so the icon's visual
+     bulk aligns with where the H1's "T" starts below. Sized to roughly
+     half the icon's corner radius — empirically calibrated rather
+     than mathematically derived. */
+  margin: 0 0 0 -10px;
 }
 
 @media (max-width: 991px) {
   .hero .div-block-4 .brand-logo {
     width: 200px;
     height: 50px;
-    margin: 0 0 0 -7px;
+    margin: 0 0 0 -14px;
   }
 }
 
