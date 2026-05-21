@@ -86,7 +86,6 @@
   opacity: 0;
   padding: 0;
   transition: opacity var(--dur-instant) ease, background var(--dur-instant) ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .card:hover .checkbox,
@@ -132,7 +131,6 @@
   opacity: 0;
   padding: 0;
   transition: opacity var(--dur-instant) ease, background var(--dur-instant) ease, transform var(--dur-instant) ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .peekBtn svg {
