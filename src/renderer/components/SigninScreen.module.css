@@ -14,26 +14,19 @@
   width: 380px;
   max-width: 90vw;
   padding: 28px 28px 24px;
-  background: var(--surface-1);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-xl);
-  /* Match the Toolbar's scrolled drop — soft directional shadow,
-     no inset highlight rim. The older --shadow-card / --shadow-modal
-     recipes both painted a white inset that read as the previous
-     glassy aesthetic; the rest of the app dropped it. */
-  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.10);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   -webkit-app-region: no-drag;
-}
-
-:root[data-theme="dark"] .card {
-  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.55);
+  text-align: center;
 }
 
 .brand {
   display: block;
-  width: 56px;
+  width: 88px;
   height: auto;
-  margin-bottom: 18px;
+  margin: 0 auto 6px;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -49,16 +42,17 @@
 }
 
 .body {
-  font-size: var(--text-md);
+  font-size: var(--text-xs);
   line-height: 1.5;
   color: var(--text-secondary);
-  margin: 0 0 18px;
-  text-wrap: pretty;
+  margin: 0 auto 18px;
+  max-width: 380px;
 }
 
 .form {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 
@@ -88,25 +82,24 @@
 }
 
 .submit {
-  height: 36px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--btn-border);
-  background: var(--surface-1);
-  box-shadow: var(--shadow-control);
-  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+  color: var(--surface-1);
   font-size: var(--text-md);
   font-weight: 500;
   font-family: var(--font-ui);
   cursor: pointer;
+  margin-top: 4px;
   transition: filter var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
 
 .submit:hover:not(:disabled) {
-  filter: brightness(0.98);
-}
-
-:root[data-theme="dark"] .submit:hover:not(:disabled) {
-  filter: brightness(1.15);
+  filter: brightness(1.1);
 }
 
 .submit:active:not(:disabled) {
@@ -114,7 +107,7 @@
 }
 
 .submit:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -127,11 +120,12 @@
 .sentBlock {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 14px;
 }
 
 .linkBtn {
-  align-self: flex-start;
+  align-self: center;
   background: transparent;
   border: none;
   color: var(--text-tertiary);
