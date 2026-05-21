@@ -22,8 +22,6 @@ const {
   composeMoodBoard,
 } = require('./storage');
 const {
-  handleOverlayComplete,
-  handleOverlayCancel,
   startScreenshotCapture,
   captureFullscreen,
   captureWindow,
@@ -415,16 +413,6 @@ function registerIpcHandlers() {
 
   ipcMain.handle('capture:screenshot', () => {
     startScreenshotCapture();
-    return { ok: true };
-  });
-
-  ipcMain.handle('overlay:complete', (_e, payload) => {
-    handleOverlayComplete(payload);
-    return { ok: true };
-  });
-
-  ipcMain.handle('overlay:cancel', () => {
-    handleOverlayCancel();
     return { ok: true };
   });
 

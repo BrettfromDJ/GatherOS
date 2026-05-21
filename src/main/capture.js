@@ -1,6 +1,5 @@
 const {
   globalShortcut,
-  BrowserWindow,
   desktopCapturer,
   screen,
   app,
@@ -16,7 +15,6 @@ const { spawn } = require('node:child_process');
 const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
 
-let overlayWin = null;
 
 // Default accelerator if no pref is set / pref returns junk.
 const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+S';
@@ -102,9 +100,6 @@ async function ensureScreenRecordingPermission() {
   let status = systemPreferences.getMediaAccessStatus('screen');
   if (status === 'granted') return true;
 
-  // Trigger the system permission prompt. Silently no-ops if the
-  // user has already denied — getMediaAccessStatus is the source of
-  // truth on the next read.
   try {
     await desktopCapturer.getSources({
       types: ['screen'],
@@ -115,10 +110,6 @@ async function ensureScreenRecordingPermission() {
   status = systemPreferences.getMediaAccessStatus('screen');
   if (status === 'granted') return true;
 
-  // Still not granted (denied / restricted / dismissed prompt).
-  // Walk the user to the right pane in System Settings. In dev we
-  // run inside an `Electron` host binary, so that's the toggle name
-  // they'll see; packaged builds appear as the product name.
   const productName = app.isPackaged ? app.getName() : 'Electron';
   const restartLine = app.isPackaged
     ? `Then quit and reopen GatherOS for the change to take effect.`
@@ -143,115 +134,60 @@ async function ensureScreenRecordingPermission() {
   return false;
 }
 
+// Area capture hands off to macOS's native `screencapture -i -s` so
+// the user gets the OS-native crosshair, dimmed selection rectangle,
+// W×H readout, modifier-key behaviour (shift to lock axis, option to
+// size from centre), and — most importantly — a cursor that works
+// reliably across every connected display. Our previous in-app
+// overlay couldn't get the CSS crosshair to render on a second
+// monitor because macOS only refreshes the cursor on the frontmost
+// window. Letting the OS draw its own UI sidesteps the whole problem.
 async function startScreenshotCapture() {
-  if (overlayWin) return;
+  if (process.platform !== 'darwin') {
+    console.warn('[capture] area capture is macOS-only');
+    return;
+  }
 
   const ok = await ensureScreenRecordingPermission();
   if (!ok) return;
 
-  const display = screen.getPrimaryDisplay();
-  const { x, y, width, height } = display.bounds;
+  const tmpPath = path.join(os.tmpdir(), `gatheros-area-${Date.now()}.png`);
+  console.log('[capture] screencapture -i -s →', tmpPath);
 
-  overlayWin = new BrowserWindow({
-    x, y, width, height,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    simpleFullscreen: true,
-    resizable: false,
-    movable: false,
-    hasShadow: false,
-    skipTaskbar: true,
-    enableLargerThanScreen: true,
-    backgroundColor: '#00000000',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload-overlay.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
-
-  overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  overlayWin.setAlwaysOnTop(true, 'screen-saver');
-  overlayWin.setIgnoreMouseEvents(false);
-
-  // Backstop for the renderer's keydown listener: while the overlay
-  // is open, Escape is wired through the OS shortcut layer too. If
-  // focus ever slips (tray menu held it, another app stole it, etc.)
-  // the user can still bail out without restarting the app.
-  const escAccelerator = 'Escape';
-  let escRegistered = false;
   try {
-    escRegistered = globalShortcut.register(escAccelerator, () => {
-      handleOverlayCancel();
+    await new Promise((resolve, reject) => {
+      // -i: interactive selection UI
+      // -s: only allow rect selection (don't toggle to window mode on space)
+      // -x: no shutter sound
+      // -t png: PNG output
+      const proc = spawn('/usr/sbin/screencapture', [
+        '-i', '-s', '-x', '-t', 'png', tmpPath,
+      ]);
+      let stderr = '';
+      proc.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+      proc.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`screencapture exited with ${code} ${stderr.trim()}`));
+      });
+      proc.on('error', reject);
     });
-  } catch {}
 
-  overlayWin.on('closed', () => {
-    overlayWin = null;
-    if (escRegistered) {
-      try { globalShortcut.unregister(escAccelerator); } catch {}
-      escRegistered = false;
+    // Give the FS a beat to flush before we read.
+    await new Promise((r) => setTimeout(r, 80));
+
+    if (!fs.existsSync(tmpPath)) {
+      // No file means the user pressed Escape — nothing to save.
+      console.log('[capture] user cancelled area capture');
+      return;
     }
-  });
 
-  // When launched from the tray menu, the menu keeps keyboard focus
-  // by default and the overlay receives no key events. Try to steal
-  // focus at every reasonable moment (creation, finish-load, show)
-  // so the renderer's keydown listener actually fires.
-  const stealFocus = () => {
-    if (!overlayWin || overlayWin.isDestroyed()) return;
-    if (process.platform === 'darwin') {
-      try { app.focus({ steal: true }); } catch {}
-    }
-    try { overlayWin.focus(); } catch {}
-  };
-  overlayWin.once('ready-to-show', stealFocus);
-  overlayWin.webContents.once('did-finish-load', stealFocus);
-  overlayWin.on('show', stealFocus);
-
-  if (isDev) {
-    overlayWin.loadURL(`${DEV_URL}/overlay.html`);
-  } else {
-    overlayWin.loadFile(
-      path.join(__dirname, '..', '..', 'dist', 'renderer', 'overlay.html'),
-    );
-  }
-}
-
-async function handleOverlayComplete(rect) {
-  if (!overlayWin) return;
-  const win = overlayWin;
-  overlayWin = null;
-
-  // Hide the overlay before capturing so it doesn't appear in the screenshot.
-  win.setOpacity(0);
-  win.hide();
-
-  // Hard kill-switch: no matter what happens below — capture hangs,
-  // sharp throws, IPC stalls — the overlay must not linger. 4s is
-  // long enough for a clean capture path on slow disks but short
-  // enough that a stuck flow doesn't trap the user.
-  const killTimer = setTimeout(() => {
-    if (!win.isDestroyed()) {
-      try { win.close(); } catch {}
-    }
-  }, 4000);
-
-  // Give the compositor a frame to render without the overlay.
-  await new Promise((r) => setTimeout(r, 120));
-
-  try {
-    const cropped = await captureAndCrop(rect);
-    if (!win.isDestroyed()) win.close();
-
-    writeToDropFolder(cropped);
+    const buf = fs.readFileSync(tmpPath);
+    writeToDropFolder(buf);
 
     const { saveImageFromBuffer } = require('./storage');
     const { insertSave } = require('./db');
     const { notifySaved, notifyDuplicate } = require('./notify');
-    const imgData = await saveImageFromBuffer(cropped, 'png');
+    const imgData = await saveImageFromBuffer(buf, 'png');
     if (imgData.duplicateOf) {
       notifyDuplicate(imgData.existing);
     } else {
@@ -259,54 +195,21 @@ async function handleOverlayComplete(rect) {
       notifySaved(record);
     }
   } catch (err) {
-    console.error('Failed to capture screenshot:', err);
-    if (!win.isDestroyed()) win.close();
+    console.error('[capture] area capture failed:', err);
   } finally {
-    clearTimeout(killTimer);
+    if (fs.existsSync(tmpPath)) {
+      try { fs.unlinkSync(tmpPath); } catch {}
+    }
   }
 }
 
-async function captureAndCrop(rect) {
-  const sharp = require('sharp');
-  const display = screen.getPrimaryDisplay();
-  const sf = display.scaleFactor || 1;
-  const targetWidth = Math.round(display.size.width * sf);
-  const targetHeight = Math.round(display.size.height * sf);
-
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: { width: targetWidth, height: targetHeight },
-  });
-  const source =
-    sources.find((s) => Number(s.display_id) === display.id) || sources[0];
-
-  const pngBuffer = source.thumbnail.toPNG();
-
-  // Clamp the rect to the actual thumbnail size.
-  const thumbSize = source.thumbnail.getSize();
-  const scaleX = thumbSize.width / targetWidth;
-  const scaleY = thumbSize.height / targetHeight;
-  const left = Math.max(0, Math.min(thumbSize.width - 1, Math.round(rect.x * scaleX)));
-  const top = Math.max(0, Math.min(thumbSize.height - 1, Math.round(rect.y * scaleY)));
-  const width = Math.max(1, Math.min(thumbSize.width - left, Math.round(rect.w * scaleX)));
-  const height = Math.max(1, Math.min(thumbSize.height - top, Math.round(rect.h * scaleY)));
-
-  return sharp(pngBuffer).extract({ left, top, width, height }).png().toBuffer();
-}
-
-function handleOverlayCancel() {
-  if (overlayWin && !overlayWin.isDestroyed()) {
-    overlayWin.close();
-  }
-}
-
-// Capture the entire primary display in one shot — no overlay,
-// no picker. Saves straight to the active library.
+// Capture the entire display under the cursor in one shot — no
+// overlay, no picker. Saves straight to the active library.
 async function captureFullscreen() {
   const ok = await ensureScreenRecordingPermission();
   if (!ok) return;
 
-  const display = screen.getPrimaryDisplay();
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const sf = display.scaleFactor || 1;
   const targetWidth = Math.round(display.size.width * sf);
   const targetHeight = Math.round(display.size.height * sf);
@@ -315,8 +218,12 @@ async function captureFullscreen() {
     types: ['screen'],
     thumbnailSize: { width: targetWidth, height: targetHeight },
   });
-  const source =
-    sources.find((s) => Number(s.display_id) === display.id) || sources[0];
+  let source = sources.find((s) => Number(s.display_id) === display.id);
+  if (!source) {
+    const allDisplays = screen.getAllDisplays();
+    const idx = allDisplays.findIndex((d) => d.id === display.id);
+    if (idx >= 0 && sources[idx]) source = sources[idx];
+  }
   if (!source) return;
 
   try {
@@ -354,8 +261,6 @@ async function captureWindow() {
 
   try {
     await new Promise((resolve, reject) => {
-      // -w: window selection mode (the native blue-hover UX)
-      // -t png  (no -x so the shutter sound confirms it fired)
       const proc = spawn('/usr/sbin/screencapture', [
         '-w', '-t', 'png', tmpPath,
       ]);
@@ -375,8 +280,6 @@ async function captureWindow() {
       });
     });
 
-    // Give the FS a beat to flush. screencapture closes its file
-    // handle before exit, but sandbox / FS journaling can lag.
     await new Promise((r) => setTimeout(r, 80));
 
     if (!fs.existsSync(tmpPath)) {
@@ -411,10 +314,6 @@ async function captureWindow() {
   }
 }
 
-// Frame a window screenshot in a light-gray canvas with even padding
-// on every side. The macOS shot already includes the system shadow on
-// the alpha channel, so once we extend onto gray the shadow softens
-// naturally into the surround.
 async function padWindowImage(pngBuffer) {
   const sharp = require('sharp');
   const PAD = 48;
@@ -424,7 +323,7 @@ async function padWindowImage(pngBuffer) {
       top: PAD, bottom: PAD, left: PAD, right: PAD,
       background: BG,
     })
-    .flatten({ background: BG }) // collapse residual transparency
+    .flatten({ background: BG })
     .png()
     .toBuffer();
 }
@@ -434,8 +333,6 @@ module.exports = {
   unregisterCaptureHotkey,
   applyShortcut,
   startScreenshotCapture,
-  handleOverlayComplete,
-  handleOverlayCancel,
   captureFullscreen,
   captureWindow,
 };
