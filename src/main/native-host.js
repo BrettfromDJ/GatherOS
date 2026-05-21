@@ -34,17 +34,34 @@ const { spawn } = require('node:child_process');
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 53247;
 const MAX_MSG = 1024 * 1024;
-const LAUNCH_TIMEOUT_MS = 15_000;
+const LAUNCH_TIMEOUT_MS = 20_000;
 const LAUNCH_POLL_MS = 300;
 
-function prefsFilePath() {
+// File-backed debug log. Chrome captures the host's stderr but it's
+// invisible unless you know how to inspect the extension's service-
+// worker output. A tail-able file in the user's support dir is much
+// easier to read when a save mysteriously fails.
+function appSupportDir() {
   if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', 'GatherOS', 'prefs.json');
+    return path.join(os.homedir(), 'Library', 'Application Support', 'GatherOS');
   }
   if (process.platform === 'win32') {
-    return path.join(process.env.APPDATA || '', 'GatherOS', 'prefs.json');
+    return path.join(process.env.APPDATA || '', 'GatherOS');
   }
-  return path.join(os.homedir(), '.config', 'GatherOS', 'prefs.json');
+  return path.join(os.homedir(), '.config', 'GatherOS');
+}
+
+function debug(...parts) {
+  try {
+    const line = `[${new Date().toISOString()}] ${parts.join(' ')}\n`;
+    fs.appendFileSync(path.join(appSupportDir(), 'native-host.log'), line);
+  } catch {
+    // Best-effort — never let logging break the relay.
+  }
+}
+
+function prefsFilePath() {
+  return path.join(appSupportDir(), 'prefs.json');
 }
 
 function readToken() {
@@ -79,33 +96,71 @@ function ping() {
   });
 }
 
-// Launch the main GatherOS app and wait until the local server is
-// responding to /ping. The launcher passes the right binary in
-// GATHEROS_BINARY and (in dev) the project root in GATHEROS_APP_PATH.
+// Walk up from the Electron binary at .app/Contents/MacOS/<name> to
+// the .app bundle itself, so we can hand it to `/usr/bin/open`.
+function appBundleFor(binaryPath) {
+  if (!binaryPath) return null;
+  // .../Foo.app/Contents/MacOS/Foo → .../Foo.app
+  const m = binaryPath.match(/^(.+\.app)\/Contents\/MacOS\//);
+  return m ? m[1] : null;
+}
+
+// Launch the main GatherOS app via macOS's `open` command and wait
+// until the local server responds to /ping. We can't just spawn the
+// binary directly: a detached child from this stdin-driven helper
+// doesn't get LaunchServices activation, so the new process runs
+// like a background daemon — no Dock icon, no window, no localhost
+// server bound. `open -a` goes through LaunchServices, which is the
+// supported path for launching a GUI app programmatically.
 async function ensureAppRunning() {
-  if (await ping()) return true;
+  if (await ping()) {
+    debug('ensureAppRunning: ping ok, app already running');
+    return true;
+  }
 
   const bin = process.env.GATHEROS_BINARY;
-  if (!bin) return false;
+  if (!bin) {
+    debug('ensureAppRunning: GATHEROS_BINARY not set, giving up');
+    return false;
+  }
 
-  const appPath = process.env.GATHEROS_APP_PATH;
-  const args = appPath ? [appPath] : [];
+  const bundle = appBundleFor(bin);
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+
   try {
-    // Clear ELECTRON_RUN_AS_NODE — if it leaked into the spawned
-    // child, the main app would boot as headless node instead of
-    // the GUI, and Chrome's user would never see it open.
-    const env = { ...process.env };
-    delete env.ELECTRON_RUN_AS_NODE;
-    spawn(bin, args, { detached: true, stdio: 'ignore', env }).unref();
-  } catch {
+    if (bundle) {
+      // In dev the bundle is Electron.app and we need to pass the
+      // project root via --args so Electron knows which app to load.
+      // In a packaged build the bundle is the app's own .app and
+      // --args is just unused (harmless).
+      const args = ['-a', bundle];
+      const appPath = process.env.GATHEROS_APP_PATH;
+      if (appPath) args.push('--args', appPath);
+      debug('ensureAppRunning: open', args.join(' '));
+      spawn('/usr/bin/open', args, { detached: true, stdio: 'ignore', env }).unref();
+    } else {
+      // Fallback: direct spawn. Should never trigger in practice
+      // since the installer always derives the binary from an .app.
+      const appPath = process.env.GATHEROS_APP_PATH;
+      const args = appPath ? [appPath] : [];
+      debug('ensureAppRunning: fallback spawn', bin, args.join(' '));
+      spawn(bin, args, { detached: true, stdio: 'ignore', env }).unref();
+    }
+  } catch (err) {
+    debug('ensureAppRunning: spawn threw', err?.message || err);
     return false;
   }
 
   const deadline = Date.now() + LAUNCH_TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, LAUNCH_POLL_MS));
-    if (await ping()) return true;
+    if (await ping()) {
+      debug('ensureAppRunning: ping ok after', Math.round((Date.now() - (deadline - LAUNCH_TIMEOUT_MS)) / 1000), 's');
+      return true;
+    }
   }
+  debug('ensureAppRunning: timed out waiting for /ping');
   return false;
 }
 
@@ -152,6 +207,7 @@ function postToApp(body, token) {
 }
 
 async function handleMessage(msg) {
+  debug('handleMessage:', JSON.stringify(msg).slice(0, 200));
   if (!msg || typeof msg !== 'object') {
     writeMessage({ ok: false, error: 'invalid message' });
     return;
@@ -168,6 +224,7 @@ async function handleMessage(msg) {
     }
     const token = readToken();
     if (!token) {
+      debug('handleMessage: no token in prefs.json');
       writeMessage({ ok: false, error: 'GatherOS is not installed or has never been launched.' });
       return;
     }
@@ -179,6 +236,7 @@ async function handleMessage(msg) {
       },
       token,
     );
+    debug('handleMessage: save result', JSON.stringify(result.body).slice(0, 200));
     writeMessage(result.body);
     return;
   }
@@ -186,6 +244,7 @@ async function handleMessage(msg) {
 }
 
 function run() {
+  debug('run: native-host started, pid', process.pid, 'GATHEROS_BINARY', process.env.GATHEROS_BINARY || '(unset)');
   let buffer = Buffer.alloc(0);
 
   process.stdin.on('data', async (chunk) => {
