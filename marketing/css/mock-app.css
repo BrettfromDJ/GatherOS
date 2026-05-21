@@ -13,11 +13,13 @@
 }
 
 /* Brand link in the top-left of the hero. Force the anchor to a
-   block-level element pinned to the very left of its container with
-   no surprises from Webflow's .w-inline-block defaults — so the
-   logo lines up exactly with where the H1 starts below. The img
-   itself is set in HTML to 180x45 (1.33x of the 135x34 PNG render);
-   browser downsamples the @2x PNG accordingly. */
+   block-level element with no surprises from Webflow's
+   .w-inline-block defaults. The logo's rounded-square icon has a
+   ~26% corner radius which curves the top-left corner inward,
+   so even when the PNG's x=0 aligns with the H1's x=0, the icon
+   *looks* indented. Negative margin-left compensates — we want
+   the visible bulk of the icon to read as flush with where the
+   "T" of the heading starts. */
 .hero .div-block-4 .brand-link {
   display: inline-block;
   padding: 0;
@@ -28,13 +30,14 @@
   display: block;
   width: 180px;
   height: 45px;
-  margin: 0;
+  margin: 0 0 0 -6px;
 }
 
 @media (max-width: 991px) {
   .hero .div-block-4 .brand-logo {
-    width: 150px;
-    height: 38px;
+    width: 200px;
+    height: 50px;
+    margin: 0 0 0 -7px;
   }
 }
 
