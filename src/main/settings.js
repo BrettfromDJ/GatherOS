@@ -32,6 +32,12 @@ const DEFAULT_PREFS = {
 
   // ── Trash retention ──────────────────────────────────────────
   trashAutoEmptyDays: 0,   // 0 = disabled; otherwise N days
+
+  // ── Browser extension ────────────────────────────────────────
+  // Lazily populated by extension-server.js on first launch.
+  // The renderer reads this in Settings → Capture so the user can
+  // copy it into the extension's Options page.
+  extensionToken: null,
 };
 
 function prefsFilePath() {

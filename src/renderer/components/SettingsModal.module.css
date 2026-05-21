@@ -1186,3 +1186,45 @@
   background: var(--hover-bg);
 }
 
+/* Browser-extension token row — mono code + Copy pill. */
+.tokenRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tokenValue {
+  composes: inputCanonical from '../styles/forms.module.css';
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: all;
+}
+
+.tokenCopyBtn {
+  padding: 8px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tokenCopyBtn:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.tokenCopyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

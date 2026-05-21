@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GatherOS — Options</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        width: 360px;
+        font-size: 13px;
+        color: #1a1a1a;
+        background: #fafafa;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { color: #f0f0f0; background: #1a1a1a; }
+        input { background: #2a2a2a; color: #f0f0f0; border-color: #3a3a3a; }
+        button { background: #2a2a2a; color: #f0f0f0; border-color: #3a3a3a; }
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      p.hint {
+        margin: 0 0 16px;
+        color: rgba(0, 0, 0, 0.55);
+        line-height: 1.4;
+      }
+      @media (prefers-color-scheme: dark) {
+        p.hint { color: rgba(255, 255, 255, 0.55); }
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+      }
+      .row {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      button {
+        padding: 7px 14px;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-radius: 999px;
+        font: inherit;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #000;
+        color: #fff;
+        border-color: #000;
+      }
+      .status {
+        margin-left: auto;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.55);
+      }
+      @media (prefers-color-scheme: dark) {
+        .status { color: rgba(255, 255, 255, 0.55); }
+      }
+      .status.ok { color: #137333; }
+      .status.err { color: #c5221f; }
+    </style>
+  </head>
+  <body>
+    <h1>GatherOS</h1>
+    <p class="hint">
+      Open GatherOS → Settings → Capture and copy the Browser extension
+      token. Paste it here so this extension can talk to the desktop app.
+    </p>
+
+    <label for="token">Token</label>
+    <input id="token" type="text" autocomplete="off" spellcheck="false" />
+
+    <div class="row">
+      <button id="save" class="primary" type="button">Save</button>
+      <button id="test" type="button">Test connection</button>
+      <span id="status" class="status"></span>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

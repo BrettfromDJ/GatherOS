@@ -109,6 +109,7 @@ const {
   captureFullscreen,
   captureWindow,
 } = require('./capture');
+const extensionServer = require('./extension-server');
 const { showToast, destroyToastWindow } = require('./toast-window');
 const { setSaveNotifier, setDuplicateNotifier, setTrayRefresher } = require('./notify');
 const { initUpdater } = require('./updater');
@@ -765,6 +766,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(buildAppMenu({ getMainWindow: () => mainWindow }));
   createTray();
   registerCaptureHotkey();
+  extensionServer.start();
   initUpdater(mainWindow);
 
   // Trash auto-purge: if the Settings → "Auto-empty trash" pref is
@@ -852,5 +854,6 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   unregisterCaptureHotkey();
+  extensionServer.stop();
   closeDatabase();
 });

@@ -539,6 +539,40 @@ function FolderPickerRow({ value, onChange }) {
 }
 
 // Updates page — auto-update toggle, manual check button, beta opt-in.
+// Token + install hint for the GatherOS browser extension. The
+// extension talks to the desktop app over http://127.0.0.1:53247
+// and needs this token in an X-GatherOS-Token header.
+function BrowserExtensionField({ token }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    if (!token) return;
+    try { navigator.clipboard.writeText(token); } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  };
+  return (
+    <div className={styles.field}>
+      <label className={styles.fieldLabel}>Browser extension</label>
+      <div className={styles.tokenRow}>
+        <code className={styles.tokenValue}>{token || '—'}</code>
+        <button
+          type="button"
+          className={styles.tokenCopyBtn}
+          onClick={handleCopy}
+          disabled={!token}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <span className={styles.fieldHint}>
+        Install the unpacked extension from the <code>extension/</code> folder
+        in Chrome, then paste this token into its options page. The desktop
+        app must be running to accept saves.
+      </span>
+    </div>
+  );
+}
+
 // Talks to the existing electron-updater pipeline via new IPCs added
 // alongside this commit.
 function UpdatesPage({ prefs, updatePref }) {
@@ -1202,6 +1236,8 @@ export default function SettingsModal({
                   empty to keep them in your library only.
                 </span>
               </div>
+
+              <BrowserExtensionField token={prefs.extensionToken} />
             </div>
           )}
 
