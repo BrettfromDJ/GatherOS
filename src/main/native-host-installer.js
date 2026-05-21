@@ -61,23 +61,28 @@ function launcherScript() {
   const electron = process.execPath;
   if (app.isPackaged) {
     // Packaged build: process.execPath is the .app's own binary,
-    // which auto-loads the bundled Resources/app code. Just pass
-    // the flag and forward Chrome's args (the extension origin +
-    // any platform-specific bits like --parent-window).
+    // which auto-loads the bundled Resources/app code. Pass the
+    // flag, export the binary path so the relay can re-launch us
+    // if the main app isn't running, and forward Chrome's args.
     return [
       '#!/bin/bash',
+      `export GATHEROS_BINARY=${JSON.stringify(electron)}`,
       `exec ${JSON.stringify(electron)} --native-host "$@"`,
       '',
     ].join('\n');
   }
-  // Dev: process.execPath is node_modules/electron/.../Electron.
-  // Electron treats argv[1] as the app to load, so we pass the
-  // project root before --native-host (which we read from argv
-  // anyway via includes() in index.js).
+  // Dev: prefer `node` over Electron so the relay doesn't briefly
+  // flash a Dock icon every time Chrome invokes the host. If the
+  // user doesn't have node in PATH the launcher fails noisily and
+  // we can fall back to Electron — but a dev environment running
+  // npm scripts has node by definition.
   const appRoot = app.getAppPath();
+  const hostScript = path.join(appRoot, 'src', 'main', 'native-host.js');
   return [
     '#!/bin/bash',
-    `exec ${JSON.stringify(electron)} ${JSON.stringify(appRoot)} --native-host "$@"`,
+    `export GATHEROS_BINARY=${JSON.stringify(electron)}`,
+    `export GATHEROS_APP_PATH=${JSON.stringify(appRoot)}`,
+    `exec node ${JSON.stringify(hostScript)}`,
     '',
   ].join('\n');
 }

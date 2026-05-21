@@ -1,39 +1,43 @@
 // Native messaging host — relays messages from the Chrome
 // extension to the running desktop app's local HTTP server.
 //
-// Chrome spawns the GatherOS binary with `--native-host` whenever
-// the extension calls chrome.runtime.sendNativeMessage(). index.js
-// detects that flag at startup and hands control here BEFORE the
-// rest of the app (single-instance lock, db init, window creation)
-// runs. The host process is single-purpose and stdin-driven:
+// Chrome spawns this script via the launcher that the desktop app
+// installs into ~/Library/Application Support/GatherOS/native-host.
+// In dev the launcher invokes us with `node`; in packaged builds it
+// invokes the Electron binary with --native-host (we'll swap that
+// for a tiny standalone binary before shipping).
+//
+// Single-purpose stdin/stdout relay:
 //
 //   1. Read a length-prefixed JSON message from stdin
-//   2. POST it to http://127.0.0.1:53247/save with the user's
-//      extension token (read from prefs.json on disk)
-//   3. Write the response back to stdout in the same format
-//   4. When stdin closes (extension disconnected), exit
+//   2. If the main app isn't running, launch it and wait for the
+//      local server to come up (GATHEROS_BINARY env var, set by
+//      the launcher, tells us what to spawn)
+//   3. POST the save to http://127.0.0.1:53247/save with the
+//      user's extension token (read from prefs.json on disk)
+//   4. Write the response back to stdout
+//   5. When stdin closes (extension disconnected), exit
 //
 // Native messaging framing: each message is uint32 little-endian
 // length followed by that many bytes of UTF-8 JSON. See
 // https://developer.chrome.com/docs/apps/nativeMessaging/#native-messaging-host-protocol
 //
-// This file MUST NOT require electron's app/BrowserWindow/etc.
-// Chrome launches the host fresh per session, so loading the full
-// app would be both wrong (extra processes, port collisions with
-// the running app) and slow.
+// MUST NOT require electron — Chrome launches the host fresh per
+// session, and pulling in the GUI shell would flash a Dock icon.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const http = require('node:http');
+const { spawn } = require('node:child_process');
 
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 53247;
-const MAX_MSG = 1024 * 1024; // 1 MB — Chrome's per-message cap is 64MB but we don't need bulk
+const MAX_MSG = 1024 * 1024;
+const LAUNCH_TIMEOUT_MS = 15_000;
+const LAUNCH_POLL_MS = 300;
 
 function prefsFilePath() {
-  // Mirror app.getPath('userData') without requiring electron.
-  // macOS-only for now — matches the desktop app's distribution.
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', 'GatherOS', 'prefs.json');
   }
@@ -58,6 +62,46 @@ function writeMessage(payload) {
   const header = Buffer.alloc(4);
   header.writeUInt32LE(json.length, 0);
   process.stdout.write(Buffer.concat([header, json]));
+}
+
+function ping() {
+  return new Promise((resolve) => {
+    const req = http.request(
+      { host: SERVER_HOST, port: SERVER_PORT, path: '/ping', method: 'GET', timeout: 1000 },
+      (res) => {
+        resolve(res.statusCode === 200);
+        res.resume();
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
+// Launch the main GatherOS app and wait until the local server is
+// responding to /ping. The launcher passes the right binary in
+// GATHEROS_BINARY and (in dev) the project root in GATHEROS_APP_PATH.
+async function ensureAppRunning() {
+  if (await ping()) return true;
+
+  const bin = process.env.GATHEROS_BINARY;
+  if (!bin) return false;
+
+  const appPath = process.env.GATHEROS_APP_PATH;
+  const args = appPath ? [appPath] : [];
+  try {
+    spawn(bin, args, { detached: true, stdio: 'ignore' }).unref();
+  } catch {
+    return false;
+  }
+
+  const deadline = Date.now() + LAUNCH_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, LAUNCH_POLL_MS));
+    if (await ping()) return true;
+  }
+  return false;
 }
 
 function postToApp(body, token) {
@@ -96,9 +140,7 @@ function postToApp(body, token) {
     req.on('error', (err) => {
       resolve({ ok: false, status: 0, body: { error: err.code === 'ECONNREFUSED' ? 'app not running' : err.message } });
     });
-    req.on('timeout', () => {
-      req.destroy(new Error('timeout'));
-    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
     req.write(payload);
     req.end();
   });
@@ -110,10 +152,15 @@ async function handleMessage(msg) {
     return;
   }
   if (msg.type === 'ping') {
-    writeMessage({ ok: true, app: 'GatherOS', appRunning: !!readToken() });
+    writeMessage({ ok: true, app: 'GatherOS', appRunning: await ping() });
     return;
   }
   if (msg.type === 'save') {
+    const ready = await ensureAppRunning();
+    if (!ready) {
+      writeMessage({ ok: false, error: 'Could not launch GatherOS. Try opening it manually.' });
+      return;
+    }
     const token = readToken();
     if (!token) {
       writeMessage({ ok: false, error: 'GatherOS is not installed or has never been launched.' });
@@ -134,9 +181,6 @@ async function handleMessage(msg) {
 }
 
 function run() {
-  // Length-prefixed JSON read loop on stdin. Chrome sends one
-  // message per connection in most cases but the protocol allows
-  // multiple, so we keep reading until stdin closes.
   let buffer = Buffer.alloc(0);
 
   process.stdin.on('data', async (chunk) => {
@@ -161,6 +205,13 @@ function run() {
 
   process.stdin.on('end', () => process.exit(0));
   process.stdin.on('close', () => process.exit(0));
+}
+
+// Allow the script to run as a standalone node process (the dev
+// launcher's path) AND be loaded as a module (the packaged-build
+// path via index.js's --native-host short-circuit).
+if (require.main === module) {
+  run();
 }
 
 module.exports = { run };
