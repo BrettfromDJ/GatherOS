@@ -152,7 +152,14 @@
   display: inline-flex;
   width: 28px;
   height: 28px;
-  color: rgba(0, 0, 0, 0.22);
+  /* Solid colors (not rgba alpha) so the FolderClosed SVG's
+     overlapping stroke joins don't compound into brighter spots.
+     Matches the FolderGrid empty tile. */
+  color: #c7c7c7;
+}
+
+:root[data-theme="dark"] .stackEmptyIcon {
+  color: #4a4a4a;
 }
 
 .stackEmptyIcon svg {
