@@ -45,32 +45,80 @@ function parseTimestamp(name) {
   return Number.isFinite(ts) && ts > 0 ? ts : null;
 }
 
-function listSnapshots() {
-  const dir = getSnapshotDir();
-  if (!dir) return [];
+// Pre-migration backups are dropped by db.js as siblings of the live
+// SQLite file, named `<dbname>.pre-v<N>.<iso-stamp>.bak`. They're our
+// safety-net if a migration corrupts the active DB, so we surface
+// them alongside the daily snapshots in the Backups list — restoring
+// either uses the same byte-for-byte copy path.
+function listMigrationBackups() {
+  const { getDatabasePath } = require('./db');
+  let dbPath;
+  try { dbPath = getDatabasePath(); }
+  catch { return []; }
+  if (!dbPath) return [];
+  const dir = path.dirname(dbPath);
+  const base = path.basename(dbPath);
+  const re = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.pre-v(\\d+)\\.(.+)\\.bak$`);
   let names;
   try { names = fs.readdirSync(dir); }
   catch { return []; }
   const out = [];
   for (const name of names) {
-    const ts = parseTimestamp(name);
-    if (!ts) continue;
+    const m = name.match(re);
+    if (!m) continue;
     const full = path.join(dir, name);
     try {
       const stat = fs.statSync(full);
-      out.push({ path: full, timestamp: ts, size: stat.size });
+      // mtime is the cleanest cross-platform timestamp for a backup
+      // file; the embedded ISO stamp in the filename uses '-' for both
+      // date and time separators and is awkward to re-parse.
+      out.push({
+        path: full,
+        timestamp: stat.mtimeMs,
+        size: stat.size,
+        kind: 'migration',
+        migrationToVersion: Number(m[1]),
+      });
     } catch {}
   }
+  return out;
+}
+
+function listSnapshots() {
+  const out = [];
+  const dir = getSnapshotDir();
+  if (dir) {
+    let names;
+    try { names = fs.readdirSync(dir); }
+    catch { names = []; }
+    for (const name of names) {
+      const ts = parseTimestamp(name);
+      if (!ts) continue;
+      const full = path.join(dir, name);
+      try {
+        const stat = fs.statSync(full);
+        out.push({ path: full, timestamp: ts, size: stat.size, kind: 'snapshot' });
+      } catch {}
+    }
+  }
+  out.push(...listMigrationBackups());
   out.sort((a, b) => b.timestamp - a.timestamp);
   return out;
 }
 
 function getLatestSnapshot() {
-  return listSnapshots()[0] || null;
+  // Filter to daily snapshots only — a recent migration backup
+  // shouldn't satisfy the 24h "skip snapshot on launch" gate, or
+  // we'd miss the next daily snapshot after every schema upgrade.
+  return listSnapshots().find((s) => s.kind === 'snapshot') || null;
 }
 
 function pruneSnapshots() {
-  const all = listSnapshots();
+  // Only prune daily snapshots — never touch migration backups, which
+  // are our last-resort recovery if a schema migration goes wrong and
+  // there's no guarantee the user will notice within the 7-snapshot
+  // window.
+  const all = listSnapshots().filter((s) => s.kind === 'snapshot');
   for (let i = MAX_SNAPSHOTS; i < all.length; i++) {
     try { fs.unlinkSync(all[i].path); } catch (err) {
       console.warn('[backup] prune failed for', all[i].path, err.message);

@@ -771,16 +771,26 @@ app.whenReady().then(() => {
   // > 0, hard-delete any soft-trashed saves older than that retention
   // window. Runs once at boot; users get fresh state without us
   // having to schedule a background sweep.
+  //
+  // MIN_TRASH_PURGE_DAYS is a defense-in-depth floor: the UI <select>
+  // already only offers 7/14/30/90, but settings.json is plain text
+  // and could be hand-edited (or set by a future bug) to a value
+  // that would wipe a user's whole trash on the next launch. Refuse
+  // anything less than a week — anything tighter than that crosses
+  // the line from "auto-empty" to "footgun".
+  const MIN_TRASH_PURGE_DAYS = 7;
   try {
     const settings = require('./settings');
-    const days = Number(settings.getPref('trashAutoEmptyDays', 0)) || 0;
-    if (days > 0) {
-      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const rawDays = Number(settings.getPref('trashAutoEmptyDays', 0)) || 0;
+    if (rawDays > 0 && rawDays < MIN_TRASH_PURGE_DAYS) {
+      console.warn(`[trash] auto-purge floor: requested ${rawDays}d, ignoring (min ${MIN_TRASH_PURGE_DAYS}d)`);
+    } else if (rawDays >= MIN_TRASH_PURGE_DAYS) {
+      const cutoff = Date.now() - rawDays * 24 * 60 * 60 * 1000;
       const { purgeTrashBefore } = require('./db');
       const { deleteImageFiles } = require('./storage');
       const result = purgeTrashBefore(cutoff);
       if (result?.ok && result.ids.length > 0) {
-        console.log(`[trash] auto-purged ${result.ids.length} saves older than ${days}d`);
+        console.log(`[trash] auto-purged ${result.ids.length} saves older than ${rawDays}d`);
         for (const f of result.files) deleteImageFiles(f.filePath, f.thumbPath);
       }
     }

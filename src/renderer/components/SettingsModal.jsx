@@ -1519,7 +1519,9 @@ export default function SettingsModal({
                     <li key={s.path} className={styles.snapshotRow}>
                       <div className={styles.snapshotMeta}>
                         <span className={styles.snapshotWhen}>
-                          {formatRelativeTimestamp(s.timestamp)}
+                          {s.kind === 'migration'
+                            ? `Pre-update backup (v${s.migrationToVersion})`
+                            : formatRelativeTimestamp(s.timestamp)}
                         </span>
                         <span className={styles.snapshotSub}>
                           {new Date(s.timestamp).toLocaleString()}
