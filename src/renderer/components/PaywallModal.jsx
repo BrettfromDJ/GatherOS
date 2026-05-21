@@ -92,7 +92,7 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
             disabled={opening}
             onClick={handleSubscribe}
           >
-            {opening ? 'Opening…' : 'Start free trial'}
+            {opening ? 'Opening…' : 'Start 14-day free trial'}
           </button>
 
           <button type="button" className={styles.signOutLink} onClick={onSignOut}>
