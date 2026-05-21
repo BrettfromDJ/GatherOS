@@ -33,11 +33,11 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
     }
   }
 
-  const price = interval === 'yearly' ? '$49' : '$5';
+  const price = interval === 'yearly' ? '$49' : '$4.99';
   const unit = interval === 'yearly' ? '/yr' : '/mo';
   const subnote = interval === 'yearly'
     ? 'Free for 14 days, then $49/yr — save ~18%'
-    : 'Free for 14 days, then $5/mo — cancel anytime';
+    : 'Free for 14 days, then $4.99/mo — cancel anytime';
 
   return (
     <div className={styles.scrim}>
