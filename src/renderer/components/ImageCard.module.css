@@ -195,12 +195,7 @@
 }
 
 /* "Just arrived" affordance — runs once when a save lands in the
-   grid. A soft white sheen sweeps diagonally across the frame, with
-   a brief accent-color ring fading out around it. */
-.fresh .frame {
-  animation: freshRing 1.5s ease-out;
-}
-
+   grid. A soft white sheen sweeps diagonally across the frame. */
 .fresh .frame::after {
   content: '';
   position: absolute;
@@ -224,12 +219,6 @@
 @keyframes freshShimmer {
   from { background-position: -50% 0; }
   to   { background-position: 150% 0; }
-}
-
-@keyframes freshRing {
-  0%   { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.55), 0 0 24px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.05); }
-  60%  { box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.0),  0 0 24px rgba(0, 0, 0, 0.10), inset 0 0 0 1px rgba(0, 0, 0, 0.05); }
-  100% { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(0, 0, 0, 0.05); }
 }
 
 
