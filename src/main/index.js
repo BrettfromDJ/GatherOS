@@ -849,7 +849,19 @@ app.whenReady().then(() => {
   }, 2500);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    // Check for mainWindow specifically, not BrowserWindow.getAllWindows().
+    // The toast helper keeps a hidden BrowserWindow alive whenever a
+    // notification has fired, so getAllWindows().length is rarely 0
+    // after the user has interacted with the app at all. If we only
+    // gated on the all-windows count, clicking the Dock icon after
+    // closing the main window would silently do nothing.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createMainWindow();
+    }
   });
 });
 
