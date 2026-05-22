@@ -124,9 +124,19 @@
   background: var(--surface-1);
   border: 1px solid var(--border);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  /* Flex centering lives on every card so the front card (the one
+     with the library glyph) draws it dead-centered without needing
+     a sibling class. Empty back cards just ignore it. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* Same spread-on-hover recipe FeaturedBuckets uses, so the empty
      state previews the fan animation users get on real collections. */
   transition: transform var(--dur-pronounced) var(--ease-out);
+}
+
+.heroFanIcon {
+  color: var(--icon-muted);
 }
 
 :root[data-theme="dark"] .heroFanCard {

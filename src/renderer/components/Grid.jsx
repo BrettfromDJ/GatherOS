@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BookMarked } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -180,7 +181,9 @@ export default function Grid({
         <div className={styles.state}>
           <div className={styles.heroFan} aria-hidden="true">
             <span className={styles.heroFanCard} />
-            <span className={styles.heroFanCard} />
+            <span className={styles.heroFanCard}>
+              <BookMarked size={22} strokeWidth={1.5} className={styles.heroFanIcon} />
+            </span>
             <span className={styles.heroFanCard} />
           </div>
           <div className={styles.heroTitle}>Start your library</div>

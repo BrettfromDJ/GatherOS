@@ -174,6 +174,12 @@
   font-size: var(--text-md);
   cursor: pointer;
   transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
+  /* Keyed pills get their height from the 22px key badge; keyless
+     pills would otherwise render shorter (just text + padding). Pin
+     a min-height so the row stays visually consistent regardless of
+     which side of the 9-key cutoff a collection lands on. */
+  box-sizing: border-box;
+  min-height: 38px;
 }
 
 .bucket:hover {
