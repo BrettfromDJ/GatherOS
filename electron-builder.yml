@@ -57,6 +57,13 @@ mac:
   hardenedRuntime: true
   gatekeeperAssess: false
   notarize: false
+  # Pinned entitlements (rather than electron-builder's bundled
+  # default) so an electron-builder upgrade can't silently drop one
+  # and break notarized launches. disable-library-validation in
+  # particular is what lets the unsigned better-sqlite3 / sharp
+  # .node binaries load under hardened runtime.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   # Declared so the Dock icon highlights when dragging images. The
   # main-process 'open-file' listener actually saves them.
   fileAssociations:
