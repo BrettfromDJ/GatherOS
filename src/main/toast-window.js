@@ -12,15 +12,41 @@ let toastWin = null;
 let ready = false;
 let pending = [];
 
+// Bottom-left corner of whichever display the main app window
+// currently lives on. Re-evaluated every time we show a toast so
+// that moving the app window between monitors keeps the toast on
+// the same screen instead of stranding it on the primary display.
+function targetBounds() {
+  // Prefer the main window's display when one exists. If the toast
+  // fires before any window does (e.g. tray-triggered capture at
+  // launch), fall back to the focused window, then primary.
+  const candidates = BrowserWindow.getAllWindows().filter(
+    (w) => !w.isDestroyed() && w !== toastWin,
+  );
+  const ref = BrowserWindow.getFocusedWindow() && !BrowserWindow.getFocusedWindow().isDestroyed()
+    && candidates.includes(BrowserWindow.getFocusedWindow())
+    ? BrowserWindow.getFocusedWindow()
+    : candidates[0];
+  const display = ref
+    ? screen.getDisplayMatching(ref.getBounds())
+    : screen.getPrimaryDisplay();
+  const { x, y, width, height } = display.workArea;
+  return {
+    x: x + EDGE_INSET,
+    y: y + height - TOAST_HEIGHT - EDGE_INSET,
+    width: TOAST_WIDTH,
+    height: TOAST_HEIGHT,
+  };
+}
+
 function ensureToastWindow() {
   if (toastWin && !toastWin.isDestroyed()) return toastWin;
 
-  const display = screen.getPrimaryDisplay();
-  const { x, y, width, height } = display.workArea;
+  const bounds = targetBounds();
 
   toastWin = new BrowserWindow({
-    x: x + EDGE_INSET,
-    y: y + height - TOAST_HEIGHT - EDGE_INSET,
+    x: bounds.x,
+    y: bounds.y,
     width: TOAST_WIDTH,
     height: TOAST_HEIGHT,
     frame: false,
@@ -74,6 +100,10 @@ function ensureToastWindow() {
 
 function showToast(record) {
   const win = ensureToastWindow();
+  // Recompute bounds every time — the user may have moved the main
+  // window between monitors since the toast window was created or
+  // last shown. setBounds is a no-op if the rect hasn't changed.
+  try { win.setBounds(targetBounds()); } catch {}
   if (ready) {
     win.webContents.send('toast:show', record);
     if (!win.isVisible()) win.showInactive();
