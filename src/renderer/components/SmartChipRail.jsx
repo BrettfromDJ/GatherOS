@@ -45,6 +45,7 @@ export default function SmartChipRail({
   // edit mode; Enter / blur commits; Escape cancels.
   const [renaming, setRenaming] = React.useState(false);
   const [renameDraft, setRenameDraft] = React.useState('');
+  const titleInputRef = React.useRef(null);
   function startRename() {
     if (!onRenameViewTitle || !viewTitle) return;
     setRenameDraft(viewTitle);
@@ -61,6 +62,15 @@ export default function SmartChipRail({
     setRenaming(false);
     setRenameDraft('');
   }
+  // Focus + select-all when entering edit mode. The input is always
+  // in the tree (so layout doesn't shift on swap), so we can't rely
+  // on autoFocus — handle it manually each time renaming flips on.
+  React.useEffect(() => {
+    if (renaming && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [renaming]);
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = (typeof columns === 'number')
     ? COLS_MAX + COLS_MIN - columns
@@ -82,34 +92,30 @@ export default function SmartChipRail({
                 <ChevronLeft size={18} strokeWidth={1.6} aria-hidden="true" />
               </button>
             )}
-            {renaming ? (
-              <input
-                autoFocus
-                type="text"
-                className={styles.titleInput}
-                value={renameDraft}
-                onChange={(e) => setRenameDraft(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
+            {/* Always render an input — toggling readOnly + value
+                source instead of swapping element types means the
+                browser never has to relayout, so the title stays
+                pinned in place when the user enters/exits edit mode. */}
+            <input
+              ref={titleInputRef}
+              type="text"
+              className={`${styles.titleInput}${onRenameViewTitle && !renaming ? ` ${styles.titleInputEditable}` : ''}`}
+              value={renaming ? renameDraft : (viewTitle || '')}
+              readOnly={!renaming}
+              title={onRenameViewTitle && !renaming ? `${viewTitle} — click to rename` : viewTitle || undefined}
+              onClick={onRenameViewTitle && !renaming ? startRename : undefined}
+              onChange={renaming ? (e) => setRenameDraft(e.target.value) : undefined}
+              onBlur={renaming ? commitRename : undefined}
+              onKeyDown={(e) => {
+                if (renaming) {
                   if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
                   else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span
-                className={`${styles.title}${onRenameViewTitle ? ` ${styles.titleEditable}` : ''}`}
-                title={onRenameViewTitle ? `${viewTitle} — click to rename` : viewTitle}
-                onClick={onRenameViewTitle ? startRename : undefined}
-                role={onRenameViewTitle ? 'button' : undefined}
-                tabIndex={onRenameViewTitle ? 0 : undefined}
-                onKeyDown={onRenameViewTitle ? (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startRename(); }
-                } : undefined}
-              >
-                {viewTitle}
-              </span>
-            )}
+                } else if (onRenameViewTitle && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  startRename();
+                }
+              }}
+            />
           </>
         ) : (
           CHIPS.map(({ id, label }) => {

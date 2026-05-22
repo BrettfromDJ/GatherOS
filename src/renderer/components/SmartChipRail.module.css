@@ -74,16 +74,11 @@
   align-self: center;
 }
 
-/* Just a cursor hint — no padding / hover background, so clicking
-   into edit mode doesn't shift the title's position. */
-.titleEditable {
-  cursor: text;
-}
-
-/* Match the Sidebar rename pattern — transparent, borderless, no
-   focus ring. field-sizing: content makes the input size to its
-   value the same way the static <span> sized to its text, so the
-   moment of swapping doesn't bump the title to the right. */
+/* The title is always rendered as an input — read-only when
+   displaying, editable when the user clicks. Keeping the same
+   element across modes means the browser never relayouts, so the
+   title can't shift on click. Styled to read as static text:
+   transparent background, no border, no focus ring. */
 .titleInput {
   font-family: var(--font-ui);
   font-size: var(--text-lg);
@@ -91,12 +86,26 @@
   letter-spacing: -0.02em;
   color: var(--text-primary);
   background: transparent;
-  border: none;
-  outline: none;
+  border: 0;
+  outline: 0;
   padding: 0;
   margin: 0;
   align-self: center;
+  /* Shrink to value width like a <span> would shrink to its text,
+     so the row's other elements (back button, gap) don't reflow
+     when the value changes. */
   field-sizing: content;
+  /* Even when read-only, browsers show a text caret on hover.
+     Override for the static state and re-enable when editable. */
+  cursor: default;
+}
+
+.titleInput:read-write {
+  cursor: text;
+}
+
+.titleInputEditable {
+  cursor: text;
 }
 
 .right {
