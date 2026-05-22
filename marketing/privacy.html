@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Privacy policy — GatherOS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Privacy policy for the GatherOS browser extension and Mac app.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="images/webclip.png">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: #fafafa;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 24px 120px;
+    }
+    .crumb {
+      display: inline-block;
+      margin-bottom: 32px;
+      color: rgba(0, 0, 0, 0.45);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .crumb:hover { color: rgba(0, 0, 0, 0.8); }
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .updated {
+      color: rgba(0, 0, 0, 0.5);
+      font-size: 14px;
+      margin: 0 0 40px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 36px 0 8px;
+    }
+    p { margin: 0 0 16px; }
+    ul { margin: 0 0 16px; padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    a { color: #1a1a1a; }
+    a:hover { opacity: 0.7; }
+    .contact {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <a href="/" class="crumb">← Back to GatherOS</a>
+
+    <h1>Privacy policy</h1>
+    <p class="updated">Last updated: May 22, 2026</p>
+
+    <p>The GatherOS browser extension does not collect, store, sell, or transmit personal information to GatherOS or any third party.</p>
+
+    <h2>What the extension handles</h2>
+    <p>When you right-click an image and choose <strong>“Save to GatherOS”</strong>, the extension passes the following data only to the GatherOS desktop application running locally on your own machine, via Chrome’s native messaging protocol:</p>
+    <ul>
+      <li>The image URL you right-clicked.</li>
+      <li>The URL and title of the page you were viewing.</li>
+    </ul>
+    <p>This data never leaves your computer. It is used solely by the GatherOS desktop application to fetch the image and store it in your local library, with the page URL preserved as a source breadcrumb.</p>
+
+    <h2>What the extension stores</h2>
+    <p>The extension itself does not retain any data between invocations. It does not write to <code>chrome.storage</code>, does not maintain a remote server, and does not include any analytics or telemetry SDKs.</p>
+
+    <h2>Permissions in use</h2>
+    <ul>
+      <li><strong>contextMenus</strong> — to register the “Save to GatherOS” right-click menu item.</li>
+      <li><strong>nativeMessaging</strong> — to communicate with the GatherOS desktop application installed on the same machine.</li>
+      <li><strong>notifications</strong> — to show a single confirmation toast after each save attempt.</li>
+    </ul>
+
+    <h2>Third parties</h2>
+    <p>None. The extension does not transfer user data to any third party. It only talks to the GatherOS desktop application on the user’s own computer.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes in any material way, the updated version will be published at this URL with a new “Last updated” date.</p>
+
+    <p class="contact">
+      Questions about this policy? Email <a href="mailto:hello@designjoy.co">hello@designjoy.co</a>.
+    </p>
+  </main>
+</body>
+</html>
