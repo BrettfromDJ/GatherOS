@@ -771,7 +771,7 @@ export default function DetailPanel({
             </span>
           ))}
           {memberships.length === 0 && availableToAdd.length === 0 && (
-            <span className={styles.collectionsEmpty}>No buckets yet</span>
+            <span className={styles.collectionsEmpty}>No collections yet</span>
           )}
         </div>
       </div>

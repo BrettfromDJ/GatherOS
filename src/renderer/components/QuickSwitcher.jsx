@@ -171,7 +171,7 @@ export default function QuickSwitcher({
                         <CollectionIcon />
                       </span>
                       <span className={styles.rowLabel}>{b.name}</span>
-                      <span className={styles.rowKind}>Bucket</span>
+                      <span className={styles.rowKind}>Collection</span>
                     </button>
                   );
                 })}

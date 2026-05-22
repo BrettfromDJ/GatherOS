@@ -219,7 +219,7 @@ export default function RediscoverMode({
         </button>
         <button type="button" className={styles.hintBtn} onClick={openBucketPicker}>
           <kbd className={styles.kbd}>↑</kbd>
-          <span>Bucket</span>
+          <span>Collection</span>
         </button>
         <button type="button" className={styles.hintBtn} onClick={handleSkip}>
           <kbd className={styles.kbd}>→</kbd>
@@ -236,12 +236,12 @@ export default function RediscoverMode({
           className={styles.picker}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
-          aria-label="Choose a bucket"
+          aria-label="Choose a collection"
         >
           <input
             autoFocus
             className={styles.pickerInput}
-            placeholder="Add to bucket…"
+            placeholder="Add to collection…"
             value={pickerFilter}
             onChange={(e) => { setPickerFilter(e.target.value); setPickerActiveIdx(0); }}
           />
@@ -249,8 +249,8 @@ export default function RediscoverMode({
             {filteredCollections.length === 0 ? (
               <div className={styles.pickerEmpty}>
                 {collections.length === 0
-                  ? 'No buckets yet — create one from the sidebar.'
-                  : `No bucket matches "${pickerFilter}".`}
+                  ? 'No collections yet — create one from the sidebar.'
+                  : `No collection matches "${pickerFilter}".`}
               </div>
             ) : (
               filteredCollections.map((c, i) => (

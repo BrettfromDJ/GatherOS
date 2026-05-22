@@ -806,7 +806,7 @@ export default function Sidebar({
                 <button
                   className={styles.item}
                   onClick={onOpenRediscover}
-                  title="Random save full-screen — ←→↑ to swipe / bucket / skip"
+                  title="Random save full-screen — ←→↑ to swipe / collection / skip"
                 >
                   <span className={styles.icon}>
                     <ShuffleIcon />
@@ -899,7 +899,7 @@ export default function Sidebar({
 
       <nav className={styles.section}>
         {collections.length === 0 && !creating ? (
-          <div className={styles.empty}>No buckets yet</div>
+          <div className={styles.empty}>No collections yet</div>
         ) : (
           flattenCollections(collections, creatingForParent, expandedBuckets).map((entry) => {
             // Inline sentinel: the inline create-child input that
