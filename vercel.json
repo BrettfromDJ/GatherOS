@@ -2,5 +2,7 @@
   "framework": null,
   "buildCommand": "echo 'static site, no build needed'",
   "installCommand": "echo 'no install needed'",
-  "outputDirectory": "marketing"
+  "outputDirectory": "marketing",
+  "cleanUrls": true,
+  "trailingSlash": false
 }
