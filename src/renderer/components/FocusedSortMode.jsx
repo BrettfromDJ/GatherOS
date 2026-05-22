@@ -203,7 +203,7 @@ export default function FocusedSortMode({ saves, collections, onAssign, onClose 
               <button
                 key={c.id}
                 type="button"
-                className={styles.bucket}
+                className={`${styles.bucket}${i >= 9 ? ` ${styles.bucketNoKey}` : ''}`}
                 onClick={() => handleAssign(c.id)}
                 disabled={animating}
               >

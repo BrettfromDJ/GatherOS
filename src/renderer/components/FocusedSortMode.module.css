@@ -188,6 +188,14 @@
 
 .bucket:active { transform: scale(0.97); }
 
+/* Pills beyond the first 9 lose the numbered key badge — without
+   the key eating left-side whitespace, the asymmetric 8/14px
+   padding above leaves the label hugging the left edge. Match
+   the right inset so the text reads centered in the pill. */
+.bucketNoKey {
+  padding: 8px 14px;
+}
+
 .bucketKey {
   display: inline-flex;
   align-items: center;
