@@ -6,8 +6,10 @@
   /* FocusedView fills the window without a sidebar at its left
      edge, so the macOS stoplights always overlap its top-left.
      Override the layout-level inset so the back button + topBar
-     row clear them regardless of sidebar state. */
-  --titlebar-left-pad: 80px;
+     row clear them regardless of sidebar state. 80px clears the
+     stoplights themselves; the extra 8 gives the back button a
+     visible breath of space before the first stoplight. */
+  --titlebar-left-pad: 88px;
   /* Soft fade-in so the jump from grid → focused (and back) reads
      as a transition rather than a hard cut. Skipped when the View
      Transitions API is driving a morph (.focusedMorphing) so its
