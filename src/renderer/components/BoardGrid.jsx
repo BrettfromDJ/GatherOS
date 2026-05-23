@@ -7,6 +7,24 @@ import ContextMenu from './ContextMenu.jsx';
 function PencilIcon() { return <Pencil size={14} strokeWidth={1.6} aria-hidden="true" />; }
 function TrashIcon()  { return <Trash2 size={14} strokeWidth={1.6} aria-hidden="true" />; }
 
+// Relative-time label for the tile sub-line. Mirrors the way the
+// FeaturedBuckets card shows "5 saves" — same rhythm, different
+// content because spaces are time-keyed rather than count-keyed.
+function relativeAgo(ts) {
+  if (!ts) return '';
+  const diff = Math.max(0, Date.now() - ts);
+  const sec = Math.floor(diff / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  if (sec < 60) return 'Just now';
+  if (min < 60) return `Edited ${min}m ago`;
+  if (hr < 24) return `Edited ${hr}h ago`;
+  if (day < 30) return `Edited ${day}d ago`;
+  if (day < 365) return `Edited ${Math.floor(day / 30)}mo ago`;
+  return `Edited ${Math.floor(day / 365)}y ago`;
+}
+
 // Figma-style snapshot of the board's canvas. Each item — image,
 // shape, text, sticky, frame, arrow — renders at its actual position
 // inside an SVG sized to the items' bounding box, then preserveAspect-
@@ -242,6 +260,9 @@ function BoardTile({
         ) : (
           <span className={styles.tileName}>{board.name}</span>
         )}
+        <span className={styles.tileSubtitle}>
+          {relativeAgo(board.updated_at || board.created_at)}
+        </span>
       </div>
     </div>
   );

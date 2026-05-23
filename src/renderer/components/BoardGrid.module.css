@@ -60,7 +60,11 @@
 .tileArt {
   position: relative;
   width: 100%;
-  height: 140px;
+  /* Matches the FeaturedBuckets stack height so a space tile and a
+     collection tile have the same total vertical rhythm — title +
+     subtitle sit at the same y-offset regardless of which surface
+     you're looking at. */
+  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,8 +140,21 @@
   gap: 2px;
   min-width: 0;
   /* The tile lost its outer padding so the snapshot can bleed to
-     the edges; restore breathing room locally for the meta row. */
+     the edges; restore breathing room locally for the meta row.
+     Padding mirrors FeaturedBuckets card 14/14/12 for visual parity. */
   padding: 12px 14px;
+}
+
+/* Sub-line under the title — same rhythm as FeaturedBuckets' .count
+   ("5 saves") so the two surfaces read as a matched family. */
+.tileSubtitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tileName {
