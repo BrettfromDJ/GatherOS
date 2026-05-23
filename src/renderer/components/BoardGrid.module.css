@@ -284,6 +284,11 @@
 
 .tileNew .tileMeta {
   position: absolute;
+  /* Zero the regular .tileMeta padding — the absolute offsets below
+     are the only inset that should apply here, otherwise they
+     stack with the padding and the "New space" label drifts ~14px
+     further in than the equivalent FolderGrid placeholder. */
+  padding: 0;
   left: 14px;
   right: 14px;
   bottom: 12px;
