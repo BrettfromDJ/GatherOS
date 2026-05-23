@@ -73,6 +73,24 @@
   box-shadow: none;
 }
 
+/* Figma-style canvas snapshot: SVG sized to the items' bounding box,
+   then fit into the tile via preserveAspectRatio. Solid surface +
+   subtle border so the snapshot reads as a "card", not a free-
+   floating illustration. */
+.snapshot {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="dark"] .snapshot {
+  background: #1f1f21;
+}
+
 .tileStack {
   position: absolute;
   inset: 0;

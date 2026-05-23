@@ -7,10 +7,159 @@ import ContextMenu from './ContextMenu.jsx';
 function PencilIcon() { return <Pencil size={14} strokeWidth={1.6} aria-hidden="true" />; }
 function TrashIcon()  { return <Trash2 size={14} strokeWidth={1.6} aria-hidden="true" />; }
 
-// Boards are *scenes* — multiple images composed on a canvas — so
-// the tile artwork is a 2x2 mosaic of the first image items, not the
-// stacked fan we use for folders. Different visual idiom for a
-// different conceptual object.
+// Figma-style snapshot of the board's canvas. Each item — image,
+// shape, text, sticky, frame, arrow — renders at its actual position
+// inside an SVG sized to the items' bounding box, then preserveAspect-
+// Ratio fits it into the tile. Same source data as BoardView so the
+// thumbnail is always in sync with the canvas without a separate
+// rasterisation step.
+function BoardSnapshot({ items }) {
+  if (!items || items.length === 0) return null;
+
+  // Compute bounding box of all items. Includes a small padding so
+  // edge-anchored items don't get clipped flush against the tile.
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const it of items) {
+    if (!Number.isFinite(it.x) || !Number.isFinite(it.y)) continue;
+    const w = Math.max(0, it.width || 0);
+    const h = Math.max(0, it.height || 0);
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + w);
+    maxY = Math.max(maxY, it.y + h);
+  }
+  if (!Number.isFinite(minX)) return null;
+  const PAD = Math.max((maxX - minX), (maxY - minY)) * 0.05;
+  minX -= PAD; minY -= PAD; maxX += PAD; maxY += PAD;
+  const vbW = Math.max(1, maxX - minX);
+  const vbH = Math.max(1, maxY - minY);
+
+  return (
+    <svg
+      className={styles.snapshot}
+      viewBox={`${minX} ${minY} ${vbW} ${vbH}`}
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      {items.map((it, i) => (
+        <SnapshotItem key={i} item={it} viewBoxWidth={vbW} />
+      ))}
+    </svg>
+  );
+}
+
+function SnapshotItem({ item, viewBoxWidth }) {
+  const { type, x, y, width, height, rotation } = item;
+  const w = Math.max(1, width || 0);
+  const h = Math.max(1, height || 0);
+  // Rotation is around the item's own centre (matches BoardView's
+  // transform-origin). SVG's transform="rotate(angle cx cy)" handles
+  // this directly.
+  const transform = rotation
+    ? `rotate(${rotation} ${x + w / 2} ${y + h / 2})`
+    : undefined;
+  // Stroke widths in the actual canvas are in CSS pixels; at the
+  // snapshot's zoomed-out scale, the same value would render
+  // invisibly thin. Scale to ~0.4% of the viewBox so outlines and
+  // arrows stay visible regardless of canvas size.
+  const strokeScale = Math.max(viewBoxWidth * 0.003, 1);
+
+  if (type === 'image' && item.thumb_path) {
+    return (
+      <image
+        href={fileUrl(item.thumb_path)}
+        x={x} y={y} width={w} height={h}
+        transform={transform}
+        preserveAspectRatio="xMidYMid slice"
+      />
+    );
+  }
+
+  if (type === 'shape') {
+    const fill = item.fill && item.fill !== 'transparent' ? item.fill : 'none';
+    const stroke = item.stroke || 'rgba(0, 0, 0, 0.85)';
+    const sw = (item.strokeWidth || 1.5) * strokeScale;
+    if (item.kind === 'ellipse') {
+      return (
+        <ellipse
+          cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2}
+          fill={fill} stroke={stroke} strokeWidth={sw}
+          transform={transform}
+        />
+      );
+    }
+    if (item.kind === 'triangle') {
+      const points = `${x + w / 2},${y} ${x + w},${y + h} ${x},${y + h}`;
+      return (
+        <polygon
+          points={points}
+          fill={fill} stroke={stroke} strokeWidth={sw}
+          transform={transform}
+        />
+      );
+    }
+    return (
+      <rect
+        x={x} y={y} width={w} height={h}
+        fill={fill} stroke={stroke} strokeWidth={sw}
+        transform={transform}
+      />
+    );
+  }
+
+  if (type === 'frame') {
+    return (
+      <rect
+        x={x} y={y} width={w} height={h}
+        fill={item.fill || '#ffffff'}
+        stroke="rgba(0, 0, 0, 0.2)"
+        strokeWidth={1 * strokeScale}
+        transform={transform}
+      />
+    );
+  }
+
+  if (type === 'sticky') {
+    return (
+      <rect
+        x={x} y={y} width={w} height={h}
+        fill={item.fill || '#FFE680'}
+        transform={transform}
+      />
+    );
+  }
+
+  if (type === 'text') {
+    // Render as a couple of subtle horizontal bars so text reads as
+    // "this is type" without trying to lay out actual glyphs at thumb
+    // scale (which would be unreadable + slow).
+    const lineH = Math.max(2, (item.fontSize || 16) * 0.7);
+    return (
+      <g transform={transform}>
+        <rect x={x} y={y + h / 2 - lineH * 0.7} width={w * 0.8} height={lineH * 0.3} fill="rgba(0, 0, 0, 0.45)" />
+        <rect x={x} y={y + h / 2 + lineH * 0.2} width={w * 0.5} height={lineH * 0.3} fill="rgba(0, 0, 0, 0.3)" />
+      </g>
+    );
+  }
+
+  if (type === 'arrow') {
+    // The board stores arrows as x/y/w/h bounding boxes; render as a
+    // diagonal line across that box. Direction won't always be exact
+    // but the spatial cue is what matters at thumbnail scale.
+    return (
+      <line
+        x1={x} y1={y + h / 2} x2={x + w} y2={y + h / 2}
+        stroke="rgba(0, 0, 0, 0.6)"
+        strokeWidth={2 * strokeScale}
+        strokeLinecap="round"
+        transform={transform}
+      />
+    );
+  }
+
+  return null;
+}
+
 function BoardTile({
   board,
   isRenaming,
@@ -29,8 +178,8 @@ function BoardTile({
   reorderHint,
   isReorderDragging,
 }) {
-  const thumbs = Array.isArray(board.thumbs) ? board.thumbs.slice(0, 4) : [];
-  const count = thumbs.length;
+  const items = Array.isArray(board.items) ? board.items : [];
+  const hasItems = items.length > 0;
   return (
     <div
       className={[
@@ -62,20 +211,8 @@ function BoardTile({
       onContextMenu={onContextMenu}
     >
       <div className={styles.tileArt}>
-        {count > 0 ? (
-          <div className={styles.tileStack} aria-hidden="true">
-            {thumbs.map((thumb, i) => (
-              <img
-                key={`${i}-${thumb}`}
-                src={fileUrl(thumb)}
-                className={styles.tileStackImg}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-              />
-            ))}
-          </div>
+        {hasItems ? (
+          <BoardSnapshot items={items} />
         ) : (
           <span className={styles.tileEmpty} aria-hidden="true">
             <Frame size={32} strokeWidth={1.4} />

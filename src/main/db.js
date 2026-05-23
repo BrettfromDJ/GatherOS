@@ -1194,41 +1194,55 @@ function reorderBoards(orderedIds) {
 // appear as broken thumbs.
 function listBoardsWithThumbs() {
   const rows = getDatabase().prepare(`
-    WITH ranked AS (
-      SELECT bi.board_id,
-             json_extract(bi.data, '$.saveId') AS save_id,
-             bi.z_index,
-             bi.created_at,
-             ROW_NUMBER() OVER (
-               PARTITION BY bi.board_id
-               ORDER BY bi.z_index ASC, bi.created_at ASC
-             ) AS rn
+    WITH item_data AS (
+      -- Pull every board item with the geometry + minimal type data
+      -- the snapshot renderer needs. Image items resolve their save's
+      -- thumb_path here so the renderer doesn't need a separate lookup.
+      SELECT bi.board_id, bi.type, bi.x, bi.y, bi.width, bi.height,
+             bi.rotation, bi.z_index,
+             json_extract(bi.data, '$.kind')         AS kind,
+             json_extract(bi.data, '$.fill')         AS fill,
+             json_extract(bi.data, '$.stroke')       AS stroke,
+             json_extract(bi.data, '$.strokeWidth')  AS stroke_width,
+             json_extract(bi.data, '$.fontSize')     AS font_size,
+             json_extract(bi.data, '$.text')         AS text_content,
+             CASE WHEN bi.type = 'image'
+                  THEN COALESCE(NULLIF(s.thumb_path, ''), s.file_path)
+                  ELSE NULL END                       AS thumb_path
         FROM board_items bi
-       WHERE bi.type = 'image'
-         AND json_extract(bi.data, '$.saveId') IS NOT NULL
+        LEFT JOIN saves s
+          ON s.id = json_extract(bi.data, '$.saveId')
+         AND s.deleted_at IS NULL
+       ORDER BY bi.board_id, bi.z_index ASC
     ),
-    top_thumbs AS (
-      -- Fall back to file_path when thumb_path is empty so the tile
-      -- mosaic mirrors what the FeaturedBuckets row already does
-      -- (s.thumb_path || s.file_path). Without the fallback, saves
-      -- imported before the thumbnail pipeline existed render the
-      -- board tile blank even though the canvas shows them fine.
-      SELECT r.board_id,
-             group_concat(COALESCE(NULLIF(s.thumb_path, ''), s.file_path), x'01') AS thumbs
-        FROM ranked r
-        JOIN saves s ON s.id = r.save_id
-       WHERE r.rn <= 4 AND s.deleted_at IS NULL
-       GROUP BY r.board_id
+    items_per_board AS (
+      SELECT board_id,
+             json_group_array(json_object(
+               'type', type,
+               'x', x, 'y', y, 'width', width, 'height', height,
+               'rotation', rotation,
+               'kind', kind,
+               'fill', fill,
+               'stroke', stroke,
+               'strokeWidth', stroke_width,
+               'fontSize', font_size,
+               'text', text_content,
+               'thumb_path', thumb_path
+             )) AS items_json
+        FROM item_data
+       GROUP BY board_id
     )
     SELECT b.id, b.name, b.thumb_path, b.created_at, b.updated_at, b.order_index,
-           tt.thumbs AS thumbs_blob
+           COALESCE(ipb.items_json, '[]') AS items_json
       FROM boards b
-      LEFT JOIN top_thumbs tt ON tt.board_id = b.id
+      LEFT JOIN items_per_board ipb ON ipb.board_id = b.id
      ORDER BY b.order_index ASC, b.created_at ASC
   `).all();
   return rows.map((row) => {
-    const { thumbs_blob, ...rest } = row;
-    return { ...rest, thumbs: thumbs_blob ? thumbs_blob.split('\x01') : [] };
+    const { items_json, ...rest } = row;
+    let items = [];
+    try { items = JSON.parse(items_json || '[]'); } catch { items = []; }
+    return { ...rest, items };
   });
 }
 
