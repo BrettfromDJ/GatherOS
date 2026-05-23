@@ -354,6 +354,13 @@
   transform: scale(0.97);
 }
 
+/* Present mode (full-screen): hide the title bar so the space
+   reads as a clean canvas. .backBtn is omitted in JSX. .presentBtn
+   stays so the user can exit; it swaps its icon+label to "Stop". */
+.presenting .titleBar {
+  display: none;
+}
+
 /* Shape tool flyout — opens to the right of the tool button when
    the user clicks Shapes. Vertical menu with one row per shape
    kind: leading icon, label, trailing keyboard shortcut hint.

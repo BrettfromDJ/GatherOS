@@ -453,6 +453,17 @@ function createMainWindow() {
     mainWindow = null;
   });
 
+  // Forward fullscreen state changes to the renderer so the
+  // Spaces "Present" button can swap to "Stop" and back when the
+  // user exits via the green stoplight or ⌃⌘F.
+  const sendFsState = (on) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window:fullscreen-changed', on);
+    }
+  };
+  mainWindow.on('enter-full-screen', () => sendFsState(true));
+  mainWindow.on('leave-full-screen', () => sendFsState(false));
+
   if (isDev) {
     mainWindow.loadURL(DEV_URL);
   } else {

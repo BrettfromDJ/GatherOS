@@ -438,6 +438,12 @@ function registerIpcHandlers() {
     win.setFullScreen(!win.isFullScreen());
     return { ok: true, fullscreen: win.isFullScreen() };
   });
+  ipcMain.handle('window:is-fullscreen', (e) => {
+    const { BrowserWindow } = require('electron');
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (!win || win.isDestroyed()) return false;
+    return win.isFullScreen();
+  });
   ipcMain.handle('capture:window', () => {
     captureWindow();
     return { ok: true };

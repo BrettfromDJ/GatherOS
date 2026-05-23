@@ -137,6 +137,12 @@ contextBridge.exposeInMainWorld('moodmark', {
   window: {
     setFullscreen: (on) => ipcRenderer.invoke('window:set-fullscreen', !!on),
     toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+    onFullscreenChange: (callback) => {
+      const handler = (_e, on) => callback(!!on);
+      ipcRenderer.on('window:fullscreen-changed', handler);
+      return () => ipcRenderer.removeListener('window:fullscreen-changed', handler);
+    },
+    isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   },
   shell: {
     openUrl: (url) => ipcRenderer.invoke('shell:open-url', url),

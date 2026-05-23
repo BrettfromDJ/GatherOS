@@ -33,6 +33,7 @@ import {
   CornerDownRight,
   Pencil,
   Play,
+  Square,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -941,6 +942,26 @@ export default function BoardView({
   const [titleEditing, setTitleEditing] = useState(false);
   const titleInputRef = useRef(null);
   const rootRef = useRef(null);
+
+  // Present mode = window is full-screen. The Present button toggles
+  // it; we also listen for external state changes (green stoplight,
+  // ⌃⌘F) so the button label stays in sync.
+  const [presenting, setPresenting] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    // Seed from current state in case the user is reopening the
+    // space already in full-screen.
+    window.moodmark?.window?.isFullscreen?.().then((on) => {
+      if (!cancelled) setPresenting(!!on);
+    }).catch(() => {});
+    const off = window.moodmark?.window?.onFullscreenChange?.((on) => {
+      if (!cancelled) setPresenting(on);
+    });
+    return () => { cancelled = true; off?.(); };
+  }, []);
+  function togglePresent() {
+    try { window.moodmark?.window?.toggleFullscreen?.(); } catch {}
+  }
 
   // Drop any items whose underlying save was just trashed. Trash
   // also deletes the corresponding board_items rows server-side, so
@@ -1934,8 +1955,11 @@ export default function BoardView({
 
 
   return (
-    <div ref={rootRef} className={styles.root}>
-      {onExit && (
+    <div
+      ref={rootRef}
+      className={`${styles.root}${presenting ? ` ${styles.presenting}` : ''}`}
+    >
+      {onExit && !presenting && (
         <button
           type="button"
           className={styles.backBtn}
@@ -1950,12 +1974,16 @@ export default function BoardView({
       <button
         type="button"
         className={styles.presentBtn}
-        onClick={() => { try { window.moodmark?.window?.setFullscreen?.(true); } catch {} }}
-        title="Present — full screen this space"
-        aria-label="Present"
+        onClick={togglePresent}
+        title={presenting ? 'Stop presenting' : 'Present — full screen this space'}
+        aria-label={presenting ? 'Stop' : 'Present'}
       >
-        <Play size={12} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />
-        <span>Present</span>
+        {presenting ? (
+          <Square size={11} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />
+        ) : (
+          <Play size={12} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />
+        )}
+        <span>{presenting ? 'Stop' : 'Present'}</span>
       </button>
 
       <div className={styles.titleBar}>
