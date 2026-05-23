@@ -35,10 +35,10 @@
   align-items: center;
   gap: 12px;
   /* Top padding chosen so the row's 28px controls vertically centre
-     with the macOS stoplights at ~y=19 (default macOS title bar
-     inset). 6 + 14 = 20 → buttons sit one pixel below the stoplight
-     centre, close enough to read as aligned. */
-  padding: 6px 16px 8px var(--titlebar-left-pad, 16px);
+     with the macOS stoplights. Empirically y≈26 is the stoplight
+     centre on macOS Sequoia with our window chrome; 12 + 14 = 26
+     lands the button centre on top of it. */
+  padding: 12px 16px 8px var(--titlebar-left-pad, 16px);
   background: var(--content-bg);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;

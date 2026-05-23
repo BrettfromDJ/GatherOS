@@ -6,12 +6,11 @@
    FocusedView's top bar span the full app width below it. */
 .panel {
   position: fixed;
-  /* Sits below the FocusedView top bar (~43px after the recent
-     stoplight-alignment shrink: 6 top pad + 28 controls + 8 bot
-     pad + 1 border) with the same 16px breathing on every visible
-     edge — top, right, bottom — so the pane feels centred against
-     the toolbar instead of floating mid-window. */
-  top: 59px;
+  /* Sits below the FocusedView top bar (~49px: 12 top pad + 28
+     controls + 8 bot pad + 1 border) with the same 16px breathing
+     on every visible edge — top, right, bottom — so the pane feels
+     centred against the toolbar instead of floating mid-window. */
+  top: 65px;
   right: 16px;
   bottom: 16px;
   width: 300px;

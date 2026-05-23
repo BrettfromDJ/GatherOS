@@ -6,10 +6,9 @@
    FocusedView's top bar span the full app width below it. */
 .panel {
   position: fixed;
-  /* Sits below the FocusedView top bar (~43px after the recent
-     stoplight-alignment shrink) with 16px breathing on every
-     visible edge — top, right, bottom. */
-  top: 59px;
+  /* Sits below the FocusedView top bar (~49px) with 16px breathing
+     on every visible edge — top, right, bottom. */
+  top: 65px;
   right: 16px;
   bottom: 16px;
   width: 300px;
