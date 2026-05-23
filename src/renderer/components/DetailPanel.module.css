@@ -52,6 +52,9 @@
   --input-bg: rgba(255, 255, 255, 0.08);
   --input-bg-focus: rgba(255, 255, 255, 0.14);
   --input-border: rgba(255, 255, 255, 0.14);
+  --ai-tint: rgba(255, 255, 255, 0.95);
+  --ai-tint-bg: rgba(255, 255, 255, 0.1);
+  --ai-tint-border: rgba(255, 255, 255, 0.12);
 }
 
 /* Inset section dividers — each immediate panel child gets a
