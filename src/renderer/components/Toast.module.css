@@ -50,10 +50,10 @@
 }
 
 .thumb {
-  width: 40px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   object-fit: cover;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--hover-bg-soft);
   display: block;
   box-shadow: 0 0 0 0.5px var(--border);
