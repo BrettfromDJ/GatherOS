@@ -101,7 +101,8 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  /* Light-on-glass colour set against the dark backdrop. */
+  color: rgba(255, 255, 255, 0.7);
   border-radius: var(--radius-md);
   cursor: pointer;
   padding: 0;
@@ -115,12 +116,12 @@
 }
 
 .iconBtn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .iconBtn:active {
-  background: var(--active-bg);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Active state when the eyedropper is armed — same dark fill we
@@ -240,10 +241,14 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  /* Glass dot over the lightbox backdrop — same recipe as the
+     navHint pill so the floating chrome reads as one family. */
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-circle);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
@@ -251,8 +256,8 @@
 }
 
 .backBtn:hover {
-  background: var(--hover-bg-soft);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 1);
 }
 
 .backBtn:active {
@@ -325,18 +330,19 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px 5px 8px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  /* Glass pill over the lightbox backdrop — translucent dark fill
+     so it picks up the wallpaper colours behind, plus a backdrop
+     blur for the frosted feel. */
+  background: rgba(20, 20, 22, 0.45);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-pill);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-  color: var(--text-secondary);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.85);
   font-size: var(--text-xs);
   pointer-events: none;
   user-select: none;
-}
-
-:root[data-theme="dark"] .navHint {
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .kbd {
@@ -346,10 +352,11 @@
   width: 18px;
   height: 18px;
   padding: 0;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  /* Glass dot to match the .navHint pill that hosts it. */
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-circle);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.95);
 }
