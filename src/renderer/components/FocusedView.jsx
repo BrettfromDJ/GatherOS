@@ -231,6 +231,11 @@ export default function FocusedView({
           zoom > 1 && styles.stageScroll,
           picking && styles.stagePicking,
         ].filter(Boolean).join(' ')}
+        /* Stage backdrop is a heavily-blurred copy of the focused
+           image with a dark overlay on top — gives the lightbox
+           the same atmospheric quality Apple Photos uses without
+           pulling a discrete color from the image. */
+        style={src ? { '--stage-bg': `url(${JSON.stringify(src)})` } : undefined}
         onContextMenu={onContextMenu}
         onClick={(e) => {
           // Click on the whitespace around the image dismisses the
