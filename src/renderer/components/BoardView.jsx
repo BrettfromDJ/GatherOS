@@ -72,7 +72,7 @@ const SHAPE_DEFAULT_DATA = {
   text: '',
   fontSize: 14,
   align: 'center',
-  fill: '#FFFFFF',
+  fill: 'transparent',
   stroke: 'rgba(0, 0, 0, 0.85)',
   strokeWidth: 2,
 };
