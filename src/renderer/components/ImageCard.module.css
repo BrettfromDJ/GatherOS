@@ -73,19 +73,31 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-circle);
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  color: var(--text-primary);
+  /* Liquid-glass pill: low-opacity white with a heavy backdrop
+     blur so the button picks up the underlying image colors
+     instead of sitting on top as a solid white sticker. Inner
+     top-highlight + subtle drop shadow sell the lift. */
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px) saturate(1.8);
+  -webkit-backdrop-filter: blur(14px) saturate(1.8);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+  color: rgba(0, 0, 0, 0.85);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
   padding: 0;
-  transition: opacity var(--dur-instant) ease, background var(--dur-instant) ease;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 0 rgba(255, 255, 255, 0.55);
+  transition:
+    opacity var(--dur-instant) ease,
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
 }
 
 .card:hover .checkbox,
@@ -95,20 +107,28 @@
 }
 
 .checkboxOn {
+  /* Selected state stays solid — a glassy "selected" reads
+     ambiguous against varied image backgrounds. */
   background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text-on-accent);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    inset 0 0.5px 0 0 rgba(255, 255, 255, 0.25);
 }
 
 /* In dark mode the --accent token is white, so the white "check"
-   glyph disappeared on top of a white pill. Flip the check stroke to
-   the dark surface tone so the marker remains visible. */
+   glyph disappeared on top of a white pill. Flip the check stroke
+   to the dark surface tone so the marker remains visible. */
 :root[data-theme="dark"] .checkboxOn {
   color: var(--surface-1);
 }
 
 .checkbox:hover:not(.checkboxOn) {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(1.05);
 }
 
 /* Peek trigger — bottom-right counterpart to the checkbox. Same
@@ -118,19 +138,27 @@
   position: absolute;
   bottom: 8px;
   right: 8px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-circle);
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px) saturate(1.8);
+  -webkit-backdrop-filter: blur(14px) saturate(1.8);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+  color: rgba(0, 0, 0, 0.85);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
   padding: 0;
-  transition: opacity var(--dur-instant) ease, background var(--dur-instant) ease, transform var(--dur-instant) ease;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 0 rgba(255, 255, 255, 0.55);
+  transition:
+    opacity var(--dur-instant) ease,
+    background var(--dur-instant) ease,
+    transform var(--dur-instant) ease;
 }
 
 .peekBtn svg {
@@ -143,7 +171,7 @@
 }
 
 .peekBtn:hover {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.7);
   transform: scale(1.06);
 }
 
