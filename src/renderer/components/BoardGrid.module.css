@@ -73,13 +73,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-1);
+  background-color: var(--surface-1);
+  /* Subtle dot grid behind the snapshot — same idea Figma uses on
+     its file thumbnails. The pattern stays at a fixed pixel scale
+     (8px tile) regardless of the SVG's viewBox so the dots read
+     consistently across canvases of any size. */
+  background-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.08) 0.6px,
+    transparent 1px
+  );
+  background-size: 8px 8px;
   border-bottom: 0.5px solid var(--border);
   overflow: hidden;
 }
 
 :root[data-theme="dark"] .tileArt {
-  background: #1f1f21;
+  background-color: #1f1f21;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.06) 0.6px,
+    transparent 1px
+  );
 }
 
 /* Figma-style canvas snapshot: SVG sized to the items' bounding box,
