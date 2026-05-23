@@ -14,11 +14,16 @@
   width: 300px;
   display: flex;
   flex-direction: column;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  /* Glass over the FocusedView's blurred backdrop. See DetailPanel
+     (V1) for full rationale. */
+  background: rgba(20, 20, 22, 0.55);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   overflow-y: auto;
   z-index: 50;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Inset section dividers — each immediate panel child gets a

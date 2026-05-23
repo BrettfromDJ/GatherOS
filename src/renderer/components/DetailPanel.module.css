@@ -16,11 +16,19 @@
   width: 300px;
   display: flex;
   flex-direction: column;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  /* Glass over the FocusedView's blurred backdrop — translucent
+     dark fill + a backdrop blur so the wallpaper-coloured haze
+     bleeds through the pane without losing legibility. The
+     in-pane content reads against the deep tint; the surface
+     itself picks up the ambient image colours through the blur. */
+  background: rgba(20, 20, 22, 0.55);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   overflow-y: auto;
   z-index: 50;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Inset section dividers — each immediate panel child gets a
