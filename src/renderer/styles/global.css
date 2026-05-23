@@ -100,8 +100,13 @@ body[data-board-print="true"] .main-col {
   --titlebar-left-pad: 16px;
 }
 
+/* When the sidebar collapses, the content area absorbs the left
+   edge of the window — and the macOS stoplights now overlap
+   whatever sits at the content's top-left. Bump the padding so
+   the topmost row of controls clears them. macOS stoplights span
+   ~78px from the window edge; 80 leaves a hair of breathing room. */
 .layout.sidebar-collapsed {
-  --titlebar-left-pad: 16px;
+  --titlebar-left-pad: 80px;
 }
 
 .main-col {
