@@ -74,7 +74,7 @@ const SHAPE_DEFAULT_DATA = {
   align: 'center',
   fill: 'transparent',
   stroke: 'rgba(0, 0, 0, 0.85)',
-  strokeWidth: 2,
+  strokeWidth: 1.5,
 };
 const SHAPE_FILL_SWATCHES = [
   '#FFFFFF', '#F2F2F2', '#FFE7A8',
