@@ -35,6 +35,13 @@ import {
   Play,
   Group,
   Ungroup,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
+  AlignStartHorizontal,
+  AlignCenterHorizontal,
+  AlignEndHorizontal,
+  AlignHorizontalSpaceAround,
   AlignVerticalSpaceAround,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
@@ -2065,15 +2072,15 @@ export default function BoardView({
       out.push({ type: 'separator' });
       out.push({
         label: 'Align',
-        icon: <AlignCenter size={14} strokeWidth={1.7} />,
+        icon: <AlignCenterVertical size={14} strokeWidth={1.7} />,
         submenu: [
-          { label: 'Left',                 onClick: () => applyAlign((it, b) => ({ dx: b.minX - (it.x || 0), dy: 0 })) },
-          { label: 'Center horizontally',  onClick: () => applyAlign((it, b) => ({ dx: ((b.minX + b.maxX) / 2) - ((it.x || 0) + (it.width || 0) / 2), dy: 0 })) },
-          { label: 'Right',                onClick: () => applyAlign((it, b) => ({ dx: b.maxX - ((it.x || 0) + (it.width || 0)), dy: 0 })) },
+          { label: 'Left',                 icon: <AlignStartVertical size={14} strokeWidth={1.7} />,    onClick: () => applyAlign((it, b) => ({ dx: b.minX - (it.x || 0), dy: 0 })) },
+          { label: 'Center horizontally',  icon: <AlignCenterVertical size={14} strokeWidth={1.7} />,   onClick: () => applyAlign((it, b) => ({ dx: ((b.minX + b.maxX) / 2) - ((it.x || 0) + (it.width || 0) / 2), dy: 0 })) },
+          { label: 'Right',                icon: <AlignEndVertical size={14} strokeWidth={1.7} />,      onClick: () => applyAlign((it, b) => ({ dx: b.maxX - ((it.x || 0) + (it.width || 0)), dy: 0 })) },
           { type: 'separator' },
-          { label: 'Top',                  onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.minY - (it.y || 0) })) },
-          { label: 'Center vertically',    onClick: () => applyAlign((it, b) => ({ dx: 0, dy: ((b.minY + b.maxY) / 2) - ((it.y || 0) + (it.height || 0) / 2) })) },
-          { label: 'Bottom',               onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.maxY - ((it.y || 0) + (it.height || 0)) })) },
+          { label: 'Top',                  icon: <AlignStartHorizontal size={14} strokeWidth={1.7} />,  onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.minY - (it.y || 0) })) },
+          { label: 'Center vertically',    icon: <AlignCenterHorizontal size={14} strokeWidth={1.7} />, onClick: () => applyAlign((it, b) => ({ dx: 0, dy: ((b.minY + b.maxY) / 2) - ((it.y || 0) + (it.height || 0) / 2) })) },
+          { label: 'Bottom',               icon: <AlignEndHorizontal size={14} strokeWidth={1.7} />,    onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.maxY - ((it.y || 0) + (it.height || 0)) })) },
         ],
       });
 
@@ -2082,8 +2089,8 @@ export default function BoardView({
           label: 'Distribute',
           icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,
           submenu: [
-            { label: 'Horizontally', onClick: () => distribute('x') },
-            { label: 'Vertically',   onClick: () => distribute('y') },
+            { label: 'Horizontally', icon: <AlignHorizontalSpaceAround size={14} strokeWidth={1.7} />, onClick: () => distribute('x') },
+            { label: 'Vertically',   icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,   onClick: () => distribute('y') },
           ],
         });
       }
