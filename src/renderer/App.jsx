@@ -1016,27 +1016,6 @@ export default function App() {
       });
     }
 
-    // Find similar — single-save action only (multi-select doesn't
-    // make semantic sense; we'd need to merge anchors). Hidden when
-    // already viewing a similar-to set anchored on this same save.
-    if (!isMulti && similarTo?.id !== saveId) {
-      if (items.length > 0) items.push({ type: 'separator' });
-      items.push({
-        label: 'Find similar',
-        icon: <SimilarIcon />,
-        onClick: () => {
-          const anchor = saves.find((s) => s.id === saveId);
-          if (!anchor) return;
-          setSimilarTo({
-            id: anchor.id,
-            thumb_path: anchor.thumb_path,
-            file_path: anchor.file_path,
-            title: anchor.title,
-          });
-        },
-      });
-    }
-
     // Generate a new image inspired by this one. Single-save AI
     // action; gated on the licensing session being present (the
     // worker proxies the OpenAI call). Per-image cost is tracked
@@ -1070,21 +1049,6 @@ export default function App() {
             } else {
               showActionToast({ message: 'Could not copy image', durationMs: 2400 });
             }
-          },
-        });
-      }
-      // Native Share sheet — Messages / Mail / AirDrop / Notes / etc.
-      // macOS only; the IPC bails on other platforms so the menu
-      // entry just no-ops there.
-      if (anchor?.file_path && window.moodmark.share?.save) {
-        items.push({
-          label: 'Share…',
-          icon: <ShareIcon />,
-          onClick: () => {
-            window.moodmark.share.save({
-              filePath: anchor.file_path,
-              sourceUrl: anchor.source_url || null,
-            });
           },
         });
       }
@@ -1150,7 +1114,7 @@ export default function App() {
           ? `${exportAnchor.title}.${ext}`
           : `moodmark-${exportAnchor.id.slice(0, 8)}.${ext}`;
         items.push({
-          label: 'Export…',
+          label: 'Export',
           icon: <DownloadIcon />,
           onClick: () => window.moodmark.image.export(exportAnchor.file_path, exportName),
         });

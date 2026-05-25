@@ -66,33 +66,6 @@ a:focus-visible,
   background: transparent;
 }
 
-/* External drop overlay. Wired up in App.jsx — `.drag-over` is
-   toggled while a file/image is being dragged over the window.
-   pointer-events: none so the overlay never intercepts the drop
-   itself (the underlying .app-shell handlers still fire). */
-.app-shell.drag-over::after {
-  content: 'Drop to save';
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 255, 255, 0.7);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  pointer-events: none;
-  z-index: 9999;
-  animation: dropOverlayIn 120ms ease-out;
-}
-
-@keyframes dropOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 /* Print mode for the board PNG export. Renderer adds
    data-board-print="true" on <body> before invoking capturePage,
    then drops it once the PNG returns. Hide everything except the
@@ -158,24 +131,33 @@ body[data-board-print="true"] .main-col {
   overflow-anchor: none;
 }
 
+/* External drop overlay. Rendered when an image / file is being
+   dragged over the app window. Fixed dark scrim with a small
+   centered gray label; pointer-events: none so the underlying
+   .app-shell onDrop handler still fires. */
 .drop-overlay {
-  position: absolute;
-  inset: 12px;
-  border: 2px dashed var(--accent);
-  border-radius: var(--radius-lg);
-  background: var(--accent-bg-faint);
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
   pointer-events: none;
-  z-index: 50;
+  z-index: 9999;
+  animation: dropOverlayIn 120ms ease-out;
 }
 
 .drop-message {
-  color: var(--accent);
-  font-size: var(--text-lg);
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.1px;
+}
+
+@keyframes dropOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .trash-toast {
