@@ -178,6 +178,12 @@ contextBridge.exposeInMainWorld('moodmark', {
     setPref: (name, value) => ipcRenderer.invoke('settings:set-pref', { name, value }),
     pickFolder: () => ipcRenderer.invoke('settings:pick-folder'),
   },
+  onboarding: {
+    // Idempotent on the install side — ingestZip dedups by content
+    // hash, so calling this on every walkthrough start is safe.
+    installStarterPack: () => ipcRenderer.invoke('onboarding:install-starter-pack'),
+    removeStarterPack: () => ipcRenderer.invoke('onboarding:remove-starter-pack'),
+  },
   ai: {
     // Server-proxied AI features. The licensing session token in
     // licensing.js is what gates these — no per-feature key to manage

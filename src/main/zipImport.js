@@ -46,7 +46,12 @@ function titleFromEntry(entry) {
 // Ingest entries sequentially so insertSave / sharp / palette work
 // stay on one core and so dedup against earlier entries in the same
 // archive behaves predictably.
-function ingestZip(zipPath) {
+//
+// Options:
+//   onInserted(record): called for each freshly-inserted save (not
+//     fired for duplicates / skipped / errored entries). Used by
+//     the starter-pack installer to tag each new save.
+function ingestZip(zipPath, { onInserted } = {}) {
   return new Promise((resolve, reject) => {
     yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
       if (err) return reject(err);
@@ -71,6 +76,9 @@ function ingestZip(zipPath) {
               const record = insertSave({ ...imgData, title: titleFromEntry(entry) });
               notifySaved(record);
               counts.inserted += 1;
+              if (typeof onInserted === 'function') {
+                try { onInserted(record); } catch { /* callback failure is non-fatal */ }
+              }
             }
           } catch (e) {
             console.error('[zip-import] entry failed:', entry.fileName, e?.message || e);

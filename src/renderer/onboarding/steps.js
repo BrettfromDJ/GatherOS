@@ -23,6 +23,12 @@
 //                                    detail panel).
 //   - { type: 'appears', selector }  waits for a selector to mount
 //                                    (e.g. detail panel appearing).
+//   - { type: 'choice', options }    branching final step. Each
+//                                    option = { label, value,
+//                                    action?, danger? } — action
+//                                    is a string keyed in
+//                                    OnboardingOverlay (currently
+//                                    only 'remove-starter-pack').
 
 export const STEPS = [
   // 1. Intro — modal-style, no spotlight.
@@ -68,19 +74,31 @@ export const STEPS = [
     body: "Group saves by project, mood, or anything else. A save can live in many collections at once — they're tags, not folders.",
     advance: { type: 'next', label: 'Next' },
   },
-  // 5. Spaces — same pattern. Last step; Done flips back to the
-  // Library tab so the user lands somewhere actionable, then
-  // closes the overlay.
+  // 5. Spaces — same pattern. Next advances to the final choice.
   {
     id: 'spaces',
     target: null,
     onEnter: '[data-onboarding="mode-boards"]',
     title: 'Spaces',
     body: 'Infinite canvases for moodboards and layouts. Drag images in, add notes, and present full-screen.',
+    advance: { type: 'next', label: 'Next' },
+  },
+  // 6. Keep / start-fresh. The chosen option's `action` fires
+  // before the overlay closes — 'fresh' removes the starter-pack
+  // saves on the main process. Either branch flips back to the
+  // Library tab so the user lands somewhere actionable.
+  {
+    id: 'finale',
+    target: null,
+    onEnter: '[data-onboarding="mode-library"]',
+    title: 'Keep the starter pack?',
+    body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or clear them out to start with an empty library.",
     advance: {
-      type: 'next',
-      label: 'Done',
-      clickBefore: '[data-onboarding="mode-library"]',
+      type: 'choice',
+      options: [
+        { label: 'Keep them', value: 'keep' },
+        { label: 'Start fresh', value: 'fresh', action: 'remove-starter-pack', danger: true },
+      ],
     },
   },
 ];

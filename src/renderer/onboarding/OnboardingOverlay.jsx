@@ -232,6 +232,30 @@ export default function OnboardingOverlay() {
             {step.advance.label || 'Next'}
           </button>
         )}
+        {step.advance?.type === 'choice' && (
+          <div className={styles.choices}>
+            {step.advance.options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={[
+                  styles.primaryBtn,
+                  opt.danger && styles.dangerBtn,
+                ].filter(Boolean).join(' ')}
+                onClick={async () => {
+                  if (opt.action === 'remove-starter-pack') {
+                    try {
+                      await window.moodmark?.onboarding?.removeStarterPack?.();
+                    } catch { /* non-fatal — overlay still closes */ }
+                  }
+                  advance();
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>,
     document.body,

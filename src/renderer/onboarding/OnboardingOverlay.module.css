@@ -127,6 +127,35 @@
   background: var(--accent-hover, var(--accent, #4f8cff));
 }
 
+.dangerBtn {
+  background: transparent;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.72));
+  border: 0.5px solid var(--border, rgba(0, 0, 0, 0.16));
+}
+
+.dangerBtn:hover {
+  background: rgba(211, 61, 61, 0.08);
+  color: #d33d3d;
+  border-color: rgba(211, 61, 61, 0.45);
+}
+
+:root[data-theme="dark"] .dangerBtn {
+  color: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+:root[data-theme="dark"] .dangerBtn:hover {
+  background: rgba(211, 61, 61, 0.15);
+  color: #ff8a8a;
+  border-color: rgba(255, 138, 138, 0.45);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* Dim siblings for the 'open a save' step. Lives at the global
    level (and uses !important) because ImageCard sets its own
    inline style={} on the same button — without this, React

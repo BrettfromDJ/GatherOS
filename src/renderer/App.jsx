@@ -608,6 +608,26 @@ export default function App() {
     // onboarding.start is stable; intentionally a mount-only effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Starter-pack lifecycle. Install on every walkthrough start
+  // (idempotent — ingestZip dedups by content hash, so re-running
+  // it on an already-installed library is a no-op). Reload on
+  // every walkthrough end so the library reflects the result of
+  // the 'fresh' choice (or just a fresh install on first launch).
+  const prevOnboardingActive = useRef(false);
+  useEffect(() => {
+    const wasActive = prevOnboardingActive.current;
+    prevOnboardingActive.current = onboarding.active;
+    if (!wasActive && onboarding.active) {
+      (async () => {
+        try { await window.moodmark?.onboarding?.installStarterPack?.(); }
+        catch (e) { console.warn('[onboarding] starter-pack install failed:', e); }
+        reload();
+      })();
+    } else if (wasActive && !onboarding.active) {
+      reload();
+    }
+  }, [onboarding.active, reload]);
   // True when both the toggle is on AND the user is signed-in to a
   // license session — search will route through embeddings rather
   // than LIKE.

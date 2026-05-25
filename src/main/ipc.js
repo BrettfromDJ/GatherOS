@@ -31,6 +31,7 @@ const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
 const { quitAndInstall } = require('./updater');
 const { ingestZip } = require('./zipImport');
+const { installStarterPack, removeStarterPack } = require('./starterPack');
 const {
   hasSession: hasAiSession,
   autoTagImage,
@@ -337,6 +338,11 @@ function registerIpcHandlers() {
       return { ok: false, error: err?.message || String(err) };
     }
   });
+
+  // Onboarding starter-pack: install bundled images on walkthrough
+  // start, remove them if the user picks "start fresh" at the end.
+  ipcMain.handle('onboarding:install-starter-pack', () => installStarterPack());
+  ipcMain.handle('onboarding:remove-starter-pack', () => removeStarterPack());
 
   ipcMain.handle('saves:drop-url', async (_e, payload) => {
     const candidates = Array.isArray(payload?.urls)
