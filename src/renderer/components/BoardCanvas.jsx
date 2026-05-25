@@ -40,6 +40,24 @@ function arrowBboxFromPoints(points) {
   };
 }
 
+// Expand a set of item ids to include every sibling that shares a
+// data.groupId with any member. Used by the click + drag + lasso
+// selection paths so a group always selects as a unit. Items
+// without a groupId pass through unchanged.
+function expandToGroups(ids, items) {
+  const idSet = ids instanceof Set ? ids : new Set(ids);
+  const groupIds = new Set();
+  for (const it of items) {
+    if (idSet.has(it.id) && it.data?.groupId) groupIds.add(it.data.groupId);
+  }
+  if (groupIds.size === 0) return idSet;
+  const out = new Set(idSet);
+  for (const it of items) {
+    if (it.data?.groupId && groupIds.has(it.data.groupId)) out.add(it.id);
+  }
+  return out;
+}
+
 // Convert a screen-space point (relative to the canvas's top-left)
 // into world coordinates given the current pan + zoom.
 function screenToWorld(sx, sy, pan, zoom) {
@@ -1003,12 +1021,15 @@ export default function BoardCanvas({
 
     // If the user starts dragging a non-selected item, snap selection
     // to just that item; otherwise drag the whole current selection.
+    // Group-aware: dragging an unselected group member promotes the
+    // selection to the whole group so the group moves as a unit.
     let movingIds;
     if (selectedIds.has(item.id)) {
       movingIds = Array.from(selectedIds);
     } else {
-      movingIds = [item.id];
-      onSelectIds(new Set([item.id]));
+      const expanded = expandToGroups(new Set([item.id]), items);
+      movingIds = Array.from(expanded);
+      onSelectIds(expanded);
     }
 
     // Frames behave like spatial groups — dragging a frame translates
@@ -1150,7 +1171,7 @@ export default function BoardCanvas({
             hits.add(item.id);
           }
         }
-        onSelectIds(hits);
+        onSelectIds(expandToGroups(hits, items));
         return;
       }
       if (panState.current) {
@@ -1756,7 +1777,7 @@ export default function BoardCanvas({
                 if (next.has(id)) next.delete(id); else next.add(id);
                 onSelectIds(next);
               } else if (!selectedIds.has(id)) {
-                onSelectIds(new Set([id]));
+                onSelectIds(expandToGroups(new Set([id]), items));
               }
             }}
             onMoveStart={handleItemMoveStart}

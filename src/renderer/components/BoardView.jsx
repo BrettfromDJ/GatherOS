@@ -33,6 +33,9 @@ import {
   CornerDownRight,
   Pencil,
   Play,
+  Group,
+  Ungroup,
+  AlignVerticalSpaceAround,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -499,6 +502,55 @@ function ShapeControls({ item, onUpdate }) {
 function nextZ(items) {
   if (items.length === 0) return 1;
   return Math.max(...items.map((i) => i.z_index ?? 0)) + 1;
+}
+
+// Shift an item by (dx, dy). For arrows, the world-coord polyline
+// in data.points has to translate alongside x/y or the line stays
+// put while the wrapper drifts — same logic the canvas drag uses.
+function translateBoardItem(item, dx, dy) {
+  if (dx === 0 && dy === 0) return item;
+  const baseX = item.x || 0;
+  const baseY = item.y || 0;
+  if (item.type === 'arrow' && item.data) {
+    const oldPoints = Array.isArray(item.data.points) && item.data.points.length >= 2
+      ? item.data.points
+      : [
+          { x: item.data.x1 ?? 0, y: item.data.y1 ?? 0 },
+          { x: item.data.x2 ?? 0, y: item.data.y2 ?? 0 },
+        ];
+    return {
+      ...item,
+      x: baseX + dx,
+      y: baseY + dy,
+      data: {
+        ...item.data,
+        points: oldPoints.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+      },
+      updated_at: Date.now(),
+    };
+  }
+  return {
+    ...item,
+    x: baseX + dx,
+    y: baseY + dy,
+    updated_at: Date.now(),
+  };
+}
+
+// Bounding rect across a set of items.
+function itemsBBox(list) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const it of list) {
+    const x = it.x || 0;
+    const y = it.y || 0;
+    const w = it.width || 0;
+    const h = it.height || 0;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x + w > maxX) maxX = x + w;
+    if (y + h > maxY) maxY = y + h;
+  }
+  return { minX, minY, maxX, maxY };
 }
 
 // Combined shape + arrow tool button. Clicking the icon opens a
@@ -1956,6 +2008,134 @@ export default function BoardView({
             persistItem(next);
             return next;
           }));
+        },
+      });
+    }
+
+    // Align + Distribute — multi-select only. Distribute needs ≥ 3
+    // items so there's at least one interior gap to even out.
+    const applyAlign = (computeDelta) => {
+      pushHistory();
+      const bbox = itemsBBox(targets);
+      const updates = [];
+      const updatedById = new Map();
+      for (const it of targets) {
+        const { dx, dy } = computeDelta(it, bbox);
+        if (dx === 0 && dy === 0) continue;
+        const next = translateBoardItem(it, dx, dy);
+        updates.push(next);
+        updatedById.set(it.id, next);
+      }
+      if (updates.length === 0) return;
+      setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+      persistMany(updates);
+    };
+
+    const distribute = (axis) => {
+      pushHistory();
+      const key = axis === 'x' ? 'x' : 'y';
+      const sizeKey = axis === 'x' ? 'width' : 'height';
+      const sorted = [...targets].sort((a, b) => (a[key] || 0) - (b[key] || 0));
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+      const totalSize = sorted.reduce((s, it) => s + (it[sizeKey] || 0), 0);
+      const span = ((last[key] || 0) + (last[sizeKey] || 0)) - (first[key] || 0);
+      const gap = (span - totalSize) / (sorted.length - 1);
+      let cursor = first[key] || 0;
+      const updates = [];
+      const updatedById = new Map();
+      for (const it of sorted) {
+        const target = cursor;
+        const delta = target - (it[key] || 0);
+        if (delta !== 0) {
+          const next = axis === 'x'
+            ? translateBoardItem(it, delta, 0)
+            : translateBoardItem(it, 0, delta);
+          updates.push(next);
+          updatedById.set(it.id, next);
+        }
+        cursor += (it[sizeKey] || 0) + gap;
+      }
+      if (updates.length === 0) return;
+      setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+      persistMany(updates);
+    };
+
+    if (isMulti) {
+      out.push({ type: 'separator' });
+      out.push({
+        label: 'Align',
+        icon: <AlignCenter size={14} strokeWidth={1.7} />,
+        submenu: [
+          { label: 'Left',                 onClick: () => applyAlign((it, b) => ({ dx: b.minX - (it.x || 0), dy: 0 })) },
+          { label: 'Center horizontally',  onClick: () => applyAlign((it, b) => ({ dx: ((b.minX + b.maxX) / 2) - ((it.x || 0) + (it.width || 0) / 2), dy: 0 })) },
+          { label: 'Right',                onClick: () => applyAlign((it, b) => ({ dx: b.maxX - ((it.x || 0) + (it.width || 0)), dy: 0 })) },
+          { type: 'separator' },
+          { label: 'Top',                  onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.minY - (it.y || 0) })) },
+          { label: 'Center vertically',    onClick: () => applyAlign((it, b) => ({ dx: 0, dy: ((b.minY + b.maxY) / 2) - ((it.y || 0) + (it.height || 0) / 2) })) },
+          { label: 'Bottom',               onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.maxY - ((it.y || 0) + (it.height || 0)) })) },
+        ],
+      });
+
+      if (targetIds.length >= 3) {
+        out.push({
+          label: 'Distribute',
+          icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,
+          submenu: [
+            { label: 'Horizontally', onClick: () => distribute('x') },
+            { label: 'Vertically',   onClick: () => distribute('y') },
+          ],
+        });
+      }
+    }
+
+    // Group / Ungroup. Group requires 2+ items. Ungroup shows when
+    // every selected item shares the same groupId — so a user can
+    // right-click any group member (or all of them) and break it.
+    const targetGroupIds = new Set(targets.map((it) => it.data?.groupId).filter(Boolean));
+    const allShareOneGroup =
+      targets.length > 0 &&
+      targetGroupIds.size === 1 &&
+      targets.every((it) => it.data?.groupId);
+
+    if (isMulti && !allShareOneGroup) {
+      out.push({ type: 'separator' });
+      out.push({
+        label: 'Group',
+        icon: <Group size={14} strokeWidth={1.7} />,
+        onClick: () => {
+          pushHistory();
+          const groupId = uuid();
+          const updates = [];
+          const updatedById = new Map();
+          for (const it of targets) {
+            const next = { ...it, data: { ...(it.data || {}), groupId }, updated_at: Date.now() };
+            updates.push(next);
+            updatedById.set(it.id, next);
+          }
+          setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+          persistMany(updates);
+        },
+      });
+    } else if (allShareOneGroup) {
+      out.push({ type: 'separator' });
+      out.push({
+        label: 'Ungroup',
+        icon: <Ungroup size={14} strokeWidth={1.7} />,
+        onClick: () => {
+          pushHistory();
+          const updates = [];
+          const updatedById = new Map();
+          for (const it of targets) {
+            if (!it.data?.groupId) continue;
+            const { groupId: _drop, ...restData } = it.data;
+            const next = { ...it, data: restData, updated_at: Date.now() };
+            updates.push(next);
+            updatedById.set(it.id, next);
+          }
+          if (updates.length === 0) return;
+          setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+          persistMany(updates);
         },
       });
     }
