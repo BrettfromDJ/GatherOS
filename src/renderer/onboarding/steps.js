@@ -60,13 +60,19 @@ export const STEPS = [
     body: "Group saves by project, mood, or anything else. A save can live in many collections at once — they're tags, not folders.",
     advance: { type: 'next', label: 'Next' },
   },
-  // 5. Spaces — same pattern. Last step; Done closes the overlay.
+  // 5. Spaces — same pattern. Last step; Done flips back to the
+  // Library tab so the user lands somewhere actionable, then
+  // closes the overlay.
   {
     id: 'spaces',
     target: null,
     onEnter: '[data-onboarding="mode-boards"]',
     title: 'Spaces',
     body: 'Infinite canvases for moodboards and layouts. Drag images in, add notes, and present full-screen.',
-    advance: { type: 'next', label: 'Done' },
+    advance: {
+      type: 'next',
+      label: 'Done',
+      clickBefore: '[data-onboarding="mode-library"]',
+    },
   },
 ];

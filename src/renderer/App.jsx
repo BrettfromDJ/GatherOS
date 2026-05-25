@@ -66,6 +66,7 @@ import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
 import OnboardingOverlay from './onboarding/OnboardingOverlay.jsx';
+import { useOnboarding, ONBOARDING_DONE_PREF } from './onboarding/OnboardingContext.jsx';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -90,6 +91,7 @@ const LinkIcon = () => <Link2 {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
 export default function App() {
+  const onboarding = useOnboarding();
   const {
     saves,
     loading,
@@ -593,7 +595,18 @@ export default function App() {
   const [createCollectionSignal, setCreateCollectionSignal] = useState(0);
   useEffect(() => {
     window.moodmark.ai.hasSession().then(setAiConfigured);
-    window.moodmark.settings.getPrefs().then(setPrefs);
+    window.moodmark.settings.getPrefs().then((p) => {
+      setPrefs(p);
+      // First-launch auto-trigger for the walkthrough. The flag is
+      // written when the user finishes (or dismisses) the tour, so
+      // it only fires on a truly fresh install. Settings → Help →
+      // Restart walkthrough remains the manual replay entry point.
+      if (!p?.[ONBOARDING_DONE_PREF]) {
+        onboarding.start();
+      }
+    });
+    // onboarding.start is stable; intentionally a mount-only effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // True when both the toggle is on AND the user is signed-in to a
   // license session — search will route through embeddings rather
