@@ -8,7 +8,7 @@ const PAD = 6;
 
 export default function OnboardingOverlay() {
   const {
-    active, step, stepIndex, totalSteps, advance, exit, onChoice,
+    active, step, stepIndex, totalSteps, advance, exit,
   } = useOnboarding();
   const [targetRect, setTargetRect] = useState(null);
 
@@ -158,30 +158,22 @@ export default function OnboardingOverlay() {
           <button
             type="button"
             className={styles.primaryBtn}
-            onClick={advance}
+            onClick={() => {
+              // Some steps need to nudge the app state before
+              // advancing (e.g. closing the detail panel so step 4
+              // can spotlight the Collections tab in the library
+              // view). The selector is dispatched a click before
+              // the index moves forward.
+              const sel = step.advance?.clickBefore;
+              if (sel) {
+                const el = document.querySelector(sel);
+                if (el && typeof el.click === 'function') el.click();
+              }
+              advance();
+            }}
           >
             {step.advance.label || 'Next'}
           </button>
-        )}
-        {step.advance?.type === 'choice' && (
-          <div className={styles.choices}>
-            {step.advance.options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={[
-                  styles.primaryBtn,
-                  opt.danger && styles.dangerBtn,
-                ].filter(Boolean).join(' ')}
-                onClick={() => {
-                  try { onChoice?.(opt.value); } catch { /* host failure shouldn't strand the overlay */ }
-                  exit();
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
         )}
       </div>
     </div>,

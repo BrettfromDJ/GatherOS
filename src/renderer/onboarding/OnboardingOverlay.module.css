@@ -113,7 +113,7 @@
   width: 100%;
   padding: 8px 14px;
   background: var(--accent, #4f8cff);
-  color: #ffffff;
+  color: var(--text-on-accent, #ffffff);
   border: none;
   border-radius: 8px;
   font-family: inherit;
@@ -124,17 +124,7 @@
 }
 
 .primaryBtn:hover {
-  filter: brightness(1.08);
-}
-
-.dangerBtn {
-  background: #d33d3d;
-}
-
-.choices {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  background: var(--accent-hover, var(--accent, #4f8cff));
 }
 
 @keyframes tooltipIn {

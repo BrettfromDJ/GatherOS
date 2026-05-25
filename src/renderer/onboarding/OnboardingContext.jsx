@@ -15,8 +15,6 @@ const OnboardingContext = createContext({
   exit: () => {},
   advance: () => {},
   goTo: () => {},
-  onChoice: null,
-  setOnChoice: () => {},
 });
 
 export function useOnboarding() {
@@ -25,10 +23,6 @@ export function useOnboarding() {
 
 export function OnboardingProvider({ children }) {
   const [stepIndex, setStepIndex] = useState(-1);
-  // Optional callback fired by the final 'choice' step with the
-  // selected option value ('keep' | 'fresh'). The host wires this to
-  // their starter-pack reset flow.
-  const [onChoice, setOnChoice] = useState(null);
 
   const active = stepIndex >= 0 && stepIndex < STEPS.length;
 
@@ -48,8 +42,7 @@ export function OnboardingProvider({ children }) {
     stepIndex,
     totalSteps: STEPS.length,
     start, exit, advance, goTo,
-    onChoice, setOnChoice,
-  }), [active, stepIndex, start, exit, advance, goTo, onChoice]);
+  }), [active, stepIndex, start, exit, advance, goTo]);
 
   return (
     <OnboardingContext.Provider value={value}>
