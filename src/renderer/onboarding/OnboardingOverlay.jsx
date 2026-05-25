@@ -3,12 +3,8 @@ import { createPortal } from 'react-dom';
 import { useOnboarding } from './OnboardingContext.jsx';
 import styles from './OnboardingOverlay.module.css';
 
-// Visual padding around the spotlight cutout, in CSS px.
+// Visual padding around the spotlight ring, in CSS px.
 const PAD = 6;
-// Gap between the spotlight edge and the tooltip.
-const GAP = 14;
-// Margin from the viewport edge when the tooltip would clip.
-const VIEWPORT_MARGIN = 12;
 
 export default function OnboardingOverlay() {
   const {
@@ -125,18 +121,13 @@ export default function OnboardingOverlay() {
 
   if (!active || !step) return null;
 
-  const tooltipStyle = targetRect
-    ? computeTooltipStyle(targetRect, step.placement || 'bottom')
-    : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
-
   return createPortal(
     <div className={styles.overlay} aria-live="polite">
-      {/* The spotlight's outer box-shadow IS the dim layer — that's
-          how the cutout stays at 100% opacity. Only fall back to a
-          full-screen scrim when there's no target (centered intro /
-          outro / choice steps) or when the target hasn't mounted
-          yet. */}
-      {targetRect ? (
+      {/* Just a focus ring around the target — no scrim, no dim.
+          Pointer-events: none; the document-level capture handler
+          still gates clicks so the walkthrough stays "locked in"
+          even though nothing visually blocks the rest of the UI. */}
+      {targetRect && (
         <div
           className={styles.spotlight}
           style={{
@@ -146,10 +137,8 @@ export default function OnboardingOverlay() {
             height: targetRect.height + PAD * 2,
           }}
         />
-      ) : (
-        <div className={styles.scrim} />
       )}
-      <div className={styles.tooltip} style={tooltipStyle}>
+      <div className={styles.tooltip}>
         <div className={styles.tooltipHeader}>
           <span className={styles.stepCount}>
             Step {stepIndex + 1} of {totalSteps}
@@ -198,34 +187,4 @@ export default function OnboardingOverlay() {
     </div>,
     document.body,
   );
-}
-
-function computeTooltipStyle(rect, placement) {
-  const cx = rect.x + rect.width / 2;
-  const cy = rect.y + rect.height / 2;
-  let style;
-  switch (placement) {
-    case 'top':
-      style = { left: cx, top: rect.y - PAD - GAP, transform: 'translate(-50%, -100%)' };
-      break;
-    case 'left':
-      style = { left: rect.x - PAD - GAP, top: cy, transform: 'translate(-100%, -50%)' };
-      break;
-    case 'right':
-      style = { left: rect.x + rect.width + PAD + GAP, top: cy, transform: 'translate(0, -50%)' };
-      break;
-    case 'bottom':
-    default:
-      style = { left: cx, top: rect.y + rect.height + PAD + GAP, transform: 'translate(-50%, 0)' };
-      break;
-  }
-  // Clamp the resolved left to the viewport so the tooltip doesn't
-  // visually clip off a screen edge. The transform handles the
-  // anchor offset; clamping the raw `left` keeps the bubble inside.
-  if (typeof style.left === 'number') {
-    const vw = window.innerWidth;
-    if (style.left < VIEWPORT_MARGIN) style.left = VIEWPORT_MARGIN;
-    if (style.left > vw - VIEWPORT_MARGIN) style.left = vw - VIEWPORT_MARGIN;
-  }
-  return style;
 }

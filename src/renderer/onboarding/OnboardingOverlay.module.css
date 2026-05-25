@@ -7,34 +7,29 @@
   pointer-events: none;
 }
 
-/* Dim layer behind the spotlight. The tooltip + spotlight stack on
-   top with their own pointer-events. */
-.scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  animation: scrimIn 200ms ease-out;
-}
-
-/* Spotlight: a transparent rectangle with a huge inset-shadowed
-   doughnut around it, effectively cutting a "hole" in the scrim.
-   We also draw a thin accent ring so the target is unambiguous.
-   pointer-events: none — the document-level capture handler does
-   the gating; this layer is purely visual. */
+/* Just a focus ring around the target — no dim, no scrim. Combined
+   with the document-level capture handler that gates clicks, the
+   user is still locked to the spotlighted action but the rest of
+   the app stays fully visible. */
 .spotlight {
   position: absolute;
-  box-shadow:
-    0 0 0 9999px rgba(0, 0, 0, 0.55),
-    0 0 0 2px var(--accent, #4f8cff) inset;
   border-radius: 10px;
+  box-shadow:
+    0 0 0 2px var(--accent, #4f8cff),
+    0 0 0 4px rgba(79, 140, 255, 0.25),
+    0 0 16px rgba(79, 140, 255, 0.45);
   pointer-events: none;
   transition: left 200ms ease, top 200ms ease, width 200ms ease, height 200ms ease;
 }
 
 .tooltip {
-  position: absolute;
-  max-width: 320px;
-  min-width: 240px;
+  position: fixed;
+  /* Pinned to the bottom-left corner so the tooltip's location is
+     stable across steps — your eye doesn't have to hunt for it. */
+  left: 24px;
+  bottom: 24px;
+  max-width: 340px;
+  min-width: 260px;
   padding: 14px 16px 16px;
   background: var(--surface-1, #ffffff);
   color: var(--text-primary, #000000);
@@ -142,12 +137,7 @@
   gap: 6px;
 }
 
-@keyframes scrimIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes tooltipIn {
-  from { opacity: 0; transform: translate(var(--tx, -50%), calc(var(--ty, 0%) + 6px)); }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
