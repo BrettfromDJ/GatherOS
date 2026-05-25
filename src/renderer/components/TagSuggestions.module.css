@@ -5,12 +5,18 @@
   /* Sit above the detail panel's metadata table and any other
      positioned siblings in the right rail. Glass+backdrop-filter
      was unreliable inside the panel's animated stacking context, so
-     this popover renders on a solid surface. */
+     this popover renders on a solid surface.
+
+     Background is hard-coded (not var(--surface-1)) because the
+     DetailPanel locally re-defines --surface-1 to a translucent
+     glass value for its own surfaces — using the token here would
+     make the popover see-through and let tag chips behind it bleed
+     into the list. */
   z-index: 100;
   min-width: 160px;
   max-width: 240px;
   padding: 4px;
-  background: var(--surface-1);
+  background: #FAFAF9;
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow:
@@ -18,6 +24,10 @@
     0 16px 36px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
+}
+
+:root[data-theme="dark"] .list {
+  background: #242426;
 }
 
 .item {
