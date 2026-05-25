@@ -275,6 +275,7 @@ function NewBoardTile({ onActivate }) {
       className={`${styles.tile} ${styles.tileNew}`}
       onClick={onActivate}
       title="New space"
+      data-onboarding="new-space"
     >
       <div className={`${styles.tileArt} ${styles.tileArtNew}`}>
         <Plus size={28} strokeWidth={1.4} aria-hidden="true" />

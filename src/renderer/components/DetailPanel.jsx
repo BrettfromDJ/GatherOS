@@ -589,7 +589,7 @@ export default function DetailPanel({
   }, [infoOpen]);
 
   return (
-    <aside className={styles.panel}>
+    <aside className={styles.panel} data-onboarding="detail-panel">
       <header className={styles.header}>
         <span className={styles.headerLabel}>Details</span>
         <div className={styles.headerActions}>
@@ -605,7 +605,12 @@ export default function DetailPanel({
           >
             <InfoIcon size={14} strokeWidth={1.8} aria-hidden="true" />
           </button>
-          <button className={styles.closeBtn} onClick={onClose} title="Close">
+          <button
+            className={styles.closeBtn}
+            onClick={onClose}
+            title="Close"
+            data-onboarding="detail-close"
+          >
             ×
           </button>
         </div>

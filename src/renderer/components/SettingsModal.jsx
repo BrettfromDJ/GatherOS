@@ -15,7 +15,10 @@ import {
   CreditCard as CreditCardIcon,
   FileArchive as FileArchiveIcon,
   Eraser as EraserIcon,
+  LifeBuoy as LifeBuoyIcon,
+  PlayCircle as PlayCircleIcon,
 } from 'lucide-react';
+import { useOnboarding } from '../onboarding/OnboardingContext.jsx';
 import styles from './SettingsModal.module.css';
 import { confirm } from '../lib/confirm.js';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
@@ -37,6 +40,7 @@ const NAV_ITEMS = [
   { id: 'capture',    label: 'Capture',    Icon: CameraIcon },
   { id: 'updates',    label: 'Updates',    Icon: DownloadIcon },
   { id: 'data',       label: 'Data',       Icon: Database },
+  { id: 'help',       label: 'Help',       Icon: LifeBuoyIcon },
   { id: 'about',      label: 'About',      Icon: Info },
 ];
 
@@ -658,6 +662,7 @@ export default function SettingsModal({
   onRenameLibrary,
   onDeleteLibrary,
 }) {
+  const onboarding = useOnboarding();
   // Whether the licensing session is present — proxy-mode AI is
   // gated on it, not on a per-user OpenAI key. AppGate already shows
   // the signin screen when this is false, so for the most part this
@@ -1576,6 +1581,27 @@ export default function SettingsModal({
                   {wipeState.message}
                 </div>
               )}
+            </div>
+          )}
+
+          {activePage === 'help' && (
+            <div className={styles.page}>
+              <div className={styles.sectionHint}>
+                Replay the first-run tour at any time. It locks the app
+                to one action per step until you complete it or exit.
+              </div>
+              <button
+                type="button"
+                className={styles.aboutLink}
+                onClick={() => {
+                  onboarding.start();
+                  onClose?.();
+                }}
+                style={{ marginTop: 12 }}
+              >
+                <PlayCircleIcon size={14} strokeWidth={1.6} aria-hidden="true" />
+                <span style={{ marginLeft: 6 }}>Restart walkthrough</span>
+              </button>
             </div>
           )}
 

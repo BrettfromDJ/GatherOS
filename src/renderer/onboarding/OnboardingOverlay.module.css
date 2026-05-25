@@ -1,0 +1,153 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  /* Sits above everything in the app — context menus, modals,
+     panels — so the walkthrough genuinely "locks in" the user. */
+  z-index: 100000;
+  pointer-events: none;
+}
+
+/* Dim layer behind the spotlight. The tooltip + spotlight stack on
+   top with their own pointer-events. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  animation: scrimIn 200ms ease-out;
+}
+
+/* Spotlight: a transparent rectangle with a huge inset-shadowed
+   doughnut around it, effectively cutting a "hole" in the scrim.
+   We also draw a thin accent ring so the target is unambiguous.
+   pointer-events: none — the document-level capture handler does
+   the gating; this layer is purely visual. */
+.spotlight {
+  position: absolute;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.55),
+    0 0 0 2px var(--accent, #4f8cff) inset;
+  border-radius: 10px;
+  pointer-events: none;
+  transition: left 200ms ease, top 200ms ease, width 200ms ease, height 200ms ease;
+}
+
+.tooltip {
+  position: absolute;
+  max-width: 320px;
+  min-width: 240px;
+  padding: 14px 16px 16px;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-primary, #000000);
+  border: 0.5px solid var(--border, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.10);
+  font-family: var(--font-ui, system-ui, sans-serif);
+  pointer-events: auto;
+  animation: tooltipIn 180ms ease-out;
+}
+
+:root[data-theme="dark"] .tooltip {
+  background: #1c1c1e;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.stepCount {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, rgba(0, 0, 0, 0.55));
+}
+
+:root[data-theme="dark"] .stepCount {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.exitBtn {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  margin-right: -6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary, rgba(0, 0, 0, 0.55));
+  cursor: pointer;
+}
+
+.exitBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary, #000);
+}
+
+:root[data-theme="dark"] .exitBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.72));
+  margin-bottom: 12px;
+}
+
+:root[data-theme="dark"] .body {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.primaryBtn {
+  width: 100%;
+  padding: 8px 14px;
+  background: var(--accent, #4f8cff);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryBtn:hover {
+  filter: brightness(1.08);
+}
+
+.dangerBtn {
+  background: #d33d3d;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@keyframes scrimIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translate(var(--tx, -50%), calc(var(--ty, 0%) + 6px)); }
+  to   { opacity: 1; }
+}

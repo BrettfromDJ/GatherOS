@@ -257,6 +257,7 @@ export default function Grid({
             <div
               key={s.id}
               data-save-id={s.id}
+              data-save-title={s.title || undefined}
               className={[
                 styles.listRow,
                 isSelected && styles.listRowSelected,

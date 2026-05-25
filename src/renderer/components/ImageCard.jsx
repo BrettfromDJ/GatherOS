@@ -154,6 +154,7 @@ export default function ImageCard({
       ref={wrapperRef}
       type="button"
       data-save-id={record.id}
+      data-save-title={record.title || undefined}
       draggable={!isPending && !!onDragStart}
       className={[
         styles.card,

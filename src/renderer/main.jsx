@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import AppGate from './AppGate.jsx';
+import { OnboardingProvider } from './onboarding/OnboardingContext.jsx';
 // Geist variable fonts — bundled locally via @fontsource-variable
 // so the app works fully offline. Loaded before our own styles so
 // the @font-face declarations are registered before anything tries
@@ -47,6 +48,8 @@ mql?.addEventListener?.('change', () => {
 const container = document.getElementById('root');
 createRoot(container).render(
   <React.StrictMode>
-    <AppGate />
+    <OnboardingProvider>
+      <AppGate />
+    </OnboardingProvider>
   </React.StrictMode>,
 );

@@ -292,6 +292,7 @@ function ModePill({ mode, onModeChange, compact = false }) {
           type="button"
           role="tab"
           aria-selected={mode === seg.id}
+          data-onboarding={`mode-${seg.id}`}
           className={`${styles.modeSegment} ${mode === seg.id ? styles.modeSegmentActive : ''}`}
           onClick={() => onModeChange(seg.id)}
         >
@@ -514,7 +515,9 @@ export default function Toolbar({
             <RediscoverIcon />
           </button>
         )}
-        <ThemeToggle className={styles.iconBtn} />
+        <span data-onboarding="theme-toggle" style={{ display: 'inline-flex' }}>
+          <ThemeToggle className={styles.iconBtn} />
+        </span>
         {onOpenSettings && (
           <button
             type="button"

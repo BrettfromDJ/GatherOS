@@ -65,6 +65,8 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
+import OnboardingOverlay from './onboarding/OnboardingOverlay.jsx';
+import { useOnboarding } from './onboarding/OnboardingContext.jsx';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -89,6 +91,7 @@ const LinkIcon = () => <Link2 {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
 export default function App() {
+  const onboarding = useOnboarding();
   const {
     saves,
     loading,
@@ -824,6 +827,29 @@ export default function App() {
       // restore is already persisted — no commit needed.
     });
   }, [showActionToast, deleteSave, reload]);
+
+  // Wire the walkthrough's final keep/fresh choice. "fresh" needs
+  // to soft-delete only the starter-pack saves — the starter-pack
+  // import (Phase 2) will tag them so we can scope this; for now
+  // it surfaces a toast and is a no-op on the library.
+  useEffect(() => {
+    onboarding.setOnChoice(() => async (value) => {
+      if (value === 'keep') {
+        showActionToast({ message: 'Starter pack kept. Have fun!', durationMs: 2200 });
+        return;
+      }
+      if (value === 'fresh') {
+        // TODO(starter-pack): once saves are tagged on import, soft-
+        // delete only the starter-pack saves via deleteSave().
+        showActionToast({
+          message: 'Starter pack will move to Trash once the import lands.',
+          durationMs: 3000,
+        });
+      }
+    });
+    // setOnChoice is stable; intentionally registered once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Card context menu
   const [cardCtx, setCardCtx] = useState(null); // { saveId, x, y, items }
@@ -2995,11 +3021,13 @@ export default function App() {
 
       <ConfirmHost />
 
-<WhatsNewModal
+      <WhatsNewModal
         open={!!whatsNewNotes}
         onClose={() => setWhatsNewNotes(null)}
         notes={whatsNewNotes}
       />
+
+      <OnboardingOverlay />
     </div>
   );
 }
