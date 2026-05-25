@@ -920,6 +920,119 @@ function uuid() {
   return `b_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 }
 
+// Floating toolbar that hovers above a multi-selection. Mirrors the
+// shape and positioning of ImageActionBar but unions the bounding
+// rects of every selected item to anchor itself.
+function MultiSelectActionBar({
+  selectedIds,
+  itemsSnapshot,
+  rootEl,
+  pan,
+  zoom,
+  allLocked,
+  inOneGroup,
+  canDistribute,
+  onAlign,
+  onDistribute,
+  onGroup,
+  onUngroup,
+  onBringToFront,
+  onSendToBack,
+  onToggleLock,
+  onRemove,
+}) {
+  const [pos, setPos] = useState(null);
+  useLayoutEffect(() => {
+    if (!rootEl || selectedIds.size < 2) {
+      setPos(null);
+      return undefined;
+    }
+    const compute = () => {
+      const rootRect = rootEl.getBoundingClientRect();
+      let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity;
+      for (const id of selectedIds) {
+        const el = document.querySelector(`[data-item-id="${id}"]`);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.left < minLeft) minLeft = r.left;
+        if (r.top < minTop) minTop = r.top;
+        if (r.right > maxRight) maxRight = r.right;
+      }
+      if (minLeft === Infinity) {
+        setPos(null);
+        return;
+      }
+      setPos({
+        left: ((minLeft + maxRight) / 2) - rootRect.left,
+        top: minTop - rootRect.top - 10,
+      });
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(rootEl);
+    return () => ro.disconnect();
+    // itemsSnapshot is a cheap signal that selection/positions changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, rootEl, pan, zoom, itemsSnapshot]);
+
+  if (!pos) return null;
+
+  const btn = (key, label, Icon, onClick, opts = {}) => (
+    <button
+      key={key}
+      type="button"
+      className={`${styles.tt_btn} ${opts.active ? styles.tt_btn_active : ''}`}
+      data-tooltip={label}
+      title={label}
+      aria-label={label}
+      aria-pressed={opts.active || undefined}
+      onClick={onClick}
+    >
+      <Icon size={14} strokeWidth={1.8} />
+    </button>
+  );
+
+  return (
+    <div
+      className={styles.textToolbar}
+      style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -100%)' }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {btn('align-left',     'Align left',                AlignStartVertical,       () => onAlign('left'))}
+      {btn('align-centerH',  'Align center horizontally', AlignCenterVertical,      () => onAlign('centerH'))}
+      {btn('align-right',    'Align right',               AlignEndVertical,         () => onAlign('right'))}
+      <div className={styles.tt_sep} />
+      {btn('align-top',      'Align top',                 AlignStartHorizontal,     () => onAlign('top'))}
+      {btn('align-centerV',  'Align center vertically',   AlignCenterHorizontal,    () => onAlign('centerV'))}
+      {btn('align-bottom',   'Align bottom',              AlignEndHorizontal,       () => onAlign('bottom'))}
+      {canDistribute && (
+        <>
+          <div className={styles.tt_sep} />
+          {btn('dist-h', 'Distribute horizontally', AlignHorizontalSpaceAround, () => onDistribute('x'))}
+          {btn('dist-v', 'Distribute vertically',   AlignVerticalSpaceAround,   () => onDistribute('y'))}
+        </>
+      )}
+      <div className={styles.tt_sep} />
+      {inOneGroup
+        ? btn('ungroup', 'Ungroup', Ungroup, onUngroup)
+        : btn('group',   'Group',   Group,   onGroup)}
+      <div className={styles.tt_sep} />
+      {btn('front', 'Bring to front', ArrowUpToLine,   onBringToFront)}
+      {btn('back',  'Send to back',   ArrowDownToLine, onSendToBack)}
+      <div className={styles.tt_sep} />
+      {btn(
+        'lock',
+        allLocked ? 'Unlock' : 'Lock',
+        allLocked ? Lock : Unlock,
+        onToggleLock,
+        { active: allLocked },
+      )}
+      <div className={styles.tt_sep} />
+      {btn('remove', 'Remove from board', Trash2, onRemove)}
+    </div>
+  );
+}
+
 export default function BoardView({
   boardId,
   saves,
@@ -1888,6 +2001,130 @@ export default function BoardView({
     }));
   }, [persistItem, pushHistory]);
 
+  // ── Multi-select actions ────────────────────────────────────
+  // Shared by the floating MultiSelectActionBar and the right-click
+  // context menu — both ultimately route through these.
+
+  const alignTargets = useCallback((targetIds, mode) => {
+    const targets = items.filter((it) => targetIds.includes(it.id));
+    if (targets.length < 2) return;
+    const bbox = itemsBBox(targets);
+    const computeByMode = {
+      left:    (it) => ({ dx: bbox.minX - (it.x || 0), dy: 0 }),
+      centerH: (it) => ({ dx: ((bbox.minX + bbox.maxX) / 2) - ((it.x || 0) + (it.width || 0) / 2), dy: 0 }),
+      right:   (it) => ({ dx: bbox.maxX - ((it.x || 0) + (it.width || 0)), dy: 0 }),
+      top:     (it) => ({ dx: 0, dy: bbox.minY - (it.y || 0) }),
+      centerV: (it) => ({ dx: 0, dy: ((bbox.minY + bbox.maxY) / 2) - ((it.y || 0) + (it.height || 0) / 2) }),
+      bottom:  (it) => ({ dx: 0, dy: bbox.maxY - ((it.y || 0) + (it.height || 0)) }),
+    };
+    const compute = computeByMode[mode];
+    if (!compute) return;
+    pushHistory();
+    const updates = [];
+    const updatedById = new Map();
+    for (const it of targets) {
+      const { dx, dy } = compute(it);
+      if (dx === 0 && dy === 0) continue;
+      const next = translateBoardItem(it, dx, dy);
+      updates.push(next);
+      updatedById.set(it.id, next);
+    }
+    if (updates.length === 0) return;
+    setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+    persistMany(updates);
+  }, [items, persistMany, pushHistory]);
+
+  const distributeTargets = useCallback((targetIds, axis) => {
+    const targets = items.filter((it) => targetIds.includes(it.id));
+    if (targets.length < 3) return;
+    pushHistory();
+    const key = axis === 'x' ? 'x' : 'y';
+    const sizeKey = axis === 'x' ? 'width' : 'height';
+    const sorted = [...targets].sort((a, b) => (a[key] || 0) - (b[key] || 0));
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalSize = sorted.reduce((s, it) => s + (it[sizeKey] || 0), 0);
+    const span = ((last[key] || 0) + (last[sizeKey] || 0)) - (first[key] || 0);
+    const gap = (span - totalSize) / (sorted.length - 1);
+    let cursor = first[key] || 0;
+    const updates = [];
+    const updatedById = new Map();
+    for (const it of sorted) {
+      const target = cursor;
+      const delta = target - (it[key] || 0);
+      if (delta !== 0) {
+        const next = axis === 'x'
+          ? translateBoardItem(it, delta, 0)
+          : translateBoardItem(it, 0, delta);
+        updates.push(next);
+        updatedById.set(it.id, next);
+      }
+      cursor += (it[sizeKey] || 0) + gap;
+    }
+    if (updates.length === 0) return;
+    setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+    persistMany(updates);
+  }, [items, persistMany, pushHistory]);
+
+  const groupTargets = useCallback((targetIds) => {
+    const targets = items.filter((it) => targetIds.includes(it.id));
+    if (targets.length < 2) return;
+    pushHistory();
+    const groupId = uuid();
+    const updates = [];
+    const updatedById = new Map();
+    for (const it of targets) {
+      const next = { ...it, data: { ...(it.data || {}), groupId }, updated_at: Date.now() };
+      updates.push(next);
+      updatedById.set(it.id, next);
+    }
+    setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+    persistMany(updates);
+  }, [items, persistMany, pushHistory]);
+
+  const ungroupTargets = useCallback((targetIds) => {
+    const targets = items.filter((it) => targetIds.includes(it.id));
+    pushHistory();
+    const updates = [];
+    const updatedById = new Map();
+    for (const it of targets) {
+      if (!it.data?.groupId) continue;
+      const { groupId: _drop, ...restData } = it.data;
+      const next = { ...it, data: restData, updated_at: Date.now() };
+      updates.push(next);
+      updatedById.set(it.id, next);
+    }
+    if (updates.length === 0) return;
+    setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
+    persistMany(updates);
+  }, [items, persistMany, pushHistory]);
+
+  const bringTargetsToFront = useCallback((targetIds) => {
+    pushHistory();
+    let z = items.reduce((m, it) => Math.max(m, it.z_index ?? 0), 0);
+    const next = items.map((it) => {
+      if (!targetIds.includes(it.id)) return it;
+      z += 1;
+      const updated = { ...it, z_index: z, updated_at: Date.now() };
+      persistItem(updated);
+      return updated;
+    });
+    setItems(next);
+  }, [items, persistItem, pushHistory]);
+
+  const sendTargetsToBack = useCallback((targetIds) => {
+    pushHistory();
+    let z = items.reduce((m, it) => Math.min(m, it.z_index ?? 0), 0);
+    const next = items.map((it) => {
+      if (!targetIds.includes(it.id)) return it;
+      z -= 1;
+      const updated = { ...it, z_index: z, updated_at: Date.now() };
+      persistItem(updated);
+      return updated;
+    });
+    setItems(next);
+  }, [items, persistItem, pushHistory]);
+
   const buildBoardCtxItems = useCallback((target) => {
     // If the right-clicked item is in the current selection, the
     // menu acts on every selected item; otherwise just on the one.
@@ -1895,7 +2132,9 @@ export default function BoardView({
       ? Array.from(selectedIds)
       : [target.id];
     const isMulti = targetIds.length > 1;
-    const suffix = isMulti ? ` (${targetIds.length})` : '';
+    // Labels don't carry a count — the highlighted selection already
+    // tells the user how many items the action will hit.
+    const suffix = '';
     const targets = items.filter((it) => targetIds.includes(it.id));
     const allLocked = targets.every((it) => it.data?.locked);
     const anyShape = targets.some((it) => it.type === 'shape');
@@ -1945,34 +2184,12 @@ export default function BoardView({
     out.push({
       label: `Bring to front${suffix}`,
       icon: <ArrowUpToLine size={14} strokeWidth={1.7} />,
-      onClick: () => {
-        pushHistory();
-        let z = items.reduce((m, it) => Math.max(m, it.z_index ?? 0), 0);
-        const next = items.map((it) => {
-          if (!targetIds.includes(it.id)) return it;
-          z += 1;
-          const updated = { ...it, z_index: z, updated_at: Date.now() };
-          persistItem(updated);
-          return updated;
-        });
-        setItems(next);
-      },
+      onClick: () => bringTargetsToFront(targetIds),
     });
     out.push({
       label: `Send to back${suffix}`,
       icon: <ArrowDownToLine size={14} strokeWidth={1.7} />,
-      onClick: () => {
-        pushHistory();
-        let z = items.reduce((m, it) => Math.min(m, it.z_index ?? 0), 0);
-        const next = items.map((it) => {
-          if (!targetIds.includes(it.id)) return it;
-          z -= 1;
-          const updated = { ...it, z_index: z, updated_at: Date.now() };
-          persistItem(updated);
-          return updated;
-        });
-        setItems(next);
-      },
+      onClick: () => sendTargetsToBack(targetIds),
     });
 
     // Shape kind swap — only when every target is a shape.
@@ -2021,66 +2238,19 @@ export default function BoardView({
 
     // Align + Distribute — multi-select only. Distribute needs ≥ 3
     // items so there's at least one interior gap to even out.
-    const applyAlign = (computeDelta) => {
-      pushHistory();
-      const bbox = itemsBBox(targets);
-      const updates = [];
-      const updatedById = new Map();
-      for (const it of targets) {
-        const { dx, dy } = computeDelta(it, bbox);
-        if (dx === 0 && dy === 0) continue;
-        const next = translateBoardItem(it, dx, dy);
-        updates.push(next);
-        updatedById.set(it.id, next);
-      }
-      if (updates.length === 0) return;
-      setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
-      persistMany(updates);
-    };
-
-    const distribute = (axis) => {
-      pushHistory();
-      const key = axis === 'x' ? 'x' : 'y';
-      const sizeKey = axis === 'x' ? 'width' : 'height';
-      const sorted = [...targets].sort((a, b) => (a[key] || 0) - (b[key] || 0));
-      const first = sorted[0];
-      const last = sorted[sorted.length - 1];
-      const totalSize = sorted.reduce((s, it) => s + (it[sizeKey] || 0), 0);
-      const span = ((last[key] || 0) + (last[sizeKey] || 0)) - (first[key] || 0);
-      const gap = (span - totalSize) / (sorted.length - 1);
-      let cursor = first[key] || 0;
-      const updates = [];
-      const updatedById = new Map();
-      for (const it of sorted) {
-        const target = cursor;
-        const delta = target - (it[key] || 0);
-        if (delta !== 0) {
-          const next = axis === 'x'
-            ? translateBoardItem(it, delta, 0)
-            : translateBoardItem(it, 0, delta);
-          updates.push(next);
-          updatedById.set(it.id, next);
-        }
-        cursor += (it[sizeKey] || 0) + gap;
-      }
-      if (updates.length === 0) return;
-      setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
-      persistMany(updates);
-    };
-
     if (isMulti) {
       out.push({ type: 'separator' });
       out.push({
         label: 'Align',
         icon: <AlignCenterVertical size={14} strokeWidth={1.7} />,
         submenu: [
-          { label: 'Left',                 icon: <AlignStartVertical size={14} strokeWidth={1.7} />,    onClick: () => applyAlign((it, b) => ({ dx: b.minX - (it.x || 0), dy: 0 })) },
-          { label: 'Center horizontally',  icon: <AlignCenterVertical size={14} strokeWidth={1.7} />,   onClick: () => applyAlign((it, b) => ({ dx: ((b.minX + b.maxX) / 2) - ((it.x || 0) + (it.width || 0) / 2), dy: 0 })) },
-          { label: 'Right',                icon: <AlignEndVertical size={14} strokeWidth={1.7} />,      onClick: () => applyAlign((it, b) => ({ dx: b.maxX - ((it.x || 0) + (it.width || 0)), dy: 0 })) },
+          { label: 'Left',                 icon: <AlignStartVertical size={14} strokeWidth={1.7} />,    onClick: () => alignTargets(targetIds, 'left') },
+          { label: 'Center horizontally',  icon: <AlignCenterVertical size={14} strokeWidth={1.7} />,   onClick: () => alignTargets(targetIds, 'centerH') },
+          { label: 'Right',                icon: <AlignEndVertical size={14} strokeWidth={1.7} />,      onClick: () => alignTargets(targetIds, 'right') },
           { type: 'separator' },
-          { label: 'Top',                  icon: <AlignStartHorizontal size={14} strokeWidth={1.7} />,  onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.minY - (it.y || 0) })) },
-          { label: 'Center vertically',    icon: <AlignCenterHorizontal size={14} strokeWidth={1.7} />, onClick: () => applyAlign((it, b) => ({ dx: 0, dy: ((b.minY + b.maxY) / 2) - ((it.y || 0) + (it.height || 0) / 2) })) },
-          { label: 'Bottom',               icon: <AlignEndHorizontal size={14} strokeWidth={1.7} />,    onClick: () => applyAlign((it, b) => ({ dx: 0, dy: b.maxY - ((it.y || 0) + (it.height || 0)) })) },
+          { label: 'Top',                  icon: <AlignStartHorizontal size={14} strokeWidth={1.7} />,  onClick: () => alignTargets(targetIds, 'top') },
+          { label: 'Center vertically',    icon: <AlignCenterHorizontal size={14} strokeWidth={1.7} />, onClick: () => alignTargets(targetIds, 'centerV') },
+          { label: 'Bottom',               icon: <AlignEndHorizontal size={14} strokeWidth={1.7} />,    onClick: () => alignTargets(targetIds, 'bottom') },
         ],
       });
 
@@ -2089,8 +2259,8 @@ export default function BoardView({
           label: 'Distribute',
           icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,
           submenu: [
-            { label: 'Horizontally', icon: <AlignHorizontalSpaceAround size={14} strokeWidth={1.7} />, onClick: () => distribute('x') },
-            { label: 'Vertically',   icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,   onClick: () => distribute('y') },
+            { label: 'Horizontally', icon: <AlignHorizontalSpaceAround size={14} strokeWidth={1.7} />, onClick: () => distributeTargets(targetIds, 'x') },
+            { label: 'Vertically',   icon: <AlignVerticalSpaceAround size={14} strokeWidth={1.7} />,   onClick: () => distributeTargets(targetIds, 'y') },
           ],
         });
       }
@@ -2110,40 +2280,14 @@ export default function BoardView({
       out.push({
         label: 'Group',
         icon: <Group size={14} strokeWidth={1.7} />,
-        onClick: () => {
-          pushHistory();
-          const groupId = uuid();
-          const updates = [];
-          const updatedById = new Map();
-          for (const it of targets) {
-            const next = { ...it, data: { ...(it.data || {}), groupId }, updated_at: Date.now() };
-            updates.push(next);
-            updatedById.set(it.id, next);
-          }
-          setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
-          persistMany(updates);
-        },
+        onClick: () => groupTargets(targetIds),
       });
     } else if (allShareOneGroup) {
       out.push({ type: 'separator' });
       out.push({
         label: 'Ungroup',
         icon: <Ungroup size={14} strokeWidth={1.7} />,
-        onClick: () => {
-          pushHistory();
-          const updates = [];
-          const updatedById = new Map();
-          for (const it of targets) {
-            if (!it.data?.groupId) continue;
-            const { groupId: _drop, ...restData } = it.data;
-            const next = { ...it, data: restData, updated_at: Date.now() };
-            updates.push(next);
-            updatedById.set(it.id, next);
-          }
-          if (updates.length === 0) return;
-          setItems((prev) => prev.map((it) => updatedById.get(it.id) || it));
-          persistMany(updates);
-        },
+        onClick: () => ungroupTargets(targetIds),
       });
     }
 
@@ -2171,6 +2315,9 @@ export default function BoardView({
     items, selectedIds, boardId,
     persistItem, persistMany, pushHistory,
     removeIdsFromBoard, setLockOnIds,
+    alignTargets, distributeTargets,
+    groupTargets, ungroupTargets,
+    bringTargetsToFront, sendTargetsToBack,
   ]);
 
   const handleItemContextMenu = useCallback((target, x, y) => {
@@ -2405,6 +2552,37 @@ export default function BoardView({
           onRemoveFromBoard={handleRemoveFromBoard}
         />
       )}
+
+      {selectedIds.size > 1 && (() => {
+        const ids = Array.from(selectedIds);
+        const selectedItems = items.filter((it) => selectedIds.has(it.id));
+        const allLocked = selectedItems.length > 0 && selectedItems.every((it) => it.data?.locked);
+        const groupSet = new Set(selectedItems.map((it) => it.data?.groupId).filter(Boolean));
+        const inOneGroup =
+          selectedItems.length > 0 &&
+          groupSet.size === 1 &&
+          selectedItems.every((it) => it.data?.groupId);
+        return (
+          <MultiSelectActionBar
+            selectedIds={selectedIds}
+            itemsSnapshot={items}
+            rootEl={rootRef.current}
+            pan={pan}
+            zoom={zoom}
+            allLocked={allLocked}
+            inOneGroup={inOneGroup}
+            canDistribute={ids.length >= 3}
+            onAlign={(mode) => alignTargets(ids, mode)}
+            onDistribute={(axis) => distributeTargets(ids, axis)}
+            onGroup={() => groupTargets(ids)}
+            onUngroup={() => ungroupTargets(ids)}
+            onBringToFront={() => bringTargetsToFront(ids)}
+            onSendToBack={() => sendTargetsToBack(ids)}
+            onToggleLock={() => setLockOnIds(ids, !allLocked)}
+            onRemove={() => removeIdsFromBoard(ids)}
+          />
+        );
+      })()}
 
       {arrowBarItem && (
         <ArrowActionBar
