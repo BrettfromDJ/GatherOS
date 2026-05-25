@@ -98,6 +98,22 @@ h1 {
   background-color: #1f1f1f;
 }
 
+.chrome-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: #00000066;
+  font-family: Geist, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.chrome-soon-icon {
+  flex-shrink: 0;
+  color: #00000080;
+}
+
 .image {
   flex: none;
   display: none;
