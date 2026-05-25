@@ -7,6 +7,8 @@
 // Advance types:
 //   - { type: 'next', label }        explicit Next button
 //   - { type: 'click' }              waits for a click on the target
+//   - { type: 'appears', selector }  waits for a selector to mount
+//                                    (e.g. detail panel appearing)
 //   - { type: 'theme', value }       waits for <html data-theme> to flip
 //   - { type: 'choice', options }    final-step branch (keep / fresh)
 //
@@ -41,14 +43,16 @@ export const STEPS = [
     body: "Group saves by project, mood, or anything else. A save can live in many collections at once — they're tags, not folders.",
     advance: { type: 'next', label: 'Next' },
   },
-  // 4. Click a specific starter-pack image
+  // 4. Open a specific starter-pack image. Advance is keyed off the
+  // detail panel mounting — not the click itself — so it works
+  // whether the user double-clicks, hits enter, or uses the menu.
   {
     id: 'pick-image',
     target: '[data-save-title="Bold Typography Design"]',
     placement: 'right',
     title: 'Open a save',
-    body: 'Click "Bold Typography Design" to look at it in detail.',
-    advance: { type: 'click' },
+    body: 'Double-click "Bold Typography Design" to open it in the detail view.',
+    advance: { type: 'appears', selector: '[data-onboarding="detail-panel"]' },
   },
   // 5. Detail panel
   {

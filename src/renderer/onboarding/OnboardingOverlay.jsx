@@ -106,6 +106,23 @@ export default function OnboardingOverlay() {
     return () => mo.disconnect();
   }, [active, step?.advance?.type, step?.advance?.value, advance]);
 
+  // Watch for a step that advances when a selector appears in the
+  // DOM — used by 'pick-image' to wait until the detail panel
+  // actually mounts, regardless of how the user opened it
+  // (double-click, keyboard, etc).
+  useEffect(() => {
+    if (!active) return undefined;
+    if (step?.advance?.type !== 'appears') return undefined;
+    const sel = step.advance.selector;
+    if (!sel) return undefined;
+    if (document.querySelector(sel)) { advance(); return undefined; }
+    const mo = new MutationObserver(() => {
+      if (document.querySelector(sel)) advance();
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [active, step?.advance?.type, step?.advance?.selector, advance]);
+
   if (!active || !step) return null;
 
   const tooltipStyle = targetRect
@@ -114,10 +131,12 @@ export default function OnboardingOverlay() {
 
   return createPortal(
     <div className={styles.overlay} aria-live="polite">
-      {/* Dim layer. pointer-events: none so the document-level
-          capture handler does the gating. */}
-      <div className={styles.scrim} />
-      {targetRect && (
+      {/* The spotlight's outer box-shadow IS the dim layer — that's
+          how the cutout stays at 100% opacity. Only fall back to a
+          full-screen scrim when there's no target (centered intro /
+          outro / choice steps) or when the target hasn't mounted
+          yet. */}
+      {targetRect ? (
         <div
           className={styles.spotlight}
           style={{
@@ -127,6 +146,8 @@ export default function OnboardingOverlay() {
             height: targetRect.height + PAD * 2,
           }}
         />
+      ) : (
+        <div className={styles.scrim} />
       )}
       <div className={styles.tooltip} style={tooltipStyle}>
         <div className={styles.tooltipHeader}>
