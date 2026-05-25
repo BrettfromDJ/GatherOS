@@ -898,6 +898,13 @@ export default function BoardView({
   // Ref filled by BoardCanvas via the new ref prop below — gives us
   // the canvas DOM rect for the PNG capture region.
   const canvasNodeRef = useRef(null);
+  // Mirrors of pan/zoom for the ResizeObserver below, which fires
+  // outside of render and needs the latest values without forcing the
+  // observer to re-attach on every pan/zoom change.
+  const panRef = useRef(pan);
+  const zoomRef = useRef(zoom);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   // Both export paths flip body[data-board-print] before sampling
   // the page so the print-mode CSS rules can hide the board's
@@ -962,6 +969,37 @@ export default function BoardView({
   function togglePresent() {
     try { window.moodmark?.window?.toggleFullscreen?.(); } catch {}
   }
+
+  // Keep the world point that's currently under the viewport center
+  // pinned to the center when the canvas element resizes. Without
+  // this, going into Present (full-screen) grows the viewport but
+  // leaves `pan` unchanged, so content drifts toward the top-left of
+  // the now-bigger frame. Same goes for ⌃⌘F, the green stoplight, or
+  // a manual window resize.
+  useEffect(() => {
+    const el = canvasNodeRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    let prev = null;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      const last = prev;
+      prev = { width, height };
+      if (!last) return;
+      if (Math.abs(last.width - width) < 1 && Math.abs(last.height - height) < 1) return;
+      const z = zoomRef.current || 1;
+      const p = panRef.current || INITIAL_PAN;
+      const worldCx = (last.width / 2 - p.x) / z;
+      const worldCy = (last.height / 2 - p.y) / z;
+      setPan({
+        x: width / 2 - worldCx * z,
+        y: height / 2 - worldCy * z,
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [boardId]);
 
   // Drop any items whose underlying save was just trashed. Trash
   // also deletes the corresponding board_items rows server-side, so
