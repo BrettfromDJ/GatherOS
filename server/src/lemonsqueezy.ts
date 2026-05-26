@@ -115,7 +115,7 @@ interface LSEvent {
   };
 }
 
-interface LSSubscriptionAttributes {
+export interface LSSubscriptionAttributes {
   store_id?: number;
   customer_id?: number;
   order_id?: number;
@@ -169,7 +169,7 @@ async function handleEvent(env: Env, eventName: string, evt: LSEvent): Promise<v
   // Other events (order_created, etc.) are fine to ignore for now.
 }
 
-async function linkCustomerToUser(
+export async function linkCustomerToUser(
   env: Env,
   userId: string,
   customerId: string,
@@ -212,7 +212,7 @@ function mapStatus(s?: string): SubscriptionRow['status'] {
   }
 }
 
-async function upsertSubscription(
+export async function upsertSubscription(
   env: Env,
   lsSubscriptionId: string,
   d: LSSubscriptionAttributes,

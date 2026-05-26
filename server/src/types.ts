@@ -25,6 +25,9 @@ export type Env = {
   // session token; this Worker proxies to OpenAI using the master key
   // so end users never need to manage one.
   OPENAI_API_KEY: string;
+  // Optional admin token. When set, gates /license/admin-sync so a
+  // missed webhook can be replayed manually from a laptop.
+  ADMIN_TOKEN?: string;
 };
 
 // Row shapes — keep in sync with migrations/0001_initial.sql + later.

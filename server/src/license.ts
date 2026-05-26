@@ -17,6 +17,11 @@
 import { Hono } from 'hono';
 import type { Env, SubscriptionRow } from './types';
 import { bearer, userFromSession } from './auth';
+import {
+  upsertSubscription,
+  linkCustomerToUser,
+  type LSSubscriptionAttributes,
+} from './lemonsqueezy';
 
 export const licenseRoutes = new Hono<{ Bindings: Env }>();
 
@@ -185,6 +190,60 @@ licenseRoutes.post('/checkout', async (c) => {
     console.error('[license] checkout network error:', err);
     return c.json({ ok: false, error: 'network' }, 502);
   }
+});
+
+// Admin-only fallback for missed webhooks. Takes a ?email= query
+// param, looks up the matching user's subscription via the LS API
+// (filtered by user_email), and upserts the row into D1 by reusing
+// the same path the webhook handler takes. Use it when a real
+// purchase landed but the webhook didn't deliver (no live endpoint
+// configured at the time, secret mismatch, etc.).
+//
+// Authed by an ADMIN_TOKEN secret rather than user session, so
+// you can run it from your laptop without impersonating the user.
+licenseRoutes.post('/admin-sync', async (c) => {
+  const provided = bearer(c.req.header('Authorization'));
+  if (!provided || !c.env.ADMIN_TOKEN || provided !== c.env.ADMIN_TOKEN) {
+    return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  }
+  const email = (c.req.query('email') || '').trim().toLowerCase();
+  if (!email) return c.json({ ok: false, error: 'missing_email' }, 400);
+
+  const user = await c.env.DB.prepare(
+    `SELECT id FROM users WHERE email = ?`,
+  ).bind(email).first<{ id: string }>();
+  if (!user) return c.json({ ok: false, error: 'user_not_found' }, 404);
+
+  // Ask LS for any subscriptions belonging to that email. Filter is
+  // documented at https://docs.lemonsqueezy.com/api/subscriptions.
+  const url = `https://api.lemonsqueezy.com/v1/subscriptions?filter%5Buser_email%5D=${encodeURIComponent(email)}`;
+  const res = await fetch(url, { headers: lsHeaders(c.env.LEMONSQUEEZY_API_KEY) });
+  const body = (await res.json().catch(() => ({}))) as {
+    data?: Array<{ id: string; attributes?: LSSubscriptionAttributes }>;
+    errors?: unknown;
+  };
+  if (!res.ok) {
+    console.error('[license:admin-sync] LS list failed:', JSON.stringify(body, null, 2));
+    return c.json({ ok: false, error: 'lemonsqueezy_error' }, 502);
+  }
+  const subs = body.data || [];
+  if (!subs.length) {
+    return c.json({ ok: true, synced: 0, note: 'no subscriptions found in LS for this email' });
+  }
+
+  let synced = 0;
+  for (const s of subs) {
+    if (!s?.attributes) continue;
+    // Make sure the user is linked to the LS customer before
+    // upsertSubscription runs — upsert looks up the user by
+    // customer_id.
+    if (s.attributes.customer_id) {
+      await linkCustomerToUser(c.env, user.id, String(s.attributes.customer_id));
+    }
+    await upsertSubscription(c.env, s.id, s.attributes);
+    synced += 1;
+  }
+  return c.json({ ok: true, synced });
 });
 
 function lsHeaders(apiKey: string): Record<string, string> {
