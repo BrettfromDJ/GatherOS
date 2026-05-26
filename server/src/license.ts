@@ -187,28 +187,6 @@ licenseRoutes.post('/checkout', async (c) => {
   }
 });
 
-// TEMPORARY DEBUG: list every variant + store the configured LS API
-// key can see. Lets us verify whether the IDs in wrangler.toml exist
-// in this key's account. Delete this endpoint once we've confirmed.
-licenseRoutes.get('/debug-ls', async (c) => {
-  const variants = await fetch('https://api.lemonsqueezy.com/v1/variants', {
-    headers: lsHeaders(c.env.LEMONSQUEEZY_API_KEY),
-  }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
-  const stores = await fetch('https://api.lemonsqueezy.com/v1/stores', {
-    headers: lsHeaders(c.env.LEMONSQUEEZY_API_KEY),
-  }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
-  return c.json({
-    configured: {
-      store_id: c.env.LEMONSQUEEZY_STORE_ID,
-      variant_monthly: c.env.LEMONSQUEEZY_VARIANT_MONTHLY,
-      variant_yearly: c.env.LEMONSQUEEZY_VARIANT_YEARLY,
-      test_mode: c.env.LEMONSQUEEZY_TEST_MODE,
-    },
-    stores,
-    variants,
-  });
-});
-
 function lsHeaders(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
