@@ -5,6 +5,10 @@
 // pinned bottom-left either way).
 //
 // Optional fields:
+//   - icon:         string key mapped to a lucide glyph in
+//                   OnboardingOverlay (currently 'library' /
+//                   'collections' / 'spaces'). Renders next to
+//                   the step title.
 //   - noBack:       true to hide the Previous button on this step.
 //                   Used when reverse navigation would land in a
 //                   state the previous step doesn't expect.
@@ -49,6 +53,7 @@ export const STEPS = [
   {
     id: 'saves',
     target: null,
+    icon: 'library',
     title: 'Your library',
     body: 'Everything you collect lives here — drag images in, paste URLs, or save from the browser extension.',
     advance: {
@@ -87,6 +92,7 @@ export const STEPS = [
   {
     id: 'collections',
     target: null,
+    icon: 'collections',
     noBack: true,
     onEnter: '[data-onboarding="mode-folders"]',
     title: 'Collections',
@@ -97,6 +103,7 @@ export const STEPS = [
   {
     id: 'spaces',
     target: null,
+    icon: 'spaces',
     onEnter: '[data-onboarding="mode-boards"]',
     title: 'Spaces',
     body: 'Infinite canvases for moodboards and layouts. Drag images in, add notes, and present full-screen.',

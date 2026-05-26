@@ -1,8 +1,22 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X as XIcon } from 'lucide-react';
+import {
+  X as XIcon,
+  SquareLibrary as LibraryIcon,
+  Folder as FolderIcon,
+  Eclipse as LayersIcon,
+} from 'lucide-react';
 import { useOnboarding } from './OnboardingContext.jsx';
 import styles from './OnboardingOverlay.module.css';
+
+// Map the step's `icon` string to the same lucide glyph the
+// toolbar's mode pill uses — keeps the walkthrough's visual
+// vocabulary aligned with the live UI it's pointing at.
+const STEP_ICONS = {
+  library: LibraryIcon,
+  collections: FolderIcon,
+  spaces: LayersIcon,
+};
 
 // Visual padding around the spotlight ring, in CSS px.
 const PAD = 6;
@@ -208,7 +222,19 @@ export default function OnboardingOverlay() {
             <XIcon size={14} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
-        {step.title && <div className={styles.title}>{step.title}</div>}
+        {step.title && (
+          <div className={styles.title}>
+            {step.icon && STEP_ICONS[step.icon] && (
+              React.createElement(STEP_ICONS[step.icon], {
+                size: 14,
+                strokeWidth: 2,
+                'aria-hidden': true,
+                className: styles.titleIcon,
+              })
+            )}
+            <span>{step.title}</span>
+          </div>
+        )}
         {step.body && <div className={styles.body}>{step.body}</div>}
         <div className={styles.footer}>
           {stepIndex > 0 && !step.noBack && (
