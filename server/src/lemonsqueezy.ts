@@ -137,6 +137,10 @@ export interface LSSubscriptionAttributes {
 }
 
 async function handleEvent(env: Env, eventName: string, evt: LSEvent): Promise<void> {
+  // TEMP: log the meta payload so we can see why custom_data.user_id
+  // isn't reaching us on some webhooks. Remove once verified.
+  console.log('[lemonsqueezy] event', eventName, 'meta:', JSON.stringify(evt.meta || null));
+
   // Opportunistically link the LS customer to our user row using
   // meta.custom_data.user_id. The desktop app's create-checkout flow
   // stamps this in. Linking on every event self-heals against
