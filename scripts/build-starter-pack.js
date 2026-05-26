@@ -83,7 +83,15 @@ function loadSaves(libraryRoot) {
   try {
     Database = require('better-sqlite3');
   } catch (e) {
-    fail(`Couldn't load better-sqlite3 (${e.message}). Run 'npm install' first.`);
+    // better-sqlite3 is rebuilt against Electron's Node ABI by
+    // electron-builder install-app-deps (runs as a postrelease /
+    // post-install step in this repo). Running this script with
+    // the system `node` binary fails to load it. The npm script
+    // launches us via `ELECTRON_RUN_AS_NODE=1 electron ...` for
+    // exactly this reason — invoke `npm run pack:starter` instead
+    // of `node scripts/build-starter-pack.js`.
+    fail(`Couldn't load better-sqlite3 (${e.message}).
+Run 'npm run pack:starter' (which launches under Electron's Node) instead of running this script with plain 'node'.`);
   }
   const db = new Database(dbPath, { readonly: true });
   // Match the requested collection name case-insensitively so
