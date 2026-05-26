@@ -102,20 +102,36 @@ export default function OnboardingOverlay() {
     };
   }, [active, step?.target, step?.advance?.type, advance]);
 
-  // Steps can declare an `onEnter` selector that the overlay
-  // clicks for the user — used to auto-switch to the Collections /
-  // Spaces tab without making them tap an extra Next. Deferred to
-  // the next frame so any clickBefore from the previous step has
-  // already settled.
+  // Steps can declare an `onEnter` action — either a single
+  // selector or an array of selectors — that the overlay clicks
+  // for the user on entry from any direction. Used to normalize
+  // app state so backward navigation lands in the UI forward
+  // navigation set up. Array items run one per animation frame so
+  // the DOM settles between clicks (switching modes before
+  // clicking something that only exists in the new mode).
   useEffect(() => {
     if (!active) return undefined;
-    const sel = step?.onEnter;
-    if (!sel) return undefined;
-    const raf = requestAnimationFrame(() => {
-      const el = document.querySelector(sel);
-      if (el && typeof el.click === 'function') el.click();
-    });
-    return () => cancelAnimationFrame(raf);
+    const enter = step?.onEnter;
+    if (!enter) return undefined;
+    const list = Array.isArray(enter) ? enter : [enter];
+    let cancelled = false;
+    let raf = 0;
+    let i = 0;
+    const tick = () => {
+      if (cancelled || i >= list.length) return;
+      raf = requestAnimationFrame(() => {
+        if (cancelled) return;
+        const sel = list[i++];
+        const el = sel ? document.querySelector(sel) : null;
+        if (el && typeof el.click === 'function') el.click();
+        tick();
+      });
+    };
+    tick();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, [active, step?.id, step?.onEnter]);
 
   // Listen for the theme attribute flipping when a step is waiting

@@ -10,17 +10,16 @@
 //                   'collections' / 'spaces'). Renders next to
 //                   the step title.
 //   - noBack:       true to hide the Previous button on this step.
-//                   Used when reverse navigation would land in a
-//                   state the previous step doesn't expect.
-//   - onEnter:      selector the overlay clicks on its own when
-//                   the step becomes active (used to auto-navigate
-//                   the user between modes without an extra Next).
-//   - dimSiblings:  true to fade every card except the target,
-//                   pulling the eye by contrast instead of a
-//                   stroke ring. The fade is applied via a CSS
-//                   rule on body[data-onboarding-dim="cards"] —
-//                   ImageCard sets its own inline style so a JS-
-//                   driven approach gets clobbered on re-render.
+//                   Currently unused — every step normalizes its
+//                   own UI state on entry via onEnter so reverse
+//                   navigation always works.
+//   - onEnter:      selector (string) or sequence (array of
+//                   strings) the overlay clicks on its own when
+//                   the step becomes active. Array items dispatch
+//                   one per animation frame so the DOM has time to
+//                   settle between clicks. Idempotent — re-clicks
+//                   a button that's already in the desired state
+//                   are no-ops in this app.
 //
 // Advance types:
 //   - { type: 'next', label, clickBefore } explicit Next button.
@@ -38,29 +37,27 @@
 //                                    only 'remove-starter-pack').
 
 export const STEPS = [
-  // 1. Intro — modal-style, no spotlight.
-  {
-    id: 'intro',
-    target: null,
-    title: 'Welcome to GatherOS',
-    body: 'A quick tour — about 30 seconds. You can exit any time.',
-    advance: { type: 'next', label: 'Get started' },
-  },
-  // 2. Library overview. Next opens the named save's detail view
-  // before advancing (single click triggers morphFocus — dblclick
-  // opens macOS Preview, the wrong UI). Step 3 then explains the
-  // panel that just appeared.
+  // 1. Library overview. onEnter normalizes state — Library mode,
+  // detail panel closed — so reverse navigation from step 2 lands
+  // cleanly. Both clicks are no-ops on a fresh first launch.
+  // Next opens the named save's detail view before advancing
+  // (single click triggers morphFocus — dblclick opens macOS
+  // Preview, the wrong UI). Step 2 then explains the panel.
   {
     id: 'saves',
     target: null,
     icon: 'library',
+    onEnter: [
+      '[data-onboarding="mode-library"]',
+      '[data-onboarding="detail-close"]',
+    ],
     title: 'Your library',
     body: 'Everything you collect lives here — drag images in, paste URLs, or save from the browser extension.',
     advance: {
       type: 'next',
       label: 'Next',
       // Prefer the starter-pack's named save so the tooltip on
-      // step 3 always points at the same image. Falls back to any
+      // step 2 always points at the same image. Falls back to any
       // save in the library if that title isn't present (e.g.
       // before the starter pack has been built into a zip).
       clickBefore: [
@@ -69,14 +66,19 @@ export const STEPS = [
       ],
     },
   },
-  // 3. Detail view explainer. No spotlight — the panel is already
-  // on screen. Next closes the panel for the user. noBack: going
-  // back to step 2 would immediately re-fire its 'appears' check
-  // (the panel is still open) and bounce us right back here.
+  // 2. Detail view explainer. onEnter (re-)opens the named save —
+  // idempotent on forward entry (step 1's clickBefore already
+  // opened it; clicking an already-focused card is a no-op), but
+  // required so reverse navigation from step 3 lands with the
+  // panel open. Next closes the panel before step 3 switches modes.
   {
     id: 'detail-panel',
     target: null,
-    noBack: true,
+    onEnter: [
+      '[data-onboarding="mode-library"]',
+      '[data-save-title="Bold Typography Design"]',
+      '[data-save-id]',
+    ],
     title: 'Detail view',
     body: 'Tags, source URL, palette, and AI-extracted text live here. Click anything to edit inline — autosaves as you type.',
     advance: {
@@ -85,21 +87,18 @@ export const STEPS = [
       clickBefore: '[data-onboarding="detail-close"]',
     },
   },
-  // 4. Collections — the overlay switches to the Collections tab
-  // on entry, then explains it. noBack: step 3 assumes the detail
-  // panel is open; we'd have to re-open it on reverse nav, which
-  // isn't worth the plumbing.
+  // 3. Collections — the overlay switches to the Collections tab
+  // on entry, then explains it.
   {
     id: 'collections',
     target: null,
     icon: 'collections',
-    noBack: true,
     onEnter: '[data-onboarding="mode-folders"]',
     title: 'Collections',
     body: "Group saves by project, mood, or anything else. A save can live in many collections at once — they're tags, not folders.",
     advance: { type: 'next', label: 'Next' },
   },
-  // 5. Spaces — same pattern. Next advances to the final choice.
+  // 4. Spaces — same pattern. Next advances to the final choice.
   {
     id: 'spaces',
     target: null,
@@ -109,14 +108,14 @@ export const STEPS = [
     body: 'Infinite canvases for moodboards and layouts. Drag images in, add notes, and present full-screen.',
     advance: { type: 'next', label: 'Next' },
   },
-  // 6. Keep / start-fresh. The chosen option's `action` fires
-  // before the overlay closes — 'fresh' removes the starter-pack
-  // saves on the main process. Either branch flips back to the
-  // Library tab so the user lands somewhere actionable.
+  // 5. Keep / start-fresh. The chosen option's `action` fires
+  // before the overlay closes — 'fresh' removes the starter pack
+  // (saves + collections + boards) on the main process. Both
+  // branches flip back to the Library tab so the user lands
+  // somewhere actionable.
   {
     id: 'finale',
     target: null,
-    noBack: true,
     onEnter: '[data-onboarding="mode-library"]',
     title: 'Keep the starter pack?',
     body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or wipe the slate — clears the seeded saves, collections, and spaces so you can start your own.",
