@@ -8,54 +8,99 @@
   z-index: 1000;
   -webkit-app-region: drag;
   font-family: var(--font-ui);
+  padding: 32px;
 }
 
+/* Two-column card: pitch on the left, pricing on the right. Narrow
+   windows collapse to a single column via the media query below. */
 .card {
-  width: 460px;
-  max-width: 92vw;
-  padding: 28px 28px 22px;
+  width: 820px;
+  max-width: 100%;
+  padding: 48px 56px;
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
   -webkit-app-region: no-drag;
-  text-align: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  text-align: left;
+}
+
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .brand {
   display: block;
-  width: 88px;
+  width: 64px;
   height: auto;
-  margin: 0 auto 6px;
+  margin: 0 0 16px;
   user-select: none;
   -webkit-user-drag: none;
 }
 
 .heading {
   font-family: var(--font-ui);
-  font-size: var(--text-lg);
+  font-size: 26px;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 12px;
 }
 
 .body {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+  max-width: 38ch;
+}
+
+/* Feature list — quiet bullets with generous line-height so it
+   reads like a sentence per item, not a checklist. */
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.features li {
+  position: relative;
+  padding-left: 18px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--text-secondary);
-  margin: 0 auto 22px;
-  max-width: 380px;
 }
+
+.features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--text-tertiary);
+}
+
+/* RIGHT COLUMN ---------------------------------------------------- */
 
 /* Monthly / Yearly segmented toggle. Two pill segments inside a
    single rounded track. */
 .toggle {
   display: inline-flex;
-  align-self: center;
   padding: 3px;
-  margin: 0 auto 18px;
+  margin: 0 0 24px;
   background: rgba(0, 0, 0, 0.05);
   border: none;
   border-radius: 999px;
@@ -66,7 +111,7 @@
 }
 
 .toggleSeg {
-  padding: 6px 14px;
+  padding: 7px 18px;
   border: none;
   background: transparent;
   border-radius: 999px;
@@ -94,13 +139,12 @@
 .priceRow {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  gap: 3px;
-  margin-bottom: 4px;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 .price {
-  font-size: 36px;
+  font-size: 44px;
   font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1;
@@ -116,23 +160,22 @@
 .priceNote {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
-/* Stack the CTA and the sign-out link vertically so the link sits
-   directly beneath the trial button instead of inline with it. */
 .actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 14px;
+  align-self: stretch;
 }
 
 .cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 11px 28px;
+  padding: 12px 24px;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--text-primary);
@@ -171,4 +214,29 @@
 
 .signOutLink:hover {
   color: var(--text-primary);
+}
+
+/* Collapse to a single column on narrower windows so nothing
+   squeezes. Threshold roughly matches the card's intrinsic width
+   plus its scrim padding. */
+@media (max-width: 760px) {
+  .card {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 36px 28px;
+    text-align: center;
+  }
+  .left,
+  .right {
+    align-items: center;
+  }
+  .body {
+    max-width: 44ch;
+  }
+  .features li {
+    text-align: left;
+  }
+  .actions {
+    align-items: center;
+  }
 }

@@ -42,61 +42,71 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
   return (
     <div className={styles.scrim}>
       <div className={styles.card}>
-        <img
-          className={styles.brand}
-          src={brandIconUrl}
-          alt="GatherOS"
-          draggable={false}
-        />
-        <h1 className={styles.heading}>Start your 14-day free trial</h1>
-        <p className={styles.body}>
-          Full access to GatherOS for 14 days.
-        </p>
-
-        <div
-          className={styles.toggle}
-          role="tablist"
-          aria-label="Billing interval"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={interval === 'monthly'}
-            className={`${styles.toggleSeg} ${interval === 'monthly' ? styles.toggleSegActive : ''}`}
-            onClick={() => setInterval('monthly')}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={interval === 'yearly'}
-            className={`${styles.toggleSeg} ${interval === 'yearly' ? styles.toggleSegActive : ''}`}
-            onClick={() => setInterval('yearly')}
-          >
-            Yearly
-          </button>
+        <div className={styles.left}>
+          <img
+            className={styles.brand}
+            src={brandIconUrl}
+            alt="GatherOS"
+            draggable={false}
+          />
+          <h1 className={styles.heading}>Start your 14-day free trial</h1>
+          <p className={styles.body}>
+            Full access to every feature while you decide if it&apos;s for you.
+            No card charged until your trial ends.
+          </p>
+          <ul className={styles.features}>
+            <li>Capture from any browser tab or drag-and-drop</li>
+            <li>Organize into collections and infinite-canvas Spaces</li>
+            <li>AI tagging, palette extraction, and semantic search</li>
+          </ul>
         </div>
 
-        <div className={styles.priceRow} aria-live="polite">
-          <span className={styles.price}>{price}</span>
-          <span className={styles.priceUnit}>{unit}</span>
-        </div>
-        <div className={styles.priceNote}>{subnote}</div>
-
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.cta}
-            disabled={opening}
-            onClick={handleSubscribe}
+        <div className={styles.right}>
+          <div
+            className={styles.toggle}
+            role="tablist"
+            aria-label="Billing interval"
           >
-            {opening ? 'Opening…' : 'Start 14-day free trial'}
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={interval === 'monthly'}
+              className={`${styles.toggleSeg} ${interval === 'monthly' ? styles.toggleSegActive : ''}`}
+              onClick={() => setInterval('monthly')}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={interval === 'yearly'}
+              className={`${styles.toggleSeg} ${interval === 'yearly' ? styles.toggleSegActive : ''}`}
+              onClick={() => setInterval('yearly')}
+            >
+              Yearly
+            </button>
+          </div>
 
-          <button type="button" className={styles.signOutLink} onClick={onSignOut}>
-            Sign out
-          </button>
+          <div className={styles.priceRow} aria-live="polite">
+            <span className={styles.price}>{price}</span>
+            <span className={styles.priceUnit}>{unit}</span>
+          </div>
+          <div className={styles.priceNote}>{subnote}</div>
+
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.cta}
+              disabled={opening}
+              onClick={handleSubscribe}
+            >
+              {opening ? 'Opening…' : 'Start 14-day free trial'}
+            </button>
+
+            <button type="button" className={styles.signOutLink} onClick={onSignOut}>
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     </div>
