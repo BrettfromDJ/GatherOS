@@ -8,9 +8,7 @@ import styles from './OnboardingOverlay.module.css';
 const PAD = 6;
 
 export default function OnboardingOverlay() {
-  const {
-    active, step, stepIndex, totalSteps, advance, exit,
-  } = useOnboarding();
+  const { active, step, advance, exit } = useOnboarding();
   const [targetRect, setTargetRect] = useState(null);
 
   // Resolve + watch the target's bbox. If the target isn't in the
@@ -198,9 +196,6 @@ export default function OnboardingOverlay() {
       )}
       <div className={styles.tooltip}>
         <div className={styles.tooltipHeader}>
-          <span className={styles.stepCount}>
-            Step {stepIndex + 1} of {totalSteps}
-          </span>
           <button
             type="button"
             className={styles.exitBtn}

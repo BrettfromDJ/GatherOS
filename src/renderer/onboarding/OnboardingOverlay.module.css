@@ -52,20 +52,11 @@
 .tooltipHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.stepCount {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.55));
-}
-
-:root[data-theme="dark"] .stepCount {
-  color: rgba(255, 255, 255, 0.55);
+  /* No step counter anymore — the Exit X sits on its own at the
+     top-right of the bubble. */
+  justify-content: flex-end;
+  margin-bottom: 2px;
+  height: 16px;
 }
 
 .exitBtn {
@@ -77,7 +68,7 @@
   border: none;
   background: transparent;
   padding: 0;
-  margin-right: -4px;
+  margin: -4px -4px 0 0;
   border-radius: 5px;
   color: var(--text-tertiary, rgba(0, 0, 0, 0.55));
   cursor: pointer;
@@ -112,24 +103,32 @@
   color: rgba(255, 255, 255, 0.72);
 }
 
+/* Match the app's primary CTA recipe — same one the toolbar's
+   "+ Add" and the modal "Got it" buttons use. Ink-filled pill,
+   opacity hover, tiny press scale. */
 .primaryBtn {
   width: 100%;
-  padding: 6px 12px;
-  background: var(--accent, #4f8cff);
-  color: var(--text-on-accent, #ffffff);
+  padding: 8px 18px;
+  background: var(--text-primary);
+  color: var(--surface-1);
   border: none;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui, inherit);
+  font-size: var(--text-md, 13px);
   font-weight: 500;
+  letter-spacing: -0.005em;
   cursor: pointer;
-  transition: background 120ms ease;
+  transition:
+    opacity var(--dur-instant, 80ms) ease,
+    transform var(--dur-instant, 80ms) ease;
 }
 
-.primaryBtn:hover {
-  background: var(--accent-hover, var(--accent, #4f8cff));
-}
+.primaryBtn:hover { opacity: 0.92; }
+.primaryBtn:active { transform: scale(0.98); }
 
+/* Secondary / destructive — outline pill so 'Start fresh' reads
+   as the less-emphasized of the two choices, with a red hover
+   tint to flag the destructive intent. */
 .dangerBtn {
   background: transparent;
   color: var(--text-secondary, rgba(0, 0, 0, 0.72));
@@ -137,6 +136,7 @@
 }
 
 .dangerBtn:hover {
+  opacity: 1;
   background: rgba(211, 61, 61, 0.08);
   color: #d33d3d;
   border-color: rgba(211, 61, 61, 0.45);
