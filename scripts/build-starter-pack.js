@@ -30,6 +30,11 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUT = path.join(REPO_ROOT, 'src', 'main', 'starter-pack.zip');
 const DEFAULT_COLLECTION = (process.env.COLLECTION || 'starter pack').toLowerCase();
 const OUT = path.resolve(process.env.OUT || DEFAULT_OUT);
+// How many saves to pull when falling back to "most recent".
+// Override with COUNT=NN. Larger than a curated pack would be in
+// production, but it's a sane default for dev: enough to feel
+// real, not so many that the install takes ages.
+const RECENT_FALLBACK_COUNT = Number.parseInt(process.env.COUNT || '24', 10);
 
 function fail(msg) {
   console.error(`\n[starter-pack] ${msg}\n`);
@@ -94,28 +99,39 @@ function loadSaves(libraryRoot) {
 Run 'npm run pack:starter' (which launches under Electron's Node) instead of running this script with plain 'node'.`);
   }
   const db = new Database(dbPath, { readonly: true });
-  // Match the requested collection name case-insensitively so
-  // "Starter Pack" / "starter pack" / "STARTER PACK" all work.
+  // Prefer a curated collection so the pack is intentional. If
+  // it isn't present, fall back to the N most recent live saves
+  // so the script still produces a useful zip out of the box.
   const collection = db.prepare(`
     SELECT id, name FROM collections
     WHERE LOWER(name) = ?
     LIMIT 1
   `).get(DEFAULT_COLLECTION);
-  if (!collection) {
-    fail(`No collection named "${DEFAULT_COLLECTION}" in ${dbPath}.
-Create one in the app, drag the saves you want into it, then rerun.
-Override the name with COLLECTION="..." if you'd rather call it something else.`);
+
+  let source;
+  let rows;
+  if (collection) {
+    rows = db.prepare(`
+      SELECT s.id, s.file_path, s.title
+      FROM saves s
+      JOIN collection_items ci ON ci.save_id = s.id
+      WHERE ci.collection_id = ?
+        AND s.deleted_at IS NULL
+      ORDER BY ci.added_at ASC
+    `).all(collection.id);
+    source = `collection "${collection.name}"`;
+  } else {
+    rows = db.prepare(`
+      SELECT id, file_path, title
+      FROM saves
+      WHERE deleted_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).all(RECENT_FALLBACK_COUNT);
+    source = `${RECENT_FALLBACK_COUNT} most recent saves (no "${DEFAULT_COLLECTION}" collection)`;
   }
-  const rows = db.prepare(`
-    SELECT s.id, s.file_path, s.title
-    FROM saves s
-    JOIN collection_items ci ON ci.save_id = s.id
-    WHERE ci.collection_id = ?
-      AND s.deleted_at IS NULL
-    ORDER BY ci.added_at ASC
-  `).all(collection.id);
   db.close();
-  return { collection, rows };
+  return { source, rows };
 }
 
 function buildZip(rows) {
@@ -174,8 +190,8 @@ function buildZip(rows) {
 (function main() {
   const libraryRoot = resolveLibraryRoot();
   console.log(`[starter-pack] library: ${libraryRoot}`);
-  const { collection, rows } = loadSaves(libraryRoot);
-  console.log(`[starter-pack] collection: "${collection.name}" (${rows.length} saves)`);
+  const { source, rows } = loadSaves(libraryRoot);
+  console.log(`[starter-pack] source: ${source} (${rows.length} saves)`);
   const staged = buildZip(rows);
   console.log(`[starter-pack] wrote ${staged.length} entries → ${path.relative(REPO_ROOT, OUT)}`);
   console.log('[starter-pack] done.');

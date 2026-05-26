@@ -47,6 +47,7 @@ function tagAsStarter(saveId) {
 
 async function installStarterPack() {
   if (!fs.existsSync(STARTER_PACK_PATH)) {
+    console.log(`[starter-pack] no zip at ${STARTER_PACK_PATH} — skipping install. Run 'npm run pack:starter' to build one.`);
     return { ok: true, present: false, inserted: 0, duplicates: 0 };
   }
   try {
@@ -58,6 +59,7 @@ async function installStarterPack() {
       // them behind.
       onDuplicate: (existing) => tagAsStarter(existing.id),
     });
+    console.log(`[starter-pack] installed: ${counts.inserted} new + ${counts.duplicates} tagged existing (${counts.skipped} skipped, ${counts.errors} errors)`);
     return { ok: true, present: true, ...counts };
   } catch (err) {
     console.error('[starter-pack] install failed:', err?.message || err);
@@ -84,6 +86,7 @@ function removeStarterPack() {
     const r = deleteSave(id);
     if (r?.ok) removed += 1;
   }
+  console.log(`[starter-pack] removed ${removed} of ${ids.length} tagged saves`);
   return { ok: true, removed };
 }
 

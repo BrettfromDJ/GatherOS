@@ -34,6 +34,10 @@ asarUnpack:
   - node_modules/better-sqlite3/**/*
   - node_modules/sharp/**/*
   - node_modules/@img/**/*
+  # Unpack the starter-pack zip so yauzl can do random-access
+  # reads on it at runtime — reading a zip from inside an asar is
+  # not reliably supported on every platform.
+  - src/main/starter-pack.zip
 mac:
   category: public.app-category.productivity
   # Strip Electron's bundled non-English locales. macOS Sequoia
