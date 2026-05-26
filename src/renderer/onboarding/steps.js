@@ -119,7 +119,7 @@ export const STEPS = [
     noBack: true,
     onEnter: '[data-onboarding="mode-library"]',
     title: 'Keep the starter pack?',
-    body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or clear them out to start with an empty library.",
+    body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or wipe the slate — clears the seeded saves, collections, and spaces so you can start your own.",
     advance: {
       type: 'choice',
       // Right-most option is treated as the primary CTA — order

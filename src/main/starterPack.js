@@ -18,7 +18,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { ingestZip } = require('./zipImport');
-const { getDatabase, deleteSave } = require('./db');
+const {
+  getDatabase, deleteSave,
+  getAllCollections, deleteCollection,
+  listBoards, deleteBoard,
+} = require('./db');
 
 const STARTER_TAG = '__starter__';
 const STARTER_PACK_PATH = path.join(__dirname, 'starter-pack.zip');
@@ -67,10 +71,16 @@ async function installStarterPack() {
   }
 }
 
-// Soft-delete every save that carries the starter tag. We don't
-// touch the tag row itself — keeping it around means a subsequent
-// install can rebind to the same tag id rather than creating a
-// duplicate entry.
+// "Start fresh" — three actions in one call:
+//   1. Soft-delete every save that carries the starter tag. The
+//      tag row stays so a future install rebinds to it cleanly.
+//   2. Hard-delete every collection. The walkthrough seeds the
+//      idea of collections; clearing them lets the user start
+//      organizing from scratch.
+//   3. Hard-delete every board (Space). Same rationale.
+// Collections and boards aren't soft-deletable in the schema, so
+// these are permanent — saves themselves stay restorable from
+// Trash.
 function removeStarterPack() {
   const db = getDatabase();
   const ids = db.prepare(`
@@ -86,8 +96,21 @@ function removeStarterPack() {
     const r = deleteSave(id);
     if (r?.ok) removed += 1;
   }
-  console.log(`[starter-pack] removed ${removed} of ${ids.length} tagged saves`);
-  return { ok: true, removed };
+
+  // Clear collections + boards. We pull the lists first so we
+  // know how many to log.
+  const collections = getAllCollections();
+  for (const c of collections) deleteCollection(c.id);
+  const boards = listBoards();
+  for (const b of boards) deleteBoard(b.id);
+
+  console.log(`[starter-pack] start fresh — removed ${removed}/${ids.length} tagged saves, ${collections.length} collections, ${boards.length} boards`);
+  return {
+    ok: true,
+    removed,
+    collectionsRemoved: collections.length,
+    boardsRemoved: boards.length,
+  };
 }
 
 module.exports = {

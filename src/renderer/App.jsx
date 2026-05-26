@@ -615,19 +615,6 @@ export default function App() {
   // every walkthrough end so the library reflects the result of
   // the 'fresh' choice (or just a fresh install on first launch).
   const prevOnboardingActive = useRef(false);
-  useEffect(() => {
-    const wasActive = prevOnboardingActive.current;
-    prevOnboardingActive.current = onboarding.active;
-    if (!wasActive && onboarding.active) {
-      (async () => {
-        try { await window.moodmark?.onboarding?.installStarterPack?.(); }
-        catch (e) { console.warn('[onboarding] starter-pack install failed:', e); }
-        reload();
-      })();
-    } else if (wasActive && !onboarding.active) {
-      reload();
-    }
-  }, [onboarding.active, reload]);
   // True when both the toggle is on AND the user is signed-in to a
   // license session — search will route through embeddings rather
   // than LIKE.
@@ -706,6 +693,26 @@ export default function App() {
     setBoards(Array.isArray(rows) ? rows : []);
   }, []);
   useEffect(() => { loadBoards(); }, [loadBoards]);
+
+  // Walkthrough lifecycle. Install the starter pack on every
+  // start (idempotent — ingestZip dedups by content_hash). On
+  // end, reload saves + collections + boards because "Start
+  // fresh" can have wiped all three.
+  useEffect(() => {
+    const wasActive = prevOnboardingActive.current;
+    prevOnboardingActive.current = onboarding.active;
+    if (!wasActive && onboarding.active) {
+      (async () => {
+        try { await window.moodmark?.onboarding?.installStarterPack?.(); }
+        catch (e) { console.warn('[onboarding] starter-pack install failed:', e); }
+        reload();
+      })();
+    } else if (wasActive && !onboarding.active) {
+      reload();
+      loadCollections();
+      loadBoards();
+    }
+  }, [onboarding.active, reload, loadCollections, loadBoards]);
 
   const handleCreateBoard = useCallback(async () => {
     const board = await window.moodmark.boards.create({ name: 'Untitled board' });
