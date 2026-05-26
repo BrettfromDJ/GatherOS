@@ -65,9 +65,17 @@
 .tooltipHeader {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 2px;
+  justify-content: space-between;
+  margin-bottom: 4px;
   height: 16px;
+}
+
+.stepCount {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0;
 }
 
 .exitBtn {
@@ -184,20 +192,6 @@
 }
 
 .ghostBtn:active { transform: scale(0.98); }
-
-/* Dim siblings for the 'open a save' step. Lives at the global
-   level (and uses !important) because ImageCard sets its own
-   inline style={} on the same button — without this, React
-   re-renders blow away any inline opacity we'd set from JS. The
-   target card opts out via data-onboarding-target. */
-:global(body[data-onboarding-dim="cards"] [data-save-id]) {
-  opacity: 0.25 !important;
-  transition: opacity 200ms ease !important;
-}
-
-:global(body[data-onboarding-dim="cards"] [data-save-id][data-onboarding-target]) {
-  opacity: 1 !important;
-}
 
 @keyframes tooltipIn {
   from { opacity: 0; transform: translateY(6px); }

@@ -23,7 +23,7 @@ const PAD = 6;
 
 export default function OnboardingOverlay() {
   const {
-    active, step, stepIndex, advance, back, exit,
+    active, step, stepIndex, totalSteps, advance, back, exit,
   } = useOnboarding();
   const [targetRect, setTargetRect] = useState(null);
 
@@ -102,43 +102,6 @@ export default function OnboardingOverlay() {
     };
   }, [active, step?.target, step?.advance?.type, advance]);
 
-  // Steps can declare a `dimSiblings` selector to fade every
-  // matching element EXCEPT the target. We can't use inline-style
-  // mutation here — ImageCard re-renders with its own style={} on
-  // every parent update, which clobbers the change. Instead we
-  // toggle a data-attribute on <body> + mark the target with
-  // data-onboarding-target, and let CSS do the work via global
-  // rules below. CSS class wins over the component's inline style
-  // for opacity because it's scoped to the body-attribute parent.
-  useEffect(() => {
-    if (!active) return undefined;
-    const dimSel = step?.dimSiblings;
-    if (!dimSel) return undefined;
-    const targetSel = step?.target;
-    const tagTarget = () => {
-      document.querySelectorAll('[data-onboarding-target]').forEach((el) => {
-        el.removeAttribute('data-onboarding-target');
-      });
-      if (targetSel) {
-        const t = document.querySelector(targetSel);
-        if (t) t.setAttribute('data-onboarding-target', '');
-      }
-    };
-    document.body.dataset.onboardingDim = 'cards';
-    tagTarget();
-    // Re-tag if the target enters the DOM after the first pass
-    // (the masonry can lazy-render rows).
-    const mo = new MutationObserver(tagTarget);
-    mo.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      mo.disconnect();
-      delete document.body.dataset.onboardingDim;
-      document.querySelectorAll('[data-onboarding-target]').forEach((el) => {
-        el.removeAttribute('data-onboarding-target');
-      });
-    };
-  }, [active, step?.id, step?.dimSiblings, step?.target]);
-
   // Steps can declare an `onEnter` selector that the overlay
   // clicks for the user — used to auto-switch to the Collections /
   // Spaces tab without making them tap an extra Next. Deferred to
@@ -196,10 +159,7 @@ export default function OnboardingOverlay() {
 
   return createPortal(
     <div className={styles.overlay} aria-live="polite">
-      {/* Focus ring around the target. Suppressed when the step
-          uses dimSiblings — that step pulls the eye via opacity
-          contrast and explicitly doesn't want a stroke. */}
-      {targetRect && !step.dimSiblings && (
+      {targetRect && (
         <div
           className={styles.spotlight}
           style={{
@@ -212,6 +172,7 @@ export default function OnboardingOverlay() {
       )}
       <div className={styles.tooltip}>
         <div className={styles.tooltipHeader}>
+          <span className={styles.stepCount}>{stepIndex + 1}/{totalSteps}</span>
           <button
             type="button"
             className={styles.exitBtn}
