@@ -172,7 +172,7 @@ licenseRoutes.post('/checkout', async (c) => {
       errors?: unknown;
     };
     if (!res.ok) {
-      console.error('[license] LS checkout create failed:', responseBody);
+      console.error('[license] LS checkout create failed:', JSON.stringify(responseBody, null, 2));
       return c.json({ ok: false, error: 'lemonsqueezy_error' }, 502);
     }
     const url = responseBody.data?.attributes?.url;
