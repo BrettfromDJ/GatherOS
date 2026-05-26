@@ -54,11 +54,6 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
             Full access to every feature while you decide if it&apos;s for you.
             No card charged until your trial ends.
           </p>
-          <ul className={styles.features}>
-            <li>Capture from any browser tab or drag-and-drop</li>
-            <li>Organize into collections and infinite-canvas Spaces</li>
-            <li>AI tagging, palette extraction, and semantic search</li>
-          </ul>
         </div>
 
         <div className={styles.right}>
@@ -93,22 +88,26 @@ export default function PaywallModal({ onSignOut, onSubscribe }) {
           </div>
           <div className={styles.priceNote}>{subnote}</div>
 
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.cta}
-              disabled={opening}
-              onClick={handleSubscribe}
-            >
-              {opening ? 'Opening…' : 'Start 14-day free trial'}
-            </button>
-
-            <button type="button" className={styles.signOutLink} onClick={onSignOut}>
-              Sign out
-            </button>
-          </div>
+          <button
+            type="button"
+            className={styles.cta}
+            disabled={opening}
+            onClick={handleSubscribe}
+          >
+            {opening ? 'Opening…' : 'Start 14-day free trial'}
+          </button>
         </div>
       </div>
+
+      {/* Pinned to the page's bottom-right corner, outside the card,
+          so it stays out of the primary flow. */}
+      <button
+        type="button"
+        className={styles.signOutLink}
+        onClick={onSignOut}
+      >
+        Sign out
+      </button>
     </div>
   );
 }
