@@ -41,13 +41,7 @@ export default function SigninScreen({ onRequestMagicLink, reason }) {
   const headline = isPostSave ? 'Save your library' : 'Sign in to continue';
   const subhead = isPostSave
     ? 'Sign in with your email so you don’t lose what you just saved. No passwords — we’ll send you a magic link.'
-    : (
-        <>
-          Enter your email and we’ll send you a magic sign-in link
-          <br />
-          — no passwords required.
-        </>
-      );
+    : 'Enter your email for a magic link — no password required.';
 
   return (
     <div className={styles.scrim}>
