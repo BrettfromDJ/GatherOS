@@ -48,6 +48,18 @@
   font-family: var(--font-ui, system-ui, sans-serif);
   pointer-events: auto;
   animation: tooltipIn 180ms ease-out;
+  /* Promote the tooltip onto its own view-transition layer so the
+     grid → focused-view morph (which animates `morph-image`) can't
+     paint over it. Without this, the morphing card pseudo-element
+     renders above any z-index in the document. */
+  view-transition-name: onboarding-tooltip;
+}
+
+/* Layer the tooltip's transition pseudo above the morph-image
+   group. Global selector — view-transition pseudos live at the
+   document root, outside any CSS-modules scope. */
+:global(::view-transition-group(onboarding-tooltip)) {
+  z-index: 9999;
 }
 
 .tooltipHeader {

@@ -42,17 +42,27 @@ export const STEPS = [
     body: 'A quick tour — about 30 seconds. You can exit any time.',
     advance: { type: 'next', label: 'Get started' },
   },
-  // 2. Spotlight an image, advance when the detail panel mounts.
-  // No stroke ring — instead we dim every other card so the target
-  // pops by contrast. The image name is omitted on purpose: the
-  // visual treatment points to the right one.
+  // 2. Library overview. Next opens the named save's detail view
+  // before advancing (single click triggers morphFocus — dblclick
+  // opens macOS Preview, the wrong UI). Step 3 then explains the
+  // panel that just appeared.
   {
-    id: 'pick-image',
-    target: '[data-save-title="Bold Typography Design"]',
-    dimSiblings: true,
-    title: 'Open a save',
-    body: 'Double-click the highlighted image to open it in the detail view.',
-    advance: { type: 'appears', selector: '[data-onboarding="detail-panel"]' },
+    id: 'saves',
+    target: null,
+    title: 'Your library',
+    body: 'Everything you collect lives here — drag images in, paste URLs, or save from the browser extension.',
+    advance: {
+      type: 'next',
+      label: 'Next',
+      // Prefer the starter-pack's named save so the tooltip on
+      // step 3 always points at the same image. Falls back to any
+      // save in the library if that title isn't present (e.g.
+      // before the starter pack has been built into a zip).
+      clickBefore: [
+        '[data-save-title="Bold Typography Design"]',
+        '[data-save-id]',
+      ],
+    },
   },
   // 3. Detail view explainer. No spotlight — the panel is already
   // on screen. Next closes the panel for the user. noBack: going

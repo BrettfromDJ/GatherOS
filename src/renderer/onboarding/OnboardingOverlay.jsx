@@ -226,14 +226,20 @@ export default function OnboardingOverlay() {
               className={styles.primaryBtn}
               onClick={() => {
                 // Some steps need to nudge the app state before
-                // advancing (e.g. closing the detail panel so step 4
-                // can spotlight the Collections tab in the library
-                // view). The selector is dispatched a click before
-                // the index moves forward.
-                const sel = step.advance?.clickBefore;
-                if (sel) {
-                  const el = document.querySelector(sel);
-                  if (el && typeof el.click === 'function') el.click();
+                // advancing (e.g. opening a save's detail panel or
+                // closing it). clickBefore can be a single
+                // selector or an array — we try each in order and
+                // fire on the first match.
+                const sels = step.advance?.clickBefore;
+                if (sels) {
+                  const list = Array.isArray(sels) ? sels : [sels];
+                  for (const sel of list) {
+                    const el = document.querySelector(sel);
+                    if (el && typeof el.click === 'function') {
+                      el.click();
+                      break;
+                    }
+                  }
                 }
                 advance();
               }}
