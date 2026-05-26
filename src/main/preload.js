@@ -183,6 +183,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     // hash, so calling this on every walkthrough start is safe.
     installStarterPack: () => ipcRenderer.invoke('onboarding:install-starter-pack'),
     removeStarterPack: () => ipcRenderer.invoke('onboarding:remove-starter-pack'),
+    restoreSnapshot: () => ipcRenderer.invoke('onboarding:restore-snapshot'),
   },
   ai: {
     // Server-proxied AI features. The licensing session token in

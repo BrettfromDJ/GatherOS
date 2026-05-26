@@ -3015,11 +3015,14 @@ export default function App() {
         onDeleteLibrary={handleDeleteLibrary}
         onLibraryWiped={() => {
           // Reset focus + selection in case the user was viewing a
-          // save mid-wipe, then re-pull collections/saves so the UI
-          // reflects the now-empty library.
+          // save mid-wipe, then re-pull collections/saves/boards so
+          // the UI reflects the now-empty (or freshly-restored)
+          // library. Also used by the walkthrough's dev "Undo last
+          // Start fresh" button.
           setFocusedId(null);
           setSelected(new Set());
           loadCollections();
+          loadBoards();
           reload();
         }}
       />

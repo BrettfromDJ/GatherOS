@@ -31,7 +31,7 @@ const { setToastInteractive, onToastsEmpty } = require('./toast-window');
 const settings = require('./settings');
 const { quitAndInstall } = require('./updater');
 const { ingestZip } = require('./zipImport');
-const { installStarterPack, removeStarterPack } = require('./starterPack');
+const { installStarterPack, removeStarterPack, restoreSnapshot } = require('./starterPack');
 const {
   hasSession: hasAiSession,
   autoTagImage,
@@ -343,6 +343,7 @@ function registerIpcHandlers() {
   // start, remove them if the user picks "start fresh" at the end.
   ipcMain.handle('onboarding:install-starter-pack', () => installStarterPack());
   ipcMain.handle('onboarding:remove-starter-pack', () => removeStarterPack());
+  ipcMain.handle('onboarding:restore-snapshot', () => restoreSnapshot());
 
   ipcMain.handle('saves:drop-url', async (_e, payload) => {
     const candidates = Array.isArray(payload?.urls)
