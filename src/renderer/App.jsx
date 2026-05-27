@@ -2589,6 +2589,7 @@ export default function App() {
                   onDropFilesToBucket={handleDropFilesToBucket}
                   onSetAppDragging={setDragging}
                   onOpenCollectionAsSpace={handleOpenCollectionAsSpace}
+                  scrollRef={setGridScrollNode}
                 />
               ) : appMode === 'boards' ? (
                 // Boards mode → tile grid of every board. Clicking

@@ -198,6 +198,10 @@ export default function FolderGrid({
   onDropFilesToBucket,
   onSetAppDragging,
   onOpenCollectionAsSpace,
+  // Same hook BoardGrid uses — App attaches its scroll listener here
+  // so the toolbar's drop-shadow engages once the collections grid is
+  // scrolled past the top.
+  scrollRef,
 }) {
   const visible = (folders || []).filter(
     (f) => (f.parent_id || null) === parentId,
@@ -352,7 +356,7 @@ export default function FolderGrid({
   }
 
   return (
-    <div className={styles.scroll}>
+    <div className={styles.scroll} ref={scrollRef}>
       <div className={styles.gridHeader}>
         <Dropdown
           value={sortMode}
