@@ -81,7 +81,7 @@ export const STEPS = [
       '[data-save-id]',
     ],
     title: 'Detail view',
-    body: 'Tags, source URL, palette, and AI-extracted text live here. Click anything to edit inline — autosaves as you type.',
+    body: 'Everything about a save lives here — tags, source, palette, and notes.',
     advance: {
       type: 'next',
       label: 'Next',
