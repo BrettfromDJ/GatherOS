@@ -43,7 +43,22 @@ h1 {
   font-family: Geist, Arial, sans-serif;
   font-weight: 600;
   letter-spacing: -0.02em;
-  max-width: 22ch;
+}
+
+/* Force "The Mac app for / design inspiration." on desktop via the
+   inline <br class="hero-break">. On narrow viewports the natural
+   wrap looks better — the line break would otherwise leave a stunted
+   first row — so hide the forced break below 991px and let flow take
+   over. */
+.hero h1 .hero-break,
+.hero h1 br.hero-break {
+  display: inline;
+}
+
+@media (max-width: 991px) {
+  .hero h1 br.hero-break {
+    display: none;
+  }
 }
 
 .hero {
