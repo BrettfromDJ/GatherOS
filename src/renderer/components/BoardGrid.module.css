@@ -13,11 +13,14 @@
 
 /* Sort dropdown lives above the tile grid, right-aligned. Same
    padding rhythm as the grid below so the dropdown sits flush with
-   the right edge of the first / last column. */
+   the right edge of the first / last column. Hairline divider
+   underneath matches the SmartChipRail on the Library tab. */
 .gridHeader {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 32px 0;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .grid {
