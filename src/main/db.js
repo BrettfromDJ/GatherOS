@@ -173,12 +173,6 @@ const MIGRATIONS = [
     // extras (e.g. the "font" tag stores name/designer/buy_url here).
     addColumnIfMissing(database, 'saves', 'meta', 'TEXT');
     addColumnIfMissing(database, 'saves', 'notes', 'TEXT');
-    // Save kind. 'image' is the original/default; 'url' marks a save
-    // that represents a saved website rather than a saved image — the
-    // file_path still points to the screenshot taken at save time,
-    // source_url holds the page URL, and FocusedView swaps the image
-    // for a live <webview> at view time.
-    addColumnIfMissing(database, 'saves', 'kind', "TEXT NOT NULL DEFAULT 'image'");
     // One level of bucket nesting; cascade-on-delete handled in
     // application code (SQLite ALTER doesn't allow REFERENCES).
     addColumnIfMissing(database, 'collections', 'parent_id', 'TEXT');
@@ -230,6 +224,13 @@ const MIGRATIONS = [
       const stmt = database.prepare('UPDATE boards SET order_index = ? WHERE id = ?');
       rows.forEach((r, i) => stmt.run(i, r.id));
     }
+  },
+  // v? → next: saves.kind to distinguish URL-kind saves (saved
+  // websites) from the original image saves. Existing rows default
+  // to 'image'; new URL saves carry kind='url' so FocusedView can
+  // swap the <img> for a live <webview> at view time.
+  (database) => {
+    addColumnIfMissing(database, 'saves', 'kind', "TEXT NOT NULL DEFAULT 'image'");
   },
 ];
 
