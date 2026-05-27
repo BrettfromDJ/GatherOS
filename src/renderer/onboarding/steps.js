@@ -52,7 +52,7 @@ export const STEPS = [
       '[data-onboarding="detail-close"]',
     ],
     title: 'Your library',
-    body: 'Everything you collect lives here — drag images in, paste URLs, or save from the browser extension.',
+    body: 'Everything you collect lives here. Drag images in or save URLs. Browser extension coming soon.',
     advance: {
       type: 'next',
       label: 'Next',
@@ -81,7 +81,7 @@ export const STEPS = [
       '[data-save-id]',
     ],
     title: 'Detail view',
-    body: 'Everything about a save lives here — tags, source, palette, and notes.',
+    body: 'Everything about a save lives here — tags, source, palette, notes, and more.',
     advance: {
       type: 'next',
       label: 'Next',
@@ -96,7 +96,7 @@ export const STEPS = [
     icon: 'collections',
     onEnter: '[data-onboarding="mode-folders"]',
     title: 'Collections',
-    body: "Group saves by project, mood, or anything else. A save can live in many collections at once — they're tags, not folders.",
+    body: 'Group saves by project, mood or anything else. A save can live in many collections at once.',
     advance: { type: 'next', label: 'Next' },
   },
   // 4. Spaces — same pattern. Next advances to the final choice.
@@ -106,7 +106,7 @@ export const STEPS = [
     icon: 'spaces',
     onEnter: '[data-onboarding="mode-boards"]',
     title: 'Spaces',
-    body: 'Infinite canvases for moodboards and layouts. Drag images in, add notes, and present full-screen.',
+    body: 'Infinite canvases for moodboards or explorations. Drag images in, arrange them, add notes, and present full-screen.',
     advance: { type: 'next', label: 'Next' },
   },
   // 5. Keep / start-fresh. The chosen option's `action` fires
@@ -122,7 +122,7 @@ export const STEPS = [
     noBack: true,
     onEnter: '[data-onboarding="mode-library"]',
     title: 'Keep the starter pack?',
-    body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or wipe the slate — clears the seeded saves, collections, and spaces so you can start your own.",
+    body: "These images came pre-loaded so you'd have something to look at. Hang on to them, or wipe the slate clean.",
     advance: {
       type: 'choice',
       // Right-most option is treated as the primary CTA — order
