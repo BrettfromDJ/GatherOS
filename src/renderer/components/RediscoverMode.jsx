@@ -325,8 +325,7 @@ export default function RediscoverMode({
                     <span className={styles.pickerName}>{c.name}</span>
                     {isIn && (
                       <span className={styles.pickerInBadge} title="Already in this collection">
-                        <CheckIcon size={12} strokeWidth={2.2} aria-hidden="true" />
-                        <span>In</span>
+                        <CheckIcon size={14} strokeWidth={2.2} aria-hidden="true" />
                       </span>
                     )}
                   </button>

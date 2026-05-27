@@ -336,13 +336,6 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 1px 7px 1px 5px;
-  background: rgba(255, 255, 255, 0.10);
+  justify-content: center;
   color: rgba(255, 255, 255, 0.75);
-  border-radius: var(--radius-pill);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
