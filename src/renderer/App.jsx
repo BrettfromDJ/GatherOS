@@ -2425,9 +2425,16 @@ export default function App() {
         }
       }
       loadCollections();
+      // Stay inside the collection — the new saves were just
+      // attached to it, jumping to view=all would lose context.
+      // reload() refreshes the visible grid so the new items
+      // show up in place.
+      reload();
+      setSelected(new Set());
+      return;
     }
     if (newIds.length) focusAfterDrop();
-  }, [focusAfterDrop, view, loadCollections]);
+  }, [focusAfterDrop, view, loadCollections, reload]);
 
   // Drop Finder files directly onto a featured-buckets / folder-grid
   // card. Imports each file via the standard dropFile pipeline, then
