@@ -7,7 +7,7 @@ import styles from './PrivacyModal.module.css';
 // "View full policy" link opens the GitHub copy.
 
 const POLICY_URL = 'https://github.com/BrettfromDJ/GatherOS/blob/main/PRIVACY.md';
-const SUPPORT_EMAIL = 'hello@designjoy.co';
+const SUPPORT_EMAIL = 'hey@gatheros.co';
 
 const SECTIONS = [
   {

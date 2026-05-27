@@ -4,7 +4,7 @@ _Last updated: April 29, 2026_
 
 GatherOS is a local-first desktop app for saving, browsing, and organizing visual references. This page explains what data we collect, where it lives, and what's done with it. The short version: **almost nothing leaves your machine, and what does is sent on your direct instruction.**
 
-If anything below is unclear, email us at [hello@designjoy.co](mailto:hello@designjoy.co).
+If anything below is unclear, email us at [hey@gatheros.co](mailto:hey@gatheros.co).
 
 ---
 
@@ -56,11 +56,11 @@ When you save an image, GatherOS writes the original file and a thumbnail into t
 
 ## Crash and error reporting
 
-GatherOS does not currently collect crash reports or error logs automatically. If you hit a bug, the most helpful thing is to email us a description (and a screenshot if you can) at [hello@designjoy.co](mailto:hello@designjoy.co). If we ever introduce optional crash reporting in the future, it will be opt-in and disclosed clearly in this document.
+GatherOS does not currently collect crash reports or error logs automatically. If you hit a bug, the most helpful thing is to email us a description (and a screenshot if you can) at [hey@gatheros.co](mailto:hey@gatheros.co). If we ever introduce optional crash reporting in the future, it will be opt-in and disclosed clearly in this document.
 
 ## Children
 
-GatherOS is not directed at children under 13. If you are a parent or guardian and believe your child has used GatherOS, contact us at [hello@designjoy.co](mailto:hello@designjoy.co).
+GatherOS is not directed at children under 13. If you are a parent or guardian and believe your child has used GatherOS, contact us at [hey@gatheros.co](mailto:hey@gatheros.co).
 
 ## Changes to this policy
 
@@ -68,4 +68,4 @@ If we materially change how GatherOS handles data, we'll update this document, b
 
 ## Contact
 
-Questions, requests, or concerns: [hello@designjoy.co](mailto:hello@designjoy.co)
+Questions, requests, or concerns: [hey@gatheros.co](mailto:hey@gatheros.co)

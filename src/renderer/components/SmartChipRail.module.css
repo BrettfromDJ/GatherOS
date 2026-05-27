@@ -208,16 +208,8 @@
 .zoom {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  width: 134px;
+  width: 110px;
   height: 32px;
-}
-
-/* Minus / Plus end-caps. Same muted tone as the rail's secondary
-   chrome so they read as guides, not interactive buttons. */
-.zoomEnd {
-  flex-shrink: 0;
-  color: var(--text-tertiary);
 }
 
 /* Track is light hairline, thumb is solid ink. Cleaner than the

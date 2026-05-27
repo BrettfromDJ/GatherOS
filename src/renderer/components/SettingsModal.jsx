@@ -25,7 +25,7 @@ import { confirm } from '../lib/confirm.js';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
 import PrivacyModal from './PrivacyModal.jsx';
 
-const SUPPORT_EMAIL = 'hello@designjoy.co';
+const SUPPORT_EMAIL = 'hey@gatheros.co';
 
 // Settings is laid out as a two-pane modal: a left rail of category
 // nav entries and a main content area showing one page at a time.

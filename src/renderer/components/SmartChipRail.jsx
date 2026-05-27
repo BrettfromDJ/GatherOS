@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Minus, Plus } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
 
@@ -138,15 +138,6 @@ export default function SmartChipRail({
       <div className={styles.right}>
         {onColumnsChange && (
           <div className={styles.zoom} title="Card size">
-            {/* Endcaps make it obvious which way is "smaller cards"
-                vs "larger cards" — drag right (toward +) grows the
-                cards, drag left (toward −) packs more columns in. */}
-            <Minus
-              size={12}
-              strokeWidth={2}
-              className={styles.zoomEnd}
-              aria-hidden="true"
-            />
             <input
               type="range"
               min={COLS_MIN}
@@ -158,12 +149,6 @@ export default function SmartChipRail({
               }
               className={styles.zoomSlider}
               aria-label="Card size"
-            />
-            <Plus
-              size={12}
-              strokeWidth={2}
-              className={styles.zoomEnd}
-              aria-hidden="true"
             />
           </div>
         )}
