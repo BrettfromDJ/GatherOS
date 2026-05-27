@@ -209,6 +209,57 @@ async function drainDockOpenQueue() {
 // dedup, palette, and AI hooks fire just like a drag-into-window.
 const dockOpenUrlQueue = [];
 
+// Single dropped URL → save. Tries the URL as an image first; if
+// the response is HTML, tries the search-engine-unwrap version
+// (Safari from Google Images sends the /imgres?imgurl=… wrapper);
+// only if both image attempts fail does it fall back to capturing
+// the page as a URL-kind save.
+async function handleDockDropUrl(url, deps) {
+  const { saveImageFromUrl, insertSave, captureUrl, unwrapSearchEngineUrl } = deps;
+  const candidates = [url];
+  const unwrapped = unwrapSearchEngineUrl(url);
+  if (unwrapped && unwrapped !== url) candidates.unshift(unwrapped);
+
+  let sawHtml = false;
+  for (const candidate of candidates) {
+    try {
+      const imgData = await saveImageFromUrl(candidate);
+      if (imgData.duplicateOf) {
+        try { notifyDuplicateInRenderer(imgData.existing); }
+        catch (err) { console.error('[gatheros] notifyDuplicate failed:', err); }
+      } else {
+        const record = insertSave(imgData);
+        try { notifySaved(record); }
+        catch (err) { console.error('[gatheros] notifySaved failed:', err); }
+      }
+      return;
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (/not an image/i.test(msg)) sawHtml = true;
+      console.warn('[gatheros] Dock-drop image attempt failed:', candidate, msg);
+    }
+  }
+
+  // Every image attempt errored. If at least one came back as HTML,
+  // the user dragged a page (Safari's quirk). Fall back to URL-kind
+  // capture so we save something useful instead of erroring.
+  if (!sawHtml) return;
+  console.log('[gatheros] Dock-drop URL is a page, not an image — capturing as URL-kind save:', url);
+  try {
+    const captured = await captureUrl(url);
+    if (captured.duplicateOf) {
+      try { notifyDuplicateInRenderer(captured.existing); }
+      catch (e) { console.error('[gatheros] notifyDuplicate failed:', e); }
+    } else {
+      const record = insertSave({ ...captured, sourceUrl: url, kind: 'url' });
+      try { notifySaved(record); }
+      catch (e) { console.error('[gatheros] notifySaved failed:', e); }
+    }
+  } catch (captureErr) {
+    console.error('[gatheros] Dock-drop URL capture also failed:', url, captureErr?.message || captureErr);
+  }
+}
+
 app.on('open-url', (event, url) => {
   event.preventDefault();
   if (typeof url !== 'string') return;
@@ -234,47 +285,12 @@ async function drainDockOpenUrlQueue() {
   const { saveImageFromUrl } = require('./storage');
   const { insertSave } = require('./db');
   const { captureUrl } = require('./urlCapture');
+  const { unwrapSearchEngineUrl } = require('../shared/unwrapSearchUrl');
   while (dockOpenUrlQueue.length > 0) {
     const url = dockOpenUrlQueue.shift();
-    try {
-      const imgData = await saveImageFromUrl(url);
-      if (imgData.duplicateOf) {
-        try { notifyDuplicateInRenderer(imgData.existing); }
-        catch (err) { console.error('[gatheros] notifyDuplicate failed:', err); }
-      } else {
-        const record = insertSave(imgData);
-        try { notifySaved(record); }
-        catch (err) { console.error('[gatheros] notifySaved failed:', err); }
-      }
-      continue;
-    } catch (err) {
-      // Safari (and a few other browsers) drop the page URL onto the
-      // Dock icon when the user drags from a normal article — not the
-      // image's URL like Chrome does. saveImageFromUrl fails with
-      // "Response is not an image". Fall through to a URL-kind save:
-      // screenshot the page and store it the same way the toolbar
-      // "Save URL…" flow does.
-      const msg = String(err?.message || err);
-      const isNonImage = /not an image/i.test(msg);
-      if (!isNonImage) {
-        console.error('[gatheros] Dock-drop URL save failed:', url, msg);
-        continue;
-      }
-      console.log('[gatheros] Dock-drop URL is not an image — falling back to URL-kind capture:', url);
-      try {
-        const captured = await captureUrl(url);
-        if (captured.duplicateOf) {
-          try { notifyDuplicateInRenderer(captured.existing); }
-          catch (e) { console.error('[gatheros] notifyDuplicate failed:', e); }
-        } else {
-          const record = insertSave({ ...captured, sourceUrl: url, kind: 'url' });
-          try { notifySaved(record); }
-          catch (e) { console.error('[gatheros] notifySaved failed:', e); }
-        }
-      } catch (captureErr) {
-        console.error('[gatheros] Dock-drop URL capture also failed:', url, captureErr?.message || captureErr);
-      }
-    }
+    await handleDockDropUrl(url, {
+      saveImageFromUrl, insertSave, captureUrl, unwrapSearchEngineUrl,
+    });
   }
 }
 

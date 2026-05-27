@@ -33,6 +33,7 @@ const { quitAndInstall } = require('./updater');
 const { ingestZip } = require('./zipImport');
 const { installStarterPack, removeStarterPack, restoreSnapshot } = require('./starterPack');
 const { captureUrl } = require('./urlCapture');
+const { unwrapSearchEngineUrl } = require('../shared/unwrapSearchUrl');
 const {
   hasSession: hasAiSession,
   autoTagImage,
@@ -382,9 +383,28 @@ function registerIpcHandlers() {
         : [typeof payload === 'string' ? payload : payload?.url].filter(Boolean);
     if (candidates.length === 0) throw new Error('drop-url called without any URLs');
 
+    // Expand search-engine wrapper URLs (Google /imgres?imgurl=…)
+    // ahead of their wrapper so we try the real image URL first.
+    // Already done by the renderer's extractDropImageUrls for drops
+    // that go through it, but Dock-drop and direct callers don't,
+    // and double-unwrapping is harmless because seen prevents dups.
+    const expanded = [];
+    const seen = new Set();
+    for (const c of candidates) {
+      const unwrapped = unwrapSearchEngineUrl(c);
+      if (unwrapped && !seen.has(unwrapped)) {
+        expanded.push(unwrapped);
+        seen.add(unwrapped);
+      }
+      if (!seen.has(c)) {
+        expanded.push(c);
+        seen.add(c);
+      }
+    }
+
     const errors = [];
     let sawHtmlResponse = false;
-    for (const url of candidates) {
+    for (const url of expanded) {
       try {
         const imgData = await saveImageFromUrl(url);
         if (imgData.duplicateOf) {
