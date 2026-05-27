@@ -233,6 +233,7 @@ async function drainDockOpenUrlQueue() {
   await waitForMainWindowReady();
   const { saveImageFromUrl } = require('./storage');
   const { insertSave } = require('./db');
+  const { captureUrl } = require('./urlCapture');
   while (dockOpenUrlQueue.length > 0) {
     const url = dockOpenUrlQueue.shift();
     try {
@@ -245,8 +246,34 @@ async function drainDockOpenUrlQueue() {
         try { notifySaved(record); }
         catch (err) { console.error('[gatheros] notifySaved failed:', err); }
       }
+      continue;
     } catch (err) {
-      console.error('[gatheros] Dock-drop URL save failed:', url, err?.message || err);
+      // Safari (and a few other browsers) drop the page URL onto the
+      // Dock icon when the user drags from a normal article — not the
+      // image's URL like Chrome does. saveImageFromUrl fails with
+      // "Response is not an image". Fall through to a URL-kind save:
+      // screenshot the page and store it the same way the toolbar
+      // "Save URL…" flow does.
+      const msg = String(err?.message || err);
+      const isNonImage = /not an image/i.test(msg);
+      if (!isNonImage) {
+        console.error('[gatheros] Dock-drop URL save failed:', url, msg);
+        continue;
+      }
+      console.log('[gatheros] Dock-drop URL is not an image — falling back to URL-kind capture:', url);
+      try {
+        const captured = await captureUrl(url);
+        if (captured.duplicateOf) {
+          try { notifyDuplicateInRenderer(captured.existing); }
+          catch (e) { console.error('[gatheros] notifyDuplicate failed:', e); }
+        } else {
+          const record = insertSave({ ...captured, sourceUrl: url, kind: 'url' });
+          try { notifySaved(record); }
+          catch (e) { console.error('[gatheros] notifySaved failed:', e); }
+        }
+      } catch (captureErr) {
+        console.error('[gatheros] Dock-drop URL capture also failed:', url, captureErr?.message || captureErr);
+      }
     }
   }
 }

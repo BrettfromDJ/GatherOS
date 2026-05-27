@@ -99,23 +99,6 @@ export function extractDropImageUrls(dataTransfer) {
   const text = dataTransfer.getData('text/plain');
   if (text) add(text);
 
-  // TEMP: log what Safari attaches when its drag yields no usable
-  // image URL, so we can see what we're working with and improve
-  // the extractor. Strip this once Safari support is solid.
-  if (candidates.length === 0 || candidates.length === 1) {
-    try {
-      const types = Array.from(dataTransfer.types || []);
-      console.log('[dropUrls] candidates:', candidates);
-      console.log('[dropUrls] types available:', types);
-      for (const t of types) {
-        try {
-          const v = dataTransfer.getData(t);
-          console.log(`[dropUrls] ${t} (len=${v?.length || 0}):`, (v || '').slice(0, 800));
-        } catch { /* some types throw on read */ }
-      }
-    } catch { /* logging shouldn't break the drop */ }
-  }
-
   return candidates;
 }
 

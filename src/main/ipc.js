@@ -383,6 +383,7 @@ function registerIpcHandlers() {
     if (candidates.length === 0) throw new Error('drop-url called without any URLs');
 
     const errors = [];
+    let sawHtmlResponse = false;
     for (const url of candidates) {
       try {
         const imgData = await saveImageFromUrl(url);
@@ -394,9 +395,37 @@ function registerIpcHandlers() {
         notifySaved(record);
         return record;
       } catch (err) {
+        if (/not an image/i.test(String(err?.message || err))) {
+          sawHtmlResponse = true;
+        }
         errors.push(`${url}: ${err.message}`);
       }
     }
+
+    // Safari drops the surrounding page URL (HTML) rather than the
+    // image URL like Chrome does. If every candidate fetched as
+    // HTML, fall back to a URL-kind save: screenshot the first
+    // candidate page and store it the same way the toolbar
+    // "Save URL…" flow does. The result is a save the user can open
+    // in the live webview, which is at least as useful as the image
+    // they'd have expected.
+    if (sawHtmlResponse) {
+      const url = candidates[0];
+      try {
+        console.log('[saves:drop-url] all URLs returned HTML — falling back to URL-kind capture:', url);
+        const captured = await captureUrl(url);
+        if (captured.duplicateOf) {
+          notifyDuplicate(captured.existing);
+          return captured.existing;
+        }
+        const record = insertSave({ ...captured, sourceUrl: url, kind: 'url' });
+        notifySaved(record);
+        return record;
+      } catch (err) {
+        errors.push(`${url} (URL-kind fallback): ${err.message}`);
+      }
+    }
+
     throw new Error(`All ${candidates.length} URL(s) failed:\n${errors.join('\n')}`);
   });
 
