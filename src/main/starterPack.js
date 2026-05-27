@@ -91,7 +91,24 @@ function readManifestFromZip(zipPath) {
   });
 }
 
+// Module-level mutex. React 18 StrictMode + the walkthrough's
+// onEnter effect fire installStarterPack twice on mount, and the
+// two calls would race — both snapshotting the empty collections
+// table before either createCollection had landed, then both
+// inserting "Branding" / "Typography". The await-then-set pattern
+// here makes the second call wait for the first to fully finish
+// before its own existing-name snapshot runs.
+let installInFlight = null;
+
 async function installStarterPack() {
+  if (installInFlight) return installInFlight;
+  installInFlight = doInstallStarterPack().finally(() => {
+    installInFlight = null;
+  });
+  return installInFlight;
+}
+
+async function doInstallStarterPack() {
   if (!fs.existsSync(STARTER_PACK_PATH)) {
     console.log(`[starter-pack] no zip at ${STARTER_PACK_PATH} — skipping install. Run 'npm run pack:starter' to build one.`);
     return { ok: true, present: false, inserted: 0, duplicates: 0 };
