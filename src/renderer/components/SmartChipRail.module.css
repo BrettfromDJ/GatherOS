@@ -90,8 +90,13 @@
   background: transparent;
   border: 0;
   outline: 0;
-  padding: 0;
-  margin: 0;
+  /* Small horizontal padding so the focus ring (added in
+     :read-write below) has a little breathing room around the
+     text without shifting the static title's baseline. The
+     matching negative margin keeps the resting position pixel-
+     identical to the old zero-padding version. */
+  padding: 2px 6px;
+  margin: -2px -6px;
   align-self: center;
   /* Shrink to value width like a <span> would shrink to its text,
      so the row's other elements (back button, gap) don't reflow
@@ -100,10 +105,26 @@
   /* Even when read-only, browsers show a text caret on hover.
      Override for the static state and re-enable when editable. */
   cursor: default;
+  /* Strong, visible blinking caret while editing — the input
+     looks like static text otherwise, and the OS-default caret
+     can be too thin to read against the page background. */
+  caret-color: var(--accent, var(--text-primary));
+  border-radius: var(--radius-sm, 6px);
+  transition:
+    background var(--dur-instant, 80ms) ease,
+    box-shadow var(--dur-instant, 80ms) ease;
 }
 
 .titleInput:read-write {
   cursor: text;
+}
+
+/* Edit state — subtle tinted background + accent focus ring so
+   the moment the user clicks to rename, the title visibly turns
+   into an input field. Pairs with the visible caret-color above. */
+.titleInput:read-write:focus {
+  background: var(--input-bg-focus, rgba(0, 0, 0, 0.04));
+  box-shadow: 0 0 0 2px var(--accent-bg-medium, rgba(0, 0, 0, 0.08));
 }
 
 .titleInputEditable {
