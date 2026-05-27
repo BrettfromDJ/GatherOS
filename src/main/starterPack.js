@@ -121,26 +121,54 @@ async function installStarterPack() {
     let collectionsCreated = 0;
     let boardsCreated = 0;
     if (manifest) {
-      // Recreate each collection and attach the mapped saves.
+      // Snapshot the existing rows once so we can dedupe by name
+      // without round-tripping the DB on every iteration. createCollection
+      // / createBoard don't check uniqueness, so without this guard the
+      // installer would pile up a fresh "Branding" / "Untitled board"
+      // every time it runs (and the renderer's StrictMode-doubled effect
+      // in dev would compound the duplication).
+      const existingCollectionsByName = new Map();
+      for (const c of (getAllCollections() || [])) {
+        if (c?.name) existingCollectionsByName.set(c.name.toLowerCase(), c.id);
+      }
+      const existingBoardNames = new Set(
+        (listBoards() || [])
+          .map((b) => (b?.name || '').toLowerCase())
+          .filter(Boolean),
+      );
+
+      // Recreate each collection and attach the mapped saves. If a
+      // collection with the same name already exists (case-insensitive),
+      // reuse it instead of inserting a duplicate row; addSaveToCollection
+      // is itself an INSERT OR IGNORE so re-attaching the same saves is
+      // a no-op.
       for (const col of (manifest.collections || [])) {
         if (!col?.name) continue;
-        const created = createCollection({ name: col.name, color: col.color });
-        const collectionId = created?.id || created?.collection?.id;
-        if (!collectionId) continue;
-        collectionsCreated += 1;
+        const key = col.name.toLowerCase();
+        let collectionId = existingCollectionsByName.get(key);
+        if (!collectionId) {
+          const created = createCollection({ name: col.name, color: col.color });
+          collectionId = created?.id || created?.collection?.id;
+          if (!collectionId) continue;
+          existingCollectionsByName.set(key, collectionId);
+          collectionsCreated += 1;
+        }
         for (const itemName of (col.items || [])) {
           const saveId = filenameToSaveId.get(itemName);
           if (saveId) addSaveToCollection({ collectionId, saveId });
         }
       }
-      // Recreate each board (Space) and its items. Image items get
-      // their data.saveId remapped from the staged filename to the
-      // freshly-inserted save id; other item types pass through.
+      // Recreate each board (Space) and its items. Boards with items
+      // can't be cleanly merged (re-upserting would clone every canvas
+      // element), so if a board with this name already exists we skip
+      // it entirely — the user's existing board is the source of truth.
       for (const board of (manifest.boards || [])) {
         if (!board?.name) continue;
+        if (existingBoardNames.has(board.name.toLowerCase())) continue;
         const createdBoard = createBoard({ name: board.name });
         const boardId = createdBoard?.id || createdBoard?.board?.id;
         if (!boardId) continue;
+        existingBoardNames.add(board.name.toLowerCase());
         boardsCreated += 1;
         for (const it of (board.items || [])) {
           let data = it.data || {};
