@@ -15,11 +15,7 @@ import {
   CreditCard as CreditCardIcon,
   FileArchive as FileArchiveIcon,
   Eraser as EraserIcon,
-  LifeBuoy as LifeBuoyIcon,
-  PlayCircle as PlayCircleIcon,
-  Undo2 as UndoIcon,
 } from 'lucide-react';
-import { useOnboarding } from '../onboarding/OnboardingContext.jsx';
 import styles from './SettingsModal.module.css';
 import { confirm } from '../lib/confirm.js';
 import AcknowledgmentsModal from './AcknowledgmentsModal.jsx';
@@ -41,7 +37,6 @@ const NAV_ITEMS = [
   { id: 'capture',    label: 'Capture',    Icon: CameraIcon },
   { id: 'updates',    label: 'Updates',    Icon: DownloadIcon },
   { id: 'data',       label: 'Data',       Icon: Database },
-  { id: 'help',       label: 'Help',       Icon: LifeBuoyIcon },
   { id: 'about',      label: 'About',      Icon: Info },
 ];
 
@@ -663,7 +658,6 @@ export default function SettingsModal({
   onRenameLibrary,
   onDeleteLibrary,
 }) {
-  const onboarding = useOnboarding();
   // Whether the licensing session is present — proxy-mode AI is
   // gated on it, not on a per-user OpenAI key. AppGate already shows
   // the signin screen when this is false, so for the most part this
@@ -1582,58 +1576,6 @@ export default function SettingsModal({
                   {wipeState.message}
                 </div>
               )}
-            </div>
-          )}
-
-          {activePage === 'help' && (
-            <div className={styles.page}>
-              <div className={styles.sectionHint}>
-                Replay the first-run tour at any time. It locks the app
-                to one action per step until you complete it or exit.
-              </div>
-              <button
-                type="button"
-                className={styles.aboutLink}
-                onClick={() => {
-                  onboarding.start();
-                  onClose?.();
-                }}
-                style={{ marginTop: 12 }}
-              >
-                <PlayCircleIcon size={14} strokeWidth={1.6} aria-hidden="true" />
-                <span style={{ marginLeft: 6 }}>Restart walkthrough</span>
-              </button>
-
-              {/* Dev-only undo. The Start fresh path snapshots
-                  collections + boards + the affected save ids to
-                  userData/walkthrough-snapshot.json on its way
-                  out; this restores them all so testing the
-                  destructive choice doesn't actually cost data. */}
-              <div className={styles.sectionHint} style={{ marginTop: 24 }}>
-                Dev — restores your saves, collections, and spaces
-                from the snapshot taken the last time you clicked
-                "Start fresh."
-              </div>
-              <button
-                type="button"
-                className={styles.aboutLink}
-                onClick={async () => {
-                  const r = await window.moodmark?.onboarding?.restoreSnapshot?.();
-                  if (r?.ok) {
-                    onLibraryWiped?.(); // same hook the wipe path uses to nudge the renderer to refetch
-                    onClose?.();
-                  } else {
-                    // eslint-disable-next-line no-alert
-                    alert(r?.reason === 'no-snapshot'
-                      ? 'No snapshot found. Run "Start fresh" once to create one.'
-                      : `Restore failed: ${r?.error || r?.reason || 'unknown'}`);
-                  }
-                }}
-                style={{ marginTop: 8 }}
-              >
-                <UndoIcon size={14} strokeWidth={1.6} aria-hidden="true" />
-                <span style={{ marginLeft: 6 }}>Undo last "Start fresh"</span>
-              </button>
             </div>
           )}
 
