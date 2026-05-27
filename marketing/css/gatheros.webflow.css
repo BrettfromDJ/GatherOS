@@ -31,6 +31,15 @@ h1 {
   line-height: 44px;
 }
 
+/* Hero headline uses Geist — the same display face as the app
+   itself — so the landing copy and the in-product UI feel like one
+   typographic family. Letter-spacing nudged in slightly to suit
+   Geist's wider default tracking at large display sizes. */
+.hero h1 {
+  font-family: Geist, Arial, sans-serif;
+  letter-spacing: -0.02em;
+}
+
 .hero {
   min-height: 100vh;
   padding-top: 90px;
