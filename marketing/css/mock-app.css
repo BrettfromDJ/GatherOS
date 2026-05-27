@@ -501,70 +501,6 @@
   }
 }
 
-/* ── Progressive blur band at the bottom of the hero ──────────────
-   Five stacked layers, each with its own backdrop-filter blur
-   amount and a mask that brings it in where the previous layer
-   tapers off. Visually: content is sharp at the top of the band,
-   ramps to fully blurred at the bottom, fades to the page bg.
-   Pointer-events:none so card hovers below still work where the
-   band overlaps. Desktop only; hidden ≤991px. */
-
-.progressive-blur {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 260px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.progressive-blur > div {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.progressive-blur > div:nth-child(1) {
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 40%, transparent 60%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 40%, transparent 60%);
-}
-
-.progressive-blur > div:nth-child(2) {
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  mask-image: linear-gradient(to bottom, transparent 20%, black 40%, black 60%, transparent 80%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 20%, black 40%, black 60%, transparent 80%);
-}
-
-.progressive-blur > div:nth-child(3) {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  mask-image: linear-gradient(to bottom, transparent 40%, black 60%, black 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 40%, black 60%, black 80%, transparent 100%);
-}
-
-.progressive-blur > div:nth-child(4) {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  mask-image: linear-gradient(to bottom, transparent 60%, black 80%, black 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 60%, black 80%, black 100%);
-}
-
-/* Final layer is a solid colour wash that softens the seam between
-   the last blurred band and the page background, so the blur fades
-   into white rather than abruptly stopping at the viewport edge. */
-.progressive-blur > div:nth-child(5) {
-  background: linear-gradient(
-    to bottom,
-    transparent 60%,
-    rgba(255, 255, 255, 0.35) 85%,
-    rgba(255, 255, 255, 0.7) 100%
-  );
-}
-
 /* ── Mobile/tablet: hide the static PNG fallback and let the live
       mock render so you see "part of the app" on small screens too.
       .hero already has overflow-x: hidden ≤991px, so the 880px-wide
@@ -575,10 +511,6 @@
 }
 
 @media (max-width: 991px) {
-  .progressive-blur {
-    display: none;
-  }
-
   /* Tighten the copy → mock gap on small screens. .div-block ships
      with a 60px row-gap that makes the column layout feel airy. */
   .hero .div-block {
