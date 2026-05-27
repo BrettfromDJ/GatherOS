@@ -332,6 +332,11 @@ export default function BoardGrid({
   onRenameBoard,
   onDeleteBoard,
   onReorderBoards,
+  // Optional ref-callback — when provided, App attaches its scroll
+  // listener to our scroll container so the toolbar's drop-shadow
+  // engages once the boards grid is scrolled past the top, matching
+  // the Library screen's behaviour.
+  scrollRef,
 }) {
   const [ctxMenu, setCtxMenu] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
@@ -439,7 +444,7 @@ export default function BoardGrid({
   }
 
   return (
-    <div className={styles.scroll}>
+    <div className={styles.scroll} ref={scrollRef}>
       <div className={styles.gridHeader}>
         <Dropdown
           value={sortMode}

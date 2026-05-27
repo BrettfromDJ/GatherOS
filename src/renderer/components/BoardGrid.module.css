@@ -43,7 +43,9 @@
   text-align: left;
   color: inherit;
   font: inherit;
-  overflow: hidden;
+  /* No overflow: hidden on the tile itself — .tileArt already clips
+     the snapshot SVG, and the reorder-indicator pseudo-elements
+     (left/right: -7px) need to paint outside the tile box. */
   animation: tileIn var(--dur-medium) var(--ease-out) both;
   transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
 }
@@ -94,6 +96,11 @@
   );
   background-size: 8px 8px;
   border-bottom: 0.5px solid var(--border);
+  /* Round the top to match the parent's 8px radius now that the
+     parent no longer applies overflow: hidden — the snapshot SVG
+     would otherwise poke past the tile's rounded corners. */
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
   overflow: hidden;
 }
 

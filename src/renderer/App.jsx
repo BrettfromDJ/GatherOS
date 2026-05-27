@@ -2605,6 +2605,7 @@ export default function App() {
                   onRenameBoard={handleRenameBoard}
                   onDeleteBoard={handleDeleteBoard}
                   onReorderBoards={handleReorderBoards}
+                  scrollRef={setGridScrollNode}
                 />
               ) : (
               <div className="grid-scroll" ref={setGridScrollNode}>
