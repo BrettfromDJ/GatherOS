@@ -27,7 +27,7 @@ const LAUNCHER_FILENAME = 'native-host';
 // ID; add it to this list and ship a new desktop release.
 const ALLOWED_EXTENSION_IDS = [
   'dopoibgdcokjffklnmechmboglnfihlc', // dev (key in extension/manifest.json)
-  // 'PROD_WEB_STORE_ID_HERE',
+  'jflmnonpoapjncoeankehcmenldecojk', // Chrome Web Store (production)
 ];
 
 // macOS Chromium-family browsers. Each ships its own NativeMessagingHosts
