@@ -806,6 +806,84 @@ export default function DetailPanel({
             )}
           </div>
         </label>
+
+        {tweetMeta && (
+          // Glass tweet card. Sits directly under the URL field so
+          // the "where this came from" surfaces (URL + the richer
+          // tweet card) cluster together. Shows author + handle +
+          // caption pulled from the bookmarked tweet, plus a
+          // thumbnail strip when the tweet had more than one image —
+          // clicking a thumbnail tells App to swap the focused-view
+          // src to that image. The X glyph in the top-right marks
+          // the source.
+          <div className={styles.tweetCard}>
+            <div className={styles.tweetCardHeader}>
+              <div className={styles.tweetAuthor}>
+                {tweetMeta.authorAvatarUrl ? (
+                  <img
+                    className={styles.tweetAvatar}
+                    src={tweetMeta.authorAvatarUrl}
+                    alt=""
+                    draggable={false}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className={styles.tweetAvatarFallback} aria-hidden="true" />
+                )}
+                <div className={styles.tweetAuthorText}>
+                  {tweetMeta.authorName && (
+                    <span className={styles.tweetName}>{tweetMeta.authorName}</span>
+                  )}
+                  {tweetMeta.authorHandle && (
+                    <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
+                  )}
+                </div>
+              </div>
+              <span className={styles.tweetSourceIcon} title="From X" aria-label="From X">
+                <XGlyphIcon />
+              </span>
+            </div>
+
+            {tweetMeta.caption && (
+              <div className={styles.tweetCaption}>{tweetMeta.caption}</div>
+            )}
+
+            {Array.isArray(tweetMeta.imageUrls) && tweetMeta.imageUrls.length > 1 && (
+              <div className={styles.tweetThumbs}>
+                {tweetMeta.imageUrls.map((url, i) => {
+                  // idx 0 == the locally-saved primary, so render the
+                  // existing thumb_path for an instant, offline-safe
+                  // tile. The rest come from twimg directly; render
+                  // a "small" variant so the strip loads fast.
+                  const thumbSrc = i === 0
+                    ? fileUrl(record.thumb_path || record.file_path)
+                    : twimgVariant(url, 'small');
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={[
+                        styles.tweetThumb,
+                        i === altImageIdx && styles.tweetThumbActive,
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => onAltImageIdxChange?.(i)}
+                      aria-label={`Show image ${i + 1}`}
+                      aria-pressed={i === altImageIdx}
+                    >
+                      <img
+                        src={thumbSrc}
+                        alt=""
+                        draggable={false}
+                        referrerPolicy="no-referrer"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {(editingNotes || notesDraft) ? (
           <label className={styles.metaField}>
             <span className={styles.metaFieldLabel}>Note</span>
@@ -901,80 +979,6 @@ export default function DetailPanel({
           <div className={styles.autoTagError}>{promptError}</div>
         )}
       </div>
-
-      {tweetMeta && (
-        // Glass tweet card. Shows author + handle + caption pulled
-        // from the bookmarked tweet, plus a thumbnail strip when the
-        // tweet had more than one image — clicking a thumbnail tells
-        // App to swap the focused-view src to that image. The X glyph
-        // top-right marks the surface as a tweet source.
-        <div className={styles.tweetCard}>
-          <div className={styles.tweetCardHeader}>
-            <div className={styles.tweetAuthor}>
-              {tweetMeta.authorAvatarUrl ? (
-                <img
-                  className={styles.tweetAvatar}
-                  src={tweetMeta.authorAvatarUrl}
-                  alt=""
-                  draggable={false}
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className={styles.tweetAvatarFallback} aria-hidden="true" />
-              )}
-              <div className={styles.tweetAuthorText}>
-                {tweetMeta.authorName && (
-                  <span className={styles.tweetName}>{tweetMeta.authorName}</span>
-                )}
-                {tweetMeta.authorHandle && (
-                  <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
-                )}
-              </div>
-            </div>
-            <span className={styles.tweetSourceIcon} title="From X" aria-label="From X">
-              <XGlyphIcon />
-            </span>
-          </div>
-
-          {tweetMeta.caption && (
-            <div className={styles.tweetCaption}>{tweetMeta.caption}</div>
-          )}
-
-          {Array.isArray(tweetMeta.imageUrls) && tweetMeta.imageUrls.length > 1 && (
-            <div className={styles.tweetThumbs}>
-              {tweetMeta.imageUrls.map((url, i) => {
-                // idx 0 == the locally-saved primary, so render the
-                // existing thumb_path for an instant, offline-safe
-                // tile. The rest come from twimg directly; downgrade
-                // to name=small so the strip loads fast.
-                const thumbSrc = i === 0
-                  ? fileUrl(record.thumb_path || record.file_path)
-                  : twimgVariant(url, 'small');
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    className={[
-                      styles.tweetThumb,
-                      i === altImageIdx && styles.tweetThumbActive,
-                    ].filter(Boolean).join(' ')}
-                    onClick={() => onAltImageIdxChange?.(i)}
-                    aria-label={`Show image ${i + 1}`}
-                    aria-pressed={i === altImageIdx}
-                  >
-                    <img
-                      src={thumbSrc}
-                      alt=""
-                      draggable={false}
-                      referrerPolicy="no-referrer"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className={styles.collectionsSection}>
         <div className={styles.collectionsLabel}>

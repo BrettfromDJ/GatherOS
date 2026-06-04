@@ -66,34 +66,81 @@ function findTweetUrl(article) {
   return null;
 }
 
-// Twitter rewrites image URLs to include &name=small / &name=900x900
-// based on layout. Always request the original-resolution variant so
-// the saved asset isn't a thumbnail.
-function highResTwimg(url) {
+// Strip Twitter's &name=<variant> query param so we store one
+// canonical URL per image regardless of which size X happened to be
+// rendering at click time. Earlier versions rewrote to name=orig but
+// that variant is occasionally gated by X for non-image-CDN paths;
+// keeping the URL exactly as X served it sidesteps that and lets the
+// renderer pick its own variant via twimgVariant() at display time.
+function canonicalTwimg(url) {
   try {
     const u = new URL(url);
-    u.searchParams.set('name', 'orig');
+    u.searchParams.delete('name');
     return u.toString();
   } catch {
     return url;
   }
 }
 
-// Collect every twimg media URL inside the article. Filter to the
-// pbs.twimg.com/media/ host so avatars (profile_images path) and
-// emoji (twemoji) don't leak in.
+// Collect every twimg image URL inside the article. Multi-image
+// tweets render each photo as a regular <img>, but X also uses
+// <source> elements inside <picture> for responsive variants and
+// occasionally background-image divs for in-grid hover thumbnails.
+// We pull from all three plus img.currentSrc (the actually-loaded
+// variant after srcset selection) so a 4-image tweet doesn't end up
+// with three broken tiles. The path filter accepts /media/ as well
+// as /tweet_video_thumb/ and /ext_tw_video_thumb/ so GIF / video
+// poster frames also flow through.
 function findImageUrls(article) {
   const out = [];
   const seen = new Set();
-  const imgs = article.querySelectorAll('img');
-  for (const img of imgs) {
-    const src = img.getAttribute('src') || '';
-    if (!src.includes('pbs.twimg.com/media/')) continue;
-    const hi = highResTwimg(src);
-    if (seen.has(hi)) continue;
-    seen.add(hi);
-    out.push(hi);
+  const PBS_PATH = /pbs\.twimg\.com\/(?:media|tweet_video_thumb|ext_tw_video_thumb|amplify_video_thumb)\//;
+
+  function collect(rawSrc) {
+    if (!rawSrc) return;
+    if (!PBS_PATH.test(rawSrc)) return;
+    const canonical = canonicalTwimg(rawSrc);
+    if (seen.has(canonical)) return;
+    seen.add(canonical);
+    out.push(canonical);
   }
+
+  // 1. <img> tags — the main path. currentSrc reflects the variant
+  //    the browser actually chose from srcset, which is generally
+  //    higher fidelity than what's listed in src=.
+  article.querySelectorAll('img').forEach((img) => {
+    collect(img.currentSrc);
+    collect(img.getAttribute('src'));
+    // srcset is a comma-separated list of "URL widthDescriptor";
+    // pull every URL out of it so we catch images that haven't yet
+    // had their src resolved by the browser.
+    const srcset = img.getAttribute('srcset');
+    if (srcset) {
+      srcset.split(',').forEach((part) => {
+        const url = part.trim().split(/\s+/)[0];
+        collect(url);
+      });
+    }
+  });
+
+  // 2. <source> tags inside <picture> elements. X occasionally wraps
+  //    media in <picture> to swap variants by viewport.
+  article.querySelectorAll('source').forEach((s) => {
+    const srcset = s.getAttribute('srcset') || s.getAttribute('src') || '';
+    srcset.split(',').forEach((part) => {
+      const url = part.trim().split(/\s+/)[0];
+      collect(url);
+    });
+  });
+
+  // 3. Inline background-image styles. Rarely used by X but cheap
+  //    to check; pulls the URL out of url(...) wrappers.
+  article.querySelectorAll('[style*="background-image"]').forEach((el) => {
+    const style = el.getAttribute('style') || '';
+    const match = style.match(/url\(["']?([^"')]+)["']?\)/);
+    if (match) collect(match[1]);
+  });
+
   return out;
 }
 
