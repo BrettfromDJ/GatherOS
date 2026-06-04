@@ -66,13 +66,12 @@ function findTweetUrl(article) {
   return null;
 }
 
-// Strip Twitter's &name=<variant> query param so we store one
-// canonical URL per image regardless of which size X happened to be
-// rendering at click time. Earlier versions rewrote to name=orig but
-// that variant is occasionally gated by X for non-image-CDN paths;
-// keeping the URL exactly as X served it sidesteps that and lets the
-// renderer pick its own variant via twimgVariant() at display time.
-function canonicalTwimg(url) {
+// Dedup key: strip Twitter's &name=<variant> so different
+// resolutions of the same image (in srcset) collapse to one entry.
+// We do NOT strip format= — that's the bit that determines whether
+// twimg serves JPG, PNG, or WebP, and we want to keep whatever
+// variant X was actually rendering.
+function dedupeKey(url) {
   try {
     const u = new URL(url);
     u.searchParams.delete('name');
@@ -82,15 +81,15 @@ function canonicalTwimg(url) {
   }
 }
 
-// Collect every twimg image URL inside the article. Multi-image
-// tweets render each photo as a regular <img>, but X also uses
-// <source> elements inside <picture> for responsive variants and
-// occasionally background-image divs for in-grid hover thumbnails.
-// We pull from all three plus img.currentSrc (the actually-loaded
-// variant after srcset selection) so a 4-image tweet doesn't end up
-// with three broken tiles. The path filter accepts /media/ as well
-// as /tweet_video_thumb/ and /ext_tw_video_thumb/ so GIF / video
-// poster frames also flow through.
+// Collect every twimg image URL the browser successfully rendered
+// inside the article. Crucially, we read img.currentSrc — that's the
+// exact URL the browser fetched after srcset selection, which means
+// it's guaranteed to be a URL twimg actually serves bytes for.
+// Synthesizing URLs (adding ?format=jpg&name=large) was unreliable
+// because some images live only as WebP / video poster frames and
+// twimg 404s on the wrong variant. The path filter accepts /media/
+// as well as the video thumbnail paths so animated formats flow
+// through too.
 function findImageUrls(article) {
   const out = [];
   const seen = new Set();
@@ -99,21 +98,23 @@ function findImageUrls(article) {
   function collect(rawSrc) {
     if (!rawSrc) return;
     if (!PBS_PATH.test(rawSrc)) return;
-    const canonical = canonicalTwimg(rawSrc);
-    if (seen.has(canonical)) return;
-    seen.add(canonical);
-    out.push(canonical);
+    const key = dedupeKey(rawSrc);
+    if (seen.has(key)) return;
+    seen.add(key);
+    // Store the URL exactly as X served it — including its current
+    // format= / name= params — so the renderer can use it verbatim.
+    out.push(rawSrc);
   }
 
-  // 1. <img> tags — the main path. currentSrc reflects the variant
-  //    the browser actually chose from srcset, which is generally
-  //    higher fidelity than what's listed in src=.
+  // <img> tags — the primary path. Prefer currentSrc because that's
+  // the URL the browser already validated by loading it. Fall back
+  // to src / srcset for images that hadn't started loading yet.
   article.querySelectorAll('img').forEach((img) => {
-    collect(img.currentSrc);
+    if (img.currentSrc) {
+      collect(img.currentSrc);
+      return;
+    }
     collect(img.getAttribute('src'));
-    // srcset is a comma-separated list of "URL widthDescriptor";
-    // pull every URL out of it so we catch images that haven't yet
-    // had their src resolved by the browser.
     const srcset = img.getAttribute('srcset');
     if (srcset) {
       srcset.split(',').forEach((part) => {
@@ -123,8 +124,8 @@ function findImageUrls(article) {
     }
   });
 
-  // 2. <source> tags inside <picture> elements. X occasionally wraps
-  //    media in <picture> to swap variants by viewport.
+  // <source> tags inside <picture> elements — X uses these to serve
+  // WebP / AVIF to capable browsers.
   article.querySelectorAll('source').forEach((s) => {
     const srcset = s.getAttribute('srcset') || s.getAttribute('src') || '';
     srcset.split(',').forEach((part) => {
@@ -133,8 +134,7 @@ function findImageUrls(article) {
     });
   });
 
-  // 3. Inline background-image styles. Rarely used by X but cheap
-  //    to check; pulls the URL out of url(...) wrappers.
+  // Inline background-image styles — rare on x.com but cheap to scan.
   article.querySelectorAll('[style*="background-image"]').forEach((el) => {
     const style = el.getAttribute('style') || '';
     const match = style.match(/url\(["']?([^"')]+)["']?\)/);

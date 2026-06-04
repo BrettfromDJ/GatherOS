@@ -125,22 +125,12 @@ export default function FocusedView({
       }
     } catch { /* malformed tweet_meta — fall through to single image */ }
   }
-  // Same recipe as DetailPanel's twimgVariant — twimg's /media/
-  // endpoint requires format= in the query or it 404s. We pick the
-  // 'large' variant since the focused view fills the canvas; the
-  // detail-panel thumb strip uses the same helper but on its own.
-  function focusedTwimgVariant(url) {
-    try {
-      const u = new URL(url);
-      u.searchParams.set('name', 'large');
-      if (!u.searchParams.has('format')) {
-        u.searchParams.set('format', 'jpg');
-      }
-      return u.toString();
-    } catch { return url; }
-  }
+  // The captured URLs are img.currentSrc from x.com — already the
+  // best variant the browser had loaded. Use as-is; synthesizing a
+  // bigger variant (name=large) was unreliable for tweets whose
+  // image only exists at a specific size on twimg's CDN.
   const src = (tweetImageUrls && altImageIdx > 0 && altImageIdx < tweetImageUrls.length)
-    ? focusedTwimgVariant(tweetImageUrls[altImageIdx])
+    ? tweetImageUrls[altImageIdx]
     : fileUrl(record.file_path);
   const zoomFillPct = ((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100;
 

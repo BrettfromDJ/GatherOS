@@ -847,17 +847,16 @@ export default function DetailPanel({
                 {tweetMeta.imageUrls.map((url, i) => {
                   // idx 0 == the locally-saved primary, so render the
                   // existing thumb_path for an instant, offline-safe
-                  // tile. The rest come from twimg directly. We
-                  // request a 'large' variant (small was failing for
-                  // a chunk of users — likely a quirk of how X gates
-                  // variant access). onError below retries with the
-                  // bare URL stripped of all query params, which
-                  // covers the case where the stored URL has stale
-                  // name=/format= values that don't match what twimg
-                  // currently serves.
+                  // tile. For the rest, use the URL exactly as the
+                  // content script captured it from img.currentSrc —
+                  // i.e. the URL the browser had already successfully
+                  // loaded on x.com, guaranteed to be a real twimg
+                  // variant. Synthesizing format= / name= here was
+                  // unreliable for tweets stored only as WebP / video
+                  // poster frames.
                   const thumbSrc = i === 0
                     ? fileUrl(record.thumb_path || record.file_path)
-                    : twimgVariant(url, 'large');
+                    : url;
                   return (
                     <button
                       key={i}
@@ -875,19 +874,14 @@ export default function DetailPanel({
                         alt=""
                         draggable={false}
                         onError={(e) => {
-                          const failed = e.currentTarget.src;
-                          try {
-                            const u = new URL(failed);
-                            // First retry: format=jpg → format=png
-                            // for the occasional PNG-only tweet.
-                            if (u.searchParams.get('format') === 'jpg') {
-                              u.searchParams.set('format', 'png');
-                              e.currentTarget.src = u.toString();
-                              return;
-                            }
-                          } catch { /* not a URL — leave broken */ }
+                          // The captured URL was loading on x.com when
+                          // the bookmark was clicked, so it should
+                          // load here too. If it doesn't, the image
+                          // was deleted from twimg, the user is
+                          // offline, or the variant expired — log so
+                          // we can debug, then let it render broken.
                           // eslint-disable-next-line no-console
-                          console.warn('[tweet-card] image failed', failed);
+                          console.warn('[tweet-card] image failed', e.currentTarget.src);
                         }}
                       />
                     </button>
