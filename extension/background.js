@@ -59,6 +59,44 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
+// Real-time X bookmark capture. The content script
+// (content/x-bookmark-watcher.js) detects clicks on the bookmark
+// button on x.com / twitter.com, extracts the tweet permalink +
+// image URL from the surrounding article DOM, and posts the result
+// here. We forward it to the GatherOS native host using the same
+// 'save' message type the right-click flow uses — the desktop
+// dedups by content_hash so re-bookmarking is a no-op.
+//
+// We stay silent on both success (a notification on every bookmark
+// click would be noisy on rapid-fire sessions) and on "app not
+// running" (the user isn't using GatherOS this session — surfacing
+// the failure would nag them). Only real errors get notified.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (!msg || msg.type !== 'gatheros:x-bookmark') return;
+  chrome.runtime.sendNativeMessage(HOST_NAME, {
+    type: 'save',
+    imageUrl: msg.imageUrl,
+    pageUrl: msg.pageUrl,
+    pageTitle: msg.pageTitle,
+  }).then((response) => {
+    if (response && response.ok) return;
+    const err = response?.error || '';
+    if (
+      err === 'app not running'
+      || err === 'GatherOS is not installed or has never been launched.'
+    ) return;
+    notify(`X bookmark sync failed: ${err || 'unknown error'}`);
+  }).catch((err) => {
+    const text = err?.message || String(err);
+    // Same silent-when-app-not-running rule as the success path.
+    if (
+      text.includes('host not found')
+      || text.includes('Specified native messaging host')
+    ) return;
+    notify(`X bookmark sync failed — ${text}`);
+  });
+});
+
 function notify(message) {
   try {
     chrome.notifications.create({
