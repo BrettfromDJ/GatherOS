@@ -818,26 +818,13 @@ export default function DetailPanel({
           // the source.
           <div className={styles.tweetCard}>
             <div className={styles.tweetCardHeader}>
-              <div className={styles.tweetAuthor}>
-                {tweetMeta.authorAvatarUrl ? (
-                  <img
-                    className={styles.tweetAvatar}
-                    src={tweetMeta.authorAvatarUrl}
-                    alt=""
-                    draggable={false}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className={styles.tweetAvatarFallback} aria-hidden="true" />
+              <div className={styles.tweetAuthorText}>
+                {tweetMeta.authorName && (
+                  <span className={styles.tweetName}>{tweetMeta.authorName}</span>
                 )}
-                <div className={styles.tweetAuthorText}>
-                  {tweetMeta.authorName && (
-                    <span className={styles.tweetName}>{tweetMeta.authorName}</span>
-                  )}
-                  {tweetMeta.authorHandle && (
-                    <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
-                  )}
-                </div>
+                {tweetMeta.authorHandle && (
+                  <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
+                )}
               </div>
               <span className={styles.tweetSourceIcon} title="From X" aria-label="From X">
                 <XGlyphIcon />
@@ -853,11 +840,17 @@ export default function DetailPanel({
                 {tweetMeta.imageUrls.map((url, i) => {
                   // idx 0 == the locally-saved primary, so render the
                   // existing thumb_path for an instant, offline-safe
-                  // tile. The rest come from twimg directly; render
-                  // a "small" variant so the strip loads fast.
+                  // tile. The rest come from twimg directly. We
+                  // request a 'large' variant (small was failing for
+                  // a chunk of users — likely a quirk of how X gates
+                  // variant access). onError below retries with the
+                  // bare URL stripped of all query params, which
+                  // covers the case where the stored URL has stale
+                  // name=/format= values that don't match what twimg
+                  // currently serves.
                   const thumbSrc = i === 0
                     ? fileUrl(record.thumb_path || record.file_path)
-                    : twimgVariant(url, 'small');
+                    : twimgVariant(url, 'large');
                   return (
                     <button
                       key={i}
@@ -874,7 +867,22 @@ export default function DetailPanel({
                         src={thumbSrc}
                         alt=""
                         draggable={false}
-                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const failed = e.currentTarget.src;
+                          try {
+                            const u = new URL(failed);
+                            u.search = '';
+                            const bare = u.toString();
+                            if (bare !== failed) {
+                              // eslint-disable-next-line no-console
+                              console.warn('[tweet-card] retry without query for', failed);
+                              e.currentTarget.src = bare;
+                              return;
+                            }
+                          } catch { /* not a URL — let it stay broken */ }
+                          // eslint-disable-next-line no-console
+                          console.warn('[tweet-card] image failed', failed);
+                        }}
                       />
                     </button>
                   );

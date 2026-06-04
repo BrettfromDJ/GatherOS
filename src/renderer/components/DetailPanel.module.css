@@ -699,33 +699,11 @@
   gap: 10px;
 }
 
-.tweetAuthor {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.tweetAvatar,
-.tweetAvatarFallback {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.10);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
-}
-
-.tweetAvatar {
-  object-fit: cover;
-  display: block;
-}
-
 .tweetAuthorText {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .tweetName {
