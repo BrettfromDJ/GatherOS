@@ -205,6 +205,23 @@ document.addEventListener('click', (e) => {
   const avatarUrl = findAvatarUrl(article);
   const caption = findCaption(article);
 
+  // Rewrite name=<small variant> → name=large for the URL we ship
+  // to the desktop as the primary save. img.currentSrc is whatever
+  // size X chose for the timeline (usually 360x360 or 900x900), and
+  // that ends up being the resolution saved to disk if we hand it
+  // over unchanged. Critically we keep format= intact — that was the
+  // bit that 404'd in earlier iterations. The captured imageUrls
+  // array stays at the original timeline variant for the thumbnail
+  // strip; only the primary save URL and the focused-view alt swap
+  // get upscaled.
+  function twimgLarge(url) {
+    try {
+      const u = new URL(url);
+      u.searchParams.set('name', 'large');
+      return u.toString();
+    } catch { return url; }
+  }
+
   // tweet_meta is the durable payload — DetailPanel renders a glass
   // tweet card from this, including the secondary-image thumbnail
   // strip and click-to-swap. The grid title + detail-panel notes
@@ -212,7 +229,7 @@ document.addEventListener('click', (e) => {
   // other image save.
   chrome.runtime.sendMessage({
     type: 'gatheros:x-bookmark',
-    imageUrl: imageUrls[0],
+    imageUrl: twimgLarge(imageUrls[0]),
     pageUrl: tweetUrl,
     tweetMeta: {
       authorName: author.displayName,

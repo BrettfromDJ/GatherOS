@@ -125,12 +125,21 @@ export default function FocusedView({
       }
     } catch { /* malformed tweet_meta — fall through to single image */ }
   }
-  // The captured URLs are img.currentSrc from x.com — already the
-  // best variant the browser had loaded. Use as-is; synthesizing a
-  // bigger variant (name=large) was unreliable for tweets whose
-  // image only exists at a specific size on twimg's CDN.
+  // Upscale the captured timeline thumbnail to twimg's 'large'
+  // variant for the focused view. The captured URL is whatever size
+  // X was rendering in the timeline grid (often 360x360), which is
+  // too small for the focused canvas. We only rewrite name= and
+  // leave format= alone — the previous format=jpg synthesis was
+  // what broke loads for non-JPEG tweets.
+  function twimgLarge(url) {
+    try {
+      const u = new URL(url);
+      u.searchParams.set('name', 'large');
+      return u.toString();
+    } catch { return url; }
+  }
   const src = (tweetImageUrls && altImageIdx > 0 && altImageIdx < tweetImageUrls.length)
-    ? tweetImageUrls[altImageIdx]
+    ? twimgLarge(tweetImageUrls[altImageIdx])
     : fileUrl(record.file_path);
   const zoomFillPct = ((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100;
 
