@@ -234,6 +234,21 @@
           if (entries.length === 0) {
             // eslint-disable-next-line no-console
             console.log('[gatheros] bookmarks raw response:', json);
+            // Drill straight to the entries array we expect and log
+            // the first one so we can see its actual shape vs what
+            // parseTweetForBookmark assumes.
+            const instructions =
+              json && json.data && json.data.bookmark_timeline_v2
+              && json.data.bookmark_timeline_v2.timeline
+              && json.data.bookmark_timeline_v2.timeline.instructions;
+            const addEntries = Array.isArray(instructions)
+              ? instructions.find((i) => i && i.type === 'TimelineAddEntries')
+              : null;
+            const sampleEntry = addEntries
+              && Array.isArray(addEntries.entries)
+              && addEntries.entries[0];
+            // eslint-disable-next-line no-console
+            console.log('[gatheros] first entry sample:', sampleEntry);
           }
           postBookmarks(entries);
         }
@@ -265,6 +280,21 @@
           if (entries.length === 0) {
             // eslint-disable-next-line no-console
             console.log('[gatheros] bookmarks raw response:', json);
+            // Drill straight to the entries array we expect and log
+            // the first one so we can see its actual shape vs what
+            // parseTweetForBookmark assumes.
+            const instructions =
+              json && json.data && json.data.bookmark_timeline_v2
+              && json.data.bookmark_timeline_v2.timeline
+              && json.data.bookmark_timeline_v2.timeline.instructions;
+            const addEntries = Array.isArray(instructions)
+              ? instructions.find((i) => i && i.type === 'TimelineAddEntries')
+              : null;
+            const sampleEntry = addEntries
+              && Array.isArray(addEntries.entries)
+              && addEntries.entries[0];
+            // eslint-disable-next-line no-console
+            console.log('[gatheros] first entry sample:', sampleEntry);
           }
           postBookmarks(entries);
         }
