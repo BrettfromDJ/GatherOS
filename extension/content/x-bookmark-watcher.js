@@ -247,7 +247,15 @@ function findCaption(article) {
 // Tweet video extraction. X embeds video as a <video> element with
 // one or more <source> children — usually a single MP4 source with
 // the highest available bitrate already pre-selected. Returns the
-// MP4 URL + poster URL, or null when the tweet has no video.
+// MP4 URL + poster URL, or null when the tweet has no playable
+// http(s) MP4 we can hand to the native host.
+//
+// IMPORTANT: X streams a chunk of its videos via Media Source
+// Extensions, which makes the <video src> a blob: URL that only
+// resolves inside the page. Those can't be fetched from outside the
+// renderer, so we skip them — the caller falls back to saving the
+// poster image as an image bookmark, giving the user a record of
+// the tweet even when the MP4 itself is unreachable.
 //
 // The MP4 URL pattern bakes the resolution into the path:
 //     https://video.twimg.com/.../1280x720/<id>.mp4
@@ -258,6 +266,7 @@ function findCaption(article) {
 function findTweetVideo(article) {
   const video = article.querySelector('video');
   if (!video) return null;
+  const posterUrl = video.getAttribute('poster') || '';
 
   const sources = Array.from(video.querySelectorAll('source'));
   // Some tweets render their MP4 directly on the <video> element
@@ -270,6 +279,9 @@ function findTweetVideo(article) {
   for (const s of sources) {
     const src = s.getAttribute('src');
     if (!src) continue;
+    // Only http(s) URLs survive — blob: (MSE) and data: URLs can't
+    // be fetched by the native host.
+    if (!/^https?:\/\//i.test(src)) continue;
     // Twitter videos are MP4; HLS / m3u8 streams need ffmpeg to
     // download, which we don't have. Skip those so the user gets a
     // clear "no video found" rather than a corrupt save.
@@ -282,11 +294,17 @@ function findTweetVideo(article) {
       best = { src, width };
     }
   }
-  if (!best) return null;
+
+  // When the <video> exists but no http(s) MP4 is reachable, report
+  // the poster so the caller can still bookmark the tweet as an
+  // image. videoUrl: null is the signal.
+  if (!best) {
+    return posterUrl ? { videoUrl: null, posterUrl } : null;
+  }
 
   return {
     videoUrl: best.src,
-    posterUrl: video.getAttribute('poster') || '',
+    posterUrl,
   };
 }
 
@@ -306,9 +324,17 @@ document.addEventListener('click', (e) => {
 
   const imageUrls = findImageUrls(article);
   const tweetVideo = findTweetVideo(article);
-  // Skip tweets that have neither images nor a video — there's
-  // nothing for the library to anchor the bookmark to.
-  if (imageUrls.length === 0 && !tweetVideo) return;
+  // findTweetVideo may return { videoUrl: null, posterUrl } when the
+  // tweet has a video but the MP4 lives behind a blob:/MSE URL we
+  // can't fetch. Fold the poster into imageUrls so the bookmark
+  // still lands — the user gets a still of the tweet in their
+  // library instead of nothing.
+  if (tweetVideo && !tweetVideo.videoUrl && tweetVideo.posterUrl) {
+    imageUrls.unshift(tweetVideo.posterUrl);
+  }
+  // Skip tweets that have neither images, a usable video, nor a
+  // poster fallback — nothing for the library to anchor to.
+  if (imageUrls.length === 0 && !(tweetVideo && tweetVideo.videoUrl)) return;
 
   const author = findAuthorInfo(article);
   const avatarUrl = findAvatarUrl(article);
@@ -360,11 +386,16 @@ document.addEventListener('click', (e) => {
       posterUrl: tweetVideo?.posterUrl || null,
     },
   };
-  if (imageUrls.length > 0) {
-    payload.imageUrl = twimgLarge(imageUrls[0]);
-  } else if (tweetVideo) {
+  if (tweetVideo && tweetVideo.videoUrl) {
+    // Real playable MP4 — route through the video branch on the
+    // desktop. The poster doubles as the JPEG thumbnail.
     payload.videoUrl = tweetVideo.videoUrl;
     payload.posterUrl = tweetVideo.posterUrl;
+  } else if (imageUrls.length > 0) {
+    // Image-bearing (or video-with-poster-fallback). twimgLarge is
+    // a no-op on non-twimg URLs, so the poster fallback flows
+    // through it unchanged.
+    payload.imageUrl = twimgLarge(imageUrls[0]);
   }
 
   chrome.runtime.sendMessage(payload, (response) => {
