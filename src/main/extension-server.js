@@ -5,7 +5,7 @@
 // extension doesn't have to discover it.
 //
 // One endpoint:
-//   POST /save  { imageUrl, pageUrl?, pageTitle?, notes?, tweetMeta? }  with header X-GatherOS-Token
+//   POST /save  { imageUrl, pageUrl?, pageTitle?, notes?, tweetMeta?, tags? }  with header X-GatherOS-Token
 //
 // Plus an unauthenticated GET /ping for the extension's "Test
 // connection" button.
@@ -137,6 +137,20 @@ async function handleSave(req, res) {
       notes: notes || null,
       tweetMeta,
     });
+    // Optional tag list — currently used by the X-bookmark capture
+    // to auto-tag every X save with 'x:bookmark' so the user can
+    // filter their library to just bookmarks from X. Each entry
+    // routes through addTagToSave which trims, lowercases, and
+    // dedupes against the existing tags table.
+    if (Array.isArray(body?.tags) && body.tags.length) {
+      const { addTagToSave } = require('./db');
+      for (const t of body.tags) {
+        if (typeof t === 'string' && t.trim()) {
+          try { addTagToSave({ saveId: record.id, name: t }); }
+          catch (err) { console.warn('[ext-server] tag attach failed:', err?.message || err); }
+        }
+      }
+    }
     notifySaved(record);
     sendJson(res, 200, { ok: true, id: record.id });
   } catch (err) {

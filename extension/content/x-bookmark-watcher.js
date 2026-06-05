@@ -13,6 +13,66 @@
 // it's been stable since 2023.
 const BOOKMARK_TESTID = 'bookmark';
 
+// Reusable in-page toast pinned to the bottom-right. Lives entirely
+// inside the content script's own DOM node so X's styles can't
+// bleed in. Each call replaces any earlier visible toast so a
+// rapid-fire bookmarking session collapses to "Saved (3)" rather
+// than stacking multiple pills. State + DOM are module-level so
+// they survive React-like rerenders of X's own page chrome.
+let toastEl = null;
+let toastTimer = null;
+function showGatherToast(message, { tone = 'ok' } = {}) {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    // Pin via inline styles so X's CSS / class scoping can't break
+    // it. z-index is well above x.com's modal stack.
+    toastEl.style.cssText = [
+      'position:fixed',
+      'right:24px',
+      'bottom:24px',
+      'z-index:2147483647',
+      'display:flex',
+      'align-items:center',
+      'gap:8px',
+      'padding:10px 14px',
+      'font:500 13px/1.2 -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',
+      'color:rgba(255,255,255,0.95)',
+      'background:rgba(20,20,22,0.78)',
+      'backdrop-filter:blur(20px) saturate(1.8)',
+      '-webkit-backdrop-filter:blur(20px) saturate(1.8)',
+      'border:0.5px solid rgba(255,255,255,0.14)',
+      'border-radius:999px',
+      'box-shadow:0 1px 2px rgba(0,0,0,0.2),0 8px 22px rgba(0,0,0,0.28)',
+      'opacity:0',
+      'transform:translateY(8px)',
+      'transition:opacity 160ms ease,transform 160ms ease',
+      'pointer-events:none',
+    ].join(';');
+    document.body.appendChild(toastEl);
+  }
+  // Re-build content: a small coloured dot + message.
+  const dotColor = tone === 'error'
+    ? 'rgba(255,90,90,0.95)'
+    : 'rgba(110,220,140,0.95)';
+  toastEl.innerHTML = `
+    <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block"></span>
+    <span></span>
+  `;
+  toastEl.querySelector('span:last-child').textContent = message;
+  // Force a frame before applying the visible state so the CSS
+  // transition fires from the offscreen position.
+  requestAnimationFrame(() => {
+    toastEl.style.opacity = '1';
+    toastEl.style.transform = 'translateY(0)';
+  });
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    if (!toastEl) return;
+    toastEl.style.opacity = '0';
+    toastEl.style.transform = 'translateY(8px)';
+  }, 2200);
+}
+
 // The click target inside the bookmark button is often the inner SVG
 // or <path>. Walk up to the actual button with the data-testid before
 // reading aria-label / starting the tweet extraction.
@@ -231,6 +291,12 @@ document.addEventListener('click', (e) => {
     type: 'gatheros:x-bookmark',
     imageUrl: twimgLarge(imageUrls[0]),
     pageUrl: tweetUrl,
+    // Auto-tag every X bookmark so the user can filter their library
+    // to "just my X bookmarks" via the existing tag picker. The
+    // 'x:' namespace keeps it visually distinct from user-authored
+    // tags and reserves space for future capture surfaces
+    // (instagram:, pinterest:, …).
+    tags: ['x:bookmark'],
     tweetMeta: {
       authorName: author.displayName,
       authorHandle: author.handle,
@@ -238,5 +304,23 @@ document.addEventListener('click', (e) => {
       caption,
       imageUrls,
     },
+  }, (response) => {
+    // Background hands back { ok, duplicate, offline, error } once the
+    // native host has answered. Stay silent when GatherOS isn't
+    // running (offline=true) — otherwise every bookmark click would
+    // nag a user who isn't actively using the app this session.
+    if (!response) return;
+    if (response.ok) {
+      showGatherToast(
+        response.duplicate ? 'Already in GatherOS' : 'Saved to GatherOS',
+        { tone: 'ok' },
+      );
+      return;
+    }
+    if (response.offline) return;
+    showGatherToast(
+      `GatherOS save failed: ${response.error || 'unknown error'}`,
+      { tone: 'error' },
+    );
   });
 }, true);

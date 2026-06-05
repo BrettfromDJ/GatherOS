@@ -67,34 +67,42 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // 'save' message type the right-click flow uses — the desktop
 // dedups by content_hash so re-bookmarking is a no-op.
 //
-// We stay silent on both success (a notification on every bookmark
-// click would be noisy on rapid-fire sessions) and on "app not
-// running" (the user isn't using GatherOS this session — surfacing
-// the failure would nag them). Only real errors get notified.
-chrome.runtime.onMessage.addListener((msg) => {
-  if (!msg || msg.type !== 'gatheros:x-bookmark') return;
+// The content script reads the response back and renders an in-page
+// toast so the user gets confirmation without leaving x.com. Errors
+// route through the same channel; the content script decides what
+// to show (or to stay silent if GatherOS isn't running).
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== 'gatheros:x-bookmark') return undefined;
   chrome.runtime.sendNativeMessage(HOST_NAME, {
     type: 'save',
     imageUrl: msg.imageUrl,
     pageUrl: msg.pageUrl,
+    videoUrl: msg.videoUrl,
+    posterUrl: msg.posterUrl,
     tweetMeta: msg.tweetMeta,
+    tags: msg.tags,
   }).then((response) => {
-    if (response && response.ok) return;
-    const err = response?.error || '';
-    if (
-      err === 'app not running'
-      || err === 'GatherOS is not installed or has never been launched.'
-    ) return;
-    notify(`X bookmark sync failed: ${err || 'unknown error'}`);
+    sendResponse({
+      ok: !!(response && response.ok),
+      duplicate: !!(response && response.duplicate),
+      error: response?.error || null,
+    });
   }).catch((err) => {
     const text = err?.message || String(err);
-    // Same silent-when-app-not-running rule as the success path.
-    if (
-      text.includes('host not found')
-      || text.includes('Specified native messaging host')
-    ) return;
-    notify(`X bookmark sync failed — ${text}`);
+    // Distinguish "GatherOS isn't running / installed" from real
+    // errors so the content script can stay quiet rather than nag.
+    const offline = text.includes('host not found')
+      || text.includes('Specified native messaging host');
+    sendResponse({
+      ok: false,
+      offline,
+      error: text,
+    });
   });
+  // Returning true keeps the message channel open until sendResponse
+  // fires asynchronously — without this the content script's
+  // callback would receive undefined immediately.
+  return true;
 });
 
 function notify(message) {
