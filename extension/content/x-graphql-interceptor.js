@@ -121,12 +121,26 @@
     const t = result.tweet || result;
     const legacy = t.legacy;
     if (!legacy || !legacy.id_str) return null;
+
     const userResult = t.core && t.core.user_results && t.core.user_results.result;
-    const userLegacy = userResult && userResult.legacy;
-    if (!userLegacy || !userLegacy.screen_name) return null;
+    if (!userResult) return null;
+    // X has been migrating user fields out of legacy into a new
+    // `core` sub-object (and avatar URL into a dedicated `avatar`
+    // sub-object). Read from both so this works during and after the
+    // schema rollout. Without this, every tweet in the bookmarks
+    // feed returned null because userLegacy.screen_name was
+    // undefined on accounts where the migration had landed.
+    const userCore = userResult.core || {};
+    const userLegacy = userResult.legacy || {};
+    const screenName = userCore.screen_name || userLegacy.screen_name;
+    const displayName = userCore.name || userLegacy.name || '';
+    const avatarUrl =
+      (userResult.avatar && userResult.avatar.image_url)
+      || userLegacy.profile_image_url_https
+      || '';
+    if (!screenName) return null;
 
     const tweetId = legacy.id_str;
-    const screenName = userLegacy.screen_name;
     const tweetUrl = `https://x.com/${screenName}/status/${tweetId}`;
 
     // Media extraction. extended_entities.media is the authoritative
@@ -170,9 +184,9 @@
     return {
       tweetId,
       tweetUrl,
-      authorName: userLegacy.name || '',
+      authorName: displayName,
       authorHandle: `@${screenName}`,
-      authorAvatarUrl: userLegacy.profile_image_url_https || '',
+      authorAvatarUrl: avatarUrl,
       caption: legacy.full_text || '',
       imageUrls,
       videoUrl,
