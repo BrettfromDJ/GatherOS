@@ -196,7 +196,39 @@ export default function ImageCard({
       }}
     >
       <div className={styles.frame} style={{ aspectRatio: aspect }}>
-        {inView && src && (
+        {inView && (record.kind === 'video' ? (
+          // Video saves: render an inline <video> instead of an
+          // <img> — the file_path is an MP4 that browsers can't
+          // render as a static image. The poster attribute shows
+          // the saved thumbnail (first frame) so the card looks
+          // identical to an image save at rest; hover starts the
+          // video silently and resets when the cursor leaves so
+          // each hover plays from the start. preload="metadata"
+          // means we fetch just the byte range needed to know the
+          // video's dimensions — the rest only downloads if the
+          // user actually hovers.
+          <video
+            src={fileUrl(record.file_path)}
+            poster={record.thumb_path ? fileUrl(record.thumb_path) : undefined}
+            className={`${styles.image}${record.__pending ? ' ' + styles.imagePending : ''}`}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            draggable={false}
+            style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
+            onMouseEnter={(e) => {
+              // play() rejects when the element gets unmounted
+              // mid-load (fast cursor passes), which is fine.
+              const p = e.currentTarget.play();
+              if (p && typeof p.catch === 'function') p.catch(() => {});
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }}
+          />
+        ) : src && (
           <img
             src={src}
             className={`${styles.image}${record.__pending ? ' ' + styles.imagePending : ''}`}
@@ -206,7 +238,7 @@ export default function ImageCard({
             draggable={false}
             style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
           />
-        )}
+        ))}
         {record.__pending && (
           <div className={styles.pendingOverlay} aria-label="Generating variation">
             <div className={styles.pendingDots} aria-hidden="true" />
