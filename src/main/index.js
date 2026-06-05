@@ -322,6 +322,13 @@ const CONTENT_TYPES = {
   gif: 'image/gif',
   webp: 'image/webp',
   avif: 'image/avif',
+  // Video formats — used by X-bookmark video saves and any future
+  // video-kind capture path. Required for the <video> element to
+  // resolve a playable MIME via the moodmark-file:// protocol.
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  m4v: 'video/mp4',
 };
 
 function registerMoodmarkFileProtocol() {
@@ -340,16 +347,54 @@ function registerMoodmarkFileProtocol() {
 
     const ext = path.extname(abs).slice(1).toLowerCase();
     const contentType = CONTENT_TYPES[ext] || 'application/octet-stream';
+    const stat = fs.statSync(abs);
+    const fileSize = stat.size;
+
+    // CORS allow-all so an <img crossOrigin="anonymous"> loaded from
+    // this scheme produces an un-tainted canvas. The FocusedView
+    // eyedropper calls getImageData() against the focused image,
+    // which throws SecurityError on a tainted canvas. Same scheme is
+    // used everywhere in-app so allow-all is the right answer; the
+    // renderer is the only consumer.
+    const corsHeader = { 'Access-Control-Allow-Origin': '*' };
+
+    // Honour Range requests for streaming media. HTML5 <video> can't
+    // seek without 206 Partial Content responses — without this, the
+    // user can play a video bookmark linearly but dragging the
+    // timeline scrubber does nothing because the browser asks for a
+    // byte range and we hand back the full file.
+    const range = req.headers.get('range');
+    if (range && fileSize > 0) {
+      const match = range.match(/bytes=(\d*)-(\d*)/);
+      if (match) {
+        const start = match[1] ? parseInt(match[1], 10) : 0;
+        const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+        if (start >= 0 && end < fileSize && start <= end) {
+          const chunkSize = end - start + 1;
+          const stream = fs.createReadStream(abs, { start, end });
+          return new Response(Readable.toWeb(stream), {
+            status: 206,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Length': String(chunkSize),
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes',
+              ...corsHeader,
+            },
+          });
+        }
+      }
+    }
+
     return new Response(Readable.toWeb(fs.createReadStream(abs)), {
+      status: 200,
       headers: {
         'Content-Type': contentType,
-        // CORS allow-all so an <img crossOrigin="anonymous"> loaded
-        // from this scheme produces an un-tainted canvas. The
-        // FocusedView eyedropper calls getImageData() against the
-        // focused image, which throws SecurityError on a tainted
-        // canvas. Same scheme is used everywhere in-app so allow-all
-        // is the right answer; the renderer is the only consumer.
-        'Access-Control-Allow-Origin': '*',
+        'Content-Length': String(fileSize),
+        // Advertise range support so <video> probes the file with a
+        // 0-1 byte range on load and then knows it can seek freely.
+        'Accept-Ranges': 'bytes',
+        ...corsHeader,
       },
     });
   });

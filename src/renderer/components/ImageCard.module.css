@@ -273,6 +273,42 @@
 /* Flat dark overlay sits above the blurred image so the dot
    pattern reads against a uniform tone instead of competing with
    the blur's own midtones. */
+/* ── Source / kind badges ──────────────────────────────────────
+   Small liquid-glass pills overlaid on the thumbnail. Use the same
+   recipe as the DetailPanel chips + AddFab popover so they belong
+   to the same surface family. pointer-events: none so the badges
+   never steal a click — selection / open still works through them. */
+.kindBadge,
+.sourceBadge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(20, 20, 22, 0.55);
+  backdrop-filter: blur(14px) saturate(1.7);
+  -webkit-backdrop-filter: blur(14px) saturate(1.7);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.22),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.kindBadge {
+  top: 8px;
+  right: 8px;
+}
+
+.sourceBadge {
+  bottom: 8px;
+  left: 8px;
+}
+
 .pendingOverlay {
   position: absolute;
   inset: 0;

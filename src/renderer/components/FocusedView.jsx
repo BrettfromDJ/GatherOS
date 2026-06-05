@@ -352,6 +352,12 @@ export default function FocusedView({
               loop
               muted
               playsInline
+              // No picture-in-picture button or right-click "Enter
+              // Picture-in-Picture" — PiP carries the video out of
+              // the app into a floating system overlay, which breaks
+              // the moodboard-style "everything in one window" model.
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate"
               poster={record.thumb_path ? fileUrl(record.thumb_path) : undefined}
               style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
             />

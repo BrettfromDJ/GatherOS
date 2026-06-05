@@ -1,7 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Video as VideoIcon } from 'lucide-react';
 import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+
+// Official-ish X glyph — used as a source badge in the bottom-left
+// of cards whose save was captured via the X bookmark watcher. Same
+// path the DetailPanel tweet card uses; copied here to avoid an
+// import cycle / cross-component dependency for a single SVG.
+function XGlyphIcon() {
+  return (
+    <svg
+      viewBox="0 0 1200 1227"
+      width="11"
+      height="11"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z" />
+    </svg>
+  );
+}
 
 function CheckIcon() {
   return (
@@ -239,6 +258,22 @@ export default function ImageCard({
             style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
           />
         ))}
+        {inView && record.kind === 'video' && (
+          // Top-right glass badge — marks the card as a video at a
+          // glance, even before the user hovers and the inline
+          // playback kicks in.
+          <span className={styles.kindBadge} aria-label="Video">
+            <VideoIcon size={12} strokeWidth={1.8} aria-hidden="true" />
+          </span>
+        )}
+        {inView && record.tweet_meta && (
+          // Bottom-left glass badge — marks saves captured via the
+          // X bookmark watcher. Same XGlyphIcon the DetailPanel
+          // tweet card uses so the surface family stays consistent.
+          <span className={styles.sourceBadge} aria-label="From X">
+            <XGlyphIcon />
+          </span>
+        )}
         {record.__pending && (
           <div className={styles.pendingOverlay} aria-label="Generating variation">
             <div className={styles.pendingDots} aria-hidden="true" />
