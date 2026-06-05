@@ -231,6 +231,10 @@
           const entries = extractBookmarkEntries(json);
           // eslint-disable-next-line no-console
           console.log('[gatheros] bookmarks extracted', entries.length, 'entries from', reqUrl);
+          if (entries.length === 0) {
+            // eslint-disable-next-line no-console
+            console.log('[gatheros] bookmarks raw response:', json);
+          }
           postBookmarks(entries);
         }
       }).catch(() => { /* non-JSON or parse error — silently ignore */ });
@@ -258,6 +262,10 @@
           const entries = extractBookmarkEntries(json);
           // eslint-disable-next-line no-console
           console.log('[gatheros] bookmarks extracted', entries.length, 'entries from', this.__gatherUrl);
+          if (entries.length === 0) {
+            // eslint-disable-next-line no-console
+            console.log('[gatheros] bookmarks raw response:', json);
+          }
           postBookmarks(entries);
         }
       } catch { /* non-JSON or parse error */ }
