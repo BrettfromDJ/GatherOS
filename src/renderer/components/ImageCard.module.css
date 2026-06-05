@@ -274,12 +274,12 @@
    pattern reads against a uniform tone instead of competing with
    the blur's own midtones. */
 /* ── Source / kind badges ──────────────────────────────────────
-   Match the .checkbox / .peekBtn liquid-glass recipe (light fill,
-   dark glyph) so all four corner affordances belong to the same
-   surface family. Hidden at rest, fade in on card hover — same
-   "reveal on intent" pattern the checkbox + peek use, keeping the
-   resting grid clean. pointer-events: none so the badges never
-   steal a click. */
+   Same liquid-glass recipe as the .checkbox / .peekBtn icons in
+   the card's other two corners, but persistent: these are
+   informational ("this is a video", "this came from X") and the
+   user should know that at a glance without having to hover. The
+   checkbox / peek icons stay hover-only — they're actions, not
+   labels. pointer-events: none so the badges never steal a click. */
 .kindBadge,
 .sourceBadge {
   position: absolute;
@@ -297,15 +297,8 @@
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.18),
     inset 0 0.5px 0 0 rgba(255, 255, 255, 0.55);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity var(--dur-instant) ease;
   z-index: 2;
-}
-
-.card:hover .kindBadge,
-.card:hover .sourceBadge {
-  opacity: 1;
 }
 
 .kindBadge {

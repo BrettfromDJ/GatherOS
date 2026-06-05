@@ -230,22 +230,20 @@ export default function ImageCard({
             src={fileUrl(record.file_path)}
             poster={record.thumb_path ? fileUrl(record.thumb_path) : undefined}
             className={`${styles.image}${record.__pending ? ' ' + styles.imagePending : ''}`}
+            autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            // Autoplay muted is allowed without user gesture, so
+            // every video card in the grid starts playing as soon
+            // as it scrolls into view. preload="auto" lets the
+            // browser fetch enough of the file to start playback
+            // immediately; visibility-gated by the inView check
+            // already wrapping this element, so off-screen videos
+            // never start loading.
+            preload="auto"
             draggable={false}
             style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
-            onMouseEnter={(e) => {
-              // play() rejects when the element gets unmounted
-              // mid-load (fast cursor passes), which is fine.
-              const p = e.currentTarget.play();
-              if (p && typeof p.catch === 'function') p.catch(() => {});
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
-            }}
           />
         ) : src && (
           <img
