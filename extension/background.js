@@ -14,6 +14,16 @@ const MENU_ID = 'gatheros-save-image';
 // bookmark anything."
 const BOOKMARK_POLL_ALARM = 'gatherosBookmarkPoll';
 
+// Create — or re-create — the recurring bookmark poll. Always uses
+// periodInMinutes so the alarm keeps firing. Safe to call repeatedly:
+// chrome.alarms.create replaces any same-named alarm, so this also
+// self-heals if the recurring alarm ever got clobbered by a fire-once
+// one (e.g. a manual `chrome.alarms.create(BOOKMARK_POLL_ALARM, { when })`
+// test trigger reusing this name — use a throwaway name for that).
+function ensureBookmarkPollAlarm() {
+  chrome.alarms.create(BOOKMARK_POLL_ALARM, { periodInMinutes: 5 });
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: MENU_ID,
@@ -24,10 +34,10 @@ chrome.runtime.onInstalled.addListener(() => {
   // startup. chrome.alarms persists across service-worker idles so
   // this only needs to fire-and-forget; the alarm itself wakes the
   // worker every 5 minutes to run pollBookmarksRefresh().
-  chrome.alarms.create(BOOKMARK_POLL_ALARM, { periodInMinutes: 5 });
+  ensureBookmarkPollAlarm();
 });
 chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create(BOOKMARK_POLL_ALARM, { periodInMinutes: 5 });
+  ensureBookmarkPollAlarm();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -330,6 +340,11 @@ async function pollBookmarksRefresh() {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm && alarm.name === BOOKMARK_POLL_ALARM) {
+    // Re-assert the recurring schedule on every fire. If this alarm
+    // was ever replaced by a one-shot, the poll would run once and
+    // then never again; re-creating it here guarantees the 5-minute
+    // cadence persists no matter how it got triggered.
+    ensureBookmarkPollAlarm();
     pollBookmarksRefresh();
   }
 });
