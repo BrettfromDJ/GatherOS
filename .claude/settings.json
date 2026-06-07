@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"Launch locally → cd /Users/brett/GatherOS && git pull origin main && npm run dev\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}
