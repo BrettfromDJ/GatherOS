@@ -9,10 +9,19 @@
 const HOST_NAME = 'co.gatheros.host';
 const MENU_ID = 'gatheros-save-image';
 // chrome.alarms identifier for the recurring "check x.com for new
-// bookmarks" job. Five minutes balances "phone bookmarks appear
+// bookmarks" job. Two minutes balances "phone bookmarks appear
 // promptly" against "don't hammer twitter for users who never
-// bookmark anything."
+// bookmark anything." A focus-triggered poll (see below) covers the
+// common case — bookmark on phone, then return to the computer —
+// near-instantly, so this timer is mostly a safety net.
 const BOOKMARK_POLL_ALARM = 'gatherosBookmarkPoll';
+const BOOKMARK_POLL_PERIOD_MINUTES = 2;
+
+// Don't fire the poll more than once per this window, no matter how
+// many triggers (alarm + window focus) land close together. Persisted
+// to storage so it survives service-worker teardown.
+const BOOKMARK_POLL_THROTTLE_MS = 30 * 1000;
+const STORAGE_LAST_POLL_KEY = 'gatherosLastPollAt';
 
 // Create — or re-create — the recurring bookmark poll. Always uses
 // periodInMinutes so the alarm keeps firing. Safe to call repeatedly:
@@ -21,7 +30,19 @@ const BOOKMARK_POLL_ALARM = 'gatherosBookmarkPoll';
 // one (e.g. a manual `chrome.alarms.create(BOOKMARK_POLL_ALARM, { when })`
 // test trigger reusing this name — use a throwaway name for that).
 function ensureBookmarkPollAlarm() {
-  chrome.alarms.create(BOOKMARK_POLL_ALARM, { periodInMinutes: 5 });
+  chrome.alarms.create(BOOKMARK_POLL_ALARM, { periodInMinutes: BOOKMARK_POLL_PERIOD_MINUTES });
+}
+
+// Throttled entry point for every poll trigger. Skips if we polled
+// within the last BOOKMARK_POLL_THROTTLE_MS; otherwise stamps the
+// time and runs the refresh. Stamping before the fetch is intentional
+// — the throttle caps request rate regardless of success.
+async function maybePollBookmarks() {
+  const { [STORAGE_LAST_POLL_KEY]: last = 0 } = await chrome.storage.local.get(STORAGE_LAST_POLL_KEY);
+  const now = Date.now();
+  if (now - last < BOOKMARK_POLL_THROTTLE_MS) return;
+  await chrome.storage.local.set({ [STORAGE_LAST_POLL_KEY]: now });
+  await pollBookmarksRefresh();
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -33,7 +54,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Register the polling alarm on install and on every browser
   // startup. chrome.alarms persists across service-worker idles so
   // this only needs to fire-and-forget; the alarm itself wakes the
-  // worker every 5 minutes to run pollBookmarksRefresh().
+  // worker to run the poll on the BOOKMARK_POLL_PERIOD_MINUTES cadence.
   ensureBookmarkPollAlarm();
 });
 chrome.runtime.onStartup.addListener(() => {
@@ -259,9 +280,10 @@ async function syncBookmarkToGather(b) {
 //
 // The interceptor stores the URL of the most recent top-of-list
 // /Bookmarks request plus the Authorization bearer header that
-// accompanied it. Every 5 minutes (chrome.alarms), the service
-// worker re-fires that exact URL with the bearer + the user's CSRF
-// token (from cookies). Response goes through the same extractor +
+// accompanied it. On a timer (chrome.alarms) and whenever Chrome
+// regains focus, the service worker re-fires that exact URL with the
+// bearer + the user's CSRF token (from cookies). Response goes through
+// the same extractor +
 // handleBookmarkBatch path the interceptor uses for in-page
 // captures, so phone-bookmarked tweets land in GatherOS without the
 // user needing to visit x.com on desktop.
@@ -342,11 +364,22 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm && alarm.name === BOOKMARK_POLL_ALARM) {
     // Re-assert the recurring schedule on every fire. If this alarm
     // was ever replaced by a one-shot, the poll would run once and
-    // then never again; re-creating it here guarantees the 5-minute
-    // cadence persists no matter how it got triggered.
+    // then never again; re-creating it here guarantees the cadence
+    // persists no matter how it got triggered.
     ensureBookmarkPollAlarm();
-    pollBookmarksRefresh();
+    maybePollBookmarks();
   }
+});
+
+// Poll the moment the user returns focus to Chrome. The common flow is
+// "bookmark on phone, then sit down at the computer" — this catches it
+// within a second or two instead of waiting on the timer, and costs
+// nothing while Chrome is unfocused. WINDOW_ID_NONE means Chrome lost
+// focus (switched away); we only poll on regaining a real window. The
+// throttle in maybePollBookmarks keeps rapid window-switching cheap.
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  maybePollBookmarks();
 });
 
 // Background-side mirror of extractBookmarkEntries + parseTweetForBookmark
