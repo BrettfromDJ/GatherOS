@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speed-dial labels on hover — 5 ways</title>
+<style>
+  :root {
+    --content-bg: #fafaf9;
+    --surface-1: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --text-primary: #000;
+    --text-secondary: rgba(0,0,0,0.55);
+    --text-tertiary: rgba(0,0,0,0.4);
+    --hover-bg: #ececec;
+    --tip-bg: #1c1c1e; --tip-fg: #fff;
+    --shadow-control: 0 1px 3px -1px rgba(16,16,19,0.06);
+    --shadow-fab: inset 0 0.5px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.06), 0 8px 22px rgba(0,0,0,0.12);
+    --font: 'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: var(--font); color: var(--text-primary); background: var(--content-bg); -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+
+  .topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: rgba(250,250,249,0.85); backdrop-filter: saturate(1.6) blur(12px); border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .tab { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1); box-shadow: var(--shadow-control); font: inherit; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .tab:hover { background: var(--hover-bg); }
+  .tab .num { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 5px; background: rgba(0,0,0,0.06); font-size: 10.5px; color: var(--text-tertiary); }
+  .tab.active { background: #000; color: #fff; border-color: #000; }
+  .tab.active .num { background: rgba(255,255,255,0.22); color: #fff; }
+
+  main { max-width: 880px; margin: 0 auto; padding: 26px 18px 60px; }
+  .iter { display: none; }
+  .iter.active { display: block; animation: fade 0.18s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .meta { margin: 2px 2px 16px; }
+  .meta .name { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+  .meta .why { margin-top: 5px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); max-width: 64ch; }
+  .hint { margin-top: 8px; font-size: 12px; color: var(--text-tertiary); }
+
+  .stage { position: relative; height: 380px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--content-bg); box-shadow: var(--shadow-control); }
+  .grid { position: absolute; inset: 0; padding: 14px; column-count: 4; column-gap: 10px; }
+  .grid .c { break-inside: avoid; margin-bottom: 10px; border-radius: 8px; }
+
+  .dial { position: absolute; right: 24px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+  .ico { display: inline-flex; flex: none; }
+  .fab, .mini {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.92); border: 0.5px solid rgba(0,0,0,0.10); color: var(--text-primary);
+    border-radius: 50%; cursor: pointer; box-shadow: var(--shadow-fab);
+  }
+  .fab { width: 52px; height: 52px; }
+  .mini { width: 46px; height: 46px; }
+  .fab:hover, .mini:hover { background: #fff; }
+
+  .action { position: relative; display: inline-flex; }
+  .label {
+    position: absolute; right: calc(100% + 12px); top: 50%;
+    padding: 7px 12px; border-radius: 9px; background: var(--tip-bg); color: var(--tip-fg);
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;
+    pointer-events: none; box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+  }
+
+  /* 1 · fade in to the left */
+  .v1 .label { opacity: 0; transform: translateY(-50%) translateX(6px); transition: opacity 0.15s ease, transform 0.15s ease; }
+  .v1 .action:hover .label { opacity: 1; transform: translateY(-50%); }
+
+  /* 2 · slide out from behind the button */
+  .v2 .label { opacity: 0; transform: translateY(-50%) translateX(28px); transition: opacity 0.16s ease, transform 0.26s cubic-bezier(0.2,0.85,0.25,1); }
+  .v2 .action:hover .label { opacity: 1; transform: translateY(-50%); }
+
+  /* 3 · tooltip above, with caret */
+  .v3 .label { right: auto; top: auto; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(4px); opacity: 0; transition: opacity 0.14s ease, transform 0.14s ease; }
+  .v3 .action:hover .label { opacity: 1; transform: translateX(-50%); }
+  .v3 .label::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--tip-bg); }
+
+  /* 4 · delayed tooltip (true-tooltip feel) */
+  .v4 .label { opacity: 0; transform: translateY(-50%) translateX(4px); transition: opacity 0.12s ease, transform 0.12s ease; }
+  .v4 .action:hover .label { opacity: 1; transform: translateY(-50%); transition-delay: 0.4s; }
+
+  /* 5 · button expands into a labelled pill (no separate tip) */
+  .v5 .mini.pill { width: auto; height: 46px; min-width: 46px; border-radius: 999px; padding: 0; justify-content: flex-end; overflow: hidden; }
+  .v5 .mini.pill .ico { width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .v5 .exlabel { max-width: 0; opacity: 0; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text-primary); transition: max-width 0.24s cubic-bezier(0.2,0.85,0.25,1), opacity 0.18s ease, padding 0.2s ease; padding: 0; }
+  .v5 .mini.pill:hover .exlabel { max-width: 170px; opacity: 1; padding: 0 2px 0 16px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Speed-dial labels on hover</h1>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-i="1"><span class="num">1</span>Fade left</button>
+      <button class="tab" data-i="2"><span class="num">2</span>Slide from button</button>
+      <button class="tab" data-i="3"><span class="num">3</span>Tooltip above</button>
+      <button class="tab" data-i="4"><span class="num">4</span>Delayed</button>
+      <button class="tab" data-i="5"><span class="num">5</span>Expand to pill</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+<script>
+  const IMG = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg>';
+  const LINK = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>';
+  const X = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  const GRADS = ['#ffd9a0,#ff9a76','#a0c4ff,#6c8cff','#b8f2c9,#5ed79a','#d7c6ff,#9b7be8','#ffe08a,#f7b733','#c9e7ff,#7fb2e8','#ffc2c2,#ff7b7b','#bfeede,#62c6a8'];
+  function grid() { let h=''; for(let i=0;i<16;i++){ const ht=70+((i*53)%7)*16; h+=`<div class="c" style="height:${ht}px;background:linear-gradient(135deg,${GRADS[i%GRADS.length]})"></div>`; } return `<div class="grid">${h}</div>`; }
+
+  function dial(v) {
+    if (v === 5) {
+      return `<div class="dial v5">
+        <button class="mini pill" title="Save URL"><span class="exlabel">Save URL</span><span class="ico">${LINK}</span></button>
+        <button class="mini pill" title="Add image"><span class="exlabel">Add image</span><span class="ico">${IMG}</span></button>
+        <button class="fab" aria-label="Close">${X}</button>
+      </div>`;
+    }
+    return `<div class="dial v${v}">
+      <div class="action"><span class="label">Save URL</span><button class="mini" aria-label="Save URL">${LINK}</button></div>
+      <div class="action"><span class="label">Add image</span><button class="mini" aria-label="Add image">${IMG}</button></div>
+      <button class="fab" aria-label="Close">${X}</button>
+    </div>`;
+  }
+
+  const ITERS = [
+    { i:1, name:'1 · Fade left', why:"The label fades and nudges in just to the left of the button you're hovering. Quiet and quick — closest to the current look, only it's hidden until you point at it." },
+    { i:2, name:'2 · Slide from button', why:"The label springs leftward out from behind the mini-FAB, as if the button extruded it. Same dark pill, more motion and physicality." },
+    { i:3, name:'3 · Tooltip above', why:"A classic tooltip with a little caret, centred above the hovered button. Reads unambiguously as a tooltip and never overlaps the other action's button to the left." },
+    { i:4, name:'4 · Delayed', why:"Same left tooltip, but it waits ~0.4s of hover before appearing — true-tooltip behaviour. Keeps the dial silent while you sweep past, only labels what you actually pause on." },
+    { i:5, name:'5 · Expand to pill', why:"No separate tip: the round button itself stretches into a labelled pill on hover. Most tactile and self-contained, but changes the styling (the label lives inside the white pill, not a dark tip)." },
+  ];
+
+  document.getElementById('main').innerHTML = ITERS.map(it => `
+    <section class="iter${it.i===1?' active':''}" data-i="${it.i}">
+      <div class="meta"><div class="name">${it.name}</div><div class="why">${it.why}</div><div class="hint">Hover the mini-buttons to reveal the label.</div></div>
+      <div class="stage">${grid()}${dial(it.i)}</div>
+    </section>`).join('');
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const iters = [...document.querySelectorAll('.iter')];
+  function show(i) { tabs.forEach(t => t.classList.toggle('active', t.dataset.i === String(i))); iters.forEach(s => s.classList.toggle('active', s.dataset.i === String(i))); }
+  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.i)));
+  window.addEventListener('keydown', e => { if (e.key >= '1' && e.key <= '5') show(e.key); });
+</script>
+</body>
+</html>
