@@ -244,7 +244,7 @@ export default function FeaturedBuckets({
                 <span className={`${styles.name} ${styles.nameMuted}`}>New collection</span>
               </div>
               <span className={styles.plus} aria-hidden="true">
-                <Plus size={26} strokeWidth={1.4} />
+                <Plus size={28} strokeWidth={1.4} />
               </span>
             </div>
           )}
