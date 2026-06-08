@@ -10,10 +10,6 @@ const ManageIcon = () => <SettingsIcon size={14} strokeWidth={1.8} aria-hidden="
 const LibraryRowIcon = () => <SquareLibrary size={15} strokeWidth={1.8} aria-hidden="true" />;
 const SearchIcon = () => <Search size={14} strokeWidth={1.9} aria-hidden="true" />;
 
-// Show the filter field only once there are enough libraries that
-// scanning gets slow; below this it's just clutter above a short list.
-const FILTER_THRESHOLD = 6;
-
 // Up-to-three stacked thumbnails of a library's most recent saves, so
 // you recognise libraries by their contents. Falls back to the glyph
 // for an empty library.
@@ -62,7 +58,7 @@ export default function LibrarySwitcher({
     if (!open) setFilter('');
   }, [open]);
 
-  const showFilter = libraries.length >= FILTER_THRESHOLD;
+  const showFilter = libraries.length > 0;
   const q = filter.trim().toLowerCase();
   const filteredLibraries = q
     ? libraries.filter((l) => l.name.toLowerCase().includes(q))
