@@ -59,12 +59,13 @@
 html,
 body {
   margin: 0;
-  /* Keep the popup's document canvas transparent. A background on the
-     root (html) or body propagates to the whole viewport and ignores
-     border-radius — which is why rounding those leaves square corners.
-     The rounded surface lives on .shell (a child div) instead, and the
-     transparent corners reveal Chrome's own popup shadow. */
-  background: transparent;
+  /* Chrome paints the popup window as an opaque rectangle (white by
+     default) that CSS can't make transparent — so any inset card
+     leaves a visible square frame around it. Fill the whole window
+     with the surface colour instead, edge-to-edge, so there's no
+     separate container. Recent Chrome rounds the popup window itself;
+     older versions render it square, but either way there's no frame. */
+  background: var(--content-bg);
 }
 
 body {
@@ -75,19 +76,12 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The only painted surface. It floats inside a transparent popup with
-   a margin, so its rounded corners + shadow are the sole edge the user
-   sees — nothing from the popup window competes with it. */
+/* Fills the popup window edge-to-edge — the window itself is the
+   surface, so there's no inner card / outer frame split. */
 .shell {
   width: 256px;
-  margin: 10px;
   padding: 12px;
-  border-radius: 16px;
-  overflow: hidden;
   background: var(--content-bg);
-  box-shadow:
-    0 6px 22px rgba(0, 0, 0, 0.18),
-    0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .head {
