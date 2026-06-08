@@ -243,6 +243,7 @@
 .cardNew:hover {
   background: var(--hover-bg-soft);
   border-color: var(--text-tertiary);
+  transform: translate3d(0, -2px, 0);
 }
 
 /* Plus centred against the whole card (not just the preview area). */
@@ -257,7 +258,11 @@
 }
 
 .cardNew:hover .plus {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.cardNew:hover .nameMuted {
+  color: var(--text-primary);
 }
 
 /* Reserve the same two-line meta block real cards have (name + count)
@@ -269,5 +274,4 @@
 
 .nameMuted {
   color: var(--text-tertiary);
-  font-weight: 500;
 }
