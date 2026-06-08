@@ -2697,6 +2697,10 @@ export default function App() {
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
                     collections={collections}
+                    onCreateCollection={async () => {
+                      await window.moodmark.collections.create({ name: 'New collection' });
+                      await loadCollections();
+                    }}
                     onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
                     onRenameCollection={handleRenameCollection}
                     onDeleteCollection={handleDeleteCollection}

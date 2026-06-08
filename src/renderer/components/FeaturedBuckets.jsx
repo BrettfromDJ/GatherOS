@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eclipse as Layers } from 'lucide-react';
+import { Eclipse as Layers, Plus } from 'lucide-react';
 import styles from './FeaturedBuckets.module.css';
 import { CollectionIcon } from './Sidebar.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -49,6 +49,7 @@ export default function FeaturedBuckets({
   onExternalDropToBucket,
   onSetAppDragging,
   onOpenCollectionAsSpace,
+  onCreateCollection,
 }) {
   const [previews, setPreviews] = useState({}); // { bucketId: [save, ...] }
   // Right-click context menu anchor + the bucket it targets.
@@ -227,6 +228,25 @@ export default function FeaturedBuckets({
              the global wheel handler that flips collections. */
           data-allow-horizontal-scroll="true"
         >
+          {onCreateCollection && (
+            <div
+              className={`${styles.card} ${styles.cardNew}`}
+              role="button"
+              tabIndex={0}
+              onClick={onCreateCollection}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCreateCollection(); }
+              }}
+              title="New collection"
+            >
+              <div className={`${styles.stack} ${styles.stackNew}`}>
+                <Plus size={26} strokeWidth={1.4} aria-hidden="true" />
+              </div>
+              <div className={styles.meta}>
+                <span className={`${styles.name} ${styles.nameMuted}`}>New collection</span>
+              </div>
+            </div>
+          )}
           {collections.map((c) => {
             const items = previews[c.id] || [];
             const isRenaming = renamingId === c.id;

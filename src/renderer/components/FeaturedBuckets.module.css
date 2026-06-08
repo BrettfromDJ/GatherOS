@@ -225,3 +225,32 @@
 .cardDropTarget:hover {
   background: var(--accent-bg-faint);
 }
+
+/* "New collection" tile — first card in the row, mirrors the FolderGrid
+   new-folder affordance: dashed, muted, a centered plus. */
+.cardNew {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  box-shadow: none;
+  font: inherit;
+  color: var(--text-tertiary);
+}
+
+.cardNew:hover {
+  background: var(--hover-bg-soft);
+  border-color: var(--text-tertiary);
+}
+
+.stackNew {
+  color: var(--text-tertiary);
+}
+
+.cardNew:hover .stackNew {
+  color: var(--text-secondary);
+}
+
+.nameMuted {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
