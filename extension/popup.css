@@ -59,13 +59,13 @@
 html,
 body {
   margin: 0;
-  /* Chrome paints the popup window as an opaque rectangle (white by
-     default) that CSS can't make transparent — so any inset card
-     leaves a visible square frame around it. Fill the whole window
-     with the surface colour instead, edge-to-edge, so there's no
-     separate container. Recent Chrome rounds the popup window itself;
-     older versions render it square, but either way there's no frame. */
-  background: var(--content-bg);
+  /* Keep the popup background transparent so Chrome applies its own
+     rounded-window + shadow treatment and clips our opaque surface to
+     it. An opaque background here would paint square corners over that
+     rounding; a custom border-radius would fight it ("two radii"). So:
+     transparent root, no radius of our own — let Chrome round it. This
+     is how CSS Peeper et al. get rounded popups. */
+  background: transparent;
 }
 
 body {
@@ -76,8 +76,8 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Fills the popup window edge-to-edge — the window itself is the
-   surface, so there's no inner card / outer frame split. */
+/* The opaque surface, filling edge-to-edge. No radius of its own —
+   Chrome's rounded popup window clips it, giving one clean radius. */
 .shell {
   width: 256px;
   padding: 12px;
