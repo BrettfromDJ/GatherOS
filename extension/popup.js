@@ -88,6 +88,14 @@ wireSaveAction('capturePage', (tab) => ({
   pageTitle: tab.title,
 }));
 
+wireSaveAction('captureFullPage', (tab) => ({
+  type: 'gatheros:capture-full-page',
+  windowId: tab.windowId,
+  tabId: tab.id,
+  pageUrl: tab.url,
+  pageTitle: tab.title,
+}));
+
 wireSaveAction('captureArea', (tab) => ({
   type: 'gatheros:capture-area',
   windowId: tab.windowId,
