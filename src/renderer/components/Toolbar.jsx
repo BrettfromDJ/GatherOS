@@ -582,13 +582,6 @@ export default function Toolbar({
             />
           </div>
         )}
-        <SearchField
-          search={search}
-          onSearchChange={onSearchChange}
-          searchInputRef={searchInputRef}
-          onRecordSearch={onRecordSearch}
-          onOpenQuickSwitcher={onOpenQuickSwitcher}
-        />
         {onBackToAll && (
           <button
             type="button"
@@ -611,6 +604,18 @@ export default function Toolbar({
       <ModePill mode={mode} onModeChange={onModeChange} compact={modePillCompact} />
 
       <div className={styles.right}>
+        {/* Search joins the right-hand tools cluster (search + a
+            divider + the chrome icons), so the left column stays pure
+            identity / location — logo + Library, plus the back button
+            and collection title when drilled into a collection. */}
+        <SearchField
+          search={search}
+          onSearchChange={onSearchChange}
+          searchInputRef={searchInputRef}
+          onRecordSearch={onRecordSearch}
+          onOpenQuickSwitcher={onOpenQuickSwitcher}
+        />
+        <span className={styles.toolbarDivider} aria-hidden="true" />
         {onOpenRediscover && (
           <button
             type="button"

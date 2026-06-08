@@ -113,6 +113,15 @@
   -webkit-app-region: no-drag;
 }
 
+/* Hairline divider between search and the chrome icons in the right
+   tools cluster. */
+.toolbarDivider {
+  flex: none;
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+
 .viewTitle {
   display: inline-flex;
   align-items: center;
