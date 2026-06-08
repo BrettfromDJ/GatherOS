@@ -187,6 +187,33 @@
   background: var(--text-primary);
 }
 
+/* Leading view icon — hidden on inactive tabs, slides + fades in on
+   the active one in the view's colour. The negative margin cancels the
+   chip's 6px flex gap while collapsed so inactive labels don't shift. */
+.chipIcon {
+  display: inline-flex;
+  align-self: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-right: -6px;
+  color: var(--chip-color, var(--text-tertiary));
+  transition:
+    width var(--dur-quick) ease,
+    opacity var(--dur-quick) ease,
+    margin var(--dur-quick) ease;
+}
+
+.chipIcon svg {
+  display: block;
+}
+
+.chipActive .chipIcon {
+  width: 17px;
+  opacity: 1;
+  margin-right: 0;
+}
+
 .chipLabel {
   white-space: nowrap;
 }

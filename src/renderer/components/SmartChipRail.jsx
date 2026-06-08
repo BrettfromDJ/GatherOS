@@ -1,12 +1,12 @@
 import React from 'react';
-import { ChevronLeft, Grid2x2, Square } from 'lucide-react';
+import { ChevronLeft, Grid2x2, Square, LayoutGrid, Inbox, Trash2 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
 
 const CHIPS = [
-  { id: 'all',      label: 'All' },
-  { id: 'unsorted', label: 'Unsorted' },
-  { id: 'trash',    label: 'Trash' },
+  { id: 'all',      label: 'All',      Icon: LayoutGrid, color: 'var(--icon-blue)' },
+  { id: 'unsorted', label: 'Unsorted', Icon: Inbox,      color: 'var(--icon-yellow)' },
+  { id: 'trash',    label: 'Trash',    Icon: Trash2,     color: 'var(--text-tertiary)' },
 ];
 
 export const SORT_OPTIONS = [
@@ -129,7 +129,7 @@ export default function SmartChipRail({
             />
           </>
         ) : (
-          CHIPS.map(({ id, label }) => {
+          CHIPS.map(({ id, label, Icon, color }) => {
             const isActive = activeViewType === id;
             return (
               <button
@@ -138,8 +138,12 @@ export default function SmartChipRail({
                 role="tab"
                 aria-selected={isActive}
                 className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
+                style={{ '--chip-color': color }}
                 onClick={() => onPick({ type: id })}
               >
+                <span className={styles.chipIcon} aria-hidden="true">
+                  <Icon size={17} strokeWidth={1.8} />
+                </span>
                 <span className={styles.chipLabel}>{label}</span>
               </button>
             );
