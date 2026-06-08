@@ -462,7 +462,7 @@ export default function App() {
           searchInputRef.current?.select?.();
           break;
         case 'new-bucket':
-          setCreateCollectionSignal((s) => s + 1);
+          handleCreateAndOpenCollection();
           break;
         case 'new-board':
           handleCreateBoard?.().then((b) => {
@@ -600,10 +600,11 @@ export default function App() {
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
   }, []);
-  // Counter rather than boolean — Sidebar's effect listens for any
-  // change so the same shortcut can fire repeatedly (close + reopen
-  // the inline form).
-  const [createCollectionSignal, setCreateCollectionSignal] = useState(0);
+  // Counter bumped whenever a freshly-created collection is opened, so
+  // the SmartChipRail can drop its title straight into rename mode
+  // (focused + selected) for immediate naming. A counter rather than a
+  // boolean so back-to-back creates each re-trigger the rename.
+  const [renameViewSignal, setRenameViewSignal] = useState(0);
   useEffect(() => {
     window.moodmark.ai.hasSession().then(setAiConfigured);
     window.moodmark.settings.getPrefs().then((p) => {
@@ -1512,6 +1513,27 @@ export default function App() {
     setSimilarTo(null);
   }, [setView, setSimilarTo]);
 
+  // Single entry point for every "new collection" affordance (the two
+  // grid tiles, the empty-state CTA, ⌘N, the menu). Creates the
+  // collection, opens it, and nudges the title into rename mode so the
+  // user lands inside the new collection with the name field focused
+  // and selected, ready to type.
+  const handleCreateAndOpenCollection = useCallback(async () => {
+    const created = await window.moodmark.collections.create({ name: 'New collection' });
+    await loadCollections();
+    if (!created?.id) return created;
+    undoStack.push('new collection', async () => {
+      await window.moodmark.collections.delete(created.id);
+      loadCollections();
+    });
+    // Boards mode owns the full main column, so a collection view can't
+    // render there — drop to folders so the new collection actually opens.
+    setAppMode((m) => (m === 'boards' ? 'folders' : m));
+    handleViewChange({ type: 'collection', id: created.id });
+    setRenameViewSignal((s) => s + 1);
+    return created;
+  }, [loadCollections, undoStack, handleViewChange]);
+
   // Tray-menu "Recent saves" entry click. Main fires 'focus:save'
   // with the id; mirror the duplicate-toast flow — switch to All so
   // the record is in displaySaves, then open it in the focused view.
@@ -2133,7 +2155,7 @@ export default function App() {
       }
       if (cmd && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
-        setCreateCollectionSignal((s) => s + 1);
+        handleCreateAndOpenCollection();
         return;
       }
 
@@ -2197,7 +2219,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev, peekedSaveId, hoveredSaveId, handleModeChange, visibleSaves]);
+  }, [focusedId, selected, handleDeleteSelected, goNext, goPrev, peekedSaveId, hoveredSaveId, handleModeChange, visibleSaves, handleCreateAndOpenCollection]);
 
   // Menu's "Quick Look" item (no accelerator on the menu side because
   // a menu-bound Space would steal keystrokes from text fields). The
@@ -2635,11 +2657,7 @@ export default function App() {
                   folders={collections}
                   parentId={null}
                   onPickFolder={(id) => handleViewChange({ type: 'collection', id })}
-                  onCreateFolder={async () => {
-                    const result = await window.moodmark.collections.create({ name: 'New collection' });
-                    await loadCollections();
-                    return result;
-                  }}
+                  onCreateFolder={handleCreateAndOpenCollection}
                   onRenameFolder={handleRenameCollection}
                   onDeleteFolder={handleDeleteCollection}
                   onReorderFolders={handleReorderCollections}
@@ -2692,15 +2710,13 @@ export default function App() {
                     onRenameViewTitle={view.type === 'collection'
                       ? (name) => handleRenameCollection({ id: view.id, name })
                       : null}
+                    autoRenameSignal={renameViewSignal}
                   />
                 )}
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
                     collections={collections}
-                    onCreateCollection={async () => {
-                      await window.moodmark.collections.create({ name: 'New collection' });
-                      await loadCollections();
-                    }}
+                    onCreateCollection={handleCreateAndOpenCollection}
                     onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
                     onRenameCollection={handleRenameCollection}
                     onDeleteCollection={handleDeleteCollection}

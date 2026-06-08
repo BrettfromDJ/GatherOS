@@ -43,6 +43,10 @@ export default function SmartChipRail({
   // viewTitle swaps it for an editable input. Only wired in for
   // collection views — there's no rename for All/Unsorted/Trash.
   onRenameViewTitle = null,
+  // Counter bumped by App when a freshly-created collection is opened.
+  // Each change drops the title straight into rename mode so the user
+  // can name the new collection without an extra click.
+  autoRenameSignal = 0,
 }) {
   // Inline rename state for the collection title. Click → enter
   // edit mode; Enter / blur commits; Escape cancels.
@@ -74,6 +78,15 @@ export default function SmartChipRail({
       titleInputRef.current.select();
     }
   }, [renaming]);
+  // Auto-open rename when App signals a just-created collection. Guarded
+  // on the initial 0 so we don't rename on first mount, and on viewTitle
+  // so we only fire once the opened collection's title is in place.
+  React.useEffect(() => {
+    if (autoRenameSignal && onRenameViewTitle && viewTitle) {
+      startRename();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRenameSignal]);
   // Slider is inverted so dragging right = bigger cards = fewer columns.
   const sliderValue = (typeof columns === 'number')
     ? COLS_MAX + COLS_MIN - columns
