@@ -129,26 +129,77 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     saveRefreshTemplate(msg.url, msg.authorization);
     return false;
   }
-  // Popup-driven actions. Each runs async and reports its own result
-  // through notify(); the popup closes immediately after sending, so
-  // there's no sendResponse to wait on.
+  // Panel-driven actions. The in-page panel (panel.js) doesn't know
+  // its window/tab ids, so we fill them from the message sender. Each
+  // capture runs async and reports its result through notify().
   if (msg.type === 'gatheros:capture-page') {
-    captureActivePage(msg);
+    captureActivePage(withSenderTab(msg, sender));
     return false;
   }
   if (msg.type === 'gatheros:capture-full-page') {
-    captureFullPage(msg);
+    captureFullPage(withSenderTab(msg, sender));
     return false;
   }
   if (msg.type === 'gatheros:capture-area') {
-    captureActiveArea(msg);
+    captureActiveArea(withSenderTab(msg, sender));
     return false;
   }
   if (msg.type === 'gatheros:save-url') {
     savePageUrl(msg);
     return false;
   }
+  // Status + launch route through here because content scripts can't
+  // talk to the native host directly; only the worker can.
+  if (msg.type === 'gatheros:status') {
+    pingApp().then(sendResponse);
+    return true;
+  }
+  if (msg.type === 'gatheros:open') {
+    openApp().then(sendResponse);
+    return true;
+  }
   return undefined;
+});
+
+// Merge the sender's tab ids into a panel message — the panel knows
+// pageUrl/pageTitle (via location/document) but not window/tab ids.
+function withSenderTab(msg, sender) {
+  const tab = (sender && sender.tab) || {};
+  return {
+    ...msg,
+    windowId: msg.windowId ?? tab.windowId,
+    tabId: msg.tabId ?? tab.id,
+  };
+}
+
+async function pingApp() {
+  try {
+    const r = await chrome.runtime.sendNativeMessage(HOST_NAME, { type: 'ping' });
+    return { ok: true, appRunning: !!(r && r.appRunning) };
+  } catch (err) {
+    return { ok: false, hostMissing: true, error: err?.message || String(err) };
+  }
+}
+
+async function openApp() {
+  try {
+    const r = await chrome.runtime.sendNativeMessage(HOST_NAME, { type: 'open' });
+    return { ok: !!(r && r.ok) };
+  } catch (err) {
+    return { ok: false, hostMissing: true, error: err?.message || String(err) };
+  }
+}
+
+// Toolbar click toggles the in-page panel (panel.js detects an existing
+// instance and removes it). Pages where injection is disallowed
+// (chrome://, the Web Store, PDFs) fail gracefully with a hint.
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab || !tab.id) return;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['panel.js'] });
+  } catch {
+    notify('Open the GatherOS panel on a normal web page (not this one).');
+  }
 });
 
 function handleClickBookmark(msg, sendResponse) {
