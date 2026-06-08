@@ -227,10 +227,12 @@
   width: 92px;
 }
 
-/* Column-count bubble — sits over the thumb on hover / drag. */
+/* Column-count bubble — sits under the thumb on hover / drag. Below
+   (not above) the slider because the rail is the first child of the
+   scroll container, so anything above its top edge gets clipped. */
 .zoomBubble {
   position: absolute;
-  bottom: calc(100% + 5px);
+  top: calc(100% + 5px);
   transform: translateX(-50%);
   padding: 2px 7px;
   border-radius: var(--radius-sm);
