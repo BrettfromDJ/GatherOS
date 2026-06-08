@@ -1,5 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Folder as FolderClosed, Pencil, Trash2, Plus, Eclipse as Layers } from 'lucide-react';
+import {
+  Folder as FolderClosed, Pencil, Trash2, Plus, Eclipse as Layers,
+  GripVertical, Clock, History, ArrowDownAZ, ArrowDownZA,
+  ArrowDownWideNarrow, ArrowDownNarrowWide,
+} from 'lucide-react';
 import styles from './FolderGrid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
@@ -8,14 +12,16 @@ import { extractDropImageUrls } from '../lib/dropUrls.js';
 
 const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
 
+// Leading glyphs mirror the main library sort dropdown (clock / history
+// / A→Z / Z→A), with collection-specific icons for manual order + count.
 const COLLECTION_SORT_OPTIONS = [
-  { value: 'manual',    label: 'Manual order' },
-  { value: 'newest',    label: 'Newest' },
-  { value: 'oldest',    label: 'Oldest' },
-  { value: 'name_asc',  label: 'Name A→Z' },
-  { value: 'name_desc', label: 'Name Z→A' },
-  { value: 'most',      label: 'Most saves' },
-  { value: 'fewest',    label: 'Fewest saves' },
+  { value: 'manual',    label: 'Manual order',  Icon: GripVertical },
+  { value: 'newest',    label: 'Newest',        Icon: Clock },
+  { value: 'oldest',    label: 'Oldest',        Icon: History },
+  { value: 'name_asc',  label: 'Name A→Z',      Icon: ArrowDownAZ },
+  { value: 'name_desc', label: 'Name Z→A',      Icon: ArrowDownZA },
+  { value: 'most',      label: 'Most saves',    Icon: ArrowDownWideNarrow },
+  { value: 'fewest',    label: 'Fewest saves',  Icon: ArrowDownNarrowWide },
 ];
 
 const COLLECTION_SORT_STORAGE_KEY = 'moodmark.collections.sort';
