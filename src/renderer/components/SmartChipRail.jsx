@@ -1,5 +1,8 @@
 import React from 'react';
-import { ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2 } from 'lucide-react';
+import {
+  ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2,
+  Clock, History, ArrowDownAZ, ArrowDownZA,
+} from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
 
@@ -10,10 +13,10 @@ const CHIPS = [
 ];
 
 export const SORT_OPTIONS = [
-  { value: 'recent',    label: 'Most recent' },
-  { value: 'oldest',    label: 'Oldest first' },
-  { value: 'name_asc',  label: 'Name A→Z' },
-  { value: 'name_desc', label: 'Name Z→A' },
+  { value: 'recent',    label: 'Most recent', Icon: Clock },
+  { value: 'oldest',    label: 'Oldest first', Icon: History },
+  { value: 'name_asc',  label: 'Name A→Z', Icon: ArrowDownAZ },
+  { value: 'name_desc', label: 'Name Z→A', Icon: ArrowDownZA },
 ];
 
 const COLS_MIN = 2;

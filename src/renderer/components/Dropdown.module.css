@@ -97,6 +97,18 @@
   color: var(--text-primary);
 }
 
+/* Optional per-option / trigger glyphs (e.g. the sort dropdown).
+   Monochrome and muted; only render when an option supplies an Icon. */
+.triggerIcon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.optionIcon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
 .optionLabel {
   white-space: nowrap;
   flex: 1 1 auto;

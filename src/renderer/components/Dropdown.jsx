@@ -31,6 +31,7 @@ export default function Dropdown({
 
   const current = options.find((o) => o.value === value);
   const currentLabel = current?.label ?? '';
+  const CurrentIcon = current?.Icon;
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
@@ -80,6 +81,14 @@ export default function Dropdown({
         aria-expanded={open}
         aria-label={ariaLabel}
       >
+        {CurrentIcon && (
+          <CurrentIcon
+            size={15}
+            strokeWidth={1.8}
+            className={styles.triggerIcon}
+            aria-hidden="true"
+          />
+        )}
         <span className={styles.triggerLabel}>{currentLabel}</span>
         <ChevronDown
           size={14}
@@ -101,23 +110,34 @@ export default function Dropdown({
             minWidth: `${anchor.minWidth}px`,
           }}
         >
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              role="option"
-              aria-selected={opt.value === value}
-              className={`${styles.option} ${opt.value === value ? styles.optionActive : ''}`}
-              onClick={() => pick(opt.value)}
-            >
-              <span className={styles.optionLabel}>{opt.label}</span>
-              {opt.value === value && (
-                <span className={styles.optionCheck} aria-hidden="true">
-                  <Check size={12} strokeWidth={2} />
-                </span>
-              )}
-            </button>
-          ))}
+          {options.map((opt) => {
+            const OptIcon = opt.Icon;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="option"
+                aria-selected={opt.value === value}
+                className={`${styles.option} ${opt.value === value ? styles.optionActive : ''}`}
+                onClick={() => pick(opt.value)}
+              >
+                {OptIcon && (
+                  <OptIcon
+                    size={15}
+                    strokeWidth={1.8}
+                    className={styles.optionIcon}
+                    aria-hidden="true"
+                  />
+                )}
+                <span className={styles.optionLabel}>{opt.label}</span>
+                {opt.value === value && (
+                  <span className={styles.optionCheck} aria-hidden="true">
+                    <Check size={12} strokeWidth={2} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>,
         document.body,
       )}
