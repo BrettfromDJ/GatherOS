@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Full top toolbar — 5 arrangements</title>
+<style>
+  :root {
+    --content-bg: #fafaf9;
+    --titlebar-bg: #fafaf9;
+    --surface-1: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-subtle: rgba(0,0,0,0.06);
+    --text-primary: #000;
+    --text-secondary: rgba(0,0,0,0.55);
+    --text-tertiary: rgba(0,0,0,0.4);
+    --icon-muted: #c7c7c7;
+    --accent: #000;
+    --hover-bg: #ececec;
+    --shadow-control: 0 1px 3px -1px rgba(16,16,19,0.06);
+    --shadow-switcher: 0 1px 2px rgba(0,0,0,0.05), 0 6px 18px rgba(0,0,0,0.06);
+    --kbd-bg: #f1f1ee;
+    --font: 'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: var(--font); color: var(--text-primary); background: var(--content-bg); -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+
+  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: rgba(250,250,249,0.85); backdrop-filter: saturate(1.6) blur(12px); border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .tab { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1); box-shadow: var(--shadow-control); font: inherit; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .tab:hover { background: var(--hover-bg); }
+  .tab .num { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 5px; background: rgba(0,0,0,0.06); font-size: 10.5px; color: var(--text-tertiary); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab.active .num { background: rgba(255,255,255,0.22); color: #fff; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 26px 18px 120px; }
+  .iter { display: none; }
+  .iter.active { display: block; animation: fade 0.18s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .meta { margin: 2px 2px 16px; }
+  .meta .name { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+  .meta .why { margin-top: 5px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); max-width: 70ch; }
+
+  .window { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-control); background: var(--content-bg); }
+  .apptop { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 18px; }
+  .chiprail { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid var(--border-subtle); }
+  .body { height: 90px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12px; border-top: 1px solid var(--border-subtle); }
+
+  /* ── elements (styling fixed; only placement changes) ── */
+  .dots { display: flex; gap: 8px; flex: none; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .dots .r { background: #ff5f57; } .dots .y { background: #febc2e; } .dots .g { background: #28c840; }
+  .logo { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(160deg,#3a3a3c,#161617); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3); flex: none; }
+  .lib { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px 4px 4px; border-radius: 8px; cursor: pointer; flex: none; }
+  .lib:hover { background: var(--hover-bg); }
+  .lib .name { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .ico { color: var(--text-tertiary); display: inline-flex; flex: none; }
+  .grow { flex: 1 1 auto; }
+
+  .search { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px 6px 11px; border-radius: 999px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-control); color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: text; flex: none; }
+  .search:hover { background: var(--hover-bg); }
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 17px; padding: 0 4px; border-radius: 5px; background: var(--kbd-bg); border: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); }
+
+  .switcher { display: inline-flex; align-items: center; gap: 2px; padding: 5px; border-radius: 999px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-switcher); flex: none; }
+  .sw { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 999px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-secondary); cursor: pointer; }
+  .sw:hover { color: var(--text-primary); }
+  .sw.on { background: var(--accent); color: #fff; }
+  .sw .ico { color: currentColor; }
+
+  .iconbtns { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+  .iconbtn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; color: var(--text-secondary); cursor: pointer; }
+  .iconbtn:hover { background: var(--hover-bg); color: var(--text-primary); }
+
+  /* chip rail bits */
+  .views { display: inline-flex; gap: 20px; align-items: center; }
+  .vtab { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; color: var(--text-tertiary); }
+  .vtab.on { color: var(--text-primary); }
+  .vtab .ico { color: currentColor; }
+  .zoom { display: inline-flex; align-items: center; gap: 6px; }
+  .zglyph { color: var(--icon-muted); }
+  .slider { width: 74px; height: 3px; border-radius: 3px; background: rgba(0,0,0,0.16); position: relative; }
+  .slider::after { content: ""; position: absolute; left: 60%; top: 50%; transform: translate(-50%,-50%); width: 13px; height: 13px; border-radius: 50%; background: #000; }
+  .sortpill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px 7px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-1); box-shadow: var(--shadow-control); font-size: 13px; font-weight: 500; }
+  .divider { width: 1px; align-self: stretch; margin: 16px 2px; background: var(--border); flex: none; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Full top toolbar — arrangements</h1>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-i="1"><span class="num">1</span>Refined tri-zone</button>
+      <button class="tab" data-i="2"><span class="num">2</span>Nav cluster left</button>
+      <button class="tab" data-i="3"><span class="num">3</span>Identity · mode · tools</button>
+      <button class="tab" data-i="4"><span class="num">4</span>Two rows</button>
+      <button class="tab" data-i="5"><span class="num">5</span>Inline flow</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+<script>
+  const S = {
+    search:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+    updown:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>',
+    grid:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+    compass:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+    gear:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
+    chevd:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    clock:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    images:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="3" y="3" rx="2"/><path d="m3 14 3-3 3 3"/><path d="M14 11l2-2 5 5"/><path d="M21 8v11a2 2 0 0 1-2 2H8"/></svg>',
+    grid2:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>',
+    sq:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
+  };
+  const E = {
+    dots: '<div class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></div>',
+    logo: '<div class="logo"></div>',
+    lib: `<div class="lib"><span class="name">Library</span><span class="ico">${S.updown}</span></div>`,
+    search: `<div class="search"><span class="ico">${S.search}</span><span>Search</span><span class="kbd">⌘K</span></div>`,
+    switcher: `<div class="switcher"><span class="sw on"><span class="ico">${S.grid}</span>Library</span><span class="sw">Collections</span><span class="sw">Spaces</span></div>`,
+    icons: `<div class="iconbtns"><span class="iconbtn">${S.compass}</span><span class="iconbtn">${S.moon}</span><span class="iconbtn">${S.gear}</span></div>`,
+  };
+  const RAIL = `<div class="chiprail">
+    <div class="views"><span class="vtab on"><span class="ico">${S.images}</span>All</span><span class="vtab">Unsorted</span><span class="vtab">Trash</span></div>
+    <div class="grow"></div>
+    <div class="zoom"><span class="zglyph ico">${S.grid2}</span><div class="slider"></div><span class="zglyph ico">${S.sq}</span></div>
+    <span class="sortpill">${S.clock}Most recent ${S.chevd}</span>
+  </div>`;
+  // rail variant where search rides along (iteration 4)
+  const RAIL_WITH_SEARCH = `<div class="chiprail">
+    <div class="views"><span class="vtab on"><span class="ico">${S.images}</span>All</span><span class="vtab">Unsorted</span><span class="vtab">Trash</span></div>
+    ${E.search}
+    <div class="grow"></div>
+    <div class="zoom"><span class="zglyph ico">${S.grid2}</span><div class="slider"></div><span class="zglyph ico">${S.sq}</span></div>
+    <span class="sortpill">${S.clock}Most recent ${S.chevd}</span>
+  </div>`;
+
+  const LAYOUTS = {
+    // 1 · refined tri-zone (current): identity left · switcher center · icons right
+    1: `<div class="apptop">${E.dots}${E.logo}${E.lib}${E.search}<div class="grow"></div>${E.switcher}<div class="grow"></div>${E.icons}</div>${RAIL}`,
+    // 2 · nav cluster left: logo + Library + switcher together; search + icons right
+    2: `<div class="apptop">${E.dots}${E.logo}${E.lib}${E.switcher}<div class="grow"></div>${E.search}${E.icons}</div>${RAIL}`,
+    // 3 · identity · mode · tools: left identity, center switcher, right = search + icons grouped
+    3: `<div class="apptop">${E.dots}${E.logo}${E.lib}<div class="grow"></div>${E.switcher}<div class="grow"></div>${E.search}<div class="divider"></div>${E.icons}</div>${RAIL}`,
+    // 4 · two rows: top = identity + switcher + icons; search drops into the rail
+    4: `<div class="apptop">${E.dots}${E.logo}${E.lib}<div class="grow"></div>${E.switcher}<div class="grow"></div>${E.icons}</div>${RAIL_WITH_SEARCH}`,
+    // 5 · inline flow: no centre float — logo · Library · switcher inline-left, spacer, search + icons right
+    5: `<div class="apptop">${E.dots}${E.logo}${E.lib}<div class="divider"></div>${E.switcher}<div class="grow"></div>${E.search}${E.icons}</div>${RAIL}`,
+  };
+
+  const ITERS = [
+    { i:1, name:'1 · Refined tri-zone', why:"Today's three zones, tidied: identity (logo · Library · search) on the left, the mode switcher floating dead-centre, utilities on the right. Balanced and symmetric — but note 'Library' appears twice (dropdown + switcher), which reads as a duplicate." },
+    { i:2, name:'2 · Nav cluster left', why:"Group everything navigational on the left — logo, Library, and the Library/Collections/Spaces switcher all together — so 'where am I / where can I go' lives in one place. Search + utilities sit on the right. No centre float to drift on wide windows." },
+    { i:3, name:'3 · Identity · mode · tools', why:"Clean three-part split: left is pure identity (logo + Library), centre is the mode switcher, right is a tools cluster (search + explore/theme/settings) behind a hairline divider. Every zone has one job." },
+    { i:4, name:'4 · Two rows', why:"Keep the top row for global navigation (identity · switcher · utilities) and drop search down into the chip rail next to All/Unsorted/Trash — where you're already filtering the view. Separates 'move between modes' from 'filter this view'." },
+    { i:5, name:'5 · Inline flow', why:"Abandon the centred switcher: everything flows left-to-right — logo · Library · switcher inline — then a spacer pushes search + utilities right. The most conventional app-bar; nothing floats, scales predictably." },
+  ];
+
+  document.getElementById('main').innerHTML = ITERS.map(it => `
+    <section class="iter${it.i===1?' active':''}" data-i="${it.i}">
+      <div class="meta"><div class="name">${it.name}</div><div class="why">${it.why}</div></div>
+      <div class="window">${LAYOUTS[it.i]}<div class="body">Grid of saves…</div></div>
+    </section>`).join('');
+
+  // switcher segment interactivity (visual only)
+  document.getElementById('main').addEventListener('click', e => {
+    const sw = e.target.closest('.sw'); if (!sw) return;
+    sw.parentElement.querySelectorAll('.sw').forEach(s => { s.classList.remove('on'); const i = s.querySelector('.ico'); if (i) i.remove(); });
+    if (!sw.querySelector('.ico')) sw.insertAdjacentHTML('afterbegin', `<span class="ico">${S.grid}</span>`);
+    sw.classList.add('on');
+  });
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const iters = [...document.querySelectorAll('.iter')];
+  function show(i) { tabs.forEach(t => t.classList.toggle('active', t.dataset.i === String(i))); iters.forEach(s => s.classList.toggle('active', s.dataset.i === String(i))); }
+  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.i)));
+  window.addEventListener('keydown', e => { if (e.key >= '1' && e.key <= '5') show(e.key); });
+</script>
+</body>
+</html>
