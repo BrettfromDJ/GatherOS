@@ -40,7 +40,14 @@ export default function AddFab({ onUpload, onSaveUrl, visible = true }) {
         btnRef.current && !btnRef.current.contains(e.target)
       ) setOpen(false);
     }
-    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    function onEsc(e) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        // Drop focus so the trigger doesn't keep a focus-visible ring
+        // after a click → Esc (Esc is keyboard, so it'd light up).
+        btnRef.current?.blur();
+      }
+    }
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onEsc);
     return () => {

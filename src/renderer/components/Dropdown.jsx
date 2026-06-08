@@ -55,7 +55,12 @@ export default function Dropdown({
         btnRef.current && !btnRef.current.contains(e.target)
       ) setOpen(false);
     }
-    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    function onEsc(e) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btnRef.current?.blur(); // no phantom focus ring after click → Esc
+      }
+    }
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onEsc);
     return () => {

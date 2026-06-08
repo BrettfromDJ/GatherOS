@@ -79,6 +79,7 @@ export default function LibrarySwitcher({
           setCreateDraft('');
         } else {
           setOpen(false);
+          triggerRef.current?.blur(); // no phantom focus ring after click → Esc
         }
       }
     }

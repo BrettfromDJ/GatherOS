@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Add button — 5 directions</title>
+<style>
+  :root {
+    --content-bg: #fafaf9;
+    --surface-1: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-subtle: rgba(0,0,0,0.06);
+    --text-primary: #000;
+    --text-secondary: rgba(0,0,0,0.55);
+    --text-tertiary: rgba(0,0,0,0.4);
+    --on-accent: #fff;
+    --accent: #000;
+    --accent-hover: #1f1f1f;
+    --hover-bg: #ececec;
+    --hover-soft: rgba(0,0,0,0.05);
+    --shadow-control: 0 1px 3px -1px rgba(16,16,19,0.06);
+    --shadow-fab: 0 4px 14px rgba(0,0,0,0.12), 0 2px 5px rgba(0,0,0,0.08);
+    --shadow-menu: 0 4px 14px rgba(0,0,0,0.08), 0 18px 44px rgba(0,0,0,0.14);
+    --font: 'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: var(--font); color: var(--text-primary); background: var(--content-bg); -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+
+  .topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: rgba(250,250,249,0.85); backdrop-filter: saturate(1.6) blur(12px); border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .tab { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1); box-shadow: var(--shadow-control); font: inherit; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .tab:hover { background: var(--hover-bg); }
+  .tab .num { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 5px; background: rgba(0,0,0,0.06); font-size: 10.5px; color: var(--text-tertiary); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab.active .num { background: rgba(255,255,255,0.22); color: #fff; }
+
+  main { max-width: 820px; margin: 0 auto; padding: 26px 18px 60px; }
+  .iter { display: none; }
+  .iter.active { display: block; animation: fade 0.18s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .meta { margin: 2px 2px 16px; }
+  .meta .name { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+  .meta .why { margin-top: 5px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); max-width: 64ch; }
+
+  /* faux grid stage */
+  .stage { position: relative; height: 380px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--content-bg); box-shadow: var(--shadow-control); }
+  .grid { position: absolute; inset: 0; padding: 14px; column-count: 4; column-gap: 10px; opacity: 0.9; }
+  .grid .c { break-inside: avoid; margin-bottom: 10px; border-radius: 8px; }
+  .dock { position: absolute; right: 22px; bottom: 22px; z-index: 5; }
+
+  .ico { display: inline-flex; flex: none; }
+  .ico svg { display: block; }
+
+  /* shared FAB look (white surface, like the screenshot) */
+  .fab { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-1); box-shadow: var(--shadow-fab); color: var(--text-primary); cursor: pointer; transition: transform 0.16s var(--ease, ease), background 0.14s ease; }
+  .fab:hover { background: var(--hover-bg); }
+  .fab .plus { transition: transform 0.2s cubic-bezier(0.2,0.8,0.2,1); }
+
+  /* shared menu */
+  .menu { position: absolute; bottom: calc(100% + 10px); right: 0; min-width: 188px; padding: 6px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-menu); display: none; }
+  .open > .menu { display: block; animation: pop 0.13s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .mi { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 10px; border: none; background: transparent; border-radius: 9px; font: inherit; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); text-align: left; cursor: pointer; }
+  .mi:hover { background: var(--hover-soft); }
+  .mi .ico { color: var(--text-secondary); }
+
+  /* 2 · labeled pill */
+  .pill { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 18px 0 15px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-1); box-shadow: var(--shadow-fab); font: inherit; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); cursor: pointer; }
+  .pill:hover { background: var(--hover-bg); }
+
+  /* 3 · split button */
+  .split { display: inline-flex; align-items: stretch; height: 48px; border-radius: 999px; background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-fab); overflow: hidden; }
+  .split .primary { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 16px; border: none; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .split .primary:hover { background: rgba(255,255,255,0.10); }
+  .split .caret { display: inline-flex; align-items: center; justify-content: center; width: 38px; border: none; border-left: 1px solid rgba(255,255,255,0.2); background: transparent; color: inherit; cursor: pointer; }
+  .split .caret:hover { background: rgba(255,255,255,0.10); }
+  .split .menu .mi { color: var(--text-primary); }
+
+  /* 4 · speed dial */
+  .dial { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .dialActions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .dialItem { display: inline-flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(10px) scale(0.9); pointer-events: none; transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.2,0.8,0.2,1); }
+  .open .dialItem { opacity: 1; transform: none; pointer-events: auto; }
+  .open .dialItem:nth-child(1) { transition-delay: 0.04s; }
+  .dialItem .dlabel { padding: 5px 10px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-size: 12.5px; font-weight: 600; box-shadow: var(--shadow-control); }
+  .mini { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 13px; border: 1px solid var(--border); background: var(--surface-1); box-shadow: var(--shadow-fab); color: var(--text-primary); cursor: pointer; }
+  .mini:hover { background: var(--hover-bg); }
+  .open .fab .plus { transform: rotate(135deg); }
+
+  /* 5 · expanding bar */
+  .barwrap { display: inline-flex; align-items: center; justify-content: flex-end; height: 56px; }
+  .bar { display: inline-flex; align-items: center; gap: 2px; height: 56px; padding: 6px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-1); box-shadow: var(--shadow-fab); overflow: hidden; max-width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0; transition: max-width 0.26s var(--ease, cubic-bezier(0.2,0.8,0.2,1)), opacity 0.18s ease, padding 0.2s ease; white-space: nowrap; }
+  .open .bar { max-width: 340px; opacity: 1; padding: 6px; border-width: 1px; }
+  .barbtn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: none; background: transparent; border-radius: 13px; font: inherit; font-size: 14.5px; font-weight: 600; color: var(--text-primary); cursor: pointer; }
+  .barbtn:hover { background: var(--hover-soft); }
+  .barbtn .ico { color: var(--text-secondary); }
+  .barx { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 13px; border: none; background: var(--accent); color: var(--on-accent); cursor: pointer; margin-left: 2px; }
+  .open .barx .plus { transform: rotate(135deg); }
+
+  .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); padding: 9px 16px; border-radius: 10px; background: rgba(28,28,30,0.94); color: #fff; font-size: 13px; opacity: 0; transition: opacity 0.18s, transform 0.18s; pointer-events: none; z-index: 99; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Add button</h1>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-i="1"><span class="num">1</span>Refined menu FAB</button>
+      <button class="tab" data-i="2"><span class="num">2</span>Labeled pill</button>
+      <button class="tab" data-i="3"><span class="num">3</span>Split button</button>
+      <button class="tab" data-i="4"><span class="num">4</span>Speed dial</button>
+      <button class="tab" data-i="5"><span class="num">5</span>Expanding bar</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+  <div class="toast" id="toast"></div>
+
+<script>
+  const IMG = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg>';
+  const LINK = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>';
+  const PLUS = '<svg class="plus" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  const CARET = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  const ic = (p) => `<span class="ico">${p}</span>`;
+  const menu = (cls='') => `<div class="menu ${cls}"><button class="mi" data-act="image">${ic(IMG)}Add image</button><button class="mi" data-act="url">${ic(LINK)}Save URL</button></div>`;
+
+  // faux grid tiles
+  const GRADS = ['#ffd9a0,#ff9a76','#a0c4ff,#6c8cff','#b8f2c9,#5ed79a','#d7c6ff,#9b7be8','#ffe08a,#f7b733','#c9e7ff,#7fb2e8','#ffc2c2,#ff7b7b','#bfeede,#62c6a8'];
+  function gridHTML() {
+    let h = '';
+    for (let i=0;i<16;i++){ const ht = 70 + ((i*53)%7)*16; h += `<div class="c" style="height:${ht}px;background:linear-gradient(135deg,${GRADS[i%GRADS.length]})"></div>`; }
+    return `<div class="grid">${h}</div>`;
+  }
+
+  const DOCKS = {
+    1: `<div class="dock ctl"><button class="fab" data-toggle>${PLUS}</button>${menu()}</div>`,
+    2: `<div class="dock ctl"><button class="pill" data-toggle>${ic(PLUS)}Add</button>${menu()}</div>`,
+    3: `<div class="dock ctl"><div class="split"><button class="primary" data-act="image">${ic(IMG)}Add image</button><button class="caret" data-toggle>${CARET}</button></div>${menu()}</div>`,
+    4: `<div class="dock ctl dial"><div class="dialActions">
+          <span class="dialItem"><span class="dlabel">Save URL</span><button class="mini" data-act="url">${ic(LINK)}</button></span>
+          <span class="dialItem"><span class="dlabel">Add image</span><button class="mini" data-act="image">${ic(IMG)}</button></span>
+        </div><button class="fab" data-toggle>${PLUS}</button></div>`,
+    5: `<div class="dock ctl"><div class="barwrap"><div class="bar"><button class="barbtn" data-act="image">${ic(IMG)}Add image</button><button class="barbtn" data-act="url">${ic(LINK)}Save URL</button></div><button class="barx" data-toggle>${PLUS}</button></div></div>`,
+  };
+
+  const ITERS = [
+    { i:1, name:'1 · Refined menu FAB', why:"Today's pattern, tightened: a soft rounded-square + FAB that opens a clean Add image / Save URL menu above it. Familiar, unobtrusive, zero learning curve." },
+    { i:2, name:'2 · Labeled pill', why:"Swap the bare glyph for a '+ Add' pill so the button names itself — more discoverable for new users, still opens the same two-item menu." },
+    { i:3, name:'3 · Split button', why:"Make adding an image the one-click default (it's the common case) and tuck Save URL behind a caret. An ink primary that reads as the app's main action; fastest for the frequent path." },
+    { i:4, name:'4 · Speed dial', why:"Tap + and the two actions fan upward as labeled mini-FABs while the plus rotates to a ×. Tactile and quick — each action is its own target, no menu to read." },
+    { i:5, name:'5 · Expanding bar', why:"The + expands sideways into an inline bar of labeled actions, collapsing back to a ×. Keeps everything on one line and feels physical; nice when there's room along the bottom." },
+  ];
+
+  document.getElementById('main').innerHTML = ITERS.map(it => `
+    <section class="iter${it.i===1?' active':''}" data-i="${it.i}">
+      <div class="meta"><div class="name">${it.name}</div><div class="why">${it.why}</div></div>
+      <div class="stage">${gridHTML()}${DOCKS[it.i]}</div>
+    </section>`).join('');
+
+  const toast = document.getElementById('toast');
+  let tt;
+  function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => toast.classList.remove('show'), 1400); }
+
+  const main = document.getElementById('main');
+  function closeAll(except) { main.querySelectorAll('.ctl.open').forEach(c => { if (c !== except) c.classList.remove('open'); }); }
+  document.addEventListener('click', () => closeAll(null));
+
+  main.addEventListener('click', (e) => {
+    const toggle = e.target.closest('[data-toggle]');
+    if (toggle) { e.stopPropagation(); const ctl = toggle.closest('.ctl'); const willOpen = !ctl.classList.contains('open'); closeAll(ctl); ctl.classList.toggle('open', willOpen); return; }
+    const act = e.target.closest('[data-act]');
+    if (act) { e.stopPropagation(); closeAll(null); showToast(act.getAttribute('data-act')==='image' ? 'Add image…' : 'Save URL…'); }
+  });
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const iters = [...document.querySelectorAll('.iter')];
+  function show(i) { tabs.forEach(t => t.classList.toggle('active', t.dataset.i === String(i))); iters.forEach(s => s.classList.toggle('active', s.dataset.i === String(i))); closeAll(null); }
+  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.i)));
+  window.addEventListener('keydown', e => { if (e.key >= '1' && e.key <= '5') show(e.key); });
+</script>
+</body>
+</html>
