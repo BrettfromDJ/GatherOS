@@ -801,12 +801,14 @@ function areaSelectOverlay() {
   return new Promise((resolve) => {
     const root = document.documentElement || document.body;
     const ov = document.createElement('div');
+    // Transparent overlay — only the box-shadow on the selection dims
+    // the page, so the selected region itself stays at full opacity.
     ov.style.cssText =
-      'position:fixed;inset:0;z-index:2147483647;cursor:crosshair;background:rgba(0,0,0,0.12);';
+      'position:fixed;inset:0;z-index:2147483647;cursor:crosshair;background:transparent;';
     const sel = document.createElement('div');
     sel.style.cssText =
       'position:fixed;display:none;border:1.5px solid #fff;' +
-      'box-shadow:0 0 0 9999px rgba(0,0,0,0.30);background:rgba(255,255,255,0.04);';
+      'box-shadow:0 0 0 9999px rgba(0,0,0,0.30);background:transparent;';
     ov.appendChild(sel);
     root.appendChild(ov);
 

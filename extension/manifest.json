@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GatherOS",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Save images from any web page into your local GatherOS library.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoQLQcXoPXdHNwpE4T/ulEog9Ra0lRenCjWGfIoeLIL/VIngu2a5J4Y/CMml3dD7FTBDlOaUMQuvqICQq41x1B5brcO4Qq3/vwgoUpgP81GDY9iVd71ps0IRrmS8MIQgGtXSTjxuB27pyFKJiME1MRjdPuni+koCmcuu1X2/OiP7fRIfLmE0wrBNVw9sjGth84Gb/qXbUVo40/XVtBs9AYL0isTBWSHCAuNT7xlLIcPFzvzP8pPF7AF+fCkooy4RzBq5PMZfRtOdvWGjl/i2N5Y1EghAfY6QeT/zhE9bLJeIG7gEQAClAfWpaHlVK9zx/t5KWsc3+NvpXKEKaHULWkwIDAQAB",
   "permissions": ["contextMenus", "nativeMessaging", "notifications", "storage", "alarms", "cookies", "activeTab", "scripting"],
