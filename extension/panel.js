@@ -18,10 +18,15 @@
     link: '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
     open: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-    grip: '<circle cx="8" cy="6" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="8" cy="18" r="1"/><circle cx="14" cy="6" r="1"/><circle cx="14" cy="12" r="1"/><circle cx="14" cy="18" r="1"/>',
   };
   const svg = (paths, w = 17) =>
     `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+
+  // The app icon, served from the extension as a web-accessible
+  // resource. Loading it via chrome-extension:// (rather than a data:
+  // URI) means it isn't blocked by the host page's CSP img-src — which
+  // matters on strict targets like x.com.
+  const logoUrl = chrome.runtime.getURL('icons/icon.png');
 
   const host = document.createElement('div');
   host.id = HOST_ID;
@@ -67,9 +72,9 @@
           --hover-bg: rgba(255,255,255,0.08); --shadow-control: 0 1px 3px -1px rgba(0,0,0,0.4);
         }
       }
-      .head { display:flex; align-items:center; gap:6px; margin:1px 2px 11px; cursor:grab; }
+      .head { display:flex; align-items:center; gap:7px; margin:1px 2px 11px; cursor:grab; }
       .head.dragging { cursor:grabbing; }
-      .grip { display:flex; color:var(--text-tertiary); margin-left:-2px; }
+      .logo { width:18px; height:18px; display:block; flex:none; margin-left:-1px; border-radius:4px; -webkit-user-drag:none; user-select:none; }
       .brand { font-size:13px; font-weight:600; letter-spacing:-0.012em; }
       .status { display:inline-flex; align-items:center; gap:6px; margin-left:auto; font-size:11px; color:var(--text-secondary); }
       .dot { width:7px; height:7px; border-radius:50%; background:#c7c7c7; flex:none; }
@@ -93,7 +98,7 @@
     </style>
     <div class="panel" part="panel">
       <div class="head" id="head">
-        <span class="grip">${svg(ICONS.grip, 16)}</span>
+        <img class="logo" src="${logoUrl}" alt="" draggable="false" />
         <span class="brand">GatherOS</span>
         <span class="status"><span class="dot" id="dot"></span><span id="statusText">Checking…</span></span>
         <button class="x" id="close" title="Close">${svg(ICONS.close, 14)}</button>
