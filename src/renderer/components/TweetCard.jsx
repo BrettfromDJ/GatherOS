@@ -43,12 +43,12 @@ export default function TweetCard({ meta, variant = 'grid' }) {
           )}
         </span>
         <span className={styles.id}>
-          <span className={styles.name}>{name}</span>
-          {handle && <span className={styles.handle}>{handle}</span>}
+          <span className={styles.name} data-tweet-selectable>{name}</span>
+          {handle && <span className={styles.handle} data-tweet-selectable>{handle}</span>}
         </span>
         <span className={styles.x} aria-hidden="true"><XGlyph /></span>
       </div>
-      {caption && <div className={styles.text}>{caption}</div>}
+      {caption && <div className={styles.text} data-tweet-selectable>{caption}</div>}
     </div>
   );
 }

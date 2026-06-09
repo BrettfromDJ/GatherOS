@@ -293,6 +293,35 @@
   left: 8px;
 }
 
+/* Top-right multi-image count chip ("1/3") for tweets that carried
+   several photos. Dark glass so it reads on any image. Persistent
+   (informational), like the source badge. */
+.countBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.countBadge svg {
+  width: 12px;
+  height: 12px;
+}
+
 .pendingOverlay {
   position: absolute;
   inset: 0;

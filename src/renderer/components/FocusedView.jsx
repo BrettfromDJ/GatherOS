@@ -338,7 +338,14 @@ export default function FocusedView({
           // Text-tweet save: render a live, theme-aware tweet card from
           // tweet_meta — real selectable text, not the captured PNG.
           <div className={styles.tweetStage}>
-            <TweetCard meta={tweetMeta} variant="focus" />
+            {/* Stop clicks/selection inside the card from bubbling to the
+                stage's click-to-dismiss so the user can highlight + copy. */}
+            <div
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <TweetCard meta={tweetMeta} variant="focus" />
+            </div>
           </div>
         ) : record.kind === 'url' && record.source_url ? (
           // URL-kind save: render the live page in a <webview>. The

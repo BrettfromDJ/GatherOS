@@ -1,15 +1,26 @@
-/* Live tweet render from tweet_meta. Theme-aware (uses the app's
-   surface + text tokens) so a saved tweet reads as a native object in
-   both light and dark, rather than a frozen white screenshot. */
+/* Live tweet render from tweet_meta. Colours are self-contained and
+   keyed off the GLOBAL [data-theme] (not the ambient text tokens),
+   because the focused-view overlay remaps --text-primary/--border to
+   white for its dark chrome — which would otherwise paint the card's
+   text white-on-white in light mode. A light-grey fill keeps the card
+   distinct from the near-white grid surface. */
 
 .card {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: var(--surface-1);
-  color: var(--text-primary);
   font-family: var(--font-ui);
   text-align: left;
+  /* Light theme */
+  background: #efeeec;
+  color: #0f1419;
+  --tw-sub: #536471;
+}
+
+:root[data-theme="dark"] .card {
+  background: #2a2a2c;
+  color: #e7e9ea;
+  --tw-sub: #8b98a5;
 }
 
 /* Grid: fills the ImageCard frame, which supplies the rounded corners,
@@ -19,12 +30,10 @@
   gap: 10px;
 }
 
-/* Focus: standalone card on the dark stage — its own surface, border,
-   radius and lift. */
+/* Focus: standalone card on the dark stage — its own radius + lift. */
 .focus {
   padding: 22px 24px 24px;
   gap: 14px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 24px 60px rgba(0, 0, 0, 0.4);
   max-width: 560px;
@@ -76,7 +85,7 @@
   display: block;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--text-primary);
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,7 +95,7 @@
 
 .handle {
   display: block;
-  color: var(--text-tertiary);
+  color: var(--tw-sub);
 }
 .grid .handle { font-size: 13px; }
 .focus .handle { font-size: 14px; }
@@ -96,17 +105,27 @@
   flex: none;
   display: flex;
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--tw-sub);
 }
 .grid .x svg { width: 15px; height: 15px; }
 .focus .x svg { width: 19px; height: 19px; }
 
 .text {
-  color: var(--text-primary);
+  color: inherit;
   letter-spacing: -0.003em;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
+  /* Highlightable / copyable — the app sets user-select:none globally. */
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 .grid .text { font-size: 14.5px; line-height: 1.42; }
 .focus .text { font-size: 20px; line-height: 1.4; }
+
+/* The name + handle are worth copying too. */
+.name, .handle {
+  user-select: text;
+  -webkit-user-select: text;
+}

@@ -771,10 +771,14 @@
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
+  /* Non-selected images sit back at reduced opacity so the one
+     currently in the focused view reads as the active pick. */
+  opacity: 0.5;
   transition:
     transform var(--dur-instant) ease,
     border-color var(--dur-instant) ease,
-    box-shadow var(--dur-instant) ease;
+    box-shadow var(--dur-instant) ease,
+    opacity var(--dur-instant) ease;
 }
 
 .tweetThumb img {
@@ -787,13 +791,15 @@
 .tweetThumb:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.30);
+  /* Preview brightening on hover so a faded thumb still feels live. */
+  opacity: 0.8;
 }
 
 /* Active state — the thumb whose image is currently in the focused
-   view. White ring picks it out without competing with the rest of
-   the card chrome. */
+   view. Full opacity + a white ring picks it out; the rest stay faded. */
 .tweetThumbActive,
 .tweetThumbActive:hover {
+  opacity: 1;
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
 }

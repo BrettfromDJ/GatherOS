@@ -22,6 +22,17 @@ function XGlyphIcon() {
   );
 }
 
+// Two overlapping frames — "multiple images" indicator for the count
+// badge on a tweet saved with more than one photo.
+function CopiesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="8" y="8" width="13" height="13" rx="2" />
+      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
 function CheckIcon() {
   return (
     <svg viewBox="0 0 14 14" width="11" height="11" aria-hidden="true">
@@ -67,15 +78,16 @@ export default function ImageCard({
   const aspect =
     record.width && record.height ? record.width / record.height : 4 / 3;
 
-  // Text-tweet saves render a live, theme-aware tweet card from their
-  // tweet_meta instead of the captured PNG. If the JSON is missing or
-  // malformed we fall through to the image (the PNG backs the save).
+  // Parse tweet_meta once: text-tweet saves (kind='tweet') render a
+  // live card from it; media tweets use imageUrls only for the
+  // multi-image count badge.
   const tweetMeta = (() => {
-    if (record.kind !== 'tweet' || !record.tweet_meta) return null;
+    if (!record.tweet_meta) return null;
     try { return JSON.parse(record.tweet_meta); }
     catch { return null; }
   })();
-  const isTweet = !!tweetMeta;
+  const isTweet = record.kind === 'tweet' && !!tweetMeta;
+  const tweetImageCount = Array.isArray(tweetMeta?.imageUrls) ? tweetMeta.imageUrls.length : 0;
 
   // Capture `fresh` at mount and keep it. The parent clears the fresh
   // flag ~1.5s after a save lands; if we drove the class off the live
@@ -212,6 +224,13 @@ export default function ImageCard({
       }}
       onDragStart={(e) => {
         if (!onDragStart) return;
+        // On a text-tweet card, a drag that begins on the selectable
+        // text is the user highlighting to copy — cancel the card drag
+        // so the browser does a text selection instead.
+        if (isTweet && e.target.closest('[data-tweet-selectable]')) {
+          e.preventDefault();
+          return;
+        }
         // The handler decides between HTML5 drag (in-app drops, e.g.
         // sidebar buckets) and OS drag-out (Alt-drag), and is the
         // one that calls preventDefault when needed.
@@ -280,6 +299,14 @@ export default function ImageCard({
           // already shows the X glyph in its header.
           <span className={styles.sourceBadge} aria-label="From X">
             <XGlyphIcon />
+          </span>
+        )}
+        {inView && tweetImageCount > 1 && (
+          // Top-right count chip — the tweet carried several photos; the
+          // thumbnail shows the first. Paging happens in the focused view.
+          <span className={styles.countBadge} aria-label={`1 of ${tweetImageCount} images`}>
+            <CopiesIcon />
+            1/{tweetImageCount}
           </span>
         )}
         {record.__pending && (
