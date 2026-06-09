@@ -54,7 +54,17 @@ export default function TweetCard({ meta, variant = 'grid', onOpenX = null }) {
           <span className={styles.x} aria-hidden="true"><XGlyph /></span>
         )}
       </div>
-      {caption && <div className={styles.text} data-tweet-selectable>{caption}</div>}
+      {Array.isArray(meta.thread) && meta.thread.length > 1 ? (
+        <div className={styles.thread}>
+          {meta.thread.map((part, i) => (
+            (part?.text || '').trim() ? (
+              <div key={i} className={styles.threadPart} data-tweet-selectable>{part.text}</div>
+            ) : null
+          ))}
+        </div>
+      ) : (
+        caption && <div className={styles.text} data-tweet-selectable>{caption}</div>
+      )}
     </div>
   );
 }

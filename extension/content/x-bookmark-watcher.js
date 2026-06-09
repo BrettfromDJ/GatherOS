@@ -21,6 +21,10 @@ const BOOKMARK_TESTID = 'bookmark';
 // URL produced by Twitter's MSE player and can't be fetched out of
 // the page.
 const tweetVideoCache = new Map();
+// rootTweetId -> [{ text, imageUrls }] for threads whose conversation
+// the interceptor has seen. Lets a bookmark of the root tweet be saved
+// as a multi-part thread.
+const tweetThreadCache = new Map();
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   const data = event.data;
@@ -28,6 +32,13 @@ window.addEventListener('message', (event) => {
   if (data.type === 'tweet-videos' && Array.isArray(data.videos)) {
     for (const [id, info] of data.videos) {
       if (id && info && info.videoUrl) tweetVideoCache.set(id, info);
+    }
+  }
+  if (data.type === 'thread-cache' && Array.isArray(data.threads)) {
+    for (const [rootId, parts] of data.threads) {
+      if (rootId && Array.isArray(parts) && parts.length > 1) {
+        tweetThreadCache.set(rootId, parts);
+      }
     }
   }
   // Cross-device bookmark sync. The interceptor extracts every
@@ -497,6 +508,14 @@ document.addEventListener('click', async (e) => {
       posterUrl: tweetVideo?.posterUrl || null,
     },
   };
+  // If we've seen this tweet's conversation, save it as a thread (root +
+  // the author's self-replies). Only attached when the bookmarked tweet
+  // is the thread root and there's more than one part — otherwise it's
+  // a plain single-tweet save, unchanged.
+  const threadParts = tweetThreadCache.get(tweetIdFromUrl(tweetUrl));
+  if (Array.isArray(threadParts) && threadParts.length > 1) {
+    payload.tweetMeta.thread = threadParts;
+  }
   if (tweetVideo && tweetVideo.videoUrl) {
     // Real playable MP4 — route through the video branch on the
     // desktop. The poster doubles as the JPEG thumbnail.

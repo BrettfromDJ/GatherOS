@@ -146,6 +146,30 @@
 .grid .text { font-size: 14.5px; line-height: 1.42; }
 .focus .text { font-size: 20px; line-height: 1.4; }
 
+/* Multi-part thread — each self-reply stacked, hairline-separated so the
+   sequence reads as one thread. */
+.thread {
+  display: flex;
+  flex-direction: column;
+}
+.threadPart {
+  color: inherit;
+  letter-spacing: -0.003em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+.threadPart + .threadPart {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(127, 127, 127, 0.18);
+}
+.grid .threadPart { font-size: 14px; line-height: 1.4; }
+.focus .threadPart { font-size: 18px; line-height: 1.4; }
+
 /* The name + handle are worth copying too. */
 .name, .handle {
   user-select: text;

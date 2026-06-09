@@ -197,6 +197,80 @@
     };
   }
 
+  // ── Self-thread extraction ─────────────────────────────────────────
+  // When a tweet's conversation loads (TweetDetail), the response carries
+  // the whole thread. Collect every tweet object, group by conversation,
+  // and keep the original author's self-reply chain (root + their
+  // follow-ups in order). Cached on the isolated side so a bookmark of
+  // the root tweet can be saved as a multi-part thread.
+  function collectThreadTweets(node, acc) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const child of node) collectThreadTweets(child, acc);
+      return;
+    }
+    const legacy = node.legacy;
+    if (legacy && legacy.id_str && legacy.conversation_id_str) {
+      const userResult = node.core && node.core.user_results && node.core.user_results.result;
+      const authorId = userResult
+        && (userResult.rest_id || (userResult.legacy && userResult.legacy.id_str));
+      if (authorId) {
+        const imageUrls = [];
+        const mediaList = (legacy.extended_entities && legacy.extended_entities.media) || [];
+        for (const m of mediaList) {
+          if (m && m.type === 'photo' && m.media_url_https) {
+            imageUrls.push(`${m.media_url_https}?format=jpg&name=large`);
+          }
+        }
+        acc.push({
+          id: legacy.id_str,
+          conversationId: legacy.conversation_id_str,
+          authorId: String(authorId),
+          text: legacy.full_text || '',
+          imageUrls,
+        });
+      }
+    }
+    for (const key of Object.keys(node)) {
+      if (key === '__typename') continue;
+      collectThreadTweets(node[key], acc);
+    }
+  }
+
+  // Returns [[rootTweetId, parts[]], ...] for any conversation whose
+  // original author posted more than one tweet (a real thread).
+  function extractThreads(json) {
+    const raw = [];
+    collectThreadTweets(json, raw);
+    // Dedupe by tweet id (the same tweet can appear in multiple places).
+    const byId = new Map();
+    for (const t of raw) if (!byId.has(t.id)) byId.set(t.id, t);
+    const byConv = new Map();
+    for (const t of byId.values()) {
+      if (!byConv.has(t.conversationId)) byConv.set(t.conversationId, []);
+      byConv.get(t.conversationId).push(t);
+    }
+    const out = [];
+    for (const [convId, list] of byConv) {
+      const root = list.find((t) => t.id === convId);
+      if (!root) continue;
+      const parts = list
+        .filter((t) => t.authorId === root.authorId)
+        .sort((a, b) => (a.id.length - b.id.length) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+        .map((t) => ({ text: t.text, imageUrls: t.imageUrls }));
+      if (parts.length > 1) out.push([convId, parts]);
+    }
+    return out;
+  }
+
+  function postThreads(entries) {
+    if (!entries || entries.length === 0) return;
+    window.postMessage(
+      { source: 'gatheros-interceptor', type: 'thread-cache', threads: entries },
+      window.location.origin,
+    );
+  }
+
   function postBookmarks(bookmarks) {
     if (bookmarks.length === 0) return;
     window.postMessage(
@@ -288,6 +362,7 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
+        postThreads(extractThreads(json));
         // Only the TOP-of-list bookmarks request drives imports. New
         // bookmarks always land at the top of the feed, so paginated
         // (deep-scroll) pages only ever surface old bookmarks —
@@ -335,6 +410,7 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
+        postThreads(extractThreads(json));
         // Only top-of-list bookmarks requests drive imports — see the
         // fetch path above.
         if (isBookmarksEndpoint(this.__gatherUrl) && isTopOfBookmarksRequest(this.__gatherUrl)) {
