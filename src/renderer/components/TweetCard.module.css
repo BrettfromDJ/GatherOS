@@ -102,6 +102,9 @@
 
 .x {
   margin-left: auto;
+  /* Pin to the top of the header so it sits in the card's upper-right
+     corner rather than vertically centred against the avatar. */
+  align-self: flex-start;
   flex: none;
   display: flex;
   align-items: center;
@@ -110,15 +113,17 @@
 .grid .x svg { width: 15px; height: 15px; }
 .focus .x svg { width: 19px; height: 19px; }
 
-/* Clickable X glyph — "open on X". Only the focused card wires this up. */
+/* Clickable X glyph — "open on X". Only the focused card wires this up.
+   margin-left:auto pushes it to the right edge; the negative offsets
+   keep the hover circle tight to the corner. */
 .xBtn {
-  margin-left: auto;
   flex: none;
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 6px;
-  margin: -6px -6px -6px 0;
+  margin: -6px -6px -6px auto;
   border: none;
   background: transparent;
   color: var(--tw-sub);
