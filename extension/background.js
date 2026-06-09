@@ -608,10 +608,10 @@ function notify(message) {
   }
 }
 
-// ── Popup-driven browser capture + URL save ────────────────────────
+// ── Panel-driven browser capture + URL save ────────────────────────
 //
-// The toolbar popup (popup.html) drives these. Browser-page and area
-// captures are taken as JPEG and shipped to the desktop app as a
+// The injected in-page panel (panel.js) drives these. Browser-page and
+// area captures are taken as JPEG and shipped to the desktop app as a
 // data:image URL through the same native-message 'save' path the
 // right-click flow uses. JPEG (+ a downscale fallback) keeps the
 // payload under the native-messaging 1 MB cap that a full PNG would
