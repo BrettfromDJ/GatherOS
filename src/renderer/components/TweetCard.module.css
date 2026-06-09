@@ -146,6 +146,23 @@
 .grid .text { font-size: 14.5px; line-height: 1.42; }
 .focus .text { font-size: 20px; line-height: 1.4; }
 
+/* Grid truncation — cap long tweets/threads to a few lines with an
+   ellipsis so cards stay tidy; the focused view shows the full text. */
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+  overflow: hidden;
+}
+
+.threadMore {
+  margin-top: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--tw-sub);
+}
+
 /* Multi-part thread — each self-reply stacked, hairline-separated so the
    sequence reads as one thread. */
 .thread {

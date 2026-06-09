@@ -26,6 +26,10 @@ export default function TweetCard({ meta, variant = 'grid', onOpenX = null }) {
     ? meta.authorAvatarUrl
     : '';
   const initials = (name.replace(/^@/, '').trim().slice(0, 1) || '?').toUpperCase();
+  const isThread = Array.isArray(meta.thread) && meta.thread.length > 1;
+  // The grid card truncates (line-clamp + ellipsis); the focused card
+  // shows everything.
+  const compact = variant !== 'focus';
 
   return (
     <div className={`${styles.card} ${variant === 'focus' ? styles.focus : styles.grid}`}>
@@ -54,16 +58,33 @@ export default function TweetCard({ meta, variant = 'grid', onOpenX = null }) {
           <span className={styles.x} aria-hidden="true"><XGlyph /></span>
         )}
       </div>
-      {Array.isArray(meta.thread) && meta.thread.length > 1 ? (
-        <div className={styles.thread}>
-          {meta.thread.map((part, i) => (
-            (part?.text || '').trim() ? (
-              <div key={i} className={styles.threadPart} data-tweet-selectable>{part.text}</div>
-            ) : null
-          ))}
-        </div>
+      {isThread ? (
+        compact ? (
+          // Grid: just the thread's first tweet, clamped, with a count.
+          <>
+            <div className={`${styles.text} ${styles.clamp}`} data-tweet-selectable>
+              {(meta.thread[0]?.text || caption || '').trim()}
+            </div>
+            <div className={styles.threadMore}>{`Thread · ${meta.thread.length} tweets`}</div>
+          </>
+        ) : (
+          <div className={styles.thread}>
+            {meta.thread.map((part, i) => (
+              (part?.text || '').trim() ? (
+                <div key={i} className={styles.threadPart} data-tweet-selectable>{part.text}</div>
+              ) : null
+            ))}
+          </div>
+        )
       ) : (
-        caption && <div className={styles.text} data-tweet-selectable>{caption}</div>
+        caption && (
+          <div
+            className={`${styles.text}${compact ? ` ${styles.clamp}` : ''}`}
+            data-tweet-selectable
+          >
+            {caption}
+          </div>
+        )
       )}
     </div>
   );

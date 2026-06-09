@@ -744,6 +744,20 @@
   flex-shrink: 0;
 }
 
+/* Clickable variant — opens the original tweet on X. */
+.tweetSourceBtn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+  transition: color var(--dur-instant) ease, background var(--dur-instant) ease;
+}
+.tweetSourceBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .tweetCaption {
   font-size: var(--text-sm);
   line-height: 1.45;

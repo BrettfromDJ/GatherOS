@@ -841,9 +841,21 @@ export default function DetailPanel({
                   <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
                 )}
               </div>
-              <span className={styles.tweetSourceIcon} title="From X" aria-label="From X">
-                <XGlyphIcon />
-              </span>
+              {record?.source_url ? (
+                <button
+                  type="button"
+                  className={`${styles.tweetSourceIcon} ${styles.tweetSourceBtn}`}
+                  title="Open on X"
+                  aria-label="Open on X"
+                  onClick={() => window.moodmark?.shell?.openUrl?.(record.source_url)}
+                >
+                  <XGlyphIcon />
+                </button>
+              ) : (
+                <span className={styles.tweetSourceIcon} title="From X" aria-label="From X">
+                  <XGlyphIcon />
+                </span>
+              )}
             </div>
 
             {tweetMeta.caption && (
