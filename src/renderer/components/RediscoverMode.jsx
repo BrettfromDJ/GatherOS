@@ -289,19 +289,27 @@ export default function RediscoverMode({
       </div>
 
       <div className={styles.hints}>
-        <button type="button" className={styles.hintBtn} onClick={handleTrash}>
-          <kbd className={styles.kbd}>←</kbd>
-          <span>Trash</span>
-        </button>
-        <button type="button" className={styles.hintBtn} onClick={openBucketPicker}>
-          <kbd className={styles.kbd}>↑</kbd>
-          <span>Collection</span>
-        </button>
-        <button type="button" className={styles.hintBtn} onClick={handleSkip}>
-          <kbd className={styles.kbd}>→</kbd>
-          <span>Skip</span>
-        </button>
-        <button type="button" className={`${styles.hintBtn} ${styles.hintBtnExit}`} onClick={onClose}>
+        {/* Arrow-key d-pad — mirrors the keyboard cluster so the keys
+            map to their actions by position. Buttons stay clickable so
+            trackpad users aren't forced onto the keyboard. */}
+        <div className={styles.dpad}>
+          <div className={`${styles.padCell} ${styles.padUp}`}>
+            <button type="button" className={styles.padKey} onClick={openBucketPicker} aria-label="Add to collection">↑</button>
+            <span className={styles.padLabel}>Collection</span>
+          </div>
+          <div className={`${styles.padCell} ${styles.padLeft}`}>
+            <button type="button" className={styles.padKey} onClick={handleTrash} aria-label="Trash">←</button>
+            <span className={styles.padLabel}>Trash</span>
+          </div>
+          <div className={`${styles.padCell} ${styles.padMid}`} aria-hidden="true">
+            <span className={styles.padDot} />
+          </div>
+          <div className={`${styles.padCell} ${styles.padRight}`}>
+            <button type="button" className={styles.padKey} onClick={handleSkip} aria-label="Skip">→</button>
+            <span className={styles.padLabel}>Skip</span>
+          </div>
+        </div>
+        <button type="button" className={styles.exitBtn} onClick={onClose}>
           <kbd className={styles.kbd}>Esc</kbd>
           <span>Exit</span>
         </button>

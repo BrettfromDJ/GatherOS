@@ -97,47 +97,101 @@
   text-overflow: ellipsis;
 }
 
-/* Bottom hint bar — the four key affordances laid out as a single
-   row of pill buttons. Clickable so trackpad users aren't forced
-   onto the keyboard. */
+/* Bottom controls — an arrow-key d-pad echoing the keyboard cluster
+   (↑ Collection, ← Trash, → Skip) so the keys map to their actions by
+   position, with Esc to exit beneath. Buttons stay clickable so
+   trackpad users aren't forced onto the keyboard. */
 .hints {
   position: absolute;
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: 12px;
+}
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  grid-template-rows: repeat(2, auto);
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  padding: 14px 16px;
   background: rgba(255, 255, 255, 0.06);
   border: 0.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-pill);
+  border-radius: 16px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-.hintBtn {
+.padCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mirror the physical arrow cluster: ↑ on top, ← / → on the bottom
+   row flanking a quiet centre dot. */
+.padUp    { grid-column: 2; grid-row: 1; }
+.padLeft  { grid-column: 1; grid-row: 2; }
+.padMid   { grid-column: 2; grid-row: 2; }
+.padRight { grid-column: 3; grid-row: 2; }
+
+.padKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-lg);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.padKey:hover { background: rgba(255, 255, 255, 0.22); }
+.padKey:active { transform: scale(0.92); }
+
+.padLabel {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: -0.005em;
+}
+
+.padDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.exitBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 8px;
+  padding: 5px 12px;
   background: transparent;
-  border: none;
+  border: 0.5px solid transparent;
   border-radius: var(--radius-pill);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.5);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   cursor: pointer;
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
 }
 
-.hintBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.hintBtnExit {
-  color: rgba(255, 255, 255, 0.55);
+.exitBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .kbd {
@@ -160,7 +214,9 @@
    the user hits ↑. Keyboard-driven (Up/Down + Enter) plus mouse. */
 .picker {
   position: absolute;
-  bottom: 92px;
+  /* Clear the taller d-pad controls below (≈194px tall, anchored at
+     bottom: 28px) so the popover floats fully above them. */
+  bottom: 236px;
   left: 50%;
   transform: translateX(-50%);
   width: 320px;
