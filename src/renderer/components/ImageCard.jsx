@@ -89,14 +89,15 @@ export default function ImageCard({
   const isTweet = record.kind === 'tweet' && !!tweetMeta;
   const tweetImageCount = Array.isArray(tweetMeta?.imageUrls) ? tweetMeta.imageUrls.length : 0;
 
-  // True when there's a live (non-collapsed) text selection anchored
-  // inside this card — used to suppress the open-on-click that would
-  // otherwise fire at the end of a highlight drag.
-  const hasSelectionInCard = () => {
-    const sel = typeof window !== 'undefined' ? window.getSelection?.() : null;
-    if (!sel || sel.isCollapsed || !sel.toString().trim()) return false;
-    const node = sel.anchorNode;
-    return !!(node && wrapperRef.current && wrapperRef.current.contains(node));
+  // Pointer-down position, captured to tell a highlight drag (the pointer
+  // moves) from a click (it doesn't). On a tweet card we suppress the
+  // open only when the gesture actually moved — so a lingering text
+  // selection never blocks a fresh click into the card.
+  const pressPosRef = useRef(null);
+  const movedSincePress = (e) => {
+    const p = pressPosRef.current;
+    if (!p) return false;
+    return Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 6;
   };
 
   // Capture `fresh` at mount and keep it. The parent clears the fresh
@@ -223,17 +224,13 @@ export default function ImageCard({
       ].filter(Boolean).join(' ')}
       style={staggerMs ? { '--card-stagger': `${staggerMs}ms` } : undefined}
       onClick={isPending ? undefined : (e) => {
-        // The click that ends a tweet-text selection drag must not open
-        // the card. If there's a live, non-empty selection inside this
-        // card, swallow the click; a fresh click collapses the selection
-        // on mousedown first, so opening still works normally.
-        if (isTweet && hasSelectionInCard()) return;
+        // The click that ends a tweet-text highlight drag must not open
+        // the card — detected by pointer movement, not by selection
+        // state, so a leftover highlight never blocks a fresh click.
+        if (isTweet && movedSincePress(e)) return;
         onSelect(record.id, e.metaKey || e.ctrlKey || e.shiftKey);
       }}
-      onDoubleClick={isPending ? undefined : () => {
-        if (isTweet && hasSelectionInCard()) return;
-        onOpen(record);
-      }}
+      onDoubleClick={isPending ? undefined : () => onOpen(record)}
       onMouseEnter={isPending ? undefined : () => onHover?.(record.id)}
       onMouseLeave={isPending ? undefined : () => onHover?.(null, record.id)}
       onContextMenu={isPending ? undefined : (e) => {
@@ -243,6 +240,7 @@ export default function ImageCard({
         }
       }}
       onMouseDown={isPending ? undefined : (e) => {
+        pressPosRef.current = { x: e.clientX, y: e.clientY };
         // Tweet cards carry selectable text. A draggable element wins the
         // gesture before any selection can start, so when the press lands
         // on that text we switch the card's native drag OFF for this
