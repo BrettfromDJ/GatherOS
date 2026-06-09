@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SquareLibrary, Bookmark, Chrome } from 'lucide-react';
+import { SquareLibrary, Bookmark, Chrome, Folder } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -227,6 +227,8 @@ export default function Grid({
     } else if (isCollection) {
       title = 'Collection is empty';
       hint = 'Drop an image, paste a URL, or ⌘⇧S to capture.';
+      EmptyIcon = Folder;
+      emptyIconColor = 'var(--icon-muted)';
     } else if (isUnsorted) {
       title = 'Nothing unsorted';
       hint = 'Every save belongs to at least one collection.';
