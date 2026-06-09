@@ -1,15 +1,16 @@
 import React from 'react';
 import {
-  ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2,
+  ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2, Bookmark,
   Clock, History, ArrowDownAZ, ArrowDownZA,
 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
 
 const CHIPS = [
-  { id: 'all',      label: 'All',      Icon: Images },
-  { id: 'unsorted', label: 'Unsorted', Icon: Inbox },
-  { id: 'trash',    label: 'Trash',    Icon: Trash2 },
+  { id: 'all',       label: 'All',       Icon: Images },
+  { id: 'unsorted',  label: 'Unsorted',  Icon: Inbox },
+  { id: 'bookmarks', label: 'Bookmarks', Icon: Bookmark },
+  { id: 'trash',     label: 'Trash',     Icon: Trash2 },
 ];
 
 export const SORT_OPTIONS = [

@@ -344,7 +344,13 @@ export default function FocusedView({
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <TweetCard meta={tweetMeta} variant="focus" />
+              <TweetCard
+                meta={tweetMeta}
+                variant="focus"
+                onOpenX={record.source_url
+                  ? () => window.moodmark?.shell?.openUrl?.(record.source_url)
+                  : undefined}
+              />
             </div>
           </div>
         ) : record.kind === 'url' && record.source_url ? (

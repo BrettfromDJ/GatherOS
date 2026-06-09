@@ -54,7 +54,7 @@ export function useLibrary() {
         // returns the ranked similar set straight from the backend.
         data = await window.moodmark.saves.findSimilar(similarTo.id, 60);
       } else {
-        const backendView = view.type === 'unsorted' || view.type === 'trash'
+        const backendView = ['unsorted', 'trash', 'bookmarks'].includes(view.type)
           ? view.type
           : 'all';
         data = await window.moodmark.saves.getAll({

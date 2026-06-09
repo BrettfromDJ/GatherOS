@@ -601,6 +601,13 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
     conditions.push('deleted_at IS NULL');
     if (view === 'unsorted') {
       conditions.push('id NOT IN (SELECT save_id FROM collection_items)');
+    } else if (view === 'bookmarks') {
+      // Saves captured from X carry the 'x:bookmark' tag.
+      conditions.push(`id IN (
+        SELECT save_id FROM save_tags
+        JOIN tags ON save_tags.tag_id = tags.id
+        WHERE tags.name = 'x:bookmark'
+      )`);
     } else if (view === 'onThisDay') {
       // Same calendar month + day as today, in any prior year. Local
       // time so a save made yesterday at 11pm doesn't slip into the
@@ -662,12 +669,19 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
     // object so substring-matching them turns "sky" into a 50% hit
     // rate. ocr_text is the actual text inside the image (UI labels,
     // signage, body copy) so a literal match there is high-signal.
-    conditions.push(`(title LIKE ? OR ocr_text LIKE ? OR id IN (
-      SELECT save_id FROM save_tags
-      JOIN tags ON save_tags.tag_id = tags.id
-      WHERE tags.name LIKE ?
-    ))`);
-    params.push(`%${text}%`, `%${text}%`, `%${text}%`);
+    // Tweet saves also match on their text + author. tweet_meta is
+    // valid JSON or NULL, so json_extract returns NULL (no match)
+    // rather than throwing on the non-tweet rows.
+    conditions.push(`(title LIKE ? OR ocr_text LIKE ?
+      OR json_extract(tweet_meta, '$.caption') LIKE ?
+      OR json_extract(tweet_meta, '$.authorName') LIKE ?
+      OR json_extract(tweet_meta, '$.authorHandle') LIKE ?
+      OR id IN (
+        SELECT save_id FROM save_tags
+        JOIN tags ON save_tags.tag_id = tags.id
+        WHERE tags.name LIKE ?
+      ))`);
+    params.push(`%${text}%`, `%${text}%`, `%${text}%`, `%${text}%`, `%${text}%`, `%${text}%`);
   }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
@@ -857,6 +871,15 @@ function getSmartViewCounts() {
       AND id NOT IN (SELECT save_id FROM collection_items)
   `).get();
   const trash = db.prepare('SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NOT NULL').get();
+  const bookmarks = db.prepare(`
+    SELECT COUNT(*) AS n FROM saves
+    WHERE deleted_at IS NULL
+      AND id IN (
+        SELECT save_id FROM save_tags
+        JOIN tags ON save_tags.tag_id = tags.id
+        WHERE tags.name = 'x:bookmark'
+      )
+  `).get();
   // Saves whose calendar date matches today in some prior year — same
   // condition the 'onThisDay' view applies in getAllSaves.
   const onThisDay = db.prepare(`
@@ -871,6 +894,7 @@ function getSmartViewCounts() {
     all: all?.n ?? 0,
     unsorted: unsorted?.n ?? 0,
     trash: trash?.n ?? 0,
+    bookmarks: bookmarks?.n ?? 0,
     onThisDay: onThisDay?.n ?? 0,
   };
 }

@@ -14,7 +14,7 @@ function XGlyph() {
 // at two sizes: 'grid' (compact, inside an ImageCard frame) and 'focus'
 // (standalone card on the focused-view stage). Renders real, selectable
 // text — the captured PNG is only a thumbnail/export fallback.
-export default function TweetCard({ meta, variant = 'grid' }) {
+export default function TweetCard({ meta, variant = 'grid', onOpenX = null }) {
   const [avatarOk, setAvatarOk] = useState(true);
   if (!meta) return null;
 
@@ -46,7 +46,13 @@ export default function TweetCard({ meta, variant = 'grid' }) {
           <span className={styles.name} data-tweet-selectable>{name}</span>
           {handle && <span className={styles.handle} data-tweet-selectable>{handle}</span>}
         </span>
-        <span className={styles.x} aria-hidden="true"><XGlyph /></span>
+        {onOpenX ? (
+          <button type="button" className={styles.xBtn} title="Open on X" onClick={onOpenX}>
+            <XGlyph />
+          </button>
+        ) : (
+          <span className={styles.x} aria-hidden="true"><XGlyph /></span>
+        )}
       </div>
       {caption && <div className={styles.text} data-tweet-selectable>{caption}</div>}
     </div>

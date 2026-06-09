@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SquareLibrary } from 'lucide-react';
+import { SquareLibrary, Bookmark } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -166,9 +166,10 @@ export default function Grid({
     const trimmedSearch = (search || '').trim();
     const isCollection = view?.type === 'collection';
     const isUnsorted = view?.type === 'unsorted';
+    const isBookmarks = view?.type === 'bookmarks';
     const isTrash = view?.type === 'trash';
     const isBrandNewLibrary =
-      !trimmedSearch && !colorFilter && !isCollection && !isUnsorted && !isTrash;
+      !trimmedSearch && !colorFilter && !isCollection && !isUnsorted && !isBookmarks && !isTrash;
 
     // First-launch hero. No tutorial copy — a fanned card stack
     // (same motif as FeaturedBuckets / FolderGrid tiles) signals
@@ -211,6 +212,7 @@ export default function Grid({
     let hint = 'Press ⌘⇧S to screenshot, or drag images into this window';
     let EmptyIcon = null;
     let emptyIconColor = null;
+    let emptyAction = null;
     if (trimmedSearch) {
       title = `No matches for "${trimmedSearch}"`;
       hint = semanticSearchActive
@@ -227,6 +229,20 @@ export default function Grid({
       hint = 'Every save belongs to at least one collection.';
       EmptyIcon = InboxIcon;
       emptyIconColor = 'var(--icon-muted)';
+    } else if (isBookmarks) {
+      title = 'No bookmarks yet';
+      hint = 'Bookmark a tweet on X and it lands here automatically — text, images, and threads. Add the GatherOS Chrome extension to capture them.';
+      EmptyIcon = Bookmark;
+      emptyIconColor = 'var(--icon-muted)';
+      emptyAction = (
+        <button
+          type="button"
+          className={styles.emptyAction}
+          onClick={() => window.moodmark?.shell?.openUrl?.('https://gatheros.co/extension')}
+        >
+          Get the Chrome extension
+        </button>
+      );
     } else if (isTrash) {
       title = 'Trash is empty';
       hint = 'Deleted saves land here. Empty Trash to remove for good.';
@@ -243,6 +259,7 @@ export default function Grid({
         )}
         <div className={styles.emptyTitle}>{title}</div>
         <div className={styles.emptyHint}>{hint}</div>
+        {emptyAction}
       </div>
     );
   }

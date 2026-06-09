@@ -681,7 +681,7 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   // Counts that drive the sidebar's smart-view badges (All / Unsorted /
   // Trash). Refreshed alongside collections.
-  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0, onThisDay: 0 });
+  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0 });
 
   const loadCollections = useCallback(async () => {
     const [cols, counts] = await Promise.all([
@@ -693,7 +693,7 @@ export default function App() {
     setCollections(cols);
     setSmartCounts(counts && typeof counts === 'object'
       ? counts
-      : { all: 0, unsorted: 0, trash: 0, onThisDay: 0 });
+      : { all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0 });
   }, []);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
@@ -1116,15 +1116,19 @@ export default function App() {
       // capture). Open in the system browser, or copy the link to the
       // clipboard so the user can paste it elsewhere.
       if (anchor?.source_url) {
+        // tweet_meta is only set on saves captured from X, so its
+        // presence is a reliable "this is a tweet" signal — surface the
+        // action as "Open on X" with the original permalink.
+        const fromX = !!anchor.tweet_meta;
         items.push({
-          label: 'Open source',
+          label: fromX ? 'Open on X' : 'Open source',
           icon: <ExternalLinkIcon />,
           onClick: () => {
             window.moodmark.shell.openUrl(anchor.source_url);
           },
         });
         items.push({
-          label: 'Copy source URL',
+          label: fromX ? 'Copy tweet URL' : 'Copy source URL',
           icon: <LinkIcon />,
           onClick: async () => {
             try {
@@ -2691,7 +2695,7 @@ export default function App() {
                   || (appMode === 'folders' && view.type === 'collection')) && (
                   <SmartChipRail
                     activeViewType={
-                      ['all', 'unsorted', 'trash'].includes(view.type)
+                      ['all', 'unsorted', 'bookmarks', 'trash'].includes(view.type)
                         ? view.type
                         : 'all'
                     }
