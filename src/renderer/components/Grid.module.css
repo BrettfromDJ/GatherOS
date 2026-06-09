@@ -97,10 +97,14 @@
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   max-width: 340px;
+  text-align: center;
   text-wrap: pretty;
 }
 
 .emptyAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 16px;
   padding: 9px 18px;
   border-radius: var(--radius-pill);

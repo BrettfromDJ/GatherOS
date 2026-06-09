@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SquareLibrary, Bookmark } from 'lucide-react';
+import { SquareLibrary, Bookmark, Chrome } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -231,7 +231,7 @@ export default function Grid({
       emptyIconColor = 'var(--icon-muted)';
     } else if (isBookmarks) {
       title = 'No bookmarks yet';
-      hint = 'Bookmark a tweet on X and it lands here automatically — text, images, and threads. Add the GatherOS Chrome extension to capture them.';
+      hint = 'Bookmark a tweet on X and it lands here automatically. Add the GatherOS Chrome extension to capture them.';
       EmptyIcon = Bookmark;
       emptyIconColor = 'var(--icon-muted)';
       emptyAction = (
@@ -240,6 +240,7 @@ export default function Grid({
           className={styles.emptyAction}
           onClick={() => window.moodmark?.shell?.openUrl?.('https://gatheros.co/extension')}
         >
+          <Chrome size={16} strokeWidth={1.8} aria-hidden="true" />
           Get the Chrome extension
         </button>
       );
