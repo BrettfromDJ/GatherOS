@@ -339,10 +339,12 @@ async function syncBookmarkToGather(b) {
     payload.posterUrl = b.posterUrl;
   } else if (Array.isArray(b.imageUrls) && b.imageUrls.length > 0) {
     payload.imageUrl = b.imageUrls[0];
-  } else {
-    // No media — nothing to anchor the save to. Skip silently.
+  } else if (!(b.caption || '').trim()) {
+    // No media and no text — nothing to save. Skip silently.
     return;
   }
+  // else: text-only tweet — send tweet_meta with no media; the desktop
+  // renders the tweet card to an image (handled by /save's text branch).
   return chrome.runtime.sendNativeMessage(HOST_NAME, payload);
 }
 
@@ -528,7 +530,10 @@ function pollParseTweetForBookmark(result) {
     }
   }
 
-  if (imageUrls.length === 0 && !videoUrl) return null;
+  // Allow text-only tweets through (caption but no media) — the desktop
+  // renders the tweet card to an image. Only bail when there's nothing
+  // at all: no media and no text.
+  if (imageUrls.length === 0 && !videoUrl && !(legacy.full_text || '').trim()) return null;
 
   return {
     tweetId,

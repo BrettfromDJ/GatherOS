@@ -435,13 +435,17 @@ document.addEventListener('click', async (e) => {
   if (tweetVideo && !tweetVideo.videoUrl && tweetVideo.posterUrl) {
     imageUrls.unshift(tweetVideo.posterUrl);
   }
-  // Skip tweets that have neither images, a usable video, nor a
-  // poster fallback — nothing for the library to anchor to.
-  if (imageUrls.length === 0 && !(tweetVideo && tweetVideo.videoUrl)) return;
-
   const author = findAuthorInfo(article);
   const avatarUrl = findAvatarUrl(article);
   const caption = findCaption(article);
+
+  // Skip only when there's genuinely nothing to save — no images, no
+  // usable video/poster, AND no text. Text-only tweets (caption but no
+  // media) are now savable: the desktop renders the tweet card itself
+  // to an image.
+  if (imageUrls.length === 0
+    && !(tweetVideo && tweetVideo.videoUrl)
+    && !(caption && caption.trim())) return;
 
   // Rewrite name=<small variant> → name=large for the URL we ship
   // to the desktop as the primary save. img.currentSrc is whatever

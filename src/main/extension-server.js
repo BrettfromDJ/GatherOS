@@ -107,6 +107,13 @@ async function handleSave(req, res) {
   const videoUrl = typeof body?.videoUrl === 'string' ? body.videoUrl.trim() : '';
   const posterUrl = typeof body?.posterUrl === 'string' ? body.posterUrl.trim() : '';
   const pageUrl = typeof body?.pageUrl === 'string' ? body.pageUrl.trim() : '';
+  // X-bookmark structured payload. Stored as JSON in saves.tweet_meta so
+  // DetailPanel can render the glass tweet card (author + handle + avatar
+  // + caption + every image on the tweet). Also drives the text-only
+  // tweet branch below, which renders the card itself to an image.
+  const tweetMeta = (body && typeof body.tweetMeta === 'object' && body.tweetMeta !== null)
+    ? body.tweetMeta
+    : null;
   // Need at least one of: an image, a video, or a page URL. The X-
   // bookmark capture sends videoUrl for video-only tweets; right-click
   // sends an http(s) imageUrl; the extension's "capture page / area"
@@ -131,6 +138,50 @@ async function handleSave(req, res) {
     const { saveImageFromUrl, saveVideoFromUrl } = require('./storage');
     const { insertSave } = require('./db');
     const { notifySaved, notifyDuplicate } = require('./notify');
+
+    // Optional tag list — currently used by the X-bookmark capture to
+    // auto-tag every X save with 'x:bookmark' so the user can filter
+    // their library to just bookmarks from X. Each entry routes through
+    // addTagToSave which trims, lowercases, and dedupes.
+    const attachTags = (saveId) => {
+      if (!Array.isArray(body?.tags) || !body.tags.length) return;
+      const { addTagToSave } = require('./db');
+      for (const t of body.tags) {
+        if (typeof t === 'string' && t.trim()) {
+          try { addTagToSave({ saveId, name: t }); }
+          catch (err) { console.warn('[ext-server] tag attach failed:', err?.message || err); }
+        }
+      }
+    };
+
+    // Text-only tweet (no media): render the tweet card itself to an
+    // image so it lands in the library like any other save, with the
+    // structured tweet_meta preserved for the X badge + detail card.
+    // Must come before the URL-only branch below — a text tweet still
+    // carries pageUrl (the tweet permalink), which we must NOT
+    // screenshot; we render the card instead.
+    if (!imageUrl && !videoUrl && tweetMeta && (
+      (typeof tweetMeta.caption === 'string' && tweetMeta.caption.trim())
+      || (typeof tweetMeta.authorName === 'string' && tweetMeta.authorName.trim())
+    )) {
+      const { captureTweetCard } = require('./tweetCardCapture');
+      const captured = await captureTweetCard(tweetMeta);
+      if (captured.duplicateOf) {
+        notifyDuplicate(captured.existing);
+        sendJson(res, 200, { ok: true, duplicate: true, id: captured.existing.id });
+        return;
+      }
+      const tweetRecord = insertSave({
+        ...captured,
+        sourceUrl: pageUrl || null,
+        title: null,
+        tweetMeta,
+      });
+      attachTags(tweetRecord.id);
+      notifySaved(tweetRecord);
+      sendJson(res, 200, { ok: true, id: tweetRecord.id });
+      return;
+    }
 
     // URL-only save (extension "save URL"): no media to download —
     // screenshot the page via a hidden BrowserWindow and store it as
@@ -174,12 +225,6 @@ async function handleSave(req, res) {
     const pageTitle = typeof body?.pageTitle === 'string' ? body.pageTitle.trim() : null;
     // Optional notes — same. Left blank by both current flows.
     const notes = typeof body?.notes === 'string' ? body.notes.trim() : null;
-    // X-bookmark structured payload. Stored as JSON in saves.tweet_meta
-    // so DetailPanel can render the glass tweet card (author + handle +
-    // avatar + caption + every image on the tweet, with click-to-swap).
-    const tweetMeta = (body && typeof body.tweetMeta === 'object' && body.tweetMeta !== null)
-      ? body.tweetMeta
-      : null;
     const record = insertSave({
       ...mediaData,
       sourceUrl: pageUrl || imageUrl || videoUrl,
@@ -187,20 +232,7 @@ async function handleSave(req, res) {
       notes: notes || null,
       tweetMeta,
     });
-    // Optional tag list — currently used by the X-bookmark capture
-    // to auto-tag every X save with 'x:bookmark' so the user can
-    // filter their library to just bookmarks from X. Each entry
-    // routes through addTagToSave which trims, lowercases, and
-    // dedupes against the existing tags table.
-    if (Array.isArray(body?.tags) && body.tags.length) {
-      const { addTagToSave } = require('./db');
-      for (const t of body.tags) {
-        if (typeof t === 'string' && t.trim()) {
-          try { addTagToSave({ saveId: record.id, name: t }); }
-          catch (err) { console.warn('[ext-server] tag attach failed:', err?.message || err); }
-        }
-      }
-    }
+    attachTags(record.id);
     notifySaved(record);
     sendJson(res, 200, { ok: true, id: record.id });
   } catch (err) {
