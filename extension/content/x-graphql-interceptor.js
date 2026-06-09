@@ -288,16 +288,19 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
-        if (isBookmarksEndpoint(reqUrl)) {
+        // Only the TOP-of-list bookmarks request drives imports. New
+        // bookmarks always land at the top of the feed, so paginated
+        // (deep-scroll) pages only ever surface old bookmarks —
+        // importing from them floods the library with history. Video
+        // extraction above still runs for every response.
+        if (isBookmarksEndpoint(reqUrl) && isTopOfBookmarksRequest(reqUrl)) {
           postBookmarks(extractBookmarkEntries(json));
-          if (isTopOfBookmarksRequest(reqUrl)) {
-            // fetch(Request) puts the headers on args[0]; fetch(url,
-            // init) puts them on args[1]. Read both.
-            const reqInit = (args[0] && typeof args[0] === 'object' && args[0].headers)
-              ? args[0]
-              : args[1];
-            postRefreshTemplate(reqUrl, readAuthorization(reqInit));
-          }
+          // fetch(Request) puts the headers on args[0]; fetch(url,
+          // init) puts them on args[1]. Read both.
+          const reqInit = (args[0] && typeof args[0] === 'object' && args[0].headers)
+            ? args[0]
+            : args[1];
+          postRefreshTemplate(reqUrl, readAuthorization(reqInit));
         }
       }).catch(() => { /* non-JSON or parse error — silently ignore */ });
     }).catch(() => { /* fetch error — page-level concern, ignore */ });
@@ -332,12 +335,12 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
-        if (isBookmarksEndpoint(this.__gatherUrl)) {
+        // Only top-of-list bookmarks requests drive imports — see the
+        // fetch path above.
+        if (isBookmarksEndpoint(this.__gatherUrl) && isTopOfBookmarksRequest(this.__gatherUrl)) {
           postBookmarks(extractBookmarkEntries(json));
-          if (isTopOfBookmarksRequest(this.__gatherUrl)) {
-            const auth = this.__gatherHeaders && this.__gatherHeaders.authorization;
-            postRefreshTemplate(this.__gatherUrl, auth || null);
-          }
+          const auth = this.__gatherHeaders && this.__gatherHeaders.authorization;
+          postRefreshTemplate(this.__gatherUrl, auth || null);
         }
       } catch { /* non-JSON or parse error */ }
     });
