@@ -62,6 +62,14 @@
    instead of running corner-to-corner. The last child has no
    divider, so the panel doesn't doubled-stroke against its own
    border. */
+/* When the tag suggestion popover is open and the tags section is the
+   last thing in the panel (no "More like this"), reserve scroll room at
+   the bottom so the absolutely-positioned popover renders with padding
+   instead of flush against / clipped by the panel's bottom edge. */
+.panelTagRoom {
+  padding-bottom: 150px;
+}
+
 .panel > * {
   position: relative;
 }

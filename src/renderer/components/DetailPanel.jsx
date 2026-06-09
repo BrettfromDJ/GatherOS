@@ -643,7 +643,14 @@ export default function DetailPanel({
   }, [infoOpen]);
 
   return (
-    <aside className={styles.panel} data-onboarding="detail-panel">
+    <aside
+      className={`${styles.panel}${
+        addingTag && suggestionsOpen && totalSuggestionRows > 0 && similar.length === 0
+          ? ` ${styles.panelTagRoom}`
+          : ''
+      }`}
+      data-onboarding="detail-panel"
+    >
       <header className={styles.header}>
         <span className={styles.headerLabel}>Details</span>
         <div className={styles.headerActions}>
