@@ -281,7 +281,10 @@ export default function ImageCard({
         }
       }}
     >
-      <div className={styles.frame} style={isTweet ? undefined : { aspectRatio: aspect }}>
+      <div
+        className={`${styles.frame}${isTweet ? ` ${styles.frameTweet}` : ''}`}
+        style={isTweet ? undefined : { aspectRatio: aspect }}
+      >
         {inView && (isTweet ? (
           <TweetCard meta={tweetMeta} variant="grid" />
         ) : record.kind === 'video' ? (

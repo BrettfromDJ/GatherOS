@@ -61,6 +61,29 @@
   outline-offset: 1px;
 }
 
+/* Tweet text cards adopt the collection-card recipe (FolderGrid tiles):
+   a surface fill with a 1px hairline border, 8px radius and a soft
+   ambient drop shadow — instead of the tighter image-frame treatment. */
+.frameTweet {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="dark"] .frameTweet {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
+.card:hover .frameTweet {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .card:hover .frameTweet {
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.55);
+}
+
 .image {
   position: absolute;
   inset: 0;
