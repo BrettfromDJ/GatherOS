@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import styles from './UpgradeModal.module.css';
 import brandIconUrl from '../assets/welcome-icon.svg';
+import { PENDING_UPGRADE_KEY } from '../context/entitlement.jsx';
 
 // Per-feature copy. The `feature` prop is set by whatever action was
 // blocked (a locked save, an AI button, etc.) so the headline speaks to
@@ -39,7 +40,7 @@ const COPY = {
 // subscription has to attach to an account), otherwise we open the
 // hosted checkout directly.
 export default function UpgradeModal({ open, feature, entitlement, onClose }) {
-  const [interval, setInterval] = useState('yearly');
+  const [interval, setInterval] = useState('monthly');
   const [opening, setOpening] = useState(false);
   const [hasAccount, setHasAccount] = useState(true);
 
@@ -76,8 +77,16 @@ export default function UpgradeModal({ open, feature, entitlement, onClose }) {
     setOpening(true);
     try {
       if (!hasAccount) {
-        // No account yet — checkout has to attach to one. Send them to
-        // the sign-in screen; once signed in they can upgrade.
+        // No account yet — checkout has to attach to one. Remember the
+        // upgrade intent (plan they picked) so AppGate can continue
+        // straight to checkout the moment sign-in lands, then send them
+        // to the sign-in screen.
+        try {
+          localStorage.setItem(
+            PENDING_UPGRADE_KEY,
+            JSON.stringify({ plan: interval, feature: feature || null }),
+          );
+        } catch { /* ignore */ }
         window.dispatchEvent(new CustomEvent('moodmark:request-signin'));
         onClose?.();
         return;

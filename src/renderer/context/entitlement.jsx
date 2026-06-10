@@ -17,6 +17,12 @@ const DEFAULT = {
   loading: true,
 };
 
+// localStorage key holding a "the user wants to upgrade once they're
+// signed in" intent ({ plan, feature }). Set when an unsigned user taps
+// "Sign in to upgrade", consumed by AppGate the moment sign-in lands so
+// checkout continues automatically — no second click.
+export const PENDING_UPGRADE_KEY = 'gatheros.pendingUpgrade';
+
 const EntitlementContext = createContext(DEFAULT);
 
 export function EntitlementProvider({ value, children }) {

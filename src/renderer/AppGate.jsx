@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLicense } from './hooks/useLicense.js';
 import { useEntitlement } from './hooks/useEntitlement.js';
+import { PENDING_UPGRADE_KEY } from './context/entitlement.jsx';
 import App from './App.jsx';
 import SigninScreen from './components/SigninScreen.jsx';
 import AccountBanner from './components/AccountBanner.jsx';
@@ -114,6 +115,37 @@ export default function AppGate() {
     }
   }, [entitlement.mode]);
 
+  // Resume a pending upgrade after "Sign in to upgrade". The moment the
+  // user has an account, pick up exactly where they left off — no second
+  // click. If they still need to pay (server 'expired'), continue
+  // straight to checkout; if signing in already gave them access
+  // (entitled / offline grace), there's nothing to buy, so just clear it.
+  useEffect(() => {
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(PENDING_UPGRADE_KEY) || 'null'); }
+    catch { pending = null; }
+    if (!pending) return;
+    // Not signed in yet (or mid-verify) — wait for the next transition.
+    if (state.status === 'unauth' || state.status === 'loading' || state.status === 'error') return;
+    // We have an account now — consume the intent exactly once.
+    try { localStorage.removeItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
+    if (state.status === 'expired') {
+      (async () => {
+        const result = await window.moodmark.licensing.openCheckout(pending.plan || 'monthly');
+        if (result?.ok) {
+          window.dispatchEvent(new CustomEvent('moodmark:checkout-opened'));
+        } else {
+          // Couldn't open checkout — fall back to the upgrade modal so the
+          // user can retry rather than being left with no feedback.
+          console.error('[upgrade] auto-checkout after signin failed:', result?.error);
+          window.dispatchEvent(
+            new CustomEvent('moodmark:request-upgrade', { detail: { feature: pending.feature || null } }),
+          );
+        }
+      })();
+    }
+  }, [state.status]);
+
   // ── Gate ────────────────────────────────────────────────────────
   // An explicit sign-in request (from the upgrade modal's "Sign in to
   // upgrade", Settings → Account, etc.) wins over everything — including
@@ -123,7 +155,12 @@ export default function AppGate() {
     return (
       <SigninScreen
         onRequestMagicLink={requestMagicLink}
-        onCancel={() => setSigninRequested(false)}
+        onCancel={() => {
+          // Backing out of sign-in abandons any pending upgrade intent so
+          // a later unrelated sign-in doesn't surprise-open checkout.
+          try { localStorage.removeItem(PENDING_UPGRADE_KEY); } catch { /* ignore */ }
+          setSigninRequested(false);
+        }}
       />
     );
   }

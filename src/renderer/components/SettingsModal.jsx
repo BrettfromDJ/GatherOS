@@ -25,6 +25,7 @@ import PrivacyModal from './PrivacyModal.jsx';
 import {
   SAVE_SOUNDS, DEFAULT_SAVE_SOUND, previewSaveSound, configureSaveSound,
 } from '../lib/sounds.js';
+import { requestUpgrade } from '../context/entitlement.jsx';
 
 const SUPPORT_EMAIL = 'hey@gatheros.co';
 
@@ -1174,7 +1175,7 @@ export default function SettingsModal({
                       <LogOutIcon size={14} strokeWidth={1.7} aria-hidden="true" />
                       Sign out
                     </button>
-                    {account?.subscription && (
+                    {account?.subscription ? (
                       <button
                         type="button"
                         className={`${styles.btn} ${styles.btnPrimary}`}
@@ -1183,6 +1184,18 @@ export default function SettingsModal({
                       >
                         <CreditCardIcon size={14} strokeWidth={1.7} aria-hidden="true" />
                         {portalState.running ? 'Opening…' : 'Manage subscription'}
+                      </button>
+                    ) : (
+                      // Signed in but no subscription → offer the upgrade
+                      // directly. Closes Settings so the upgrade modal
+                      // (rendered at the app root) isn't hidden behind it.
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        onClick={() => { onClose?.(); requestUpgrade(null); }}
+                      >
+                        <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />
+                        Upgrade
                       </button>
                     )}
                   </div>
