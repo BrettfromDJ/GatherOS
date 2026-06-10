@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  X as XIcon, Check as CheckIcon, Trash2, FolderPlus, GripHorizontal,
+  X as XIcon, Check as CheckIcon, Trash2, FolderPlus, GripHorizontal, ArrowRight,
 } from 'lucide-react';
 import styles from './RediscoverMode.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -273,11 +273,11 @@ export default function RediscoverMode({
     const thumbsFor = (arr) => arr.slice(-3).map((o) => resolve(o.id)).filter(Boolean);
 
     const trays = [
-      { key: 'filed', label: 'Filed', dot: styles.dotFiled, items: filed,
+      { key: 'filed', label: 'Filed', Icon: FolderPlus, tone: styles.icFiled, items: filed,
         sub: filedByCol.map((c) => `${c.name} · ${c.count}`).join('   ') },
-      { key: 'kept', label: 'Kept', dot: styles.dotKept, items: kept, sub: '' },
-      { key: 'trashed', label: 'Trashed', dot: styles.dotTrash, items: trashed, trashed: true,
-        sub: trashEmptied ? 'Emptied' : 'Undo anytime before emptying' },
+      { key: 'kept', label: 'Skipped', Icon: ArrowRight, tone: styles.icKept, items: kept, sub: '' },
+      { key: 'trashed', label: 'Trashed', Icon: Trash2, tone: styles.icTrash, items: trashed, trashed: true,
+        sub: trashEmptied ? 'Emptied' : '' },
     ].filter((t) => t.items.length > 0);
 
     return (
@@ -286,9 +286,6 @@ export default function RediscoverMode({
           <XIcon size={18} strokeWidth={1.8} aria-hidden="true" />
         </button>
         <div className={styles.recap}>
-          <div className={styles.recapCheck} aria-hidden="true">
-            <CheckIcon size={26} strokeWidth={2.2} />
-          </div>
           <div className={styles.recapTitle}>Rediscover complete</div>
           <div className={styles.recapSub}>
             Nice — you went through all {reviewed} {reviewed === 1 ? 'save' : 'saves'}.
@@ -308,7 +305,9 @@ export default function RediscoverMode({
                   ))}
                 </div>
                 <div className={styles.trayLabel}>
-                  <span className={`${styles.dot} ${t.dot}`} />
+                  <span className={`${styles.trayIcon} ${t.tone}`}>
+                    <t.Icon size={14} strokeWidth={2} aria-hidden="true" />
+                  </span>
                   {t.label}
                 </div>
                 <div className={styles.traySub}>{t.sub || ' '}</div>
@@ -323,6 +322,7 @@ export default function RediscoverMode({
                 className={styles.emptyBtn}
                 onClick={() => { onEmptyTrash?.(trashedIds); setTrashEmptied(true); }}
               >
+                <Trash2 size={14} strokeWidth={1.9} aria-hidden="true" />
                 Empty trash ({trashedIds.length})
               </button>
             )}

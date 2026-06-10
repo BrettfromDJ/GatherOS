@@ -378,19 +378,6 @@
   animation: deckIn var(--dur-medium) var(--ease-out);
 }
 
-.recapCheck {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 6px;
-  border-radius: var(--radius-circle);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.95);
-}
-
 .recapTitle {
   font-size: 22px;
   font-weight: 600;
@@ -403,7 +390,7 @@
   font-size: var(--text-md);
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.55);
-  margin-top: 2px;
+  margin-top: 9px;
 }
 
 .trays {
@@ -457,34 +444,35 @@
   background-size: cover;
   background-position: center;
   background-color: #1c1c1f;
-  transform-origin: bottom center;
-  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--dur-pronounced) var(--ease-out);
 }
 
-.pileCard:nth-child(2) { transform: translateX(-50%) rotate(-6deg) translateY(6px); z-index: 1; }
-.pileCard:nth-child(3) { transform: translateX(-50%) rotate(5deg) translateY(3px); z-index: 2; }
-.pileCard:nth-child(4) { transform: translateX(-50%) rotate(-1deg); z-index: 3; }
+/* Static fan + hover spread mirror the collection wall stack
+   (FeaturedBuckets .stack) so the motion feels identical. */
+.pileCard:nth-child(2) { transform: translateX(-50%) rotate(-7deg) translate(-10px, 4px); z-index: 1; }
+.pileCard:nth-child(3) { transform: translateX(-50%) rotate(-2deg) translate(-3px, 0); z-index: 2; }
+.pileCard:nth-child(4) { transform: translateX(-50%) rotate(3deg) translate(5px, 0); z-index: 3; }
 
-.pile:hover .pileCard:nth-child(2) { transform: translateX(calc(-50% - 42px)) rotate(-11deg) translateY(-2px); }
-.pile:hover .pileCard:nth-child(3) { transform: translateX(calc(-50% + 40px)) rotate(10deg) translateY(-2px); }
-.pile:hover .pileCard:nth-child(4) { transform: translateX(-50%) rotate(0deg) translateY(-6px); }
+.pile:hover .pileCard:nth-child(2) { transform: translateX(-50%) rotate(-16deg) translate(-30px, 8px); }
+.pile:hover .pileCard:nth-child(3) { transform: translateX(-50%) rotate(-6deg) translate(-12px, -2px); }
+.pile:hover .pileCard:nth-child(4) { transform: translateX(-50%) rotate(7deg) translate(14px, -2px); }
 
 .pileCardTrashed { filter: grayscale(1) brightness(0.55); }
 
 .trayLabel {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 7px;
+  margin-top: 10px;
   font-size: 13.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
 }
 
-.dot { width: 8px; height: 8px; border-radius: var(--radius-circle); flex: none; }
-.dotFiled { background: #7fb0e8; }
-.dotKept { background: #9a9aa2; }
-.dotTrash { background: #e87f7f; }
+.trayIcon { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.icFiled { color: #7fb0e8; }
+.icKept { color: #9a9aa2; }
+.icTrash { color: #e87f7f; }
 
 .traySub {
   font-size: 11.5px;
@@ -497,22 +485,34 @@
 
 .recapActions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
 }
 
+/* Both buttons share the exact same box so they sit perfectly aligned. */
+.recapActions .doneBtn,
 .emptyBtn {
-  padding: 8px 18px;
-  background: transparent;
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  margin: 0;
+  height: 38px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border-radius: var(--radius-pill);
-  color: rgba(255, 255, 255, 0.65);
   font-family: var(--font-ui);
   font-size: var(--text-md);
   font-weight: 500;
   letter-spacing: -0.005em;
   cursor: pointer;
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
+}
+
+.emptyBtn {
+  background: transparent;
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .emptyBtn:hover {
