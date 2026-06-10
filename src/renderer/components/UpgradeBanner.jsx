@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
 import styles from './UpgradeBanner.module.css';
 
 // Floating pill at the bottom of the app that nudges the user toward
@@ -28,7 +27,6 @@ export default function UpgradeBanner({ entitlement, onUpgrade }) {
   if (mode === 'free') {
     return (
       <div className={`${styles.banner} ${styles.free}`}>
-        <Sparkles size={15} strokeWidth={1.8} className={styles.icon} aria-hidden />
         <span className={styles.text}>
           You’re on the free plan — existing saves stay, upgrade to add new ones.
         </span>
@@ -49,7 +47,6 @@ export default function UpgradeBanner({ entitlement, onUpgrade }) {
   const dayWord = daysLeft === 1 ? 'day' : 'days';
   return (
     <div className={styles.banner}>
-      <Sparkles size={15} strokeWidth={1.8} className={styles.icon} aria-hidden />
       <span className={styles.text}>
         {daysLeft > 0
           ? `Trial: ${daysLeft} ${dayWord} left`

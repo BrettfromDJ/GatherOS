@@ -1215,7 +1215,6 @@ export default function SettingsModal({
                         className={`${styles.btn} ${styles.btnPrimary}`}
                         onClick={() => { onClose?.(); requestUpgrade(null); }}
                       >
-                        <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />
                         Upgrade
                       </button>
                     )}
