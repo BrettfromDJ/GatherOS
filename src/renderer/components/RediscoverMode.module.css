@@ -469,10 +469,10 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-.trayIcon { display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.icFiled { color: #7fb0e8; }
-.icKept { color: #9a9aa2; }
-.icTrash { color: #e87f7f; }
+.trayIcon { display: inline-flex; align-items: center; justify-content: center; flex: none; color: rgba(255, 255, 255, 0.9); }
+.icFiled,
+.icKept,
+.icTrash { color: rgba(255, 255, 255, 0.9); }
 
 .traySub {
   font-size: 11.5px;
