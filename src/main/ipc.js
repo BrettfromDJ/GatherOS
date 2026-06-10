@@ -44,6 +44,7 @@ const {
   getUsage: getAiUsage,
 } = require('./openai');
 const { detectColorName } = require('./colorNames');
+const { canCreateSave } = require('./entitlement');
 
 // Cosine similarity over Float32 BLOBs from SQLite. ~1 ms per save at
 // 1536 dims; fine up to a few thousand records before we'd want a
@@ -320,6 +321,7 @@ function registerIpcHandlers() {
   ipcMain.handle('saves:update', (_e, payload) => updateSave(payload));
 
   ipcMain.handle('saves:drop-file', async (_e, filePath) => {
+    if (!canCreateSave()) return { needsUpgrade: true };
     const imgData = await saveImageFromFile(filePath);
     if (imgData.duplicateOf) {
       notifyDuplicate(imgData.existing);
@@ -331,6 +333,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('saves:drop-zip', async (_e, zipPath) => {
+    if (!canCreateSave()) return { ok: false, needsUpgrade: true };
     if (!zipPath) throw new Error('drop-zip called without a path');
     try {
       const counts = await ingestZip(zipPath);
@@ -353,6 +356,7 @@ function registerIpcHandlers() {
   // view time. Distinct from saves:drop-url, which treats the URL
   // as a direct image-file URL and downloads it.
   ipcMain.handle('saves:capture-url', async (_e, url) => {
+    if (!canCreateSave()) return { ok: false, needsUpgrade: true };
     if (typeof url !== 'string' || !url.trim()) {
       return { ok: false, error: 'missing_url' };
     }
@@ -376,6 +380,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('saves:drop-url', async (_e, payload) => {
+    if (!canCreateSave()) return { needsUpgrade: true };
     const candidates = Array.isArray(payload?.urls)
       ? payload.urls
       : Array.isArray(payload)
@@ -1078,6 +1083,9 @@ function registerIpcHandlers() {
   // "remix" than a "describe-then-redraw". Resulting PNG is saved
   // as a new entry in the user's library, not a replacement.
   ipcMain.handle('ai:generate-variant', async (event, saveId, options = {}) => {
+    // AI generation is a pro feature and also creates a new save — both
+    // gated in the free tier.
+    if (!canCreateSave()) return { ok: false, needsUpgrade: true };
     if (!saveId) return { ok: false, reason: 'no-save-id' };
     if (!hasAiSession()) return { ok: false, reason: 'no-session' };
     const save = getSave(saveId);

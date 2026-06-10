@@ -95,6 +95,18 @@ async function handleSave(req, res) {
     return;
   }
 
+  // Free tier: new saves require an upgrade. Surface the prompt in the
+  // app window and tell the extension so it can show its own notice.
+  // Fails OPEN — any error resolving entitlement allows the save.
+  try {
+    const { canCreateSave } = require('./entitlement');
+    if (!canCreateSave()) {
+      try { require('./notify').notifyNeedsUpgrade({ source: 'extension' }); } catch {}
+      sendJson(res, 402, { ok: false, needsUpgrade: true, error: 'upgrade required' });
+      return;
+    }
+  } catch { /* fail open */ }
+
   let body;
   try {
     body = await readJsonBody(req);

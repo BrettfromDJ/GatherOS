@@ -122,7 +122,7 @@ const {
 } = require('./capture');
 const extensionServer = require('./extension-server');
 const { showToast, destroyToastWindow } = require('./toast-window');
-const { setSaveNotifier, setDuplicateNotifier, setTrayRefresher } = require('./notify');
+const { setSaveNotifier, setDuplicateNotifier, setNeedsUpgradeNotifier, setTrayRefresher } = require('./notify');
 const { initUpdater } = require('./updater');
 const { getInitialOptions: getWindowInitialOptions, track: trackWindowState } = require('./window-state');
 const libraryRegistry = require('./library-registry');
@@ -424,6 +424,18 @@ function notifyDuplicateInRenderer(existing) {
   if (!existing) return;
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('save:duplicate', existing);
+  }
+}
+
+// A fire-and-forget save (global-hotkey screenshot) was blocked by the
+// free tier. Bring the window forward and let the renderer pop the
+// upgrade prompt — otherwise the capture would silently no-op.
+function notifyNeedsUpgrade(context) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.webContents.send('save:needs-upgrade', context || {});
   }
 }
 
@@ -928,6 +940,7 @@ app.whenReady().then(() => {
   }
   setSaveNotifier(notifySaved);
   setDuplicateNotifier(notifyDuplicateInRenderer);
+  setNeedsUpgradeNotifier(notifyNeedsUpgrade);
   setTrayRefresher(rebuildTrayMenu);
   registerMoodmarkFileProtocol();
   // Bootstrap the library registry first — moves any pre-multi-

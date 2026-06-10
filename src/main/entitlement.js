@@ -113,4 +113,12 @@ function getEntitlement() {
   return build('trial', trial, server);
 }
 
-module.exports = { TRIAL_DAYS, ensureTrialDecided, localTrial, getEntitlement };
+// Cheap boolean guard for save entry points. Fails OPEN — if anything
+// throws while resolving entitlement, we allow the save rather than risk
+// blocking a paying user.
+function canCreateSave() {
+  try { return getEntitlement().canCreateSave; }
+  catch { return true; }
+}
+
+module.exports = { TRIAL_DAYS, ensureTrialDecided, localTrial, getEntitlement, canCreateSave };
