@@ -18,8 +18,7 @@
   to   { opacity: 1; }
 }
 
-/* Counter pinned top-center, monospace so the digits don't jitter
-   when the count rolls over to the next save. */
+/* Counter pinned top-center, monospace so the digits don't jitter. */
 .progress {
   position: absolute;
   top: 24px;
@@ -37,169 +36,202 @@
   margin-left: 2px;
 }
 
-/* Card holds the image + caption. The leaving_* modifiers fire a
-   short translate-and-fade in the direction of the user's choice
-   so the action reads as physical. */
-.card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  max-width: 88vw;
-  max-height: 78vh;
-  animation: cardIn var(--dur-medium) var(--ease-out);
+/* ── Deck ───────────────────────────────────────────────────────────
+   A stack of cards. The two behind cards peek out, offset + rotated, to
+   advertise the flick. The top card is dragged to a zone. */
+.deck {
+  position: relative;
+  width: min(360px, 72vw);
+  height: min(470px, 64vh);
 }
 
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.leaving_left  { animation: leaveLeft var(--dur-quick) ease-in forwards; }
-.leaving_right { animation: leaveRight var(--dur-quick) ease-in forwards; }
-.leaving_up    { animation: leaveUp var(--dur-quick) ease-in forwards; }
-
-@keyframes leaveLeft {
-  to { opacity: 0; transform: translateX(-80px) rotate(-2deg); }
-}
-@keyframes leaveRight {
-  to { opacity: 0; transform: translateX(80px) rotate(2deg); }
-}
-@keyframes leaveUp {
-  to { opacity: 0; transform: translateY(-80px) scale(0.96); }
-}
-
-.image {
-  display: block;
-  max-width: 88vw;
-  max-height: 70vh;
-  object-fit: contain;
-  border-radius: var(--radius-xl);
+.deckCard {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
   background: #1c1c1e;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 30px 80px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.deckBehind2 { transform: rotate(-5deg) translate(-14px, 9px) scale(0.93); opacity: 0.55; }
+.deckBehind1 { transform: rotate(3deg) translate(11px, 4px) scale(0.97); opacity: 0.8; }
+
+.deckTop {
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+  animation: deckIn var(--dur-quick) ease-out;
+}
+.deckTop:active { cursor: grabbing; }
+
+@keyframes deckIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.deckImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
 }
 
-.caption {
+/* The top card shows the whole image (letterboxed on the dark card) so
+   the user can actually judge it; the behind cards stay filled for a
+   clean stack. */
+.deckTop .deckImg { object-fit: contain; }
+
+.deckGrip {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+.deckCaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 30px 14px 13px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), transparent);
+  color: rgba(255, 255, 255, 0.95);
   font-size: var(--text-md);
   font-weight: 500;
   letter-spacing: -0.005em;
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(0, 0, 0, 0.45);
-  padding: 5px 14px;
-  border-radius: var(--radius-pill);
-  max-width: 80vw;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
-/* Bottom controls — an arrow-key d-pad echoing the keyboard cluster
-   (↑ Collection, ← Trash, → Skip) so the keys map to their actions by
-   position, with Esc to exit beneath. Buttons stay clickable so
-   trackpad users aren't forced onto the keyboard. */
-.hints {
+/* ── Drop zones (Trash / Keep) ──────────────────────────────────── */
+.zone {
   position: absolute;
-  bottom: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.42);
+  font-family: var(--font-ui);
+  transition: color var(--dur-instant) ease;
+}
+.zone:hover { color: rgba(255, 255, 255, 0.82); }
+.zoneTrash { left: 56px; }
+.zoneKeep  { right: 56px; }
+
+.zoneRing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.16);
+  transition: border-color var(--dur-instant) ease, background var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+.zoneLabel { font-size: var(--text-sm); }
+
+.zoneHot { color: #fff; }
+.zoneHot .zoneRing { transform: scale(1.1); }
+.zoneKeep.zoneHot .zoneRing {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.07);
+}
+.zoneTrash.zoneHot { color: #ff6b6b; }
+.zoneTrash.zoneHot .zoneRing {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* ── Collection shelf (top) ─────────────────────────────────────── */
+.shelf {
+  position: absolute;
+  top: 30px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.dpad {
-  display: grid;
-  grid-template-columns: repeat(3, auto);
-  grid-template-rows: repeat(2, auto);
-  gap: 8px;
-  align-items: center;
-  justify-items: center;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.padCell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Mirror the physical arrow cluster: ↑ on top, ← / → on the bottom
-   row flanking a quiet centre dot. */
-.padUp    { grid-column: 2; grid-row: 1; }
-.padLeft  { grid-column: 1; grid-row: 2; }
-.padMid   { grid-column: 2; grid-row: 2; }
-.padRight { grid-column: 3; grid-row: 2; }
-
-.padKey {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.12);
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--radius-lg);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 16px;
-  cursor: pointer;
-  transition: background var(--dur-instant) ease, transform var(--dur-instant) ease;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 78vw;
+  padding: 8px 10px;
+  border-radius: 16px;
+  border: 1px dashed transparent;
+  transition: border-color var(--dur-instant) ease, background var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+.shelfHot {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(-50%) scale(1.03);
 }
 
-.padKey:hover { background: rgba(255, 255, 255, 0.22); }
-.padKey:active { transform: scale(0.92); }
-
-.padLabel {
-  font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: -0.005em;
-}
-
-.padDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.exitBtn {
+.shelfChip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  background: transparent;
-  border: 0.5px solid transparent;
+  gap: 7px;
+  padding: 7px 13px;
   border-radius: var(--radius-pill);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.72);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
+}
+.shelfChip:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.shelfHot .shelfChip { border-color: rgba(255, 255, 255, 0.22); }
+
+.shelfDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
 }
 
-.exitBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.85);
+.shelfMore {
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  gap: 6px;
 }
+.shelfMore:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+/* ── Bottom hint line ───────────────────────────────────────────── */
+.hintLine {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: var(--text-sm);
+}
+.hintSep { opacity: 0.5; margin: 0 2px; }
 
 .kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 6px;
   background: rgba(255, 255, 255, 0.12);
   border: 0.5px solid rgba(255, 255, 255, 0.16);
@@ -210,17 +242,14 @@
   color: #fff;
 }
 
-/* Bucket picker — small popover floating above the hint bar when
-   the user hits ↑. Keyboard-driven (Up/Down + Enter) plus mouse. */
+/* ── Bucket picker ──────────────────────────────────────────────── */
 .picker {
   position: absolute;
-  /* Clear the taller d-pad controls below (≈194px tall, anchored at
-     bottom: 28px) so the popover floats fully above them. */
-  bottom: 236px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: 320px;
-  max-height: 50vh;
+  max-height: 56vh;
   display: flex;
   flex-direction: column;
   padding: 6px;
@@ -229,13 +258,13 @@
   border-radius: var(--radius-lg);
   box-shadow:
     0 4px 14px rgba(0, 0, 0, 0.35),
-    0 24px 60px rgba(0, 0, 0, 0.45);
+    0 24px 60px rgba(0, 0, 0, 0.5);
   animation: pickerIn var(--dur-quick) var(--ease-pop);
 }
 
 @keyframes pickerIn {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .pickerInput {
@@ -295,6 +324,22 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
 }
 
+.pickerName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerInBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .pickerEmpty {
   padding: 14px 10px;
   font-size: var(--text-sm);
@@ -302,18 +347,14 @@
   text-align: center;
 }
 
-/* End-of-queue panel. Centered glassy card with a "you've seen
-   everything" headline and a Done button. */
-/* No card / box — text floats directly on the dark scrim. Tighter
-   gap stack so the title + sub + Done read as one quiet group
-   rather than a stuffed dialog. */
+/* ── End-of-queue / empty states ────────────────────────────────── */
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   text-align: center;
-  animation: cardIn var(--dur-medium) var(--ease-out);
+  animation: deckIn var(--dur-medium) var(--ease-out);
 }
 
 .emptyCheck {
@@ -366,8 +407,7 @@
   border-color: rgba(255, 255, 255, 0.32);
 }
 
-/* Top-right close affordance. Pinned to the scrim corner so it
-   doesn't shift with the card layout. */
+/* Top-right close affordance. */
 .closeBtn {
   position: absolute;
   top: 18px;
@@ -389,23 +429,4 @@
 .closeBtn:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
-}
-
-/* "In" badge on picker rows for collections the current save is
-   already a member of. Quiet pill so the rest of the list keeps
-   priority — the badge is informational, not destructive. */
-.pickerName {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pickerInBadge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.75);
 }

@@ -1,22 +1,29 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X as XIcon, Check as CheckIcon } from 'lucide-react';
+import {
+  X as XIcon, Check as CheckIcon, Trash2, GripHorizontal,
+} from 'lucide-react';
 import styles from './RediscoverMode.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import { fuzzyMatch } from '../lib/fuzzy.js';
 
-// Tinder-for-your-library: shuffle every save in the active library
-// and walk through them one at a time, full-screen. ← trashes, →
-// skips to the next, ↑ opens a small bucket picker so the user can
-// file the current save away in one keystroke. Esc exits.
+// Rediscover — a tactile review deck. Every save in the active library
+// is shuffled into a stack of cards; the user flicks the top card to a
+// drop zone to act on it: left = Trash, right = Keep (next), up onto the
+// collection shelf = file it away. The arrow keys mirror the gestures
+// (← / → / ↑) and the zones / shelf chips are clickable, so trackpad and
+// keyboard users get the same actions. Esc exits.
 //
-// The shuffle is captured once on open so the order doesn't reset
-// when the user trashes or buckets a card mid-rotation. saves
-// passed in changes (e.g. after a delete) are reflected by index
-// because we resolve the current save through the props every render.
+// The shuffle is captured once on open so the order doesn't reset when a
+// card is trashed or filed mid-rotation; saves are resolved by id every
+// render, so missing rows just fall through.
+
+// Drag distances (px): ARM lights up a zone; THRESH commits on release.
+const ARM = 48;
+const THRESH = 115;
+const FLING_MS = 240;
 
 function shuffleIds(saves) {
   const ids = saves.filter((s) => !s.deleted_at).map((s) => s.id);
-  // Fisher–Yates so each permutation is equally likely.
   for (let i = ids.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
@@ -37,27 +44,24 @@ export default function RediscoverMode({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerFilter, setPickerFilter] = useState('');
   const [pickerActiveIdx, setPickerActiveIdx] = useState(0);
-  // Collections that already contain the current save. Used to mark
-  // them in the picker so the user doesn't add a duplicate by
-  // accident. Reloaded whenever the current save changes or the
-  // picker opens.
   const [currentCollectionIds, setCurrentCollectionIds] = useState(new Set());
-  // Direction of the most recent action so the card-leave animation
-  // can lean the right way (left for trash, right for skip, up for
-  // bucket). Cleared after the next save renders.
-  const [leaving, setLeaving] = useState(null); // 'left' | 'right' | 'up' | null
-  const leaveTimerRef = useRef(null);
 
-  // Reshuffle on open. We don't reshuffle when saves changes because
-  // that would jump the user mid-rotation; trashed/bucketed saves
-  // are resolved-by-id below so missing rows just skip.
+  // Live drag offset of the top card + which zone it's currently over.
+  const [drag, setDrag] = useState({ x: 0, y: 0, animating: false });
+  const [hotZone, setHotZone] = useState(null); // 'trash' | 'keep' | 'collection' | null
+  const dragStartRef = useRef(null);
+  const animatingRef = useRef(false);
+  const flingTimerRef = useRef(null);
+
   useEffect(() => {
     if (!open) return;
     setQueue(shuffleIds(saves));
     setIdx(0);
     setPickerOpen(false);
     setPickerFilter('');
-    setLeaving(null);
+    setDrag({ x: 0, y: 0, animating: false });
+    setHotZone(null);
+    animatingRef.current = false;
   }, [open]);
 
   const currentId = queue[idx] || null;
@@ -65,6 +69,18 @@ export default function RediscoverMode({
     () => (currentId ? saves.find((s) => s.id === currentId) : null),
     [currentId, saves],
   );
+  // The next two cards in the deck, shown peeking behind the top one.
+  const behind = useMemo(() => {
+    const out = [];
+    for (let k = 1; k <= 2; k += 1) {
+      const id = queue[idx + k];
+      const s = id ? saves.find((x) => x.id === id) : null;
+      if (s) out.push(s);
+    }
+    return out;
+  }, [queue, idx, saves]);
+
+  const topCollections = useMemo(() => collections.slice(0, 4), [collections]);
 
   const filteredCollections = useMemo(() => {
     const q = pickerFilter.trim().toLowerCase();
@@ -77,10 +93,6 @@ export default function RediscoverMode({
       .map((x) => x.c);
   }, [collections, pickerFilter]);
 
-  // Look up which collections currently contain this save so we can
-  // mark them in the picker. Refetches whenever the current save
-  // changes (so trashing / bucketing one card and moving to the
-  // next gives accurate membership for the new card).
   useEffect(() => {
     if (!open || !currentId) return undefined;
     let cancelled = false;
@@ -89,29 +101,45 @@ export default function RediscoverMode({
         const cols = await window.moodmark?.collections?.getForSave?.(currentId);
         if (cancelled) return;
         setCurrentCollectionIds(new Set((cols || []).map((c) => c.id)));
-      } catch { /* non-fatal — picker just won't show membership */ }
+      } catch { /* non-fatal */ }
     })();
     return () => { cancelled = true; };
   }, [open, currentId]);
 
-  function advance(direction) {
-    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-    setLeaving(direction);
-    leaveTimerRef.current = setTimeout(() => {
+  // ── Card motion ──────────────────────────────────────────────────
+  function flingOut(dir) {
+    animatingRef.current = true;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const target = dir === 'left'
+      ? { x: -(W * 0.9 + 220), y: 30 }
+      : dir === 'right'
+        ? { x: (W * 0.9 + 220), y: 30 }
+        : { x: 0, y: -(H * 0.8 + 220) };
+    setDrag({ x: target.x, y: target.y, animating: true });
+    if (flingTimerRef.current) clearTimeout(flingTimerRef.current);
+    flingTimerRef.current = setTimeout(() => {
       setIdx((i) => i + 1);
-      setLeaving(null);
-    }, 180);
+      setDrag({ x: 0, y: 0, animating: false });
+      setHotZone(null);
+      animatingRef.current = false;
+    }, FLING_MS);
+  }
+
+  function snapBack() {
+    setHotZone(null);
+    setDrag({ x: 0, y: 0, animating: true });
   }
 
   function handleTrash() {
-    if (!currentId) return;
+    if (!currentId || animatingRef.current) return;
     onTrash?.(currentId);
-    advance('left');
+    flingOut('left');
   }
 
   function handleSkip() {
-    if (!currentId) return;
-    advance('right');
+    if (!currentId || animatingRef.current) return;
+    flingOut('right');
   }
 
   function openBucketPicker() {
@@ -121,25 +149,52 @@ export default function RediscoverMode({
     setPickerOpen(true);
   }
 
-  function pickBucket(collectionId) {
-    if (!currentId || !collectionId) return;
+  function fileInto(collectionId) {
+    if (!currentId || !collectionId || animatingRef.current) return;
     onAddToBucket?.(currentId, collectionId);
     setPickerOpen(false);
-    advance('up');
+    flingOut('up');
   }
 
-  // Global keydown driver. We attach in capture so the focused-view
-  // J/K listeners and other app shortcuts don't fight this overlay
-  // for the same keys.
+  // ── Pointer drag on the top card ─────────────────────────────────
+  function zoneFor(dx, dy) {
+    if (-dy > ARM && -dy > Math.abs(dx)) return 'collection';
+    if (Math.abs(dx) > ARM) return dx < 0 ? 'trash' : 'keep';
+    return null;
+  }
+  function onCardPointerDown(e) {
+    if (animatingRef.current || pickerOpen || e.button !== 0) return;
+    dragStartRef.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    setDrag((d) => ({ ...d, animating: false }));
+  }
+  function onCardPointerMove(e) {
+    const s = dragStartRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    setDrag({ x: dx, y: dy, animating: false });
+    setHotZone(zoneFor(dx, dy));
+  }
+  function onCardPointerUp(e) {
+    const s = dragStartRef.current;
+    if (!s) return;
+    dragStartRef.current = null;
+    try { e.currentTarget.releasePointerCapture(s.id); } catch { /* ignore */ }
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (-dy > THRESH && -dy > Math.abs(dx)) { snapBack(); openBucketPicker(); }
+    else if (dx <= -THRESH) { onTrash?.(currentId); flingOut('left'); }
+    else if (dx >= THRESH) { flingOut('right'); }
+    else snapBack();
+  }
+
+  // ── Keyboard ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return undefined;
     function onKey(e) {
       if (e.key === 'Escape') {
-        if (pickerOpen) {
-          e.preventDefault();
-          setPickerOpen(false);
-          return;
-        }
+        if (pickerOpen) { e.preventDefault(); setPickerOpen(false); return; }
         e.preventDefault();
         onClose?.();
         return;
@@ -157,61 +212,35 @@ export default function RediscoverMode({
         }
         if (e.key === 'Enter') {
           const c = filteredCollections[pickerActiveIdx];
-          if (c) {
-            e.preventDefault();
-            pickBucket(c.id);
-          }
+          if (c) { e.preventDefault(); fileInto(c.id); }
           return;
         }
         return;
       }
-      if (!current) return;
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handleTrash();
-        return;
-      }
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleSkip();
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        openBucketPicker();
-      }
+      if (!current || animatingRef.current) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); handleTrash(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); handleSkip(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); openBucketPicker(); }
     }
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, current, currentId, pickerOpen, filteredCollections, pickerActiveIdx]);
 
   useEffect(() => () => {
-    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+    if (flingTimerRef.current) clearTimeout(flingTimerRef.current);
   }, []);
 
   if (!open) return null;
 
-  // Click on the scrim (NOT on any inner element) closes. e.target
-  // === e.currentTarget makes sure clicks that bubbled up from the
-  // card / hints / picker don't dismiss.
   const handleScrimClick = (e) => {
     if (e.target === e.currentTarget) onClose?.();
   };
 
-  // Two empty states with different copy: a library that has
-  // nothing to rediscover (queue never had anything in it) vs. one
-  // where the user has walked through every save. No box / card —
-  // text and a Done button float directly on the dark scrim.
   if (!current) {
     const neverHadAnything = queue.length === 0;
     return (
       <div className={styles.scrim} onClick={handleScrimClick} role="dialog" aria-modal="true">
-        <button
-          type="button"
-          className={styles.closeBtn}
-          onClick={onClose}
-          aria-label="Close"
-        >
+        <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
           <XIcon size={18} strokeWidth={1.8} aria-hidden="true" />
         </button>
         <div className={styles.empty}>
@@ -228,13 +257,13 @@ export default function RediscoverMode({
               ? 'Save some inspiration first — drag in a screenshot, image, or URL.'
               : `${queue.length} ${queue.length === 1 ? 'save' : 'saves'} reviewed.`}
           </div>
-          <button type="button" className={styles.doneBtn} onClick={onClose}>
-            Done
-          </button>
+          <button type="button" className={styles.doneBtn} onClick={onClose}>Done</button>
         </div>
       </div>
     );
   }
+
+  const cardTransform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x * 0.05}deg)`;
 
   return (
     <div
@@ -244,12 +273,7 @@ export default function RediscoverMode({
       aria-modal="true"
       aria-label="Rediscover"
     >
-      <button
-        type="button"
-        className={styles.closeBtn}
-        onClick={onClose}
-        aria-label="Close rediscover"
-      >
+      <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close rediscover">
         <XIcon size={18} strokeWidth={1.8} aria-hidden="true" />
       </button>
 
@@ -257,62 +281,108 @@ export default function RediscoverMode({
         {idx + 1} <span className={styles.progressTotal}>/ {queue.length}</span>
       </div>
 
-      <div
-        key={currentId}
-        className={`${styles.card} ${leaving ? styles[`leaving_${leaving}`] : ''}`}
-        onClick={(e) => e.stopPropagation()}
+      {/* Collection shelf — drag the card up onto it (or click a chip). */}
+      {collections.length > 0 && (
+        <div className={`${styles.shelf} ${hotZone === 'collection' ? styles.shelfHot : ''}`}>
+          {topCollections.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={styles.shelfChip}
+              onClick={() => fileInto(c.id)}
+            >
+              <span className={styles.shelfDot} style={{ background: c.color || 'var(--icon-blue)' }} />
+              {c.name}
+            </button>
+          ))}
+          <button type="button" className={`${styles.shelfChip} ${styles.shelfMore}`} onClick={openBucketPicker}>
+            More… <kbd className={styles.kbd}>↑</kbd>
+          </button>
+        </div>
+      )}
+
+      {/* Trash + Keep zones flank the deck. */}
+      <button
+        type="button"
+        className={`${styles.zone} ${styles.zoneTrash} ${hotZone === 'trash' ? styles.zoneHot : ''}`}
+        onClick={handleTrash}
       >
-        {current.kind === 'video' ? (
-          // Video saves: file_path is an MP4 an <img> can't render.
-          // Autoplay muted + loop so the card behaves like the rest
-          // of the deck; poster shows the saved first frame.
-          <video
-            src={fileUrl(current.file_path)}
-            poster={current.thumb_path ? fileUrl(current.thumb_path) : undefined}
-            className={styles.image}
-            autoPlay
-            muted
-            loop
-            playsInline
-            draggable={false}
-          />
-        ) : (
-          <img
-            src={fileUrl(current.file_path)}
-            alt={current.title || ''}
-            className={styles.image}
-            draggable={false}
-            decoding="async"
-          />
-        )}
-        {current.title && <div className={styles.caption}>{current.title}</div>}
+        <span className={styles.zoneRing}><Trash2 size={22} strokeWidth={1.6} aria-hidden="true" /></span>
+        <span className={styles.zoneLabel}>Trash</span>
+        <kbd className={styles.kbd}>←</kbd>
+      </button>
+      <button
+        type="button"
+        className={`${styles.zone} ${styles.zoneKeep} ${hotZone === 'keep' ? styles.zoneHot : ''}`}
+        onClick={handleSkip}
+      >
+        <span className={styles.zoneRing}><CheckIcon size={22} strokeWidth={1.8} aria-hidden="true" /></span>
+        <span className={styles.zoneLabel}>Keep</span>
+        <kbd className={styles.kbd}>→</kbd>
+      </button>
+
+      {/* The deck. */}
+      <div className={styles.deck} onClick={(e) => e.stopPropagation()}>
+        {behind.slice().reverse().map((s, i) => {
+          // behind[0] is nearer the top; render furthest first so the
+          // nearer one stacks on top of it.
+          const isFar = (behind.length - 1 - i) === 1;
+          return (
+            <div
+              key={s.id}
+              className={`${styles.deckCard} ${isFar ? styles.deckBehind2 : styles.deckBehind1}`}
+              aria-hidden="true"
+            >
+              <img className={styles.deckImg} src={fileUrl(s.thumb_path || s.file_path)} alt="" draggable={false} />
+            </div>
+          );
+        })}
+
+        <div
+          key={currentId}
+          className={`${styles.deckCard} ${styles.deckTop}`}
+          style={{
+            transform: cardTransform,
+            transition: drag.animating ? `transform ${FLING_MS}ms cubic-bezier(.4,0,.2,1)` : 'none',
+          }}
+          onPointerDown={onCardPointerDown}
+          onPointerMove={onCardPointerMove}
+          onPointerUp={onCardPointerUp}
+          onPointerCancel={onCardPointerUp}
+        >
+          <span className={styles.deckGrip} aria-hidden="true">
+            <GripHorizontal size={20} strokeWidth={1.6} />
+          </span>
+          {current.kind === 'video' ? (
+            <video
+              src={fileUrl(current.file_path)}
+              poster={current.thumb_path ? fileUrl(current.thumb_path) : undefined}
+              className={styles.deckImg}
+              autoPlay
+              muted
+              loop
+              playsInline
+              draggable={false}
+            />
+          ) : (
+            <img
+              src={fileUrl(current.file_path)}
+              alt={current.title || ''}
+              className={styles.deckImg}
+              draggable={false}
+              decoding="async"
+            />
+          )}
+          {current.title && <div className={styles.deckCaption}>{current.title}</div>}
+        </div>
       </div>
 
-      <div className={styles.hints}>
-        {/* Arrow-key d-pad — mirrors the keyboard cluster so the keys
-            map to their actions by position. Buttons stay clickable so
-            trackpad users aren't forced onto the keyboard. */}
-        <div className={styles.dpad}>
-          <div className={`${styles.padCell} ${styles.padUp}`}>
-            <button type="button" className={styles.padKey} onClick={openBucketPicker} aria-label="Add to collection">↑</button>
-            <span className={styles.padLabel}>Collection</span>
-          </div>
-          <div className={`${styles.padCell} ${styles.padLeft}`}>
-            <button type="button" className={styles.padKey} onClick={handleTrash} aria-label="Trash">←</button>
-            <span className={styles.padLabel}>Trash</span>
-          </div>
-          <div className={`${styles.padCell} ${styles.padMid}`} aria-hidden="true">
-            <span className={styles.padDot} />
-          </div>
-          <div className={`${styles.padCell} ${styles.padRight}`}>
-            <button type="button" className={styles.padKey} onClick={handleSkip} aria-label="Skip">→</button>
-            <span className={styles.padLabel}>Skip</span>
-          </div>
-        </div>
-        <button type="button" className={styles.exitBtn} onClick={onClose}>
-          <kbd className={styles.kbd}>Esc</kbd>
-          <span>Exit</span>
-        </button>
+      <div className={styles.hintLine}>
+        Drag a card, or use <kbd className={styles.kbd}>←</kbd>
+        <kbd className={styles.kbd}>↑</kbd>
+        <kbd className={styles.kbd}>→</kbd>
+        <span className={styles.hintSep}>·</span>
+        <kbd className={styles.kbd}>Esc</kbd> exit
       </div>
 
       {pickerOpen && (
@@ -344,13 +414,10 @@ export default function RediscoverMode({
                     key={c.id}
                     type="button"
                     className={`${styles.pickerItem} ${i === pickerActiveIdx ? styles.pickerItemActive : ''}`}
-                    onMouseDown={(e) => { e.preventDefault(); pickBucket(c.id); }}
+                    onMouseDown={(e) => { e.preventDefault(); fileInto(c.id); }}
                     onMouseEnter={() => setPickerActiveIdx(i)}
                   >
-                    <span
-                      className={styles.pickerDot}
-                      style={{ background: c.color || 'var(--icon-blue)' }}
-                    />
+                    <span className={styles.pickerDot} style={{ background: c.color || 'var(--icon-blue)' }} />
                     <span className={styles.pickerName}>{c.name}</span>
                     {isIn && (
                       <span className={styles.pickerInBadge} title="Already in this collection">
