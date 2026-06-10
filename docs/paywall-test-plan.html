@@ -147,48 +147,37 @@
     <p class="dim">The full set of previews: <code class="inline">'free'</code>, <code class="inline">'paid'</code>, <code class="inline">'signin'</code> (sign-in screen), <code class="inline">'app'</code> (normal app). Swap the word in the <code class="inline">setItem</code> line. Always finish with the <code class="inline">removeItem</code> line so a leftover override doesn't make a later step look "stuck".</p>
 
     <!-- 2 -->
-    <h2 id="s2">2 · Trial countdown, then free tier <span class="tag">no account needed</span></h2>
-    <p>This rewinds the local trial clock so you can see each stage. Each one is the same 3 moves: <b>quit → paste one line → relaunch → check</b>.</p>
+    <h2 id="s2">2 · Trial countdown, then free tier <span class="tag">no account, no Terminal</span></h2>
+    <p>Set the trial clock straight from the <span class="where dev">DevTools</span> Console. Each line below <b>clears any leftover dev override, sets the state, and reloads</b> — no quitting, no Terminal, no file editing.</p>
+    <div class="note warn"><strong>Why the old steps kept "doing nothing":</strong> a <code class="inline">dev.gate</code> override (like the <code class="inline">paid</code> preview) lives in localStorage and <b>survives quitting and relaunching</b> — so it silently forced the paid view over everything. These commands start with <code class="inline">removeItem</code> so that can't happen.</p>
 
     <h3>A · A fresh 14-day trial</h3>
-    <ol class="steps">
-      <li>Quit the app (<kbd>⌘ Q</kbd>).</li>
-      <li><span class="where term">Terminal</span> — paste:</li>
-    </ol>
-    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — fresh trial')"</pre><button class="copy">Copy</button></div>
-    <ol class="steps" start="3">
-      <li>Relaunch (<code class="inline">npm run dev</code>), open DevTools, run <code class="inline">await window.moodmark.entitlement.get()</code>.</li>
-    </ol>
-    <div class="expect"><b>Pass:</b> <code>mode: "trial"</code>, <code>daysLeft: 14</code>. No bottom banner yet.</div>
+    <p><span class="where dev">DevTools</span> — paste, press Return:</p>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', Date.now()); location.reload()</pre><button class="copy">Copy</button></div>
+    <p>After it reloads, check: <code class="inline">await window.moodmark.entitlement.get()</code></p>
+    <div class="expect"><b>Pass:</b> no yellow "dev override" line in the console, <code>mode: "trial"</code>, <code>trial.daysLeft: 14</code>, and no bottom banner yet.</div>
 
     <h3>B · Trial almost over (2 days left)</h3>
-    <p>Quit, paste, relaunch, check:</p>
-    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-12*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — 2 days left')"</pre><button class="copy">Copy</button></div>
-    <div class="expect"><b>Pass:</b> <code>mode: "trial"</code>, and a small <b>"Trial: 2 days left"</b> nudge appears at the bottom (dismissible).</div>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', Date.now() - 12*864e5); location.reload()</pre><button class="copy">Copy</button></div>
+    <div class="expect"><b>Pass:</b> <code>mode: "trial"</code>, <code>daysLeft: 2</code>, and the small <b>"Trial: 2 days left"</b> banner appears at the bottom (dismissible).</div>
 
     <h3>C · Trial over → free tier</h3>
-    <p>Quit, paste, relaunch, check:</p>
-    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-16*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — trial expired')"</pre><button class="copy">Copy</button></div>
-    <div class="expect"><b>Pass:</b> <code>mode: "free"</code>, and the <b>"You're on the free plan"</b> banner is at the bottom.</div>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', Date.now() - 16*864e5); location.reload()</pre><button class="copy">Copy</button></div>
+    <div class="expect"><b>Pass:</b> <code>mode: "free"</code>, and the <b>"You're on the free plan"</b> banner sits at the bottom.</div>
 
     <ul class="check" data-key="s2">
-      <li><input type="checkbox" id="s2a"><label for="s2a">A — fresh trial shows <code>mode: trial</code>, 14 days.</label></li>
+      <li><input type="checkbox" id="s2a"><label for="s2a">A — fresh trial shows <code>mode: trial</code>, 14 days, no banner.</label></li>
       <li><input type="checkbox" id="s2b"><label for="s2b">B — 2 days left shows the countdown nudge.</label></li>
       <li><input type="checkbox" id="s2c"><label for="s2c">C — expired shows <code>mode: free</code> + the free banner.</label></li>
     </ul>
 
     <!-- 3 -->
     <h2 id="s3">3 · Don't punish current users <span class="tag">the important one</span></h2>
-    <p>Proves that someone updating to this version keeps their library and does <b>not</b> get a surprise new trial.</p>
-    <ol class="steps">
-      <li>Make sure you have a few saves in your library (you do). Quit the app (<kbd>⌘ Q</kbd>).</li>
-      <li><span class="where term">Terminal</span> — this clears the trial decision so the app re-decides on next launch, exactly like a real update would:</li>
-    </ol>
-    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));delete p.trialStartedAt;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — simulating an update')"</pre><button class="copy">Copy</button></div>
-    <ol class="steps" start="3">
-      <li>Relaunch, open DevTools, run <code class="inline">await window.moodmark.entitlement.get()</code>.</li>
-    </ol>
-    <div class="expect"><b>Pass:</b> <code>trial.startedAt</code> is <code>0</code> (the trial is counted as already used — <b>no</b> free 14-day reset). If you're not signed in with a paid plan, <code>mode</code> is <code>"free"</code>.</div>
+    <p>Proves that someone updating to this version keeps their library and does <b>not</b> get a surprise new trial. Make sure you have a few saves in your library first (you do).</p>
+    <p><span class="where dev">DevTools</span> — sets the trial to "already used", exactly like a real update would, then reloads:</p>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', 0); location.reload()</pre><button class="copy">Copy</button></div>
+    <p>After it reloads, check: <code class="inline">await window.moodmark.entitlement.get()</code></p>
+    <div class="expect"><b>Pass:</b> <code>trial.startedAt</code> is <code>0</code> (counted as already used — <b>no</b> free 14-day reset). Not signed in with a paid plan → <code>mode: "free"</code>.</div>
     <ul class="check" data-key="s3">
       <li><input type="checkbox" id="s3a"><label for="s3a"><code>trial.startedAt === 0</code> (no surprise trial reset).</label></li>
       <li><input type="checkbox" id="s3b"><label for="s3b">Your existing saves still open, and you can still view / move / delete them normally.</label></li>
@@ -251,9 +240,8 @@
 
     <!-- restore -->
     <h2 id="ship">✓ Pre-ship gate &amp; cleanup</h2>
-    <p>When all of the above pass, you're good to ship. Final restore of your own trial state:</p>
-    <p><span class="where term">Terminal</span> — quit the app, then set yourself back to a real fresh trial (or leave as-is if you're a paid account):</p>
-    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('done')"</pre><button class="copy">Copy</button></div>
+    <p>When all of the above pass, you're good to ship. Final reset of your own state — <span class="where dev">DevTools</span>, clears any override and gives you a clean fresh trial:</p>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', Date.now()); location.reload()</pre><button class="copy">Copy</button></div>
     <ul class="check" data-key="ship">
       <li><input type="checkbox" id="shA"><label for="shA">§4 passes in free mode (every save path blocked, old saves fine).</label></li>
       <li><input type="checkbox" id="shB"><label for="shB">§3 passes (existing user → no trial reset, keeps saves).</label></li>
@@ -261,7 +249,7 @@
       <li><input type="checkbox" id="shD"><label for="shD">§5 passes (free on sign-in, flips to paid after checkout).</label></li>
     </ul>
 
-    <footer>Tip: keep <b>two</b> Terminal windows open — one running <code class="inline">npm run dev</code>, one for the test commands. Progress here is saved in your browser; “Reset checkboxes” clears it.</footer>
+    <footer><b>Golden rule:</b> if a step looks wrong, glance at the console for a yellow <code class="inline">dev override active</code> line — a leftover override (it survives quit/relaunch) is the #1 cause. Clear it anytime with <code class="inline">localStorage.removeItem('moodmark.dev.gate'); location.reload()</code>. Progress here is saved in your browser; “Reset checkboxes” clears it.</footer>
   </main>
 </div>
 
