@@ -772,6 +772,11 @@ export default function SettingsModal({
   const ent = useEntitlementValue();
   const onLocalTrial = ent?.mode === 'trial' && !!ent?.trial?.active;
   const trialDaysLeft = ent?.trial?.daysLeft ?? 0;
+  // Single plan label shown for every mode. Paid → the real subscription
+  // label (Monthly / Yearly …), or "Pro" if we only know the mode.
+  const planLabel = ent?.mode === 'paid'
+    ? (account?.subscription ? formatPlanLabel(account) : 'Pro')
+    : onLocalTrial ? 'Free trial' : 'Free plan';
 
   async function handleWipeLibrary() {
     if (wipeState.running) return;
@@ -1125,26 +1130,20 @@ export default function SettingsModal({
 
           {activePage === 'account' && (
             <div className={styles.page}>
-              {/* Plan status — entitlement-driven so it's right whether or
-                  not the user is signed in. Hidden for paid subscribers,
-                  whose subscription detail shows in the signed-in block. */}
-              {ent?.mode !== 'paid' && (
-                <>
-                  <div className={styles.aboutRow}>
-                    <span className={styles.aboutLabel}>Plan</span>
-                    <span className={styles.aboutValue}>
-                      {onLocalTrial ? 'Free trial' : 'Free plan'}
-                    </span>
-                  </div>
-                  {onLocalTrial && (
-                    <div className={styles.aboutRow}>
-                      <span className={styles.aboutLabel}>Trial</span>
-                      <span className={styles.aboutValue}>
-                        {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left
-                      </span>
-                    </div>
-                  )}
-                </>
+              {/* Plan status — entitlement-driven so it's right in every
+                  mode (Free plan / Free trial / paid). Subscribers also get
+                  the detailed renews/ends row in the signed-in block. */}
+              <div className={styles.aboutRow}>
+                <span className={styles.aboutLabel}>Plan</span>
+                <span className={styles.aboutValue}>{planLabel}</span>
+              </div>
+              {onLocalTrial && (
+                <div className={styles.aboutRow}>
+                  <span className={styles.aboutLabel}>Trial</span>
+                  <span className={styles.aboutValue}>
+                    {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left
+                  </span>
+                </div>
               )}
               {account?.state === 'unauth' ? (
                 <>
@@ -1174,16 +1173,6 @@ export default function SettingsModal({
                       {account?.user?.email || '—'}
                     </span>
                   </div>
-                  {/* Plan row only for subscribers — free / trial users are
-                      already covered by the entitlement status block above. */}
-                  {account?.subscription && (
-                    <div className={styles.aboutRow}>
-                      <span className={styles.aboutLabel}>Plan</span>
-                      <span className={styles.aboutValue}>
-                        {formatPlanLabel(account)}
-                      </span>
-                    </div>
-                  )}
                   {account?.subscription?.current_period_end && (
                     <div className={styles.aboutRow}>
                       <span className={styles.aboutLabel}>
