@@ -155,7 +155,7 @@
       <li>Quit the app (<kbd>⌘ Q</kbd>).</li>
       <li><span class="where term">Terminal</span> — paste:</li>
     </ol>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — fresh trial')"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — fresh trial')"</pre><button class="copy">Copy</button></div>
     <ol class="steps" start="3">
       <li>Relaunch (<code class="inline">npm run dev</code>), open DevTools, run <code class="inline">await window.moodmark.entitlement.get()</code>.</li>
     </ol>
@@ -163,12 +163,12 @@
 
     <h3>B · Trial almost over (2 days left)</h3>
     <p>Quit, paste, relaunch, check:</p>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-12*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — 2 days left')"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-12*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — 2 days left')"</pre><button class="copy">Copy</button></div>
     <div class="expect"><b>Pass:</b> <code>mode: "trial"</code>, and a small <b>"Trial: 2 days left"</b> nudge appears at the bottom (dismissible).</div>
 
     <h3>C · Trial over → free tier</h3>
     <p>Quit, paste, relaunch, check:</p>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-16*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — trial expired')"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now()-16*864e5;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — trial expired')"</pre><button class="copy">Copy</button></div>
     <div class="expect"><b>Pass:</b> <code>mode: "free"</code>, and the <b>"You're on the free plan"</b> banner is at the bottom.</div>
 
     <ul class="check" data-key="s2">
@@ -184,7 +184,7 @@
       <li>Make sure you have a few saves in your library (you do). Quit the app (<kbd>⌘ Q</kbd>).</li>
       <li><span class="where term">Terminal</span> — this clears the trial decision so the app re-decides on next launch, exactly like a real update would:</li>
     </ol>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));delete p.trialStartedAt;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — simulating an update')"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));delete p.trialStartedAt;fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('OK — simulating an update')"</pre><button class="copy">Copy</button></div>
     <ol class="steps" start="3">
       <li>Relaunch, open DevTools, run <code class="inline">await window.moodmark.entitlement.get()</code>.</li>
     </ol>
@@ -236,7 +236,7 @@
       <li><input type="checkbox" id="s6b"><label for="s6b"><b>Broken cache:</b> the command below + relaunch → mode is NOT free (stays permissive).</label></li>
     </ul>
     <p><span class="where term">Terminal</span> — corrupt the license cache (quit the app first):</p>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; echo '{}' > "$APP/license-cache.json"; echo "OK — cache corrupted"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; echo '{}' > "$APP/license-cache.json"; echo "OK — cache corrupted"</pre><button class="copy">Copy</button></div>
 
     <!-- 7 -->
     <h2 id="s7">7 · Pro features locked in free tier <span class="tag">fastest via §1 'free' preview</span></h2>
@@ -253,7 +253,7 @@
     <h2 id="ship">✓ Pre-ship gate &amp; cleanup</h2>
     <p>When all of the above pass, you're good to ship. Final restore of your own trial state:</p>
     <p><span class="where term">Terminal</span> — quit the app, then set yourself back to a real fresh trial (or leave as-is if you're a paid account):</p>
-    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('done')"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>APP="$HOME/Library/Application Support/GatherOS"; node -e "const f='$APP/prefs.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f));p.trialStartedAt=Date.now();fs.writeFileSync(f,JSON.stringify(p,null,2));console.log('done')"</pre><button class="copy">Copy</button></div>
     <ul class="check" data-key="ship">
       <li><input type="checkbox" id="shA"><label for="shA">§4 passes in free mode (every save path blocked, old saves fine).</label></li>
       <li><input type="checkbox" id="shB"><label for="shB">§3 passes (existing user → no trial reset, keeps saves).</label></li>
