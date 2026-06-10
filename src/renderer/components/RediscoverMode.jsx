@@ -7,11 +7,11 @@ import { fileUrl } from '../lib/fileUrl.js';
 import { fuzzyMatch } from '../lib/fuzzy.js';
 
 // Rediscover — a tactile review deck. Every save in the active library
-// is shuffled into a stack of cards; the user flicks the top card to a
-// drop zone to act on it: left = Trash, right = Keep (next), up onto the
-// collection shelf = file it away. The arrow keys mirror the gestures
-// (← / → / ↑) and the zones / shelf chips are clickable, so trackpad and
-// keyboard users get the same actions. Esc exits.
+// is shuffled into a stack of square cards; the user flicks the top card
+// to act on it: left = Trash, right = Keep (next), up = add to a
+// collection (opens the picker). The arrow keys mirror the gestures
+// (← / → / ↑) and the Trash / Keep zones + the ↑ hint are clickable, so
+// trackpad and keyboard users get the same actions. Esc exits.
 //
 // The shuffle is captured once on open so the order doesn't reset when a
 // card is trashed or filed mid-rotation; saves are resolved by id every
@@ -79,8 +79,6 @@ export default function RediscoverMode({
     }
     return out;
   }, [queue, idx, saves]);
-
-  const topCollections = useMemo(() => collections.slice(0, 4), [collections]);
 
   const filteredCollections = useMemo(() => {
     const q = pickerFilter.trim().toLowerCase();
@@ -281,24 +279,17 @@ export default function RediscoverMode({
         {idx + 1} <span className={styles.progressTotal}>/ {queue.length}</span>
       </div>
 
-      {/* Collection shelf — drag the card up onto it (or click a chip). */}
+      {/* Add-to-collection affordance — press ↑ (or click) to open the
+          collection list; dragging the card up here lights it up. */}
       {collections.length > 0 && (
-        <div className={`${styles.shelf} ${hotZone === 'collection' ? styles.shelfHot : ''}`}>
-          {topCollections.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={styles.shelfChip}
-              onClick={() => fileInto(c.id)}
-            >
-              <span className={styles.shelfDot} style={{ background: c.color || 'var(--icon-blue)' }} />
-              {c.name}
-            </button>
-          ))}
-          <button type="button" className={`${styles.shelfChip} ${styles.shelfMore}`} onClick={openBucketPicker}>
-            More… <kbd className={styles.kbd}>↑</kbd>
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`${styles.collectHint} ${hotZone === 'collection' ? styles.collectHintHot : ''}`}
+          onClick={openBucketPicker}
+        >
+          <kbd className={styles.kbd}>↑</kbd>
+          <span>Add to collection</span>
+        </button>
       )}
 
       {/* Trash + Keep zones flank the deck. */}

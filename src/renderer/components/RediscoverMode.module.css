@@ -41,8 +41,10 @@
    advertise the flick. The top card is dragged to a zone. */
 .deck {
   position: relative;
-  width: min(360px, 72vw);
-  height: min(470px, 64vh);
+  /* Square tile — images fill it (cover) like the app's fanned card
+     stacks, so there are no letterbox bars on odd aspect ratios. */
+  width: min(460px, 72vw, 62vh);
+  aspect-ratio: 1 / 1;
 }
 
 .deckCard {
@@ -81,10 +83,6 @@
   pointer-events: none;
 }
 
-/* The top card shows the whole image (letterboxed on the dark card) so
-   the user can actually judge it; the behind cards stay filled for a
-   clean stack. */
-.deckTop .deckImg { object-fit: contain; }
 
 .deckGrip {
   position: absolute;
@@ -158,59 +156,35 @@
   background: rgba(255, 107, 107, 0.1);
 }
 
-/* ── Collection shelf (top) ─────────────────────────────────────── */
-.shelf {
+/* ── Add-to-collection hint (top) ───────────────────────────────────
+   A single ↑ affordance above the deck: press up (or click) to open the
+   collection list; dragging the card up here lights it up. */
+.collectHint {
   position: absolute;
-  top: 30px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 78vw;
-  padding: 8px 10px;
-  border-radius: 16px;
-  border: 1px dashed transparent;
-  transition: border-color var(--dur-instant) ease, background var(--dur-instant) ease, transform var(--dur-instant) ease;
-}
-.shelfHot {
-  border-color: rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(-50%) scale(1.03);
-}
-
-.shelfChip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 13px;
+  gap: 9px;
+  padding: 8px 14px 8px 10px;
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.06);
   border: 0.5px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.6);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease, transform var(--dur-instant) ease;
 }
-.shelfChip:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
-.shelfHot .shelfChip { border-color: rgba(255, 255, 255, 0.22); }
+.collectHint:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
 
-.shelfDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+.collectHintHot {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+  transform: translateX(-50%) scale(1.06);
 }
-
-.shelfMore {
-  color: rgba(255, 255, 255, 0.5);
-  background: transparent;
-  gap: 6px;
-}
-.shelfMore:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 
 /* ── Bottom hint line ───────────────────────────────────────────── */
 .hintLine {
