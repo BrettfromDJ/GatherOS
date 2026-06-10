@@ -62,16 +62,17 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e?.preventDefault?.();
-    const trimmed = url.trim();
-    if (!trimmed) return;
-    if (!/^https?:\/\//i.test(trimmed)) {
-      setError('Enter a full http(s) URL.');
-      return;
+    let target = url.trim();
+    if (!target) return;
+    // Be forgiving — a bare domain like "example.com/page" gets https://
+    // so the user doesn't have to type the scheme.
+    if (!/^https?:\/\//i.test(target)) {
+      target = `https://${target}`;
     }
     setSaving(true);
     setError(null);
     try {
-      const result = await window.moodmark?.saves?.captureUrl?.(trimmed);
+      const result = await window.moodmark?.saves?.captureUrl?.(target);
       // Free tier — the save was blocked. Close and let the upgrade modal
       // take over instead of showing a misleading "capture failed".
       if (result?.needsUpgrade) {
@@ -130,7 +131,7 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
         <form onSubmit={handleSubmit} className={styles.form}>
           <input
             ref={inputRef}
-            type="url"
+            type="text"
             inputMode="url"
             autoComplete="off"
             spellCheck="false"
