@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rediscover recap — five visual look-backs</title>
+<style>
+  :root {
+    --scrim: rgba(8,8,9,0.72);
+    --glass: rgba(255,255,255,0.06);
+    --glass-2: rgba(255,255,255,0.04);
+    --glass-hi: rgba(255,255,255,0.09);
+    --hair: rgba(255,255,255,0.10);
+    --hair-2: rgba(255,255,255,0.06);
+    --text: #f3f3f4;
+    --text-2: #b9b9bf;
+    --text-3: #7e7e85;
+    --text-4: #5a5a60;
+    --accent: #e9e9ec;
+    --filed: #7fb0e8;
+    --kept: #9a9aa2;
+    --trash: #e87f7f;
+    --radius: 20px;
+    --pill: 999px;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --shadow: 0 30px 80px rgba(0,0,0,0.55), 0 2px 0 rgba(255,255,255,0.04) inset;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--sans); background: #0c0c0d; color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  /* top tab bar */
+  .tabbar {
+    position: fixed; z-index: 50; top: 0; left: 0; right: 0; height: 52px;
+    display: flex; align-items: center; gap: 6px; padding: 0 14px;
+    background: rgba(18,18,20,0.86); backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%); border-bottom: 0.5px solid var(--hair);
+  }
+  .tabbar .brand { font-size: 12.5px; color: var(--text-3); font-weight: 600; letter-spacing: 0.02em; margin-right: 8px; white-space: nowrap; }
+  .tab { appearance: none; border: 0.5px solid transparent; background: transparent; color: var(--text-3);
+    font-family: inherit; font-size: 13px; font-weight: 500; padding: 7px 13px; border-radius: var(--pill);
+    cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; transition: all .15s ease; }
+  .tab .n { font-variant-numeric: tabular-nums; opacity: .55; font-weight: 600; }
+  .tab:hover { color: var(--text); background: var(--glass-2); }
+  .tab.active { color: #0c0c0d; background: var(--accent); }
+  .tab.active .n { opacity: .5; }
+  .spacer { flex: 1; }
+  .hint { font-size: 11.5px; color: var(--text-4); white-space: nowrap; }
+
+  /* stage */
+  .stage { position: fixed; inset: 52px 0 0 0; }
+  .appbg { position: absolute; inset: -40px; filter: blur(26px) brightness(0.6) saturate(0.9); opacity: 0.9;
+    display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 120px; gap: 18px; padding: 40px; }
+  .appbg i { border-radius: 14px; display: block; }
+  .scrim { position: absolute; inset: 0; background: radial-gradient(120% 120% at 50% 40%, rgba(8,8,9,0.5), var(--scrim) 70%); }
+  .chrome { position: absolute; top: 14px; left: 18px; display: flex; gap: 8px; z-index: 2; opacity: .5; }
+  .chrome b { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .chrome b:nth-child(1){ background:#ff5f57; } .chrome b:nth-child(2){ background:#febc2e; } .chrome b:nth-child(3){ background:#28c840; }
+
+  .caption { position: absolute; z-index: 3; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; max-width: 660px; pointer-events: none; }
+  .caption h2 { margin: 0; font-size: 13px; font-weight: 650; color: var(--text); }
+  .caption p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-3); }
+
+  .center { position: absolute; inset: 0; display: grid; place-items: center; padding: 74px 24px 40px; z-index: 4; }
+  .panel { display: none; width: 100%; }
+  .panel.active { display: block; }
+  .panel-inner { margin: 0 auto; }
+
+  .closex { position: absolute; z-index: 5; top: 18px; right: 18px; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--glass); border: 0.5px solid var(--hair); display: grid; place-items: center; color: var(--text-2); cursor: pointer; }
+  .closex:hover { background: var(--glass-hi); color: var(--text); }
+  .closex svg { width: 15px; height: 15px; }
+
+  /* shared */
+  .card { background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+    border: 0.5px solid var(--hair); border-radius: var(--radius); box-shadow: var(--shadow);
+    backdrop-filter: blur(40px) saturate(160%); -webkit-backdrop-filter: blur(40px) saturate(160%); }
+  .btn { appearance: none; font-family: inherit; cursor: pointer; border-radius: var(--pill); font-size: 13.5px; font-weight: 550;
+    padding: 10px 20px; border: 0.5px solid var(--hair); background: var(--glass); color: var(--text); transition: all .15s ease;
+    display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { background: var(--glass-hi); }
+  .btn.primary { background: var(--accent); color: #0c0c0d; border-color: transparent; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-3); }
+  .btn.ghost:hover { color: var(--text); background: var(--glass-2); }
+  .btn svg { width: 15px; height: 15px; }
+
+  .thumb { border-radius: 10px; border: 0.5px solid var(--hair-2); background-size: cover; flex: none; position: relative; overflow: hidden; }
+  .g1 { background: linear-gradient(135deg,#3a4a5a,#1c242c); }
+  .g2 { background: linear-gradient(135deg,#5a4a3a,#2c241c); }
+  .g3 { background: linear-gradient(135deg,#4a3a5a,#241c2c); }
+  .g4 { background: linear-gradient(135deg,#3a5a4a,#1c2c24); }
+  .g5 { background: linear-gradient(135deg,#5a3a4a,#2c1c24); }
+  .g6 { background: linear-gradient(135deg,#46464c,#222226); }
+  .g7 { background: linear-gradient(135deg,#3a4a4a,#1c2424); }
+  .trashed { filter: grayscale(1) brightness(0.55); }
+  .trashed .xover { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,0.6); }
+  .trashed .xover svg { width: 18px; height: 18px; }
+
+  /* outcome badge (corner) */
+  .obadge { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 6px;
+    display: grid; place-items: center; background: rgba(12,12,13,0.72); border: 0.5px solid var(--hair); backdrop-filter: blur(6px); }
+  .obadge svg { width: 12px; height: 12px; }
+  .ob-filed svg { color: var(--filed); } .ob-kept svg { color: var(--kept); } .ob-trash svg { color: var(--trash); }
+
+  .legend { display: flex; align-items: center; gap: 16px; }
+  .legend .lg { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-3); }
+  .legend .cd { width: 8px; height: 8px; border-radius: 50%; }
+
+  .glyph-ring { width: 50px; height: 50px; border-radius: 50%; background: var(--glass); border: 0.5px solid var(--hair); display: grid; place-items: center; flex: none; }
+  .glyph-ring svg { width: 22px; height: 22px; color: var(--text); }
+
+  .rfoot { display: flex; align-items: center; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 0.5px solid var(--hair-2); }
+  .rfoot .grow { flex: 1; font-size: 12px; color: var(--text-4); }
+
+  /* ════ 1 · GROUPED COLUMNS ════ */
+  .grp { width: 640px; padding: 26px 26px 22px; }
+  .grp .rhead { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+  .grp .rhead h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  .grp .rhead .small { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+  .grp > .sub { font-size: 13px; color: var(--text-3); margin: 8px 0 20px; padding-left: 64px; }
+  .cols { display: grid; grid-template-columns: 3fr 2fr 2fr; gap: 16px; }
+  .col .ctitle { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+  .col .ctitle .cd { width: 8px; height: 8px; border-radius: 50%; }
+  .col .ctitle span { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .col .ctitle .ct { margin-left: auto; font-size: 12px; color: var(--text-4); font-variant-numeric: tabular-nums; }
+  .sheet { display: grid; gap: 7px; }
+  .sheet.c3 { grid-template-columns: repeat(3, 1fr); }
+  .sheet.c2 { grid-template-columns: repeat(2, 1fr); }
+  .sheet .thumb { aspect-ratio: 1; cursor: pointer; transition: transform .15s ease; }
+  .sheet .thumb:hover { transform: scale(1.03); }
+  .chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+  .chip { font-size: 11.5px; color: var(--text-2); background: var(--glass); border: 0.5px solid var(--hair-2); padding: 4px 10px; border-radius: var(--pill); }
+
+  /* ════ 2 · FILMSTRIP TIMELINE ════ */
+  .film { width: 660px; padding: 26px 0 22px; }
+  .film .fhead { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; padding: 0 28px; }
+  .film .fhead h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  .film .fhead p { margin: 3px 0 0; font-size: 12.5px; color: var(--text-3); }
+  .film .fhead .legend { margin-left: auto; }
+  .strip-wrap { position: relative; padding: 6px 28px 4px; }
+  .strip-line { position: absolute; left: 28px; right: 28px; top: 50%; height: 0.5px; background: var(--hair); }
+  .strip { display: flex; gap: 0; align-items: center; position: relative; overflow-x: auto; padding-bottom: 8px; }
+  .frame { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 9px; flex: none; }
+  .frame .thumb { width: 78px; height: 78px; cursor: pointer; transition: transform .15s ease; }
+  .frame .thumb:hover { transform: translateY(-3px); }
+  .frame .otag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 550; padding: 3px 9px; border-radius: var(--pill); border: 0.5px solid var(--hair-2); background: var(--glass); color: var(--text-2); white-space: nowrap; }
+  .frame .otag svg { width: 11px; height: 11px; }
+  .frame .otag.filed svg { color: var(--filed); } .frame .otag.kept svg { color: var(--kept); } .frame .otag.trash svg { color: var(--trash); }
+  .frame .num { font-size: 10.5px; color: var(--text-4); font-variant-numeric: tabular-nums; }
+  .film .ffoot { padding: 0 28px; }
+
+  /* ════ 3 · HERO FILED ════ */
+  .hero { width: 660px; padding: 26px 28px 22px; }
+  .hero .hhead { text-align: center; margin-bottom: 22px; }
+  .hero .hhead .glyph-ring { margin: 0 auto 14px; }
+  .hero .hhead h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .hero .hhead p { margin: 6px 0 0; font-size: 13px; color: var(--text-3); }
+  .hero .heroes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+  .heroitem .thumb { width: 100%; aspect-ratio: 4/5; border-radius: 14px; cursor: pointer; transition: transform .15s ease; }
+  .heroitem .thumb:hover { transform: translateY(-2px); }
+  .heroitem .meta { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+  .heroitem .meta .fic { width: 18px; height: 18px; border-radius: 5px; background: var(--glass); border: 0.5px solid var(--hair-2); display: grid; place-items: center; }
+  .heroitem .meta .fic svg { width: 11px; height: 11px; color: var(--filed); }
+  .heroitem .meta .name { font-size: 12.5px; color: var(--text-2); font-weight: 550; }
+  .hero .secondary { display: flex; align-items: center; gap: 18px; padding: 16px; border-radius: 14px; background: var(--glass-2); border: 0.5px solid var(--hair-2); }
+  .secgrp { display: flex; align-items: center; gap: 10px; }
+  .secgrp .lbl { font-size: 12px; color: var(--text-3); }
+  .secgrp .mini { display: flex; gap: 5px; }
+  .secgrp .mini .thumb { width: 34px; height: 34px; border-radius: 7px; }
+  .secdiv { width: 0.5px; height: 34px; background: var(--hair); }
+
+  /* ════ 4 · MASONRY POSTER ════ */
+  .poster { width: 640px; padding: 24px 24px 20px; }
+  .poster .phead { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .poster .phead h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .poster .phead p { margin: 2px 0 0; font-size: 12px; color: var(--text-3); }
+  .poster .phead .legend { margin-left: auto; }
+  .mosaic { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 92px; gap: 8px; }
+  .mosaic .thumb { width: 100%; height: 100%; cursor: pointer; transition: transform .15s ease; }
+  .mosaic .thumb:hover { transform: scale(1.02); z-index: 2; }
+  .m-w2 { grid-column: span 2; } .m-h2 { grid-row: span 2; }
+  .poster .pfoot { margin-top: 18px; }
+
+  /* ════ 5 · STACKED PILES ════ */
+  .piles { width: 620px; padding: 28px; }
+  .piles .pihead { text-align: center; margin-bottom: 30px; }
+  .piles .pihead h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .piles .pihead p { margin: 6px 0 0; font-size: 13px; color: var(--text-3); }
+  .trays { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .tray { text-align: center; }
+  .pile { position: relative; height: 150px; cursor: pointer; }
+  .pile .card-img { position: absolute; left: 50%; top: 14px; width: 116px; height: 116px; border-radius: 14px;
+    border: 0.5px solid var(--hair); box-shadow: 0 8px 22px rgba(0,0,0,0.45); transition: transform .28s cubic-bezier(.2,.8,.2,1); transform-origin: bottom center; }
+  .pile .card-img:nth-child(1) { transform: translateX(-50%) rotate(-7deg) translateY(6px); }
+  .pile .card-img:nth-child(2) { transform: translateX(-50%) rotate(5deg) translateY(3px); }
+  .pile .card-img:nth-child(3) { transform: translateX(-50%) rotate(-1deg); }
+  .pile:hover .card-img:nth-child(1) { transform: translateX(calc(-50% - 46px)) rotate(-12deg) translateY(-2px); }
+  .pile:hover .card-img:nth-child(2) { transform: translateX(calc(-50% + 44px)) rotate(11deg) translateY(-2px); }
+  .pile:hover .card-img:nth-child(3) { transform: translateX(-50%) rotate(0deg) translateY(-6px); }
+  .pile .count { position: absolute; right: 50%; margin-right: -64px; top: 6px; z-index: 5; min-width: 24px; height: 24px; padding: 0 7px;
+    border-radius: var(--pill); background: var(--accent); color: #0c0c0d; font-size: 12.5px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .tray .tlabel { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; }
+  .tray .tlabel .cd { width: 8px; height: 8px; border-radius: 50%; }
+  .tray .tlabel span { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .tray .tsub { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+
+  @media (max-width: 700px) {
+    .grp,.film,.hero,.poster,.piles { width: 94vw; }
+    .cols { grid-template-columns: 1fr; }
+    .hero .heroes { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="tabbar">
+    <span class="brand">Rediscover recap</span>
+    <button class="tab active" data-i="1"><span class="n">1</span> Columns</button>
+    <button class="tab" data-i="2"><span class="n">2</span> Filmstrip</button>
+    <button class="tab" data-i="3"><span class="n">3</span> Hero filed</button>
+    <button class="tab" data-i="4"><span class="n">4</span> Poster</button>
+    <button class="tab" data-i="5"><span class="n">5</span> Piles</button>
+    <span class="spacer"></span>
+    <span class="hint">press 1–5 to switch</span>
+  </div>
+
+  <div class="stage">
+    <div class="appbg" id="appbg"></div>
+    <div class="scrim"></div>
+    <div class="chrome"><b></b><b></b><b></b></div>
+    <button class="closex" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="caption" id="caption"></div>
+
+    <div class="center">
+
+      <!-- ════ 1 · GROUPED COLUMNS ════ -->
+      <section class="panel active" data-i="1">
+        <div class="panel-inner card grp">
+          <div class="rhead">
+            <div class="glyph-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <div><h1>Here's what you did</h1></div>
+            <span class="small">7 saves · 4 min</span>
+          </div>
+          <p class="sub">A look back at this rediscover session.</p>
+          <div class="cols">
+            <div class="col">
+              <div class="ctitle"><span class="cd" style="background:var(--filed)"></span><span>Filed</span><span class="ct">3</span></div>
+              <div class="sheet c3"><div class="thumb g1"></div><div class="thumb g3"></div><div class="thumb g4"></div></div>
+              <div class="chiprow"><span class="chip">Type · 2</span><span class="chip">UI refs · 1</span></div>
+            </div>
+            <div class="col">
+              <div class="ctitle"><span class="cd" style="background:var(--kept)"></span><span>Kept</span><span class="ct">2</span></div>
+              <div class="sheet c2"><div class="thumb g6"></div><div class="thumb g7"></div></div>
+            </div>
+            <div class="col">
+              <div class="ctitle"><span class="cd" style="background:var(--trash)"></span><span>Trashed</span><span class="ct">2</span></div>
+              <div class="sheet c2">
+                <div class="thumb g2 trashed"><div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+                <div class="thumb g5 trashed"><div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="rfoot">
+            <span class="grow">Trashed items can be restored until you empty the trash.</span>
+            <button class="btn">Empty trash (2)</button>
+            <button class="btn primary">Done</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ 2 · FILMSTRIP TIMELINE ════ -->
+      <section class="panel" data-i="2">
+        <div class="panel-inner card film">
+          <div class="fhead">
+            <div class="glyph-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <div><h1>Your path through 7 saves</h1><p>In the order you reviewed them · 4 min</p></div>
+            <div class="legend">
+              <div class="lg"><span class="cd" style="background:var(--filed)"></span>Filed</div>
+              <div class="lg"><span class="cd" style="background:var(--kept)"></span>Kept</div>
+              <div class="lg"><span class="cd" style="background:var(--trash)"></span>Trashed</div>
+            </div>
+          </div>
+          <div class="strip-wrap">
+            <div class="strip-line"></div>
+            <div class="strip">
+              <div class="frame">
+                <div class="thumb g1"></div>
+                <span class="otag filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg>Type</span>
+                <span class="num">1</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g6"></div>
+                <span class="otag kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Kept</span>
+                <span class="num">2</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g2 trashed"><div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+                <span class="otag trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Trash</span>
+                <span class="num">3</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g3"></div>
+                <span class="otag filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg>Type</span>
+                <span class="num">4</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g7"></div>
+                <span class="otag kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Kept</span>
+                <span class="num">5</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g5 trashed"><div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+                <span class="otag trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Trash</span>
+                <span class="num">6</span>
+              </div>
+              <div class="frame">
+                <div class="thumb g4"></div>
+                <span class="otag filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg>UI refs</span>
+                <span class="num">7</span>
+              </div>
+            </div>
+          </div>
+          <div class="ffoot">
+            <div class="rfoot">
+              <span class="grow">Trashed items can be restored until you empty the trash.</span>
+              <button class="btn">Empty trash (2)</button>
+              <button class="btn primary">Done</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ 3 · HERO FILED ════ -->
+      <section class="panel" data-i="3">
+        <div class="panel-inner card hero">
+          <div class="hhead">
+            <div class="glyph-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <h1>You filed 3 keepers</h1>
+            <p>The saves you gave a home this session.</p>
+          </div>
+          <div class="heroes">
+            <div class="heroitem">
+              <div class="thumb g1"></div>
+              <div class="meta"><div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div><span class="name">Type</span></div>
+            </div>
+            <div class="heroitem">
+              <div class="thumb g3"></div>
+              <div class="meta"><div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div><span class="name">Type</span></div>
+            </div>
+            <div class="heroitem">
+              <div class="thumb g4"></div>
+              <div class="meta"><div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div><span class="name">UI refs</span></div>
+            </div>
+          </div>
+          <div class="secondary">
+            <div class="secgrp">
+              <span class="lbl">Kept 2</span>
+              <div class="mini"><div class="thumb g6"></div><div class="thumb g7"></div></div>
+            </div>
+            <div class="secdiv"></div>
+            <div class="secgrp">
+              <span class="lbl">Trashed 2</span>
+              <div class="mini"><div class="thumb g2 trashed"></div><div class="thumb g5 trashed"></div></div>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:8px;">
+              <button class="btn">Empty trash (2)</button>
+              <button class="btn primary">Done</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ 4 · MASONRY POSTER ════ -->
+      <section class="panel" data-i="4">
+        <div class="panel-inner card poster">
+          <div class="phead">
+            <div class="glyph-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <div><h1>This session at a glance</h1><p>7 saves reviewed · 4 min</p></div>
+            <div class="legend">
+              <div class="lg"><span class="cd" style="background:var(--filed)"></span>Filed</div>
+              <div class="lg"><span class="cd" style="background:var(--kept)"></span>Kept</div>
+              <div class="lg"><span class="cd" style="background:var(--trash)"></span>Trashed</div>
+            </div>
+          </div>
+          <div class="mosaic">
+            <div class="thumb g1 m-w2 m-h2">
+              <div class="obadge ob-filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div>
+            </div>
+            <div class="thumb g6">
+              <div class="obadge ob-kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            </div>
+            <div class="thumb g2 trashed">
+              <div class="obadge ob-trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+              <div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+            <div class="thumb g3 m-h2">
+              <div class="obadge ob-filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div>
+            </div>
+            <div class="thumb g7">
+              <div class="obadge ob-kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            </div>
+            <div class="thumb g4 m-w2">
+              <div class="obadge ob-filed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 01-2 2H3z"/></svg></div>
+            </div>
+            <div class="thumb g5 trashed">
+              <div class="obadge ob-trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+              <div class="xover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+          </div>
+          <div class="pfoot">
+            <div class="rfoot">
+              <span class="grow">Filed into Type · 2 and UI refs · 1. Trash is recoverable until emptied.</span>
+              <button class="btn">Empty trash (2)</button>
+              <button class="btn primary">Done</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ 5 · STACKED PILES ════ -->
+      <section class="panel" data-i="5">
+        <div class="panel-inner card piles">
+          <div class="pihead">
+            <h1>Sorted into three trays</h1>
+            <p>7 saves reviewed in 4 min · hover a tray to fan it out</p>
+          </div>
+          <div class="trays">
+            <div class="tray">
+              <div class="pile">
+                <span class="count">3</span>
+                <div class="card-img g4"></div>
+                <div class="card-img g3"></div>
+                <div class="card-img g1"></div>
+              </div>
+              <div class="tlabel"><span class="cd" style="background:var(--filed)"></span><span>Filed</span></div>
+              <div class="tsub">Type · 2 · UI refs · 1</div>
+            </div>
+            <div class="tray">
+              <div class="pile">
+                <span class="count">2</span>
+                <div class="card-img g7"></div>
+                <div class="card-img g6"></div>
+              </div>
+              <div class="tlabel"><span class="cd" style="background:var(--kept)"></span><span>Kept</span></div>
+              <div class="tsub">Left as-is</div>
+            </div>
+            <div class="tray">
+              <div class="pile">
+                <span class="count">2</span>
+                <div class="card-img g5 trashed"></div>
+                <div class="card-img g2 trashed"></div>
+              </div>
+              <div class="tlabel"><span class="cd" style="background:var(--trash)"></span><span>Trashed</span></div>
+              <div class="tsub">Recoverable until emptied</div>
+            </div>
+          </div>
+          <div class="rfoot">
+            <span class="grow"></span>
+            <button class="btn">Empty trash (2)</button>
+            <button class="btn primary">Done</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+<script>
+  (function () {
+    var grads = ['linear-gradient(135deg,#3a4a5a,#1c242c)','linear-gradient(135deg,#5a4a3a,#2c241c)',
+      'linear-gradient(135deg,#4a3a5a,#241c2c)','linear-gradient(135deg,#3a5a4a,#1c2c24)',
+      'linear-gradient(135deg,#5a3a4a,#2c1c24)','linear-gradient(135deg,#46464c,#222226)',
+      'linear-gradient(135deg,#3a4a4a,#1c2424)','linear-gradient(135deg,#4a4438,#26221a)'];
+    var spans = [1,2,1,1,2,1,1,1,2,1,1,1,1,2,1,1,1,1];
+    var bg = document.getElementById('appbg'), html = '';
+    for (var i = 0; i < 26; i++) html += '<i style="background:' + grads[i % grads.length] + '; grid-row: span ' + spans[i % spans.length] + ';"></i>';
+    bg.innerHTML = html;
+  })();
+
+  var captions = {
+    1: ['Columns — grouped sheet', 'Three labeled columns (filed / kept / trashed), filed widest with its collection chips. The clearest at-a-glance read of the outcome — calm and tabular.'],
+    2: ['Filmstrip — your path', 'Replays the session left→right in the order you reviewed, each frame tagged with its outcome and trashed frames dimmed. Tells the story of the run.'],
+    3: ['Hero filed — reward the keepers', 'Leads with big thumbnails of what you SAVED (collection named under each); kept and trashed sit small and secondary. Most positive, productivity-celebrating tone.'],
+    4: ['Poster — editorial mosaic', 'One art-directed collage of all 7 at mixed sizes, each with a small corner badge for its outcome and trashed ones crossed out. Most visual, least grid-y.'],
+    5: ['Piles — sorted trays', 'Three physical-feeling stacks that fan out on hover, like trays you sorted into. Playful but restrained; great sense of "I tidied this."']
+  };
+  function show(i) {
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.i === String(i)); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('active', p.dataset.i === String(i)); });
+    var c = captions[i];
+    document.getElementById('caption').innerHTML = '<h2>' + c[0] + '</h2><p>' + c[1] + '</p>';
+  }
+  document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.i); }); });
+  document.addEventListener('keydown', function (e) { if (e.key >= '1' && e.key <= '5') show(e.key); });
+  show(1);
+</script>
+</body>
+</html>
