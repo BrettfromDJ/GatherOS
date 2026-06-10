@@ -28,7 +28,7 @@ export default function UpgradeBanner({ entitlement, onUpgrade }) {
     return (
       <div className={styles.banner}>
         <span className={styles.text}>
-          You’re on the free plan — existing saves stay, upgrade to add new ones.
+          You’re on the free plan — upgrade to keep saving.
         </span>
         <button type="button" className={styles.action} onClick={onUpgrade}>
           Upgrade
