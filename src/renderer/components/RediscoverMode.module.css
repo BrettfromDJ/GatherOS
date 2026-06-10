@@ -2,10 +2,17 @@
   position: fixed;
   inset: 0;
   z-index: 9400;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Reserve room for the absolutely-positioned chrome (collection zone
+     up top, Trash/Keep on the sides, hint at the bottom) so the deck
+     centres in a safe inner area and never overlaps them on small
+     windows. The chrome itself is positioned against the viewport, so
+     this padding only constrains the deck. */
+  padding: 184px 124px 52px;
   background: rgba(8, 8, 10, 0.92);
   backdrop-filter: blur(10px) saturate(1.1);
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
@@ -44,9 +51,11 @@
    advertise the flick. The top card is dragged to a zone. */
 .deck {
   position: relative;
+  flex: 0 0 auto;
   /* Square tile — images fill it (cover) like the app's fanned card
-     stacks, so there are no letterbox bars on odd aspect ratios. */
-  width: min(460px, 72vw, 62vh);
+     stacks. Capped by the viewport minus the chrome's reserved space so
+     it shrinks (rather than overlapping) on small windows. */
+  width: min(460px, calc(100vw - 268px), calc(100vh - 248px));
   aspect-ratio: 1 / 1;
 }
 
@@ -201,8 +210,12 @@
   display: flex;
   flex-direction: column;
   padding: 6px;
-  background: rgba(28, 28, 30, 0.98);
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  /* Liquid glass — translucent fill + backdrop blur so the deck behind
+     it shows through, frosted. */
+  background: rgba(30, 30, 33, 0.6);
+  backdrop-filter: blur(34px) saturate(1.7);
+  -webkit-backdrop-filter: blur(34px) saturate(1.7);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   box-shadow:
     0 4px 14px rgba(0, 0, 0, 0.35),
