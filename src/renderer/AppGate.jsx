@@ -12,6 +12,7 @@ import DbIntegrityBanner from './components/DbIntegrityBanner.jsx';
 //   localStorage.setItem('moodmark.dev.gate', 'signin')   // SigninScreen
 //   localStorage.setItem('moodmark.dev.gate', 'app')      // skip gate, App
 //   localStorage.setItem('moodmark.dev.gate', 'free')     // App, free tier
+//   localStorage.setItem('moodmark.dev.gate', 'paid')     // App, paid (all unlocked)
 //   localStorage.removeItem('moodmark.dev.gate')          // back to real
 // Captured once on module load so toggling needs a reload (clearer
 // than reacting mid-session, which would surprise active state).
@@ -30,6 +31,15 @@ const DEV_FREE_ENTITLEMENT = {
   mode: 'free', paid: false,
   trial: { startedAt: 0, endsAt: 0, active: false, daysLeft: 0 },
   canCreateSave: false, proUnlocked: false, serverTrialing: false, loading: false,
+};
+
+// Synthetic entitlement for the 'paid' dev override — preview the app
+// exactly as a paying subscriber sees it (nothing locked, no banners)
+// without a real charge.
+const DEV_PAID_ENTITLEMENT = {
+  mode: 'paid', paid: true,
+  trial: { startedAt: 0, endsAt: 0, active: false, daysLeft: 0 },
+  canCreateSave: true, proUnlocked: true, serverTrialing: false, loading: false,
 };
 
 // Top-level gate. Under the reverse-trial / soft-free-tier model the app
@@ -148,6 +158,9 @@ export default function AppGate() {
   }
   if (DEV_GATE === 'free' || DEV_GATE === 'paywall') {
     return <App entitlement={DEV_FREE_ENTITLEMENT} />;
+  }
+  if (DEV_GATE === 'paid') {
+    return <App entitlement={DEV_PAID_ENTITLEMENT} />;
   }
 
   // ── Real gate ───────────────────────────────────────────────────
