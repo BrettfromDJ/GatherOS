@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLicense } from './hooks/useLicense.js';
+import { useEntitlement } from './hooks/useEntitlement.js';
 import App from './App.jsx';
 import SigninScreen from './components/SigninScreen.jsx';
-import PaywallModal from './components/PaywallModal.jsx';
 import AccountBanner from './components/AccountBanner.jsx';
 import DbIntegrityBanner from './components/DbIntegrityBanner.jsx';
 
 // Dev override for previewing gate screens without juggling real
-// license state. Set in DevTools and reload:
-//   localStorage.setItem('moodmark.dev.gate', 'paywall')  // PaywallModal
+// license / trial state. Set in DevTools and reload:
 //   localStorage.setItem('moodmark.dev.gate', 'signin')   // SigninScreen
-//   localStorage.setItem('moodmark.dev.gate', 'app')      // skip gate, just App
+//   localStorage.setItem('moodmark.dev.gate', 'app')      // skip gate, App
+//   localStorage.setItem('moodmark.dev.gate', 'free')     // App, free tier
 //   localStorage.removeItem('moodmark.dev.gate')          // back to real
 // Captured once on module load so toggling needs a reload (clearer
 // than reacting mid-session, which would surprise active state).
@@ -23,38 +23,39 @@ if (DEV_GATE) {
   console.warn(`[AppGate] dev override active: ${DEV_GATE}. Remove with localStorage.removeItem('moodmark.dev.gate').`);
 }
 
-// Top-level license gate. Decides whether the user sees the app, the
-// signin screen, or the paywall — based on the entitlement state
-// resolved by useLicense(). Mounted from main.jsx as the only child
-// of the root.
+// Synthetic entitlement for the 'free' dev override so the App can be
+// previewed in its locked state without an expired account.
+const DEV_FREE_ENTITLEMENT = {
+  mode: 'free', paid: false,
+  trial: { startedAt: 0, endsAt: 0, active: false, daysLeft: 0 },
+  canCreateSave: false, proUnlocked: false, serverTrialing: false, loading: false,
+};
+
+// Top-level gate. Under the reverse-trial / soft-free-tier model the app
+// is NEVER hard-walled: a fresh install runs a local 14-day trial with no
+// account, and once that's spent (and there's no paid subscription) the
+// app keeps running in a free tier — existing saves stay fully usable,
+// only NEW saves and pro features prompt to upgrade. The single remaining
+// full-screen screen is the optional SigninScreen, shown only when the
+// user explicitly asks to sign in (Settings → Account) so they can attach
+// or restore a paid account.
 //
-// Guest mode: a brand-new launch with no session and an empty library
-// drops straight into the app so the user can land their first save
-// before being asked to sign in. The moment that first save commits,
-// the gate flips and we show the signin screen. After that, any
-// 'unauth' state (e.g. an explicit sign-out) goes back to the
-// signin screen — past that first save, auth is required.
+// The server license state still drives whether there's an *account* to
+// show in the AccountBanner; the local-trial-aware entitlement drives the
+// soft gating inside the app.
 export default function AppGate() {
   const { state, verify, requestMagicLink, signOut } = useLicense();
-  // While the user is on the paywall and we've handed them off to
-  // the LS hosted-checkout in their browser, poll license/verify on a
-  // shorter cadence so the app flips out of paywall as soon as the
-  // webhook lands. We stop polling once we leave 'expired'.
+  const { entitlement } = useEntitlement(state.status);
+
+  // After the user opens a hosted checkout we poll license/verify on a
+  // short cadence so the app flips to paid as soon as the webhook lands.
+  // Kicked off by the 'moodmark:checkout-opened' event (fired by the
+  // upgrade flows) and by simply being in a non-entitled server state.
   const checkoutPollRef = useRef(null);
 
-  // null = haven't checked yet (brief flash); number = actual count.
-  // Re-fetched whenever we land in 'unauth' so a sign-out-then-launch
-  // user with existing saves goes straight to the signin screen.
-  const [guestSaveCount, setGuestSaveCount] = useState(null);
-  // Latches true the moment a save lands while we're in guest mode,
-  // which immediately flips the render to SigninScreen on the next
-  // tick. We don't reset it during the same unauth visit — once
-  // they've saved, the gate is up.
-  const [guestSaveLanded, setGuestSaveLanded] = useState(false);
-  // Latches true when the user explicitly requests signin from
-  // somewhere inside the app (Settings → Account → Sign in). Same
-  // effect as guestSaveLanded — escapes guest mode for the duration
-  // of this unauth visit and shows the SigninScreen.
+  // Latches true when the user explicitly requests signin from somewhere
+  // inside the app (Settings → Account → Sign in). Shows the SigninScreen
+  // for the duration of this unauth visit.
   const [signinRequested, setSigninRequested] = useState(false);
 
   useEffect(() => {
@@ -66,18 +67,24 @@ export default function AppGate() {
   // Settings dispatches this when the user confirms the sign-out
   // dialog. Routing through here (instead of calling the licensing
   // IPC directly from Settings) means useLicense's setState fires in
-  // the same tick, so AppGate flips to SigninScreen immediately
-  // rather than waiting for the next focus-triggered verify.
+  // the same tick, so the entitlement re-resolves immediately.
   useEffect(() => {
     function onRequest() { signOut(); }
     window.addEventListener('moodmark:request-signout', onRequest);
     return () => window.removeEventListener('moodmark:request-signout', onRequest);
   }, [signOut]);
 
+  // Reset the explicit-signin latch once we leave the unauth state
+  // (e.g. the magic link landed and we're entitled now).
   useEffect(() => {
-    if (state.status === 'expired' && checkoutPollRef.current == null) {
-      // 4s × 30 = 2 min of fast polling after a checkout was opened.
-      // After that we fall back to focus + 6h background re-verify.
+    if (state.status !== 'unauth') setSigninRequested(false);
+  }, [state.status]);
+
+  // Fast-poll verify for 2 minutes after a checkout is opened, so the
+  // app flips to paid the moment the subscription webhook is processed.
+  useEffect(() => {
+    function startPolling() {
+      if (checkoutPollRef.current != null) return;
       let ticks = 0;
       checkoutPollRef.current = setInterval(() => {
         ticks += 1;
@@ -89,150 +96,69 @@ export default function AppGate() {
         verify({ force: true });
       }, 4000);
     }
-    if (state.status !== 'expired' && checkoutPollRef.current != null) {
-      clearInterval(checkoutPollRef.current);
-      checkoutPollRef.current = null;
-    }
+    window.addEventListener('moodmark:checkout-opened', startPolling);
     return () => {
+      window.removeEventListener('moodmark:checkout-opened', startPolling);
       if (checkoutPollRef.current != null) {
         clearInterval(checkoutPollRef.current);
         checkoutPollRef.current = null;
       }
     };
-  }, [state.status, verify]);
+  }, [verify]);
 
-  // Re-check the save count any time we re-enter 'unauth'. A 0 count
-  // grants guest access; anything > 0 goes straight to signin (the
-  // user has signed out at some point and shouldn't be allowed to
-  // keep adding saves without auth).
+  // Stop polling once we land on a paid/entitled state.
   useEffect(() => {
-    if (state.status !== 'unauth') {
-      setGuestSaveCount(null);
-      setGuestSaveLanded(false);
-      setSigninRequested(false);
-      return undefined;
+    if (entitlement.mode === 'paid' && checkoutPollRef.current != null) {
+      clearInterval(checkoutPollRef.current);
+      checkoutPollRef.current = null;
     }
-    let cancelled = false;
-    window.moodmark?.saves?.counts?.().then((counts) => {
-      if (cancelled) return;
-      setGuestSaveCount(counts?.all ?? 0);
-    }).catch(() => { if (!cancelled) setGuestSaveCount(0); });
-    return () => { cancelled = true; };
-  }, [state.status]);
+  }, [entitlement.mode]);
 
-  // While the user is in guest mode (unauth + 0 saves), watch for the
-  // first save. The 1.4s delay lets the masonry land animation play
-  // and the user feel the win before we put up the auth screen.
-  useEffect(() => {
-    if (state.status !== 'unauth') return undefined;
-    if (guestSaveCount !== 0) return undefined;
-    if (guestSaveLanded) return undefined;
-    if (!window.moodmark?.on) return undefined;
-    const off = window.moodmark.on('save:created', () => {
-      setTimeout(() => setGuestSaveLanded(true), 1400);
-    });
-    return off;
-  }, [state.status, guestSaveCount, guestSaveLanded]);
-
-  if (DEV_GATE === 'paywall') {
-    return (
-      <PaywallModal
-        license={{ trial_ends_at: Date.now() - 3 * 24 * 60 * 60 * 1000 }}
-        onSignOut={signOut}
-        onSubscribe={async (plan) => {
-          // Route through the real checkout opener so the dev override
-          // exercises the entire flow (worker mint → shell.openExternal
-          // → polling). Buttons-do-nothing simulation isn't a useful
-          // simulation.
-          const result = await window.moodmark.licensing.openCheckout(plan);
-          if (!result?.ok) {
-            console.error('[paywall:dev] openCheckout failed:', result?.error);
-          }
-        }}
-      />
-    );
-  }
+  // ── Dev overrides ───────────────────────────────────────────────
   if (DEV_GATE === 'signin' || DEV_GATE === 'unauth') {
     return <SigninScreen onRequestMagicLink={requestMagicLink} />;
   }
   if (DEV_GATE === 'app') {
-    return <App />;
+    return <App entitlement={{ ...entitlement, mode: entitlement.mode, loading: false }} />;
+  }
+  if (DEV_GATE === 'free' || DEV_GATE === 'paywall') {
+    return <App entitlement={DEV_FREE_ENTITLEMENT} />;
   }
 
+  // ── Real gate ───────────────────────────────────────────────────
   if (state.status === 'loading') {
-    // Brief — usually just one tick while the cached cache is read.
-    // Render nothing to avoid a flash of the signin screen.
+    // Brief — usually one tick while the cached license is read. Render
+    // nothing to avoid a flash of the signin screen.
     return null;
   }
 
-  if (state.status === 'unauth' || state.status === 'error') {
-    // Guest mode: empty library + no session = let them in for one
-    // save. Once guestSaveLanded latches, fall through to signin.
-    if (state.status === 'unauth' && guestSaveCount === 0 && !guestSaveLanded && !signinRequested) {
-      return (
-        <>
-          <App />
-          <DbIntegrityBanner
-            onOpenBackups={() => {
-              window.dispatchEvent(
-                new CustomEvent('moodmark:open-settings', { detail: { drawer: 'data' } }),
-              );
-            }}
-          />
-        </>
-      );
-    }
-    // Either we've already checked and the library has saves, or the
-    // count is mid-flight (null). For null, render nothing for a beat
-    // rather than flashing the signin form.
-    if (state.status === 'unauth' && guestSaveCount === null) return null;
-    // If the gate fired because guestSaveLanded just latched, show
-    // the warmer "save your library" copy. Sign-out / re-launch with
-    // existing saves still gets the cold default headline.
-    const reason = guestSaveLanded ? 'post-save' : undefined;
-    return <SigninScreen onRequestMagicLink={requestMagicLink} reason={reason} />;
+  // The only full-screen wall left: the user explicitly asked to sign in.
+  if (signinRequested && state.status !== 'entitled' && state.status !== 'offline') {
+    return <SigninScreen onRequestMagicLink={requestMagicLink} />;
   }
 
-  if (state.status === 'expired') {
-    return (
-      <PaywallModal
-        license={state.license}
-        onSignOut={signOut}
-        onSubscribe={async (plan) => {
-          // Hosted checkout: main process asks the worker to mint a
-          // checkout URL with our user_id baked in, then opens it in
-          // the user's default browser via shell.openExternal. We
-          // poll license/verify in the background (see effect above)
-          // so the paywall flips off as soon as the webhook lands.
-          const result = await window.moodmark.licensing.openCheckout(plan);
-          if (!result?.ok) {
-            console.error('[paywall] openCheckout failed:', result?.error);
-          }
-        }}
-      />
-    );
-  }
-
-  // 'entitled' or 'offline' — let the app run. Layer the account
-  // banner on top so payment-failed / offline states are surfaced
-  // without blocking the UI.
+  // Everything else runs the app. The entitlement prop carries the
+  // trial/free/paid mode so the app can show the trial countdown, the
+  // upgrade banner, and the per-feature locks. The AccountBanner only
+  // mounts when there's a real account (license) to surface.
   return (
     <>
-      <App />
+      <App entitlement={entitlement} />
       <DbIntegrityBanner
         onOpenBackups={() => {
           // App.jsx listens for this and pops Settings open on the
-          // Data drawer so the user can pick a snapshot. Fire-and-
-          // forget — keeps AppGate from owning Settings UI state.
+          // Data drawer so the user can pick a snapshot.
           window.dispatchEvent(
             new CustomEvent('moodmark:open-settings', { detail: { drawer: 'data' } }),
           );
         }}
       />
-      <AccountBanner
-        license={state.license}
-        onOpenCustomerPortal={() => window.moodmark.licensing.openCustomerPortal()}
-      />
+      {state.license ? (
+        <AccountBanner
+          license={state.license}
+          onOpenCustomerPortal={() => window.moodmark.licensing.openCustomerPortal()}
+        />
+      ) : null}
     </>
   );
 }

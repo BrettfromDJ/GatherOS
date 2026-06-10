@@ -1,0 +1,91 @@
+/* Bottom-centre nudge pill. Sits clear of the top AccountBanner and to
+   the left of the bottom-right AddFab so it doesn't collide with either. */
+.banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.12),
+    0 1px 0 var(--inset-highlight) inset;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  -webkit-app-region: no-drag;
+  animation: bannerIn var(--dur-medium) var(--ease-pop);
+}
+
+/* Free-tier flavour reads a touch warmer so the standing reminder has a
+   little presence without shouting. */
+.free {
+  background: color-mix(in srgb, var(--accent, #6f6f73) 7%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent, #6f6f73) 22%, var(--border));
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.text {
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+
+.action {
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--text-primary);
+  color: var(--surface-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.action:hover {
+  filter: brightness(1.1);
+}
+
+.action:active {
+  transform: scale(0.98);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.dismiss:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .dismiss:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes bannerIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}

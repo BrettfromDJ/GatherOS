@@ -1,0 +1,206 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  font-family: var(--font-ui);
+  padding: 32px;
+  animation: fade var(--dur-fast, 140ms) ease;
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.card {
+  position: relative;
+  width: 420px;
+  max-width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  padding: 40px 36px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: pop var(--dur-fast, 140ms) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+:root[data-theme="dark"] .card {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+  width: 56px;
+  height: auto;
+  margin: 0 0 14px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.heading {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+
+.body {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0 0 22px;
+  max-width: 34ch;
+}
+
+.toggle {
+  display: inline-flex;
+  padding: 3px;
+  margin: 0 0 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+}
+
+:root[data-theme="dark"] .toggle {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.toggleSeg {
+  padding: 7px 18px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+
+.toggleSeg:hover:not(.toggleSegActive) {
+  color: var(--text-primary);
+}
+
+.toggleSegActive {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .toggleSegActive {
+  background: #3a3a3c;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.price {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.priceUnit {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.priceNote {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: 22px;
+}
+
+.cta {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+  color: var(--surface-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter var(--dur-instant) ease, transform var(--dur-instant) ease;
+}
+
+.cta:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.cta:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notNow {
+  margin-top: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: color var(--dur-instant) ease;
+}
+
+.notNow:hover {
+  color: var(--text-primary);
+}

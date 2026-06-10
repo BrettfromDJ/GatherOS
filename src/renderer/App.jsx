@@ -70,6 +70,9 @@ import { seededShuffle } from './lib/shuffle.js';
 import { configureSaveSound, DEFAULT_SAVE_SOUND, playEmptyTrashSound } from './lib/sounds.js';
 import OnboardingOverlay from './onboarding/OnboardingOverlay.jsx';
 import { useOnboarding, ONBOARDING_DONE_PREF } from './onboarding/OnboardingContext.jsx';
+import { EntitlementProvider } from './context/entitlement.jsx';
+import UpgradeModal from './components/UpgradeModal.jsx';
+import UpgradeBanner from './components/UpgradeBanner.jsx';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -93,8 +96,37 @@ const RevealIcon = () => <FolderOpen {...ICON} />;
 const LinkIcon = () => <Link2 {...ICON} />;
 const SparklesIcon = () => <Sparkles {...ICON} />;
 
-export default function App() {
+export default function App({ entitlement } = {}) {
   const onboarding = useOnboarding();
+  // The resolved entitlement (mode paid/trial/free) flows in from
+  // AppGate. Default to a permissive value so the app never locks itself
+  // if it's rendered without the prop (tests, dev overrides).
+  const ent = entitlement || {
+    mode: 'trial', paid: false,
+    trial: { startedAt: null, endsAt: null, active: true, daysLeft: 14 },
+    canCreateSave: true, proUnlocked: true, serverTrialing: false, loading: true,
+  };
+  // Upgrade modal: opened by any locked action via requestUpgrade(), and
+  // by the main process when a fire-and-forget save (hotkey screenshot,
+  // extension) is blocked. `upgradeFeature` tailors the modal copy.
+  const [upgradeFeature, setUpgradeFeature] = useState(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  useEffect(() => {
+    function onRequestUpgrade(e) {
+      setUpgradeFeature(e?.detail?.feature || null);
+      setUpgradeOpen(true);
+    }
+    function onNeedsUpgrade(payload) {
+      setUpgradeFeature(payload?.source === 'extension' ? 'save' : (payload?.source || 'save'));
+      setUpgradeOpen(true);
+    }
+    window.addEventListener('moodmark:request-upgrade', onRequestUpgrade);
+    const off = window.moodmark?.on?.('save:needs-upgrade', onNeedsUpgrade);
+    return () => {
+      window.removeEventListener('moodmark:request-upgrade', onRequestUpgrade);
+      try { off?.(); } catch { /* ignore */ }
+    };
+  }, []);
   const {
     saves,
     loading,
@@ -2555,6 +2587,7 @@ export default function App() {
   }, [handleAddSavesToBucket]);
 
   return (
+   <EntitlementProvider value={ent}>
     <div
       className={`app-shell${dragging ? ' drag-over' : ''}`}
       onDragOver={onDragOver}
@@ -3199,6 +3232,20 @@ export default function App() {
       />
 
       <OnboardingOverlay />
+
+      {/* Free-tier upgrade banner (trial countdown / "upgrade to keep
+          saving") and the upgrade modal opened from any locked action. */}
+      <UpgradeBanner
+        entitlement={ent}
+        onUpgrade={() => { setUpgradeFeature(null); setUpgradeOpen(true); }}
+      />
+      <UpgradeModal
+        open={upgradeOpen}
+        feature={upgradeFeature}
+        entitlement={ent}
+        onClose={() => setUpgradeOpen(false)}
+      />
     </div>
+   </EntitlementProvider>
   );
 }
