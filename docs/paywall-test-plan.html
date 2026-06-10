@@ -177,9 +177,9 @@
     <p><span class="where dev">DevTools</span> — sets the trial to "already used", exactly like a real update would, then reloads:</p>
     <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate'); await window.moodmark.settings.setPref('trialStartedAt', 0); location.reload()</pre><button class="copy">Copy</button></div>
     <p>After it reloads, check: <code class="inline">await window.moodmark.entitlement.get()</code></p>
-    <div class="expect"><b>Pass:</b> <code>trial.startedAt</code> is <code>0</code> (counted as already used — <b>no</b> free 14-day reset). Not signed in with a paid plan → <code>mode: "free"</code>.</div>
+    <div class="expect"><b>Pass:</b> <code>mode: "free"</code> with <code>trial.active: false</code> and <code>daysLeft: 0</code> — the existing user got <b>no</b> new 14-day trial. (<code>trial.startedAt</code> reads <code>null</code>, the "spent" state — the underlying pref is <code>0</code>; both mean used up.)</div>
     <ul class="check" data-key="s3">
-      <li><input type="checkbox" id="s3a"><label for="s3a"><code>trial.startedAt === 0</code> (no surprise trial reset).</label></li>
+      <li><input type="checkbox" id="s3a"><label for="s3a"><code>mode: "free"</code> with <code>trial.active: false</code> (no surprise trial reset).</label></li>
       <li><input type="checkbox" id="s3b"><label for="s3b">Your existing saves still open, and you can still view / move / delete them normally.</label></li>
     </ul>
 
