@@ -56,14 +56,13 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.deckBehind2 { transform: rotate(-5deg) translate(-14px, 9px) scale(0.93); opacity: 0.55; }
-.deckBehind1 { transform: rotate(3deg) translate(11px, 4px) scale(0.97); opacity: 0.8; }
-
+/* Each card's transform / opacity / z-index is applied inline from its
+   offset, so advancing transitions a single element (the behind card
+   rotates + lifts into the top slot) rather than swapping elements. */
 .deckTop {
   cursor: grab;
   touch-action: none;
   will-change: transform;
-  animation: deckIn var(--dur-quick) ease-out;
 }
 .deckTop:active { cursor: grabbing; }
 
@@ -94,25 +93,7 @@
   pointer-events: none;
 }
 
-.deckCaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  padding: 30px 14px 13px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), transparent);
-  color: rgba(255, 255, 255, 0.95);
-  font-size: var(--text-md);
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
-
-/* ── Drop zones (Trash / Keep) ──────────────────────────────────── */
+/* ── Drop zones (Trash / Collection / Keep) ─────────────────────── */
 .zone {
   position: absolute;
   top: 50%;
@@ -144,9 +125,26 @@
 }
 .zoneLabel { font-size: var(--text-sm); }
 
+/* Collection zone sits above the deck (with breathing room under the
+   counter); Trash + Keep flank it at the deck's mid-height. */
+.zoneTop {
+  top: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Solid icon colours. The line icons (trash can, folder+) overlap their
+   own strokes, so a translucent colour compounds into bright spots where
+   strokes cross — use opaque tones matched to the translucent look. */
+.zoneRing svg { color: #6f6f73; }
+.zone:hover .zoneRing svg { color: #d8d8db; }
+.zoneHot .zoneRing svg { color: #ffffff; }
+.zoneTrash.zoneHot .zoneRing svg { color: #ff6b6b; }
+
 .zoneHot { color: #fff; }
 .zoneHot .zoneRing { transform: scale(1.1); }
-.zoneKeep.zoneHot .zoneRing {
+.zoneKeep.zoneHot .zoneRing,
+.zoneTop.zoneHot .zoneRing {
   border-color: rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.07);
 }
@@ -154,36 +152,6 @@
 .zoneTrash.zoneHot .zoneRing {
   border-color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
-}
-
-/* ── Add-to-collection hint (top) ───────────────────────────────────
-   A single ↑ affordance above the deck: press up (or click) to open the
-   collection list; dragging the card up here lights it up. */
-.collectHint {
-  position: absolute;
-  top: 56px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 14px 8px 10px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease, transform var(--dur-instant) ease;
-}
-.collectHint:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
-
-.collectHintHot {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
-  transform: translateX(-50%) scale(1.06);
 }
 
 /* ── Bottom hint line ───────────────────────────────────────────── */
@@ -392,7 +360,9 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  /* Solid (not translucent) so the X's crossing strokes don't compound
+     into a brighter spot at the centre. */
+  color: #b4b4b7;
   border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-pill);
   cursor: pointer;

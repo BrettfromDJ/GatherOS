@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  X as XIcon, Check as CheckIcon, Trash2, GripHorizontal,
+  X as XIcon, Check as CheckIcon, Trash2, FolderPlus, GripHorizontal,
 } from 'lucide-react';
 import styles from './RediscoverMode.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -9,18 +9,20 @@ import { fuzzyMatch } from '../lib/fuzzy.js';
 // Rediscover — a tactile review deck. Every save in the active library
 // is shuffled into a stack of square cards; the user flicks the top card
 // to act on it: left = Trash, right = Keep (next), up = add to a
-// collection (opens the picker). The arrow keys mirror the gestures
-// (← / → / ↑) and the Trash / Keep zones + the ↑ hint are clickable, so
-// trackpad and keyboard users get the same actions. Esc exits.
+// collection (opens the picker). The arrow keys mirror the gestures and
+// the three zones are clickable, so trackpad + keyboard match. Esc exits.
 //
-// The shuffle is captured once on open so the order doesn't reset when a
-// card is trashed or filed mid-rotation; saves are resolved by id every
-// render, so missing rows just fall through.
+// Cards are keyed by save id and positioned purely by their offset from
+// the current index (−1 = leaving, 0 = top, 1/2 = peeking behind), with
+// CSS transitions — so advancing promotes a behind card to the top by
+// transitioning one element (smooth rotate + lift) rather than swapping
+// elements (which popped/faded).
 
-// Drag distances (px): ARM lights up a zone; THRESH commits on release.
-const ARM = 48;
-const THRESH = 115;
-const FLING_MS = 240;
+const ARM = 48;     // drag distance that lights up a zone
+const THRESH = 115; // drag distance that commits on release
+
+const BEHIND_1 = 'rotate(3deg) translate(11px, 4px) scale(0.965)';
+const BEHIND_2 = 'rotate(-5deg) translate(-14px, 9px) scale(0.93)';
 
 function shuffleIds(saves) {
   const ids = saves.filter((s) => !s.deleted_at).map((s) => s.id);
@@ -46,12 +48,21 @@ export default function RediscoverMode({
   const [pickerActiveIdx, setPickerActiveIdx] = useState(0);
   const [currentCollectionIds, setCurrentCollectionIds] = useState(new Set());
 
-  // Live drag offset of the top card + which zone it's currently over.
-  const [drag, setDrag] = useState({ x: 0, y: 0, animating: false });
+  const [drag, setDrag] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [lastDir, setLastDir] = useState('left'); // direction the last card left in
   const [hotZone, setHotZone] = useState(null); // 'trash' | 'keep' | 'collection' | null
   const dragStartRef = useRef(null);
-  const animatingRef = useRef(false);
-  const flingTimerRef = useRef(null);
+  // Cache of every save we've seen so a just-trashed card can still
+  // render its image while it flies off, even after the prop drops it.
+  const recentRef = useRef(new Map());
+
+  useEffect(() => {
+    for (const s of saves) recentRef.current.set(s.id, s);
+  }, [saves]);
+  const resolve = (id) => (id
+    ? (saves.find((s) => s.id === id) || recentRef.current.get(id) || null)
+    : null);
 
   useEffect(() => {
     if (!open) return;
@@ -59,26 +70,13 @@ export default function RediscoverMode({
     setIdx(0);
     setPickerOpen(false);
     setPickerFilter('');
-    setDrag({ x: 0, y: 0, animating: false });
+    setDrag({ x: 0, y: 0 });
+    setDragging(false);
     setHotZone(null);
-    animatingRef.current = false;
   }, [open]);
 
   const currentId = queue[idx] || null;
-  const current = useMemo(
-    () => (currentId ? saves.find((s) => s.id === currentId) : null),
-    [currentId, saves],
-  );
-  // The next two cards in the deck, shown peeking behind the top one.
-  const behind = useMemo(() => {
-    const out = [];
-    for (let k = 1; k <= 2; k += 1) {
-      const id = queue[idx + k];
-      const s = id ? saves.find((x) => x.id === id) : null;
-      if (s) out.push(s);
-    }
-    return out;
-  }, [queue, idx, saves]);
+  const current = useMemo(() => resolve(currentId), [currentId, saves]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredCollections = useMemo(() => {
     const q = pickerFilter.trim().toLowerCase();
@@ -104,54 +102,34 @@ export default function RediscoverMode({
     return () => { cancelled = true; };
   }, [open, currentId]);
 
-  // ── Card motion ──────────────────────────────────────────────────
-  function flingOut(dir) {
-    animatingRef.current = true;
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    const target = dir === 'left'
-      ? { x: -(W * 0.9 + 220), y: 30 }
-      : dir === 'right'
-        ? { x: (W * 0.9 + 220), y: 30 }
-        : { x: 0, y: -(H * 0.8 + 220) };
-    setDrag({ x: target.x, y: target.y, animating: true });
-    if (flingTimerRef.current) clearTimeout(flingTimerRef.current);
-    flingTimerRef.current = setTimeout(() => {
-      setIdx((i) => i + 1);
-      setDrag({ x: 0, y: 0, animating: false });
-      setHotZone(null);
-      animatingRef.current = false;
-    }, FLING_MS);
-  }
-
-  function snapBack() {
+  // ── Actions ──────────────────────────────────────────────────────
+  function advance(dir) {
+    setLastDir(dir);
+    setDragging(false);
+    setDrag({ x: 0, y: 0 });
     setHotZone(null);
-    setDrag({ x: 0, y: 0, animating: true });
+    setIdx((i) => i + 1);
   }
-
   function handleTrash() {
-    if (!currentId || animatingRef.current) return;
+    if (!currentId) return;
     onTrash?.(currentId);
-    flingOut('left');
+    advance('left');
   }
-
   function handleSkip() {
-    if (!currentId || animatingRef.current) return;
-    flingOut('right');
+    if (!currentId) return;
+    advance('right');
   }
-
   function openBucketPicker() {
     if (!currentId || collections.length === 0) return;
     setPickerFilter('');
     setPickerActiveIdx(0);
     setPickerOpen(true);
   }
-
   function fileInto(collectionId) {
-    if (!currentId || !collectionId || animatingRef.current) return;
+    if (!currentId || !collectionId) return;
     onAddToBucket?.(currentId, collectionId);
     setPickerOpen(false);
-    flingOut('up');
+    advance('up');
   }
 
   // ── Pointer drag on the top card ─────────────────────────────────
@@ -161,17 +139,18 @@ export default function RediscoverMode({
     return null;
   }
   function onCardPointerDown(e) {
-    if (animatingRef.current || pickerOpen || e.button !== 0) return;
+    if (pickerOpen || e.button !== 0) return;
     dragStartRef.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-    setDrag((d) => ({ ...d, animating: false }));
+    setDrag({ x: 0, y: 0 });
+    setDragging(true);
   }
   function onCardPointerMove(e) {
     const s = dragStartRef.current;
     if (!s) return;
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
-    setDrag({ x: dx, y: dy, animating: false });
+    setDrag({ x: dx, y: dy });
     setHotZone(zoneFor(dx, dy));
   }
   function onCardPointerUp(e) {
@@ -181,10 +160,16 @@ export default function RediscoverMode({
     try { e.currentTarget.releasePointerCapture(s.id); } catch { /* ignore */ }
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
-    if (-dy > THRESH && -dy > Math.abs(dx)) { snapBack(); openBucketPicker(); }
-    else if (dx <= -THRESH) { onTrash?.(currentId); flingOut('left'); }
-    else if (dx >= THRESH) { flingOut('right'); }
-    else snapBack();
+    if (-dy > THRESH && -dy > Math.abs(dx)) {
+      setDragging(false); setDrag({ x: 0, y: 0 }); setHotZone(null);
+      openBucketPicker();
+    } else if (dx <= -THRESH) {
+      onTrash?.(currentId); advance('left');
+    } else if (dx >= THRESH) {
+      advance('right');
+    } else {
+      setDragging(false); setDrag({ x: 0, y: 0 }); setHotZone(null);
+    }
   }
 
   // ── Keyboard ─────────────────────────────────────────────────────
@@ -215,7 +200,7 @@ export default function RediscoverMode({
         }
         return;
       }
-      if (!current || animatingRef.current) return;
+      if (!current) return;
       if (e.key === 'ArrowLeft') { e.preventDefault(); handleTrash(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); handleSkip(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); openBucketPicker(); }
@@ -223,10 +208,6 @@ export default function RediscoverMode({
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, current, currentId, pickerOpen, filteredCollections, pickerActiveIdx]);
-
-  useEffect(() => () => {
-    if (flingTimerRef.current) clearTimeout(flingTimerRef.current);
-  }, []);
 
   if (!open) return null;
 
@@ -261,7 +242,27 @@ export default function RediscoverMode({
     );
   }
 
-  const cardTransform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x * 0.05}deg)`;
+  function offsetTransform(offset) {
+    if (offset <= -1) {
+      if (lastDir === 'left') return 'translateX(-210%) rotate(-16deg)';
+      if (lastDir === 'right') return 'translateX(210%) rotate(16deg)';
+      return 'translateY(-210%) rotate(0deg)';
+    }
+    if (offset === 0) return 'translate(0px, 0px) rotate(0deg)';
+    if (offset === 1) return BEHIND_1;
+    return BEHIND_2;
+  }
+  function offsetOpacity(offset) {
+    if (offset <= -1) return 0;
+    if (offset === 0) return 1;
+    if (offset === 1) return 0.82;
+    return 0.55;
+  }
+  function offsetZ(offset) {
+    if (offset <= -1) return 40;
+    if (offset === 0) return 30;
+    return 20 - offset;
+  }
 
   return (
     <div
@@ -279,20 +280,20 @@ export default function RediscoverMode({
         {idx + 1} <span className={styles.progressTotal}>/ {queue.length}</span>
       </div>
 
-      {/* Add-to-collection affordance — press ↑ (or click) to open the
-          collection list; dragging the card up here lights it up. */}
+      {/* Collection zone (top) — same icon / label / keycap layout as the
+          Trash + Keep zones. Drag the card up here, click it, or press ↑. */}
       {collections.length > 0 && (
         <button
           type="button"
-          className={`${styles.collectHint} ${hotZone === 'collection' ? styles.collectHintHot : ''}`}
+          className={`${styles.zone} ${styles.zoneTop} ${hotZone === 'collection' ? styles.zoneHot : ''}`}
           onClick={openBucketPicker}
         >
+          <span className={styles.zoneRing}><FolderPlus size={22} strokeWidth={1.7} aria-hidden="true" /></span>
+          <span className={styles.zoneLabel}>Collection</span>
           <kbd className={styles.kbd}>↑</kbd>
-          <span>Add to collection</span>
         </button>
       )}
 
-      {/* Trash + Keep zones flank the deck. */}
       <button
         type="button"
         className={`${styles.zone} ${styles.zoneTrash} ${hotZone === 'trash' ? styles.zoneHot : ''}`}
@@ -312,60 +313,62 @@ export default function RediscoverMode({
         <kbd className={styles.kbd}>→</kbd>
       </button>
 
-      {/* The deck. */}
       <div className={styles.deck} onClick={(e) => e.stopPropagation()}>
-        {behind.slice().reverse().map((s, i) => {
-          // behind[0] is nearer the top; render furthest first so the
-          // nearer one stacks on top of it.
-          const isFar = (behind.length - 1 - i) === 1;
+        {[-1, 0, 1, 2].map((offset) => {
+          const id = queue[idx + offset];
+          if (!id) return null;
+          const save = resolve(id);
+          if (!save) return null;
+          const isTop = offset === 0;
+          const isDragTop = isTop && dragging;
+          const transform = isDragTop
+            ? `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x * 0.05}deg)`
+            : offsetTransform(offset);
           return (
             <div
-              key={s.id}
-              className={`${styles.deckCard} ${isFar ? styles.deckBehind2 : styles.deckBehind1}`}
-              aria-hidden="true"
+              key={id}
+              className={`${styles.deckCard} ${isTop ? styles.deckTop : ''}`}
+              style={{
+                transform,
+                opacity: isDragTop ? 1 : offsetOpacity(offset),
+                transition: isDragTop
+                  ? 'none'
+                  : 'transform 0.28s cubic-bezier(0.22, 0.8, 0.28, 1), opacity 0.24s ease',
+                zIndex: offsetZ(offset),
+              }}
+              onPointerDown={isTop ? onCardPointerDown : undefined}
+              onPointerMove={isTop ? onCardPointerMove : undefined}
+              onPointerUp={isTop ? onCardPointerUp : undefined}
+              onPointerCancel={isTop ? onCardPointerUp : undefined}
             >
-              <img className={styles.deckImg} src={fileUrl(s.thumb_path || s.file_path)} alt="" draggable={false} />
+              {isTop && (
+                <span className={styles.deckGrip} aria-hidden="true">
+                  <GripHorizontal size={20} strokeWidth={1.6} />
+                </span>
+              )}
+              {save.kind === 'video' ? (
+                <video
+                  src={fileUrl(save.file_path)}
+                  poster={save.thumb_path ? fileUrl(save.thumb_path) : undefined}
+                  className={styles.deckImg}
+                  autoPlay={isTop}
+                  muted
+                  loop
+                  playsInline
+                  draggable={false}
+                />
+              ) : (
+                <img
+                  src={fileUrl(isTop ? save.file_path : (save.thumb_path || save.file_path))}
+                  alt=""
+                  className={styles.deckImg}
+                  draggable={false}
+                  decoding="async"
+                />
+              )}
             </div>
           );
         })}
-
-        <div
-          key={currentId}
-          className={`${styles.deckCard} ${styles.deckTop}`}
-          style={{
-            transform: cardTransform,
-            transition: drag.animating ? `transform ${FLING_MS}ms cubic-bezier(.4,0,.2,1)` : 'none',
-          }}
-          onPointerDown={onCardPointerDown}
-          onPointerMove={onCardPointerMove}
-          onPointerUp={onCardPointerUp}
-          onPointerCancel={onCardPointerUp}
-        >
-          <span className={styles.deckGrip} aria-hidden="true">
-            <GripHorizontal size={20} strokeWidth={1.6} />
-          </span>
-          {current.kind === 'video' ? (
-            <video
-              src={fileUrl(current.file_path)}
-              poster={current.thumb_path ? fileUrl(current.thumb_path) : undefined}
-              className={styles.deckImg}
-              autoPlay
-              muted
-              loop
-              playsInline
-              draggable={false}
-            />
-          ) : (
-            <img
-              src={fileUrl(current.file_path)}
-              alt={current.title || ''}
-              className={styles.deckImg}
-              draggable={false}
-              decoding="async"
-            />
-          )}
-          {current.title && <div className={styles.deckCaption}>{current.title}</div>}
-        </div>
       </div>
 
       <div className={styles.hintLine}>
