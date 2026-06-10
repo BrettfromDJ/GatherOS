@@ -25,7 +25,7 @@ import PrivacyModal from './PrivacyModal.jsx';
 import {
   SAVE_SOUNDS, DEFAULT_SAVE_SOUND, previewSaveSound, configureSaveSound,
 } from '../lib/sounds.js';
-import { requestUpgrade } from '../context/entitlement.jsx';
+import { requestUpgrade, useEntitlementValue } from '../context/entitlement.jsx';
 
 const SUPPORT_EMAIL = 'hey@gatheros.co';
 
@@ -766,6 +766,13 @@ export default function SettingsModal({
   const [portalState, setPortalState] = useState({ running: false, message: null });
   const appVersion = window.moodmark?.app?.version || '';
 
+  // Local-trial / free state for the Account page status block. The
+  // local 14-day trial only applies to users who aren't signed in; once
+  // signed in, the server subscription state drives the Plan row below.
+  const ent = useEntitlementValue();
+  const onLocalTrial = ent?.mode === 'trial' && !!ent?.trial?.active;
+  const trialDaysLeft = ent?.trial?.daysLeft ?? 0;
+
   async function handleWipeLibrary() {
     if (wipeState.running) return;
     setWipeState({ running: true, message: null });
@@ -1118,6 +1125,27 @@ export default function SettingsModal({
 
           {activePage === 'account' && (
             <div className={styles.page}>
+              {/* Plan status — entitlement-driven so it's right whether or
+                  not the user is signed in. Hidden for paid subscribers,
+                  whose subscription detail shows in the signed-in block. */}
+              {ent?.mode !== 'paid' && (
+                <>
+                  <div className={styles.aboutRow}>
+                    <span className={styles.aboutLabel}>Plan</span>
+                    <span className={styles.aboutValue}>
+                      {onLocalTrial ? 'Free trial' : 'Free plan'}
+                    </span>
+                  </div>
+                  {onLocalTrial && (
+                    <div className={styles.aboutRow}>
+                      <span className={styles.aboutLabel}>Trial</span>
+                      <span className={styles.aboutValue}>
+                        {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
               {account?.state === 'unauth' ? (
                 <>
                   <p className={styles.sectionHint}>
@@ -1146,12 +1174,16 @@ export default function SettingsModal({
                       {account?.user?.email || '—'}
                     </span>
                   </div>
-                  <div className={styles.aboutRow}>
-                    <span className={styles.aboutLabel}>Plan</span>
-                    <span className={styles.aboutValue}>
-                      {formatPlanLabel(account)}
-                    </span>
-                  </div>
+                  {/* Plan row only for subscribers — free / trial users are
+                      already covered by the entitlement status block above. */}
+                  {account?.subscription && (
+                    <div className={styles.aboutRow}>
+                      <span className={styles.aboutLabel}>Plan</span>
+                      <span className={styles.aboutValue}>
+                        {formatPlanLabel(account)}
+                      </span>
+                    </div>
+                  )}
                   {account?.subscription?.current_period_end && (
                     <div className={styles.aboutRow}>
                       <span className={styles.aboutLabel}>
