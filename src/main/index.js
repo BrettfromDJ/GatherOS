@@ -919,12 +919,6 @@ function stripFramingHeaders(sessionInstance) {
 }
 
 app.whenReady().then(() => {
-  // Decide the local no-account trial start on first launch (idempotent;
-  // also done lazily inside getEntitlement, but pin it down early so a
-  // brand-new install's clock starts at first launch, not first save).
-  try { require('./entitlement').ensureTrialDecided(); }
-  catch (err) { console.warn('[gatheros] trial init failed:', err?.message || err); }
-
   // Install the header-strip on the partitions the URL features use.
   // session.fromPartition lazily creates the session if it doesn't
   // exist, so doing this before the first capture / webview mount
@@ -965,6 +959,13 @@ app.whenReady().then(() => {
   libraryRegistry.bootstrap();
   ensureStorageDirs();
   initDatabase();
+  // Decide the local no-account trial start on first launch (idempotent;
+  // also done lazily inside getEntitlement). MUST run after initDatabase
+  // so isNewInstall() can read the real library count — otherwise an
+  // existing no-account user (with saves but no session) would be misread
+  // as a fresh install and wrongly handed a 14-day trial.
+  try { require('./entitlement').ensureTrialDecided(); }
+  catch (err) { console.warn('[gatheros] trial init failed:', err?.message || err); }
   registerIpcHandlers();
   createMainWindow();
   // Apply the macOS application menu now that mainWindow exists so
