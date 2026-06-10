@@ -132,9 +132,15 @@ export default function AppGate() {
     return null;
   }
 
-  // The only full-screen wall left: the user explicitly asked to sign in.
+  // The only full-screen screen left: the user explicitly asked to sign
+  // in. It's optional now, so it carries a "back to app" escape hatch.
   if (signinRequested && state.status !== 'entitled' && state.status !== 'offline') {
-    return <SigninScreen onRequestMagicLink={requestMagicLink} />;
+    return (
+      <SigninScreen
+        onRequestMagicLink={requestMagicLink}
+        onCancel={() => setSigninRequested(false)}
+      />
+    );
   }
 
   // Everything else runs the app. The entitlement prop carries the

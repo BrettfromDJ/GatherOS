@@ -144,3 +144,25 @@
 .linkBtn:hover {
   color: var(--text-primary);
 }
+
+/* Pinned bottom-centre so it reads as a low-key way out, not a
+   competing CTA. */
+.cancelLink {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  padding: 6px 10px;
+  -webkit-app-region: no-drag;
+  transition: color var(--dur-instant) ease;
+}
+
+.cancelLink:hover {
+  color: var(--text-primary);
+}

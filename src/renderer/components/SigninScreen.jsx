@@ -9,7 +9,7 @@ import brandIconUrl from '../assets/welcome-icon.svg';
 // Two states:
 //   form  — email input + "Send magic link" button
 //   sent  — confirmation, "Check your email"
-export default function SigninScreen({ onRequestMagicLink, reason }) {
+export default function SigninScreen({ onRequestMagicLink, reason, onCancel }) {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -95,6 +95,15 @@ export default function SigninScreen({ onRequestMagicLink, reason }) {
           </form>
         )}
       </div>
+
+      {/* Escape hatch — under the soft free-tier model signin is
+          optional, so let the user step back into the app instead of
+          being trapped on this screen. */}
+      {onCancel ? (
+        <button type="button" className={styles.cancelLink} onClick={onCancel}>
+          Back to app
+        </button>
+      ) : null}
     </div>
   );
 }
