@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GatherOS — paywall / trial test plan</title>
+<style>
+  :root {
+    --bg: #0f0f10;
+    --panel: #18181a;
+    --panel-2: #1f1f22;
+    --border: rgba(255,255,255,0.10);
+    --text: #ececed;
+    --text-dim: #a0a0a6;
+    --text-faint: #6f6f75;
+    --accent: #6ea8fe;
+    --code-bg: #0b0b0c;
+    --green: #5fd08a;
+    --amber: #e7b366;
+    --red: #f08a8a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  .wrap { display: flex; max-width: 1180px; margin: 0 auto; }
+
+  /* Sidebar nav */
+  nav {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    width: 230px;
+    padding: 28px 18px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  nav .brand { font-weight: 650; font-size: 14px; letter-spacing: -0.01em; margin-bottom: 4px; }
+  nav .brand small { display:block; color: var(--text-faint); font-weight: 400; font-size: 12px; margin-top:2px;}
+  nav a {
+    display: block;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    margin-top: 2px;
+  }
+  nav a:hover { background: var(--panel-2); color: var(--text); }
+  nav a.num { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  main { flex: 1; min-width: 0; padding: 36px 40px 120px; }
+
+  h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .lede { color: var(--text-dim); margin: 0 0 22px; max-width: 70ch; }
+  h2 {
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    margin: 40px 0 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  h2 .tag { font-size: 12px; font-weight: 500; color: var(--text-faint); margin-left: 8px; }
+  h3 { font-size: 15px; margin: 22px 0 8px; color: var(--text); }
+  p { margin: 10px 0; max-width: 78ch; }
+  .dim { color: var(--text-dim); }
+
+  code.inline {
+    font-family: var(--mono);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 13px;
+  }
+
+  /* Copyable code blocks */
+  .code {
+    position: relative;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .code pre {
+    margin: 0;
+    padding: 14px 56px 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: #d7d7da;
+    white-space: pre;
+  }
+  .code .copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease;
+  }
+  .code .copy:hover { background: #2a2a2e; color: var(--text); }
+  .code .copy.done { color: var(--green); border-color: rgba(95,208,138,0.4); }
+
+  /* Callouts */
+  .note {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+  }
+  .note.warn { border-left-color: var(--amber); }
+  .note.crit { border-left-color: var(--red); }
+  .note strong { color: var(--text); }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-dim); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td code, th code { font-family: var(--mono); font-size: 12.5px; }
+  .pill { display:inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; font-family: var(--mono); }
+  .pill.paid { background: rgba(95,208,138,0.15); color: var(--green); }
+  .pill.trial { background: rgba(110,168,254,0.15); color: var(--accent); }
+  .pill.free { background: rgba(240,138,138,0.15); color: var(--red); }
+  .yes { color: var(--green); }
+  .no { color: var(--red); }
+
+  /* Checklists */
+  ul.check { list-style: none; padding: 0; margin: 12px 0; }
+  ul.check li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  ul.check li:last-child { border-bottom: none; }
+  ul.check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+  ul.check label { cursor: pointer; }
+  ul.check input:checked + label { color: var(--text-faint); text-decoration: line-through; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin: 18px 0 8px; flex-wrap: wrap; }
+  .btn {
+    background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer; font-family: var(--sans);
+  }
+  .btn:hover { background: #2a2a2e; color: var(--text); }
+  footer { color: var(--text-faint); font-size: 13px; margin-top: 50px; border-top: 1px solid var(--border); padding-top: 16px; }
+
+  @media (max-width: 820px) {
+    nav { display: none; }
+    main { padding: 24px 18px 100px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">GatherOS<small>paywall / trial test plan</small></div>
+    <a class="num" href="#run">▶ Run the app</a>
+    <a class="num" href="#s0">0 · Setup &amp; helpers</a>
+    <a class="num" href="#s1">1 · Fast UI smoke</a>
+    <a class="num" href="#s2">2 · Local trial logic</a>
+    <a class="num" href="#s3">3 · New-install scoping</a>
+    <a class="num" href="#s4">4 · Save-gating matrix</a>
+    <a class="num" href="#s5">5 · Real account states</a>
+    <a class="num" href="#s6">6 · Fail-open</a>
+    <a class="num" href="#s7">7 · Feature locks</a>
+    <a class="num" href="#ship">✓ Pre-ship gate</a>
+    <div class="toolbar" style="margin-top:18px;">
+      <button class="btn" onclick="resetChecks()">Reset checkboxes</button>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Paywall / trial — end-to-end test plan</h1>
+    <p class="lede">
+      The model: <strong>14-day local trial (no card) → soft free tier</strong>. After the
+      trial (and with no paid subscription) the app keeps running — existing saves stay usable,
+      but <strong>new saves</strong> and <strong>pro features</strong> prompt to upgrade.
+      Everything <strong>fails open</strong>: a paying user is never blocked.
+    </p>
+
+    <table>
+      <thead><tr><th>Mode</th><th>When</th><th>New saves</th><th>Pro features</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill paid">paid</span></td><td>active subscription</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td><span class="pill trial">trial</span></td><td>local 14-day trial running, OR server trial / offline / uncertain</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td><span class="pill free">free</span></td><td>trial spent AND no subscription (server <code>expired</code>/<code>unauth</code>)</td><td class="no">✕ upgrade</td><td class="no">✕ upgrade</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="run">▶ Run the app</h2>
+    <div class="code"><pre>cd /Users/brett/GatherOS &amp;&amp; git checkout main &amp;&amp; git pull origin main &amp;&amp; npm run dev</pre><button class="copy">Copy</button></div>
+
+    <!-- 0 -->
+    <h2 id="s0">0 · Setup &amp; helpers</h2>
+    <p>All local state lives in the app's userData dir. Find it once (paste in Terminal):</p>
+    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json 2>/dev/null | head -1 | xargs dirname)"
+echo "$APP"   # usually ~/Library/Application Support/GatherOS</pre><button class="copy">Copy</button></div>
+
+    <p>Key files in <code class="inline">$APP</code>:</p>
+    <table>
+      <tbody>
+        <tr><td><code>prefs.json</code></td><td>holds <code>trialStartedAt</code> — the local trial clock</td></tr>
+        <tr><td><code>license-cache.json</code></td><td>cached server license state</td></tr>
+        <tr><td><code>license-session.bin</code></td><td>encrypted session token (presence = "signed in")</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>The single most useful command.</strong> Open DevTools in the app
+      (<code class="inline">⌥⌘I</code>) and run this — it's your ground truth for every test:
+    </div>
+    <div class="code"><pre>await window.moodmark.entitlement.get()
+// → { mode, trial:{ daysLeft, active }, canCreateSave, proUnlocked, ... }
+
+await window.moodmark.licensing.verify({ force: true })
+// → server state { state: 'entitled' | 'expired' | 'unauth' | 'offline' | 'error' }</pre><button class="copy">Copy</button></div>
+
+    <div class="note warn">
+      Edit <code class="inline">prefs.json</code> / <code class="inline">license-cache.json</code>
+      <strong>with the app quit</strong> — state is read at launch, and
+      <code class="inline">trialStartedAt</code> is pinned once on first launch (it won't reset
+      itself). Relaunch to apply. <code class="inline">entitlement.get()</code> also re-resolves
+      on window focus and after each save.
+    </div>
+
+    <!-- 1 -->
+    <h2 id="s1">1 · Fast UI smoke test <span class="tag">no server, no account</span></h2>
+    <p>In DevTools, set the override and reload (<code class="inline">⌘R</code>).</p>
+    <div class="code"><pre>localStorage.setItem('moodmark.dev.gate', 'free')   // or 'app' / 'signin'
+location.reload()</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre>localStorage.removeItem('moodmark.dev.gate')   // back to real behaviour</pre><button class="copy">Copy</button></div>
+
+    <table>
+      <thead><tr><th>Override</th><th>Expect</th></tr></thead>
+      <tbody>
+        <tr><td><code>'free'</code></td><td>App runs in <strong>free tier</strong>: bottom-centre "You're on the free plan…" banner; new saves blocked → upgrade modal</td></tr>
+        <tr><td><code>'app'</code></td><td>App runs, no locks (sanity baseline)</td></tr>
+        <tr><td><code>'signin'</code></td><td>SigninScreen with a <strong>"Back to app"</strong> escape link (must not trap you)</td></tr>
+      </tbody>
+    </table>
+
+    <p>In <code class="inline">'free'</code> mode, verify the upgrade modal:</p>
+    <ul class="check" data-key="s1">
+      <li><input type="checkbox" id="s1a"><label for="s1a">Opens from the banner <strong>Upgrade</strong>, from a blocked save, and from a locked feature</label></li>
+      <li><input type="checkbox" id="s1b"><label for="s1b"><strong>Esc</strong> closes, <strong>Not now</strong> closes, clicking the scrim closes</label></li>
+      <li><input type="checkbox" id="s1c"><label for="s1c">Monthly / Yearly toggle switches price ($4.99 / $49)</label></li>
+      <li><input type="checkbox" id="s1d"><label for="s1d">CTA reads <strong>"Sign in to upgrade"</strong> (no account) or <strong>"Upgrade now"</strong> (signed in)</label></li>
+    </ul>
+
+    <!-- 2 -->
+    <h2 id="s2">2 · Local trial logic <span class="tag">no server, no account</span></h2>
+    <p>Edit <code class="inline">trialStartedAt</code> while the app is <strong>quit</strong>, then relaunch. Each block is independent.</p>
+    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+NOW=$(($(date +%s)*1000))
+
+# A) Active trial (day 1) → mode 'trial', full app, banner hidden, daysLeft 14
+node -e "const f='$APP/prefs.json';const p=require(f);p.trialStartedAt=$NOW;require('fs').writeFileSync(f,JSON.stringify(p,null,2))"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre># B) Trial almost over (2 days left) → mode 'trial' + countdown banner appears
+APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+NOW=$(($(date +%s)*1000))
+node -e "const f='$APP/prefs.json';const p=require(f);p.trialStartedAt=$NOW-12*864e5;require('fs').writeFileSync(f,JSON.stringify(p,null,2))"</pre><button class="copy">Copy</button></div>
+    <div class="code"><pre># C) Trial expired (16 days ago), no account → mode 'free'
+APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+NOW=$(($(date +%s)*1000))
+node -e "const f='$APP/prefs.json';const p=require(f);p.trialStartedAt=$NOW-16*864e5;require('fs').writeFileSync(f,JSON.stringify(p,null,2))"</pre><button class="copy">Copy</button></div>
+    <p class="dim">After each: relaunch → <code class="inline">await window.moodmark.entitlement.get()</code> and confirm <code class="inline">mode</code> + <code class="inline">trial.daysLeft</code>. The countdown banner only shows in the last 5 days (and is dismissible for the session).</p>
+
+    <!-- 3 -->
+    <h2 id="s3">3 · New-install scoping <span class="tag">current-user safety — critical</span></h2>
+    <p>Existing users must <strong>not</strong> get a fresh 14-day trial on update, and must keep their saves.</p>
+    <div class="code"><pre># Simulate "upgrading into this build": clear the trial decision so it re-decides
+APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+node -e "const f='$APP/prefs.json';const p=require(f);delete p.trialStartedAt;require('fs').writeFileSync(f,JSON.stringify(p,null,2))"</pre><button class="copy">Copy</button></div>
+    <ul class="check" data-key="s3">
+      <li><input type="checkbox" id="s3a"><label for="s3a"><strong>Existing user (library has saves):</strong> relaunch → <code class="inline">trial.startedAt === 0</code> (spent) → mode <span class="pill free">free</span>. Existing saves still open &amp; display fine; only new saves prompt.</label></li>
+      <li><input type="checkbox" id="s3b"><label for="s3b"><strong>Genuinely new install:</strong> empty library + no session + no <code>trialStartedAt</code> → relaunch → <code class="inline">daysLeft ≈ 14</code>, mode <span class="pill trial">trial</span></label></li>
+    </ul>
+    <div class="note">
+      Easiest clean new-install test — move the whole dir aside, launch once, then restore:
+    </div>
+    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+mv "$APP" "$APP.bak"        # launch the app once now → fresh install
+# …test, then restore your real data:
+rm -rf "$APP" &amp;&amp; mv "$APP.bak" "$APP"</pre><button class="copy">Copy</button></div>
+
+    <!-- 4 -->
+    <h2 id="s4">4 · Save-gating matrix</h2>
+    <p>For each mode, try <strong>every</strong> save entry point. In <span class="pill trial">trial</span>/<span class="pill paid">paid</span>: save succeeds. In <span class="pill free">free</span>: no save is created and the upgrade modal appears.</p>
+    <ul class="check" data-key="s4">
+      <li><input type="checkbox" id="s4a"><label for="s4a">Drag an image file into the window</label></li>
+      <li><input type="checkbox" id="s4b"><label for="s4b">Drag an image URL from a browser</label></li>
+      <li><input type="checkbox" id="s4c"><label for="s4c">Drop a <code>.zip</code></label></li>
+      <li><input type="checkbox" id="s4d"><label for="s4d">Toolbar <strong>Save URL…</strong></label></li>
+      <li><input type="checkbox" id="s4e"><label for="s4e">Hotkey screenshot (<code class="inline">⌘⇧S</code> area, + fullscreen / window) → free tier brings the window forward and pops the modal (no silent no-op)</label></li>
+      <li><input type="checkbox" id="s4f"><label for="s4f">Chrome extension save (right-click + X-bookmark) → free tier returns <strong>HTTP 402</strong> and the app pops the modal</label></li>
+      <li><input type="checkbox" id="s4g"><label for="s4g">AI "Generate variation"</label></li>
+    </ul>
+    <div class="note crit">
+      <strong>Critical:</strong> in <span class="pill free">free</span> mode confirm existing saves still <strong>open, export, move to collections, and delete</strong> — only <em>creation</em> is blocked.
+    </div>
+
+    <!-- 5 -->
+    <h2 id="s5">5 · Real account / server states <span class="tag">true e2e — needs live backend</span></h2>
+    <p>Sign in from <strong>Settings → Account → Sign in</strong>, or the upgrade modal's <strong>"Sign in to upgrade"</strong>. The magic link arrives by email and deep-links back via <code class="inline">gatheros://auth/verify?token=…</code>.</p>
+    <table>
+      <thead><tr><th>State</th><th>How to get there</th><th>Expect</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill paid">paid</span></td><td>account with an active subscription</td><td><code>mode:'paid'</code>, no banner, no locks</td></tr>
+        <tr><td><span class="pill trial">trial</span></td><td>account whose server trial is active</td><td><code>mode:'trial'</code>, full app</td></tr>
+        <tr><td><span class="pill free">free</span></td><td>account past trial, no subscription</td><td><code>mode:'free'</code>, soft tier (NOT a hard wall)</td></tr>
+        <tr><td>past due</td><td>subscription in <code>past_due</code></td><td>app runs; top <strong>AccountBanner</strong> "We couldn't charge your card" → Update payment method</td></tr>
+        <tr><td>upgrade flip</td><td>in free, click Upgrade → finish Lemon Squeezy checkout</td><td>app <strong>auto-flips to paid within ~2 min</strong> (fast-poll after checkout) — no relaunch</td></tr>
+        <tr><td>sign out</td><td>Settings → Account → Sign out</td><td>drops to local-trial / free logic; existing saves remain</td></tr>
+      </tbody>
+    </table>
+    <p class="dim">Checkout / portal links are minted server-side and open in the default browser — confirm they open and that returning to the app flips state.</p>
+
+    <!-- 6 -->
+    <h2 id="s6">6 · Offline / failure = fail-open <span class="tag">must never block a payer</span></h2>
+    <ul class="check" data-key="s6">
+      <li><input type="checkbox" id="s6a"><label for="s6a"><strong>Offline with a recent paid cache:</strong> sign in as paid once, turn off Wi-Fi, relaunch → app runs, top "Working offline…" banner, <strong>saves still work</strong> (within the 7-day grace). Must NOT drop to free.</label></li>
+      <li><input type="checkbox" id="s6b"><label for="s6b"><strong>Corrupt/empty cache</strong> (command below) → resolves to a permissive mode, not free</label></li>
+      <li><input type="checkbox" id="s6c"><label for="s6c"><strong>Deleted cache</strong> while local trial active → still trial. Only <code>expired</code>/<code>unauth</code> with a spent local trial yields free.</label></li>
+    </ul>
+    <div class="code"><pre>APP="$(find ~/Library/Application\ Support -maxdepth 2 -name prefs.json | head -1 | xargs dirname)"
+echo '{}' > "$APP/license-cache.json"   # corrupt cache test
+# rm -f "$APP/license-cache.json"        # delete cache test</pre><button class="copy">Copy</button></div>
+
+    <!-- 7 -->
+    <h2 id="s7">7 · Feature-lock spot checks <span class="tag">free mode</span></h2>
+    <p>Fastest via §1 dev-gate <code class="inline">'free'</code>. Each should open the upgrade modal with the right copy.</p>
+    <ul class="check" data-key="s7">
+      <li><input type="checkbox" id="s7a"><label for="s7a"><strong>Boards:</strong> create a board / "open collection as space" → <code>boards</code> copy</label></li>
+      <li><input type="checkbox" id="s7b"><label for="s7b"><strong>Libraries:</strong> LibrarySwitcher "New library" (&amp; Settings → Libraries) → <code>libraries</code> copy</label></li>
+      <li><input type="checkbox" id="s7c"><label for="s7c"><strong>AI:</strong> DetailPanel auto-tag, generate prompt, generate variation → <code>ai</code> copy</label></li>
+      <li><input type="checkbox" id="s7d"><label for="s7d"><strong>"More like this":</strong> similar-saves section is hidden in free mode</label></li>
+      <li><input type="checkbox" id="s7e"><label for="s7e"><strong>Semantic search:</strong> still returns results (falls back to plain text search — not broken)</label></li>
+    </ul>
+
+    <!-- ship -->
+    <h2 id="ship">✓ Pre-ship gate</h2>
+    <ul class="check" data-key="ship">
+      <li><input type="checkbox" id="shA"><label for="shA">All of §4 pass in each of paid / trial / free</label></li>
+      <li><input type="checkbox" id="shB"><label for="shB">§3 confirms no current user gets a trial reset or loses saves</label></li>
+      <li><input type="checkbox" id="shC"><label for="shC">§6 confirms a payer is never blocked offline / on error</label></li>
+      <li><input type="checkbox" id="shD"><label for="shD"><strong>Backend:</strong> server trial length is <strong>14 days</strong> on <code>api.gatheros.co</code> (config outside this repo — verify it matches the client)</label></li>
+    </ul>
+
+    <footer>
+      Progress is saved in this browser (localStorage). Use “Reset checkboxes” in the sidebar to clear it.
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Copy buttons
+  document.querySelectorAll('.code .copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = btn.parentElement.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function () {
+        var old = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('done');
+        setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1400);
+      });
+    });
+  });
+
+  // Persist checkbox state
+  var KEY = 'gatheros.testplan.checks';
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+  var state = load();
+  document.querySelectorAll('ul.check input[type=checkbox]').forEach(function (cb) {
+    if (state[cb.id]) cb.checked = true;
+    cb.addEventListener('change', function () {
+      state[cb.id] = cb.checked;
+      save(state);
+    });
+  });
+  function resetChecks() {
+    localStorage.removeItem(KEY);
+    document.querySelectorAll('ul.check input[type=checkbox]').forEach(function (cb) { cb.checked = false; });
+  }
+  window.resetChecks = resetChecks;
+</script>
+</body>
+</html>
