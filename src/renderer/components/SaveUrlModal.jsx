@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Link as LinkIcon, X as XIcon } from 'lucide-react';
 import styles from './SaveUrlModal.module.css';
+import { requestUpgrade } from '../context/entitlement.jsx';
 
 // Compact modal for the toolbar's "+ Add → Save URL…" path.
 // Collects a URL, kicks off the main-process capture (screenshot
@@ -71,6 +72,13 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
     setError(null);
     try {
       const result = await window.moodmark?.saves?.captureUrl?.(trimmed);
+      // Free tier — the save was blocked. Close and let the upgrade modal
+      // take over instead of showing a misleading "capture failed".
+      if (result?.needsUpgrade) {
+        onClose?.();
+        requestUpgrade('save');
+        return;
+      }
       if (!result?.ok) {
         setError(result?.error || 'Capture failed. Try again.');
         setSaving(false);
