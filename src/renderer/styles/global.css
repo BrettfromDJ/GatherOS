@@ -572,6 +572,31 @@ body:has(.selection-bar) .trash-toast {
   transition-delay: var(--dur-medium);
 }
 
+/* Below variant — for triggers near the top of the window (e.g. the
+   toolbar) where the default above-pill would clip against the window
+   edge. Flips the pill and its arrow beneath the trigger; entrance
+   slides down from −4px instead of up from +4px. */
+[data-tooltip-pos="below"]::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+[data-tooltip-pos="below"]::before {
+  top: calc(100% + 6px);
+  bottom: auto;
+  border-top: 0;
+  border-bottom: 4px solid var(--tooltip-bg);
+}
+[data-tooltip-pos="below"]::after,
+[data-tooltip-pos="below"]::before {
+  transform: translate(-50%, -4px);
+}
+[data-tooltip-pos="below"]:hover::after,
+[data-tooltip-pos="below"]:hover::before,
+[data-tooltip-pos="below"]:focus-visible::after,
+[data-tooltip-pos="below"]:focus-visible::before {
+  transform: translate(-50%, 0);
+}
+
 .selection-btn:hover {
   background: var(--hover-bg-soft);
 }

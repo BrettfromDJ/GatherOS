@@ -118,7 +118,8 @@ export default function LibrarySwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        title={active.name}
+        data-tooltip={open ? undefined : active.name}
+        data-tooltip-pos="below"
       >
         <span className={styles.triggerLabel}>{active.name}</span>
         <span className={styles.triggerSwitcher}>
