@@ -2,10 +2,10 @@ import React from 'react';
 import {
   ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2,
   Clock, History, ArrowDownAZ, ArrowDownZA,
+  Type, Image as ImageIcon, Film,
 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
-import { TWEET_TYPES } from '../lib/tweetType.js';
 
 // X logomark, drawn as a filled glyph that matches the lucide icon API
 // (takes a `size`) so it can slot into the chip list. Bookmarks come
@@ -33,6 +33,16 @@ export const SORT_OPTIONS = [
   { value: 'oldest',    label: 'Oldest first', Icon: History },
   { value: 'name_asc',  label: 'Name A→Z', Icon: ArrowDownAZ },
   { value: 'name_desc', label: 'Name Z→A', Icon: ArrowDownZA },
+];
+
+// Bookmarks tweet-type filter — surfaced as a dropdown beside sort,
+// only on the Bookmarks view. Values map 1:1 to tweetTypeOf's output;
+// 'all' is the no-op default.
+const TYPE_FILTERS = [
+  { value: 'all',   label: 'All types', Icon: Images },
+  { value: 'text',  label: 'Text',      Icon: Type },
+  { value: 'image', label: 'Image',     Icon: ImageIcon },
+  { value: 'video', label: 'Video',     Icon: Film },
 ];
 
 const COLS_MIN = 2;
@@ -186,28 +196,6 @@ export default function SmartChipRail({
             );
           })
         )}
-        {!inFolder && activeViewType === 'bookmarks' && onTweetTypeChange && (
-          <div className={styles.typeFilter} role="group" aria-label="Filter by tweet type">
-            <span className={styles.typeDivider} aria-hidden="true" />
-            {TWEET_TYPES.map(({ id, label }) => {
-              const active = tweetTypeFilter === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={active}
-                  className={`${styles.typePill} ${active ? styles.typePillActive : ''}`}
-                  onClick={() => onTweetTypeChange(id)}
-                >
-                  <span>{label}</span>
-                  {tweetTypeCounts && (
-                    <span className={styles.typePillCount}>{tweetTypeCounts[id] ?? 0}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
       <div className={styles.right}>
         {onColumnsChange && (
@@ -250,6 +238,19 @@ export default function SmartChipRail({
             options={SORT_OPTIONS}
             onChange={onSortChange}
             ariaLabel="Sort by"
+          />
+        )}
+        {!inFolder && activeViewType === 'bookmarks' && onTweetTypeChange && (
+          <Dropdown
+            value={tweetTypeFilter}
+            options={TYPE_FILTERS.map((o) => ({
+              ...o,
+              // Append the live count so each option (and the trigger)
+              // reads e.g. "Image · 4". Counts honour an active search.
+              label: tweetTypeCounts ? `${o.label} · ${tweetTypeCounts[o.value] ?? 0}` : o.label,
+            }))}
+            onChange={onTweetTypeChange}
+            ariaLabel="Filter by tweet type"
           />
         )}
       </div>
