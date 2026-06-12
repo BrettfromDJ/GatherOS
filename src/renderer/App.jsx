@@ -2384,6 +2384,72 @@ export default function App() {
     }
   }, [focusAfterDrop]);
 
+  // Paste an image straight into the library (cmd-V). Mirrors the drop
+  // pipeline: raw image bytes from the clipboard go through pasteImage
+  // (no filesystem path, so dropFile won't work), and a bare image URL
+  // falls back to dropUrl. Skipped while a board is open — BoardView
+  // owns cmd-V there so it can place the paste on the canvas — and
+  // while the user is typing in an editable field.
+  useEffect(() => {
+    const onPaste = async (e) => {
+      if (view.type === 'board') return;
+      const target = e.target;
+      if (
+        target?.isContentEditable ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+      const cd = e.clipboardData;
+      if (!cd) return;
+
+      const imageFiles = [...(cd.items || [])]
+        .filter((i) => i.kind === 'file' && i.type.startsWith('image/'))
+        .map((i) => i.getAsFile())
+        .filter(Boolean);
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        let lastId = null;
+        for (const file of imageFiles) {
+          try {
+            const buf = await file.arrayBuffer();
+            const ext = (file.type.split('/')[1] || 'png').toLowerCase();
+            const record = await window.moodmark.saves.pasteImage(
+              new Uint8Array(buf),
+              ext,
+            );
+            if (record?.id) lastId = record.id;
+          } catch (err) {
+            console.error('Paste failed:', err);
+          }
+        }
+        if (lastId) {
+          focusAfterDrop();
+          showActionToast({ message: 'Pasted from clipboard', durationMs: 1800 });
+        }
+        return;
+      }
+
+      // No image bytes — see if the clipboard holds an image URL.
+      const candidates = extractDropImageUrls(cd);
+      if (candidates.length === 0) return;
+      e.preventDefault();
+      try {
+        const record = await window.moodmark.saves.dropUrl(candidates);
+        if (record?.id) {
+          focusAfterDrop();
+          showActionToast({ message: 'Pasted from clipboard', durationMs: 1800 });
+        }
+      } catch (err) {
+        console.error('Paste URL failed:', err);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [view, focusAfterDrop, showActionToast]);
+
   // Hidden file picker — triggered by the "+" button on the All Saves
   // sidebar row. Routes the chosen files through the same dropFile +
   // focusAfterDrop pipeline as drag-and-drop.

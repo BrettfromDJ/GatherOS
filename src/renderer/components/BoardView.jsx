@@ -1250,9 +1250,15 @@ export default function BoardView({
         for (const type of ci.types) {
           if (!type.startsWith('image/')) continue;
           const blob = await ci.getType(type);
-          const ext = type.split('/')[1] || 'png';
-          const file = new File([blob], `paste-${Date.now()}.${ext}`, { type });
-          const record = await window.moodmark.saves.dropFile(file);
+          const ext = (type.split('/')[1] || 'png').toLowerCase();
+          // A clipboard blob has no filesystem path, so dropFile (which
+          // relies on webUtils.getPathForFile) can't be used — send the
+          // raw bytes through pasteImage instead.
+          const buf = await blob.arrayBuffer();
+          const record = await window.moodmark.saves.pasteImage(
+            new Uint8Array(buf),
+            ext,
+          );
           if (record?.id) {
             pushHistory();
             handleDropImage({ saveRecord: record, world: { x: 0, y: 0 } });

@@ -13,6 +13,7 @@ const SECTIONS = [
     title: 'Library',
     items: [
       { keys: ['⌘', 'N'], label: 'New collection' },
+      { keys: ['⌘', 'V'], label: 'Paste image from clipboard' },
       { keys: ['⌘ +', 'click'], label: 'Multi-select an image' },
     ],
   },
