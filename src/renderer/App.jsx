@@ -67,6 +67,7 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
+import { tweetTypeOf } from './lib/tweetType.js';
 import { configureSaveSound, DEFAULT_SAVE_SOUND, playEmptyTrashSound } from './lib/sounds.js';
 import OnboardingOverlay from './onboarding/OnboardingOverlay.jsx';
 import { useOnboarding, ONBOARDING_DONE_PREF } from './onboarding/OnboardingContext.jsx';
@@ -414,6 +415,16 @@ export default function App({ entitlement } = {}) {
   useEffect(() => {
     try { localStorage.setItem('moodmark.gridLayout', gridLayout); } catch {}
   }, [gridLayout]);
+  // Bookmarks-only sub-filter: narrow the grid to a single tweet type
+  // (text / image / video). 'all' is the no-op default. Session-only —
+  // we reset it when the user leaves the Bookmarks view so it never
+  // silently applies anywhere else.
+  const [tweetTypeFilter, setTweetTypeFilter] = useState('all');
+  useEffect(() => {
+    if (view.type !== 'bookmarks' && tweetTypeFilter !== 'all') {
+      setTweetTypeFilter('all');
+    }
+  }, [view.type, tweetTypeFilter]);
   // Restore the focused-view save on launch from the persisted
   // window state. If the save no longer exists we'll clear it once
   // the saves list loads (see effect below) so the focused view
@@ -1856,9 +1867,32 @@ export default function App({ entitlement } = {}) {
   // arrive at the top via the recent sort, so the placeholder's
   // position predicts where the real save will land.
   const visibleSaves = useMemo(() => {
-    if (pendingVariants.length === 0) return displaySaves;
-    return [...pendingVariants, ...displaySaves];
-  }, [pendingVariants, displaySaves]);
+    let base = displaySaves;
+    // Bookmarks tweet-type sub-filter. Only narrows inside the
+    // Bookmarks view; every other view ignores it (and the reset
+    // effect keeps it 'all' elsewhere anyway).
+    if (view.type === 'bookmarks' && tweetTypeFilter !== 'all') {
+      base = base.filter((s) => tweetTypeOf(s) === tweetTypeFilter);
+    }
+    if (pendingVariants.length === 0) return base;
+    return [...pendingVariants, ...base];
+  }, [pendingVariants, displaySaves, view.type, tweetTypeFilter]);
+
+  // Live per-type counts for the Bookmarks filter pills — a breakdown
+  // of whatever's currently loaded in the Bookmarks view (so they
+  // honour an active search). null outside the Bookmarks view, where
+  // the pills aren't shown.
+  const tweetTypeCounts = useMemo(() => {
+    if (view.type !== 'bookmarks') return null;
+    const counts = { all: 0, text: 0, image: 0, video: 0 };
+    for (const s of saves) {
+      const t = tweetTypeOf(s);
+      if (!t) continue;
+      counts.all += 1;
+      counts[t] += 1;
+    }
+    return counts;
+  }, [saves, view.type]);
 
   const focusedIndex = useMemo(
     () => (focusedId ? displaySaves.findIndex((s) => s.id === focusedId) : -1),
@@ -2795,6 +2829,9 @@ export default function App({ entitlement } = {}) {
                     }
                     counts={smartCounts}
                     onPick={(v) => handleViewChange(v)}
+                    tweetTypeFilter={tweetTypeFilter}
+                    tweetTypeCounts={tweetTypeCounts}
+                    onTweetTypeChange={setTweetTypeFilter}
                     sortMode={sortMode}
                     onSortChange={setSortMode}
                     columns={gridColumns}
@@ -2845,6 +2882,7 @@ export default function App({ entitlement } = {}) {
                   freshIds={freshIds}
                   layout={gridLayout}
                   morphId={morphId}
+                  tweetTypeFilter={tweetTypeFilter}
                 />
               </div>
               )}

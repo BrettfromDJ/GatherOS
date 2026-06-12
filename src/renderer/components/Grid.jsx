@@ -65,7 +65,7 @@ function hostnameOf(url) {
 export default function Grid({
   saves, selected, onSelect, onSetSelection, onOpen, onContextMenu, onDragStart, onHover, onForceClick,
   columns, loading, view, search, semanticSearchActive, colorFilter,
-  freshIds, layout = 'masonry', morphId = null,
+  freshIds, layout = 'masonry', morphId = null, tweetTypeFilter = 'all',
 }) {
   const marqueeRef = useRef(null);
   const [marqueeRect, setMarqueeRect] = useState(null);
@@ -233,6 +233,14 @@ export default function Grid({
       title = 'Nothing unsorted';
       hint = 'Every save belongs to at least one collection.';
       EmptyIcon = InboxIcon;
+      emptyIconColor = 'var(--icon-muted)';
+    } else if (isBookmarks && tweetTypeFilter && tweetTypeFilter !== 'all') {
+      // Bookmarks exist, just none of the filtered type — don't show the
+      // "no bookmarks yet" onboarding CTA here.
+      const label = { text: 'text', image: 'image', video: 'video' }[tweetTypeFilter] || tweetTypeFilter;
+      title = `No ${label} bookmarks`;
+      hint = 'No bookmarks of this type. Pick a different type, or switch back to All.';
+      EmptyIcon = Bookmark;
       emptyIconColor = 'var(--icon-muted)';
     } else if (isBookmarks) {
       title = 'No bookmarks yet';

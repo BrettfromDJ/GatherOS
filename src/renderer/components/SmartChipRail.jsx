@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
 import Dropdown from './Dropdown.jsx';
+import { TWEET_TYPES } from '../lib/tweetType.js';
 
 // X logomark, drawn as a filled glyph that matches the lucide icon API
 // (takes a `size`) so it can slot into the chip list. Bookmarks come
@@ -45,6 +46,12 @@ export default function SmartChipRail({
   activeViewType = 'all',
   counts = { all: 0, unsorted: 0, trash: 0 },
   onPick,
+  // Bookmarks-only tweet-type sub-filter. The pills merge into this
+  // rail's left cluster after the smart-view chips, shown only on the
+  // Bookmarks view. onTweetTypeChange absent → pills are hidden.
+  tweetTypeFilter = 'all',
+  tweetTypeCounts = null,
+  onTweetTypeChange = null,
   sortMode = 'recent',
   onSortChange,
   columns,
@@ -178,6 +185,28 @@ export default function SmartChipRail({
               </button>
             );
           })
+        )}
+        {!inFolder && activeViewType === 'bookmarks' && onTweetTypeChange && (
+          <div className={styles.typeFilter} role="group" aria-label="Filter by tweet type">
+            <span className={styles.typeDivider} aria-hidden="true" />
+            {TWEET_TYPES.map(({ id, label }) => {
+              const active = tweetTypeFilter === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  className={`${styles.typePill} ${active ? styles.typePillActive : ''}`}
+                  onClick={() => onTweetTypeChange(id)}
+                >
+                  <span>{label}</span>
+                  {tweetTypeCounts && (
+                    <span className={styles.typePillCount}>{tweetTypeCounts[id] ?? 0}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
       <div className={styles.right}>
