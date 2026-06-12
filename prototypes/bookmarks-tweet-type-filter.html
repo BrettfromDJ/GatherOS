@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filter bookmarks by tweet type</title>
+<style>
+  :root{
+    --bg:#FAFAF9; --card:#fff; --hair:#ececea; --hair-strong:#e0e0dd;
+    --ink:#1a1a18; --sub:#8a8a84; --sub2:#a8a8a2; --accent:#111;
+    --tw-sub:#536471; --radius:14px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--font); background:#f0efed; color:var(--ink); -webkit-font-smoothing:antialiased;}
+
+  /* ---- top tab bar ---- */
+  .topbar{position:fixed;top:0;left:0;right:0;height:54px;z-index:50;display:flex;align-items:center;gap:6px;
+    padding:0 16px;background:rgba(255,255,255,.86);backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid var(--hair-strong);}
+  .topbar h1{font-size:13.5px;font-weight:600;letter-spacing:-0.01em;margin:0 14px 0 2px;color:var(--ink);white-space:nowrap}
+  .tabs{display:flex;gap:4px;overflow:auto}
+  .tab{appearance:none;border:1px solid transparent;background:transparent;cursor:pointer;font-family:inherit;
+    font-size:12.5px;font-weight:500;color:var(--sub);padding:6px 11px;border-radius:9px;white-space:nowrap;
+    letter-spacing:-0.005em;transition:background .12s,color .12s}
+  .tab:hover{background:#f1f0ee;color:var(--ink)}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .tab .num{opacity:.5;margin-right:6px;font-variant-numeric:tabular-nums}
+  .tab.active .num{opacity:.6}
+  .hint{margin-left:auto;font-size:11.5px;color:var(--sub2);white-space:nowrap}
+  .hint kbd{font-family:var(--font);background:#f1f0ee;border:1px solid var(--hair-strong);border-bottom-width:2px;
+    border-radius:5px;padding:1px 5px;font-size:10.5px;color:var(--sub)}
+
+  /* ---- panel / stage ---- */
+  .stage{padding:54px 0 0}
+  .panel{display:none}
+  .panel.active{display:block}
+  .meta{max-width:1080px;margin:0 auto;padding:22px 28px 6px}
+  .meta .label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub2)}
+  .meta h2{font-size:21px;font-weight:650;letter-spacing:-0.02em;margin:6px 0 5px}
+  .meta p{font-size:13.5px;line-height:1.5;color:var(--sub);margin:0;max-width:680px}
+
+  /* ---- mock app window ---- */
+  .win{max-width:1080px;margin:16px auto 60px;background:var(--bg);border:1px solid var(--hair-strong);
+    border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 22px 60px rgba(0,0,0,.09)}
+  .traffic{display:flex;gap:8px;padding:13px 16px 0}
+  .traffic i{width:11px;height:11px;border-radius:50%;display:block}
+  .traffic i:nth-child(1){background:#ff5f57}
+  .traffic i:nth-child(2){background:#febc2e}
+  .traffic i:nth-child(3){background:#28c840}
+
+  /* ---- smart chip rail (existing, shared) ---- */
+  .rail{display:flex;align-items:center;gap:2px;padding:14px 20px 0}
+  .seg{appearance:none;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:13.5px;
+    font-weight:500;color:var(--sub);padding:6px 12px 12px;position:relative;letter-spacing:-0.01em;
+    display:inline-flex;align-items:center;gap:7px;transition:color .12s}
+  .seg:hover{color:var(--ink)}
+  .seg.on{color:var(--ink);font-weight:600}
+  .seg.on::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--accent);border-radius:2px}
+  .seg svg{width:15px;height:15px;opacity:.8}
+  .rail .right{margin-left:auto;display:flex;align-items:center;gap:10px;padding-bottom:10px}
+  .ctl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub);background:#fff;
+    border:1px solid var(--hair-strong);border-radius:9px;padding:5px 9px;cursor:pointer}
+  .ctl svg{width:13px;height:13px;opacity:.7}
+  .zoom{width:78px;height:4px;border-radius:3px;background:#e3e3e0;position:relative}
+  .zoom::after{content:"";position:absolute;left:0;top:-4px;width:12px;height:12px;border-radius:50%;background:#fff;
+    border:1px solid var(--hair-strong);box-shadow:0 1px 2px rgba(0,0,0,.12);left:46%}
+  .railhair{height:1px;background:var(--hair);margin:0 20px}
+
+  /* ---- grid ---- */
+  .gridwrap{padding:16px 20px 22px;min-height:340px}
+  .grid{column-count:3;column-gap:12px}
+  @media(max-width:760px){.grid{column-count:2}}
+  .tcard{break-inside:avoid;background:var(--card);border:1px solid var(--hair);border-radius:var(--radius);
+    padding:13px 14px 14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03);
+    animation:pop .26s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+  .thead{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .av{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:13px;letter-spacing:-0.02em}
+  .tid{min-width:0;line-height:1.25}
+  .tname{font-weight:700;font-size:13.5px;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .tname svg{width:13px;height:13px;color:#1d9bf0;flex:none}
+  .thandle{font-size:12.5px;color:var(--tw-sub)}
+  .xmark{margin-left:auto;color:var(--tw-sub);align-self:flex-start}
+  .xmark svg{width:14px;height:14px}
+  .ttext{font-size:14px;line-height:1.42;color:#0f1419;letter-spacing:-0.003em;white-space:pre-wrap}
+  .media{margin-top:10px;border-radius:11px;overflow:hidden;position:relative}
+  .media .ph{display:block;width:100%}
+  .media.two{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+  .media.two .ph{border-radius:0}
+  .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .play i{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+  .play i::after{content:"";border-left:14px solid #fff;border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px}
+  .dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:600;
+    padding:2px 6px;border-radius:5px;font-variant-numeric:tabular-nums}
+  .typetag{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;
+    letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:5px}
+
+  /* ---- empty state ---- */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:70px 0;color:var(--sub2);text-align:center}
+  .empty .eglyph{width:46px;height:46px;border-radius:13px;background:#fff;border:1px solid var(--hair-strong);
+    display:flex;align-items:center;justify-content:center;color:#c4c4be}
+  .empty .eglyph svg{width:22px;height:22px}
+  .empty b{font-size:14px;color:var(--sub);font-weight:600}
+  .empty span{font-size:12.5px}
+
+  /* =========================================================
+     ITERATION-SPECIFIC FILTER STYLES
+     ========================================================= */
+
+  /* (1) dedicated sub-rail */
+  .subrail{display:flex;align-items:center;gap:6px;padding:11px 20px;}
+  .subrail .lead{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sub2);margin-right:8px}
+  .tseg{appearance:none;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;
+    color:var(--sub);padding:6px 4px 9px;position:relative;display:inline-flex;align-items:center;gap:7px;margin-right:10px}
+  .tseg:hover{color:var(--ink)}
+  .tseg.active{color:var(--ink);font-weight:600}
+  .tseg.active::after{content:"";position:absolute;left:0;right:14px;bottom:0;height:2px;background:var(--accent);border-radius:2px}
+  .tseg .ct{font-size:11.5px;color:var(--sub2);background:#f0efed;border-radius:20px;padding:1px 7px;font-variant-numeric:tabular-nums}
+  .tseg.active .ct{background:#111;color:#fff}
+
+  /* (2) merged pills */
+  .pill{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--sub);
+    background:#fff;border:1px solid var(--hair-strong);border-radius:20px;padding:5px 12px;display:inline-flex;align-items:center;gap:7px;
+    transition:all .12s}
+  .pill:hover{border-color:#cfcfc9;color:var(--ink)}
+  .pill.active{background:#111;border-color:#111;color:#fff}
+  .pill .ct{font-size:11px;opacity:.55;font-variant-numeric:tabular-nums}
+  .pill.active .ct{opacity:.7}
+  .pillsdiv{width:1px;height:20px;background:var(--hair-strong);margin:0 10px 10px}
+
+  /* (3) dropdown */
+  .ddwrap{position:relative}
+  .ddtrigger{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:var(--ink);background:#fff;
+    border:1px solid var(--hair-strong);border-radius:9px;padding:6px 10px;cursor:pointer}
+  .ddtrigger .k{color:var(--sub2);font-weight:500}
+  .ddtrigger svg{width:12px;height:12px;opacity:.6}
+  .ddmenu{position:absolute;right:0;top:38px;min-width:184px;background:#fff;border:1px solid var(--hair-strong);
+    border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.14);padding:5px;z-index:20;display:none}
+  .ddmenu.open{display:block}
+  .dditem{display:flex;align-items:center;gap:9px;width:100%;border:none;background:transparent;cursor:pointer;
+    font-family:inherit;font-size:13px;color:var(--ink);padding:8px 9px;border-radius:8px;text-align:left}
+  .dditem:hover{background:#f5f4f2}
+  .dditem.active{background:#f0efed;font-weight:600}
+  .dditem .ct{margin-left:auto;font-size:11.5px;color:var(--sub2);font-variant-numeric:tabular-nums}
+  .dditem .tick{width:14px;color:var(--ink);opacity:0}
+  .dditem.active .tick{opacity:1}
+  .dditem svg.gl{width:15px;height:15px;opacity:.7}
+
+  /* (4) icon segmented control */
+  .segctl{display:inline-flex;background:#efeeec;border:1px solid var(--hair-strong);border-radius:11px;padding:3px;gap:2px}
+  .segbtn{appearance:none;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;
+    color:var(--sub);padding:6px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:7px;transition:all .14s}
+  .segbtn svg{width:15px;height:15px}
+  .segbtn:hover{color:var(--ink)}
+  .segbtn.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .segbtn .ct{font-size:11px;color:var(--sub2);background:rgba(0,0,0,.05);border-radius:20px;padding:0 6px;font-variant-numeric:tabular-nums}
+  .segbtn.active .ct{background:#111;color:#fff}
+
+  /* (5) quiet text nav */
+  .qnav{display:flex;align-items:baseline;gap:22px;padding:13px 22px 14px}
+  .qlink{appearance:none;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:14px;
+    font-weight:500;color:var(--sub2);padding:0;position:relative;letter-spacing:-0.01em;transition:color .12s}
+  .qlink:hover{color:var(--ink)}
+  .qlink.active{color:var(--ink);font-weight:600}
+  .qlink sup{font-size:10px;font-weight:600;color:var(--sub2);margin-left:3px;top:-.6em;font-variant-numeric:tabular-nums}
+  .qlink.active sup{color:#111}
+  .qnav .qhair{margin-left:auto}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Filter bookmarks by tweet type</h1>
+  <div class="tabs" id="tabs"></div>
+  <div class="hint">press <kbd>1</kbd>–<kbd>5</kbd></div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<script>
+/* ----------------------------------------------------------
+   Shared mock data — a realistic mix of text / image / video
+   bookmarks so the filtering experience reads clearly.
+---------------------------------------------------------- */
+const DATA = [
+  {type:'text', name:'-,` Akash ´-_', handle:'@akashtdev', av:['#5b6b86','#33405a'], v:1,
+   text:'Hot take: the best interface is the one you stop noticing. If users are praising your UI, it’s probably in their way.'},
+  {type:'image', name:'Linear', handle:'@linear', av:['#5e6ad2','#3a43b0'], v:1,
+   text:'New cycle view. Everything you’re working on, finally in one place.', media:'grad1', h:150},
+  {type:'video', name:'Vercel', handle:'@vercel', av:['#111','#444'], v:1,
+   text:'Instant rollbacks, now in one click. Watch it fly →', media:'grad2', dur:'0:42', h:168},
+  {type:'text', name:'Steph', handle:'@stephdraws', av:['#d6336c','#a61e4d'], v:0,
+   text:'Spacing is the cheapest, highest-leverage design tool you have and most people are scared of it.'},
+  {type:'image', name:'Paletteer', handle:'@paletteer', av:['#0c8599','#0b6e7f'], v:0,
+   text:'Today’s palette: warm neutrals + a single electric accent.', media:'pal', h:88},
+  {type:'text', name:'Brett', handle:'@brettfromdj', av:['#e8590c','#d9480f'], v:1,
+   text:'Ship small, ship often. A feature nobody can find isn’t shipped.'},
+  {type:'video', name:'Emil Kowalski', handle:'@emilkowalski_', av:['#2b8a3e','#237032'], v:1,
+   text:'A little motion study. Easing is everything.', media:'grad3', dur:'0:18', h:140},
+  {type:'image', name:'Typewolf', handle:'@typewolf', av:['#212529','#495057'], v:0,
+   text:'Typeface of the day. Look at that ampersand.', media:'type', h:176},
+  {type:'text', name:'Dieter', handle:'@rams', av:['#495057','#212529'], v:1,
+   text:'Good design is as little design as possible. Less, but better — because it concentrates on the essential aspects.'},
+  {type:'image', name:'Mintlify', handle:'@mintlify', av:['#0ca678','#099268'], v:1,
+   text:'Docs that feel like part of the product, not an afterthought.', media:'grad4', h:120},
+  {type:'video', name:'Rauno', handle:'@raunofreiberg', av:['#7048e8','#5f3dc4'], v:1,
+   text:'Scroll-linked detail. The small stuff compounds.', media:'grad5', dur:'0:09', h:152},
+  {type:'text', name:'Sara Soueidan', handle:'@sarasoueidan', av:['#c2255c','#a61e4d'], v:1,
+   text:'Reminder: a modal is a decision you’re forcing on someone. Make sure it’s worth interrupting them for.'},
+];
+const COUNTS = {all:DATA.length, text:DATA.filter(d=>d.type==='text').length,
+  image:DATA.filter(d=>d.type==='image').length, video:DATA.filter(d=>d.type==='video').length};
+const LABELS = {all:'All', text:'Text', image:'Image', video:'Video'};
+
+const GRADS = {
+  grad1:'linear-gradient(135deg,#5e6ad2,#8b93e8)', grad2:'linear-gradient(135deg,#0b1220,#36507a)',
+  grad3:'linear-gradient(135deg,#2b8a3e,#69db7c)', grad4:'linear-gradient(135deg,#0ca678,#63e6be)',
+  grad5:'linear-gradient(135deg,#7048e8,#b197fc)',
+  pal:'linear-gradient(90deg,#f4a259 0 25%,#e8c4a0 25% 50%,#5b8a72 50% 75%,#2d3a3a 75% 100%)',
+  type:'linear-gradient(135deg,#f8f9fa,#e9ecef)'
+};
+
+const verified = '<svg viewBox="0 0 22 22" fill="currentColor"><path d="M20.4 11l-1.9-2.2.3-2.9-2.9-.7-1.5-2.5L11 4 8.6 2.8 7.1 5.3l-2.9.7.3 2.9L2.6 11l1.9 2.2-.3 2.9 2.9.7 1.5 2.5L11 21l2.4-1.2 2.9-.7-.3-2.9 1.9-2.2zm-11.4 3.6L5.6 11l1.3-1.3 2.1 2.1 5-5 1.3 1.3-6.3 6.5z"/></svg>';
+const xglyph = '<svg viewBox="0 0 1200 1227" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>';
+
+function cardHTML(d){
+  const initials = d.name.replace(/[^A-Za-z ]/g,'').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'X';
+  let media = '';
+  if(d.type==='image'){
+    if(d.media==='pal' || d.media==='type'){
+      media = `<div class="media"><span class="ph" style="height:${d.h}px;background:${GRADS[d.media]}"></span><span class="typetag">image</span></div>`;
+    } else {
+      media = `<div class="media"><span class="ph" style="height:${d.h}px;background:${GRADS[d.media]}"></span><span class="typetag">image</span></div>`;
+    }
+  } else if(d.type==='video'){
+    media = `<div class="media"><span class="ph" style="height:${d.h}px;background:${GRADS[d.media]}"></span>
+      <span class="typetag">video</span><span class="play"><i></i></span><span class="dur">${d.dur}</span></div>`;
+  }
+  return `<div class="tcard">
+    <div class="thead">
+      <span class="av" style="background:linear-gradient(140deg,${d.av[0]},${d.av[1]})">${initials}</span>
+      <span class="tid">
+        <span class="tname">${d.name}${d.v?verified:''}</span>
+        <span class="thandle">${d.handle}</span>
+      </span>
+      <span class="xmark">${xglyph}</span>
+    </div>
+    <div class="ttext">${d.text}</div>
+    ${media}
+  </div>`;
+}
+
+const emptyGlyph = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>';
+function emptyState(type){
+  return `<div class="empty"><span class="eglyph">${emptyGlyph}</span>
+    <b>No ${LABELS[type].toLowerCase()} bookmarks</b>
+    <span>Bookmarks you sync from X that match this type will show up here.</span></div>`;
+}
+function renderGrid(grid, type){
+  const items = DATA.filter(d => type==='all' || d.type===type);
+  grid.style.columnCount = '';
+  if(!items.length){ grid.style.columnCount='1'; grid.innerHTML = emptyState(type); return; }
+  grid.innerHTML = items.map(cardHTML).join('');
+}
+
+/* ----------------------------------------------------------
+   Shared chrome: traffic lights + smart chip rail
+---------------------------------------------------------- */
+const sortGl = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M10 18h4"/></svg>';
+const chevGl = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>';
+const imgGl = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 16l-5-5-7 7"/></svg>';
+const inboxGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13l3-8h12l3 8M3 13v6h18v-6M3 13h6l1 2h4l1-2h6"/></svg>';
+const trashGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>';
+const textGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 6h14M5 6V5h14v1M12 6v13M9 19h6"/></svg>';
+const playGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none"/></svg>';
+const gridGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>';
+
+function smartRail(){
+  return `<div class="rail">
+    <button class="seg">${gridGl}All</button>
+    <button class="seg on">${xglyph2()}Bookmarks</button>
+    <button class="seg">${inboxGl}Unsorted</button>
+    <button class="seg">${trashGl}Trash</button>
+    <div class="right">
+      <span class="ctl">${sortGl}Most recent ${chevGl}</span>
+      <span class="zoom"></span>
+    </div>
+  </div>`;
+}
+function xglyph2(){return '<svg viewBox="0 0 1200 1227" fill="currentColor"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>';}
+
+/* ----------------------------------------------------------
+   Five iterations — each returns the filter-control markup
+   that sits between the smart rail and the grid.
+---------------------------------------------------------- */
+const ITERS = [
+  {
+    name:'Dedicated sub-rail',
+    why:'A second segmented row appears under the existing rail only on Bookmarks, with live counts and the same black-underline language. Most discoverable, scales cleanly if more types are added later — the safe default.',
+    filter:()=>`<div class="railhair"></div>
+      <div class="subrail">
+        <span class="lead">Type</span>
+        ${typeBtn('all','All')}${typeBtn('text','Text')}${typeBtn('image','Image')}${typeBtn('video','Video')}
+      </div>`
+  },
+  {
+    name:'Merged pills',
+    why:'No extra row — the type filters live as rounded pills appended to the existing rail after a divider. Keeps chrome to a single line; best when vertical space is precious.',
+    filter:()=>`<div class="railhair"></div>
+      <div class="rail" style="padding-top:11px;padding-bottom:11px">
+        <span class="pillsdiv" style="margin-left:0;height:18px"></span>
+        ${pillBtn('all','All')}${pillBtn('text','Text')}${pillBtn('image','Image')}${pillBtn('video','Video')}
+      </div>`,
+    inline:true
+  },
+  {
+    name:'Type dropdown',
+    why:'A compact “Type ▾” menu next to sort. The rail stays pristine and filtering is tucked away — ideal if type-filtering is occasional rather than constant. Trades one-tap access for zero added chrome.',
+    filter:()=>`<div class="railhair"></div>
+      <div class="rail" style="padding-top:11px;padding-bottom:11px;justify-content:flex-end">
+        <div class="ddwrap">
+          <button class="ddtrigger" data-menu-trigger><span class="k">Type:</span> <span data-current-label>All</span> ${chevGl}</button>
+          <div class="ddmenu" data-menu>
+            ${ddItem('all','All',gridGl)}${ddItem('text','Text',textGl)}${ddItem('image','Image',imgGl)}${ddItem('video','Video',playGl)}
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    name:'Icon segmented control',
+    why:'A grouped, iOS-style segmented control — icon-first with counts, sitting on the right of the rail. Dense and pro-tool; reads as “one control, four states” rather than four buttons.',
+    filter:()=>`<div class="railhair"></div>
+      <div class="rail" style="padding-top:12px;padding-bottom:12px;justify-content:flex-end">
+        <div class="segctl">
+          ${segBtn('all','All',gridGl)}${segBtn('text','Text',textGl)}${segBtn('image','Image',imgGl)}${segBtn('video','Video',playGl)}
+        </div>
+      </div>`
+  },
+  {
+    name:'Quiet text nav',
+    why:'Minimal left-aligned text links with superscript counts — editorial restraint, almost no added weight. Leans into a design-led aesthetic; counts whisper rather than badge.',
+    filter:()=>`<div class="railhair"></div>
+      <div class="qnav">
+        ${qLink('all','All')}${qLink('text','Text')}${qLink('image','Image')}${qLink('video','Video')}
+      </div>`
+  },
+];
+
+/* control-fragment helpers (counts injected from COUNTS) */
+function typeBtn(t,l){return `<button class="tseg" data-type="${t}">${l}<span class="ct" data-count="${t}"></span></button>`;}
+function pillBtn(t,l){return `<button class="pill" data-type="${t}">${l}<span class="ct" data-count="${t}"></span></button>`;}
+function segBtn(t,l,g){return `<button class="segbtn" data-type="${t}" title="${l}">${g}<span class="ct" data-count="${t}"></span></button>`;}
+function qLink(t,l){return `<button class="qlink" data-type="${t}">${l}<sup data-count="${t}"></sup></button>`;}
+const tickGl='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4L19 7"/></svg>';
+function ddItem(t,l,g){return `<button class="dditem" data-type="${t}"><span class="tick">${tickGl}</span><span class="gl" style="display:inline-flex">${g}</span>${l}<span class="ct" data-count="${t}"></span></button>`;}
+
+/* ----------------------------------------------------------
+   Build panels
+---------------------------------------------------------- */
+const stage = document.getElementById('stage');
+const tabsEl = document.getElementById('tabs');
+ITERS.forEach((it, i)=>{
+  const panel = document.createElement('section');
+  panel.className = 'panel' + (i===0?' active':'');
+  panel.dataset.tab = i+1;
+  panel.innerHTML = `
+    <div class="meta">
+      <div class="label">Direction ${i+1} of 5</div>
+      <h2>${it.name}</h2>
+      <p>${it.why}</p>
+    </div>
+    <div class="win" data-iter>
+      <div class="traffic"><i></i><i></i><i></i></div>
+      ${smartRail()}
+      ${it.filter()}
+      <div class="gridwrap"><div class="grid" data-grid></div></div>
+    </div>`;
+  stage.appendChild(panel);
+
+  const tab = document.createElement('button');
+  tab.className = 'tab' + (i===0?' active':'');
+  tab.innerHTML = `<span class="num">${i+1}</span>${it.name}`;
+  tab.addEventListener('click', ()=>show(i+1));
+  tabsEl.appendChild(tab);
+});
+
+/* ----------------------------------------------------------
+   Wire every iteration's filter control to its grid
+---------------------------------------------------------- */
+document.querySelectorAll('[data-iter]').forEach(win=>{
+  const grid = win.querySelector('[data-grid]');
+  const buttons = win.querySelectorAll('[data-type]');
+  let active = 'all';
+  win.querySelectorAll('[data-count]').forEach(el=> el.textContent = COUNTS[el.dataset.count]);
+  function update(){
+    buttons.forEach(b=> b.classList.toggle('active', b.dataset.type===active));
+    const lbl = win.querySelector('[data-current-label]');
+    if(lbl) lbl.textContent = LABELS[active];
+    renderGrid(grid, active);
+  }
+  buttons.forEach(b=> b.addEventListener('click', ()=>{
+    active = b.dataset.type;
+    const menu = win.querySelector('[data-menu]'); if(menu) menu.classList.remove('open');
+    update();
+  }));
+  const trig = win.querySelector('[data-menu-trigger]');
+  if(trig){ trig.addEventListener('click', e=>{ e.stopPropagation();
+    win.querySelector('[data-menu]').classList.toggle('open'); }); }
+  update();
+});
+document.addEventListener('click', ()=> document.querySelectorAll('[data-menu].open').forEach(m=>m.classList.remove('open')));
+
+/* ----------------------------------------------------------
+   Tab / keyboard switching
+---------------------------------------------------------- */
+function show(n){
+  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', +p.dataset.tab===n));
+  document.querySelectorAll('.tab').forEach((t,idx)=> t.classList.toggle('active', idx+1===n));
+  window.scrollTo({top:0});
+}
+document.addEventListener('keydown', e=>{
+  if(e.key>='1' && e.key<='5'){ show(+e.key); }
+});
+</script>
+</body>
+</html>
