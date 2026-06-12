@@ -2589,6 +2589,92 @@ export default function App({ entitlement } = {}) {
     }
   }, [focusAfterDrop, view, loadCollections, reload]);
 
+  // Paste an image into the library (cmd-V). Mirrors the drop pipeline:
+  // raw image bytes from the clipboard go through pasteImage (a pasted
+  // image has no filesystem path, so dropFile can't be used), and a
+  // bare image URL falls back to dropUrl. When pasting inside a
+  // collection the new saves get attached to it — same scoping rule as
+  // onDrop. Skipped while a board is open (BoardView owns cmd-V there)
+  // and while the user is typing in an editable field.
+  useEffect(() => {
+    const attachToCollectionOrFocus = async (newIds) => {
+      if (view.type === 'collection' && view.id && newIds.length) {
+        for (const saveId of newIds) {
+          try {
+            await window.moodmark.collections.addSave({
+              collectionId: view.id, saveId,
+            });
+          } catch (err) {
+            console.error('Add-to-collection-on-paste failed:', err);
+          }
+        }
+        loadCollections();
+        reload();
+        setSelected(new Set());
+      } else if (newIds.length) {
+        focusAfterDrop();
+      }
+    };
+
+    const onPaste = async (e) => {
+      if (view.type === 'board') return;
+      const target = e.target;
+      if (
+        target?.isContentEditable ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+      const cd = e.clipboardData;
+      if (!cd) return;
+
+      const imageFiles = [...(cd.items || [])]
+        .filter((i) => i.kind === 'file' && i.type.startsWith('image/'))
+        .map((i) => i.getAsFile())
+        .filter(Boolean);
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        const newIds = [];
+        for (const file of imageFiles) {
+          try {
+            const buf = await file.arrayBuffer();
+            const ext = (file.type.split('/')[1] || 'png').toLowerCase();
+            const record = await window.moodmark.saves.pasteImage(
+              new Uint8Array(buf),
+              ext,
+            );
+            if (record?.id) newIds.push(record.id);
+          } catch (err) {
+            console.error('Paste failed:', err);
+          }
+        }
+        if (newIds.length) {
+          await attachToCollectionOrFocus(newIds);
+          showActionToast({ message: 'Pasted from clipboard', durationMs: 1800 });
+        }
+        return;
+      }
+
+      // No image bytes — see if the clipboard holds an image URL.
+      const candidates = extractDropImageUrls(cd);
+      if (candidates.length === 0) return;
+      e.preventDefault();
+      try {
+        const record = await window.moodmark.saves.dropUrl(candidates);
+        if (record?.id) {
+          await attachToCollectionOrFocus([record.id]);
+          showActionToast({ message: 'Pasted from clipboard', durationMs: 1800 });
+        }
+      } catch (err) {
+        console.error('Paste URL failed:', err);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [view, focusAfterDrop, showActionToast, loadCollections, reload]);
+
   // Hidden file picker — triggered by the "+" button on the All Saves
   // sidebar row. Routes the chosen files through the same dropFile +
   // focusAfterDrop pipeline as drag-and-drop.

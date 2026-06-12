@@ -80,6 +80,14 @@ contextBridge.exposeInMainWorld('moodmark', {
     // kind='url'. Returns { ok, record, duplicate? } on success,
     // { ok: false, error } otherwise.
     captureUrl: (url) => ipcRenderer.invoke('saves:capture-url', url),
+    // Import raw image bytes (e.g. an image pasted from the system
+    // clipboard, which has no filesystem path so dropFile can't be
+    // used). `bytes` is a Uint8Array / ArrayBuffer of the image file.
+    pasteImage: (bytes, ext) =>
+      ipcRenderer.invoke('saves:paste-image', {
+        bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+        ext,
+      }),
   },
   collections: {
     getAll: () => ipcRenderer.invoke('collections:get-all'),

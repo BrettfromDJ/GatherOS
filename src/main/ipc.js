@@ -343,6 +343,28 @@ function registerIpcHandlers() {
     return record;
   });
 
+  // Import an image from raw clipboard bytes. A pasted image has no
+  // filesystem path, so it can't go through saves:drop-file — the
+  // renderer hands us the bytes and we run them through the same
+  // saveImageFromBuffer → insertSave pipeline (dedup, palette, etc.).
+  ipcMain.handle('saves:paste-image', async (_e, payload) => {
+    if (blockNewSave('save')) return { needsUpgrade: true };
+    const { bytes, ext } = payload || {};
+    if (!bytes || !bytes.length) throw new Error('paste-image called without image bytes');
+    const buffer = Buffer.from(bytes);
+    const safeExt = typeof ext === 'string' && /^[a-z0-9]+$/i.test(ext)
+      ? ext.toLowerCase()
+      : 'png';
+    const imgData = await saveImageFromBuffer(buffer, safeExt);
+    if (imgData.duplicateOf) {
+      notifyDuplicate(imgData.existing);
+      return imgData.existing;
+    }
+    const record = insertSave(imgData);
+    notifySaved(record);
+    return record;
+  });
+
   ipcMain.handle('saves:drop-zip', async (_e, zipPath) => {
     if (blockNewSave('save')) return { ok: false, needsUpgrade: true };
     if (!zipPath) throw new Error('drop-zip called without a path');
