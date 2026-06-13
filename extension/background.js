@@ -129,6 +129,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     saveRefreshTemplate(msg.url, msg.authorization);
     return false;
   }
+  // Panel-triggered backfill: open the bookmarks tab and import older
+  // bookmarks up to the chosen limit (msg.limit; 0 / missing = all).
+  if (msg.type === 'gatheros:import-bookmarks') {
+    handleImportBookmarks(msg).then(sendResponse);
+    return true;
+  }
   // Panel-driven actions. The in-page panel (panel.js) doesn't know
   // its window/tab ids, so we fill them from the message sender. Each
   // capture runs async and reports its result through notify().
@@ -291,6 +297,16 @@ async function markBookmarksSeen(ids) {
 
 async function handleBookmarkBatch(bookmarks) {
   if (!Array.isArray(bookmarks) || bookmarks.length === 0) return;
+
+  // A panel-triggered backfill owns the bookmarks tab: route pages
+  // through the import path. While winding down (active=false but state
+  // not yet cleared) swallow trailing cursor pages so they don't import
+  // past the chosen limit via the normal baseline path below.
+  if (importState) {
+    if (importState.active) await handleImportBatch(bookmarks);
+    return;
+  }
+
   const { seen, baseline, version } = await readSeenSet();
 
   if (!baseline || version !== CAPTURE_VERSION) {
@@ -327,6 +343,170 @@ async function handleBookmarkBatch(bookmarks) {
   }
   await writeSeenSet(seen);
 }
+
+// ── Backfill import ("Import bookmarks" from the panel) ─────────────
+//
+// Opens (or focuses) the bookmarks tab, asks the watcher there to
+// auto-scroll, and imports every bookmark the interceptor surfaces up
+// to the chosen limit. Unlike the normal flow, this bypasses the
+// extension's "seen" baseline and sends each bookmark to the desktop,
+// which is the real source of truth for dedup (content_hash) and
+// deletes (tweet tombstones). That matters: bookmarks recorded into
+// the seen-set at install time (baseline) were never actually saved,
+// so gating a backfill on the seen-set would silently skip exactly the
+// history the user is trying to import.
+
+// Remote-controllable kill switch. Defaults to enabled; set this key
+// truthy (from the desktop app over the native bridge, or a future
+// config fetch) to disable the backfill in the field without shipping
+// a new extension.
+const STORAGE_IMPORT_DISABLED_KEY = 'gatherosImportDisabled';
+// Consecutive batches that surface no page we haven't already processed
+// this run → we've hit the bottom (or X stopped paginating). Ends the
+// import so it doesn't scroll forever.
+const IMPORT_STAGNANT_BATCHES_LIMIT = 4;
+// Whole-run safety valve: if batches stop arriving entirely (page never
+// loaded, signed out, etc.) the stagnation counter never advances, so
+// force-end after this long.
+const IMPORT_WATCHDOG_MS = 6 * 60 * 1000;
+
+// Module-level run state. null when no backfill is active.
+// { active, tabId, limit, processed:Set<id>, imported:number,
+//   stagnant:number, watchdog:timeoutId }
+let importState = null;
+
+async function handleImportBookmarks(msg) {
+  const { [STORAGE_IMPORT_DISABLED_KEY]: disabled } =
+    await chrome.storage.local.get(STORAGE_IMPORT_DISABLED_KEY);
+  if (disabled) {
+    notify('Bookmark import is temporarily unavailable.');
+    return { ok: false, disabled: true };
+  }
+  if (importState && importState.active) {
+    notify('A bookmark import is already running.');
+    return { ok: false, busy: true };
+  }
+
+  // No point opening x.com and scrolling if the desktop can't receive
+  // saves — every import would just fail. Tell the user to open it.
+  const status = await pingApp();
+  if (!status || status.hostMissing || !status.appRunning) {
+    notify('Open GatherOS first, then run Import bookmarks.');
+    return { ok: false, appClosed: true };
+  }
+
+  // 0 / missing / non-positive = "all".
+  const n = Number(msg && msg.limit);
+  const limit = Number.isFinite(n) && n > 0 ? n : Infinity;
+
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url: 'https://x.com/i/bookmarks', active: true });
+  } catch (err) {
+    notify("Couldn't open your X bookmarks.");
+    return { ok: false, error: String(err && err.message || err) };
+  }
+
+  importState = {
+    active: true,
+    tabId: tab.id,
+    limit,
+    processed: new Set(),
+    imported: 0,
+    stagnant: 0,
+    watchdog: setTimeout(() => { endImport('timeout'); }, IMPORT_WATCHDOG_MS),
+  };
+  scheduleImportStart(tab.id);
+  return { ok: true };
+}
+
+// Tell the bookmarks tab's watcher to begin auto-scrolling. The content
+// script may not have loaded the instant the tab opens, so retry a few
+// times with backoff until the message is received.
+function scheduleImportStart(tabId, attempt = 0) {
+  setTimeout(() => {
+    if (!importState || !importState.active || importState.tabId !== tabId) return;
+    chrome.tabs.sendMessage(tabId, { type: 'gatheros:start-import' }, () => {
+      if (chrome.runtime.lastError && attempt < 6) {
+        scheduleImportStart(tabId, attempt + 1);
+      }
+    });
+  }, attempt === 0 ? 2500 : 1000);
+}
+
+async function handleImportBatch(bookmarks) {
+  let foundNew = false;
+  let reachedLimit = false;
+  for (const b of bookmarks) {
+    if (!b || !b.tweetId) continue;
+    if (importState.processed.has(b.tweetId)) continue; // counted this run already
+    importState.processed.add(b.tweetId);
+    foundNew = true;
+    try {
+      // Let the desktop dedup (content_hash) + tombstones decide; only
+      // count genuinely new saves toward the summary.
+      const resp = await syncBookmarkToGather(b);
+      if (resp && resp.ok && !resp.duplicate) importState.imported += 1;
+    } catch (err) {
+      console.warn('[gatheros] backfill import failed:', err?.message || err);
+    }
+    // Limit counts bookmarks *traversed*, newest-first — "most recent
+    // N" — not just the ones that turned out to be new.
+    if (importState.processed.size >= importState.limit) { reachedLimit = true; break; }
+  }
+  // Keep the seen-set current so the normal incremental poll doesn't
+  // re-handle these later.
+  await markBookmarksSeen(bookmarks.map((b) => b && b.tweetId).filter(Boolean));
+
+  if (foundNew) importState.stagnant = 0;
+  else importState.stagnant += 1;
+
+  if (reachedLimit || importState.stagnant >= IMPORT_STAGNANT_BATCHES_LIMIT) {
+    await endImport(reachedLimit ? 'limit' : 'bottom');
+  }
+}
+
+async function endImport(_reason) {
+  if (!importState || !importState.active) return; // guards double-end
+  importState.active = false;
+  const { tabId, imported, watchdog } = importState;
+  if (watchdog) clearTimeout(watchdog);
+
+  // A backfill establishes the baseline (everything currently in
+  // bookmarks has now been processed), so the regular poll resumes
+  // importing only genuinely-new bookmarks from here on.
+  try {
+    const { seen } = await readSeenSet();
+    await writeSeenSet(seen, { baseline: true, version: CAPTURE_VERSION });
+  } catch (err) {
+    console.warn('[gatheros] could not set baseline after import:', err?.message || err);
+  }
+
+  const summary = { imported };
+  if (tabId != null) {
+    chrome.tabs.sendMessage(tabId, { type: 'gatheros:stop-import', summary }, () => {
+      void chrome.runtime.lastError; // tab may have closed — ignore
+    });
+  }
+  notify(imported > 0
+    ? `Imported ${imported} bookmark${imported === 1 ? '' : 's'} from X.`
+    : 'No new bookmarks to import.');
+
+  // Keep the (now-inactive) state around briefly to swallow trailing
+  // cursor pages until the watcher stops scrolling + the interceptor's
+  // IMPORT_MODE is back off, then fully clear.
+  setTimeout(() => { if (importState && !importState.active) importState = null; }, 8000);
+}
+
+// If the user closes the bookmarks tab mid-import, stop cleanly.
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (importState && importState.active && importState.tabId === tabId) {
+    if (importState.watchdog) clearTimeout(importState.watchdog);
+    const imported = importState.imported;
+    importState = null;
+    if (imported > 0) notify(`Bookmark import stopped — imported ${imported} so far.`);
+  }
+});
 
 // Send a single bookmark down the same /save pipeline as the click
 // capture. Mirrors the payload shape the bookmark watcher uses so

@@ -405,6 +405,73 @@ function findTweetVideo(article) {
   };
 }
 
+// ── Backfill import ("Import bookmarks" from the panel) ─────────────
+// The background service worker starts/stops a backfill on the
+// bookmarks tab. While it runs we (1) tell the MAIN-world interceptor
+// to forward every bookmarks page rather than just the newest, and
+// (2) auto-scroll the timeline at a gentle pace so x.com keeps loading
+// older pages for the interceptor to capture. The background owns the
+// stop decision (count reached, or no new bookmarks turning up) and
+// sends 'gatheros:stop-import' with a summary. A hard tick cap here is
+// a backstop so a stuck page can never scroll forever on its own.
+let importScrollActive = false;
+
+function setInterceptorImportMode(on) {
+  window.postMessage(
+    { source: 'gatheros-control', type: 'import-mode', on: !!on },
+    window.location.origin,
+  );
+}
+
+function importSleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runImportScroll() {
+  if (importScrollActive) return; // already running — ignore duplicate start
+  importScrollActive = true;
+  setInterceptorImportMode(true);
+  showGatherToast('Importing bookmarks…', { tone: 'ok' });
+
+  // ~1.2s/tick is fast enough to feel responsive but slow enough to
+  // stay under x.com's rate limiting. MAX_TICKS caps a single run at a
+  // few hundred pages even if the background never signals stop.
+  const TICK_MS = 1200;
+  const MAX_TICKS = 400;
+  let ticks = 0;
+  while (importScrollActive && ticks < MAX_TICKS) {
+    const scroller = document.scrollingElement || document.documentElement;
+    if (scroller) window.scrollTo(0, scroller.scrollHeight);
+    ticks += 1;
+    await importSleep(TICK_MS);
+  }
+  // Loop ended on its own (hit MAX_TICKS) without a stop signal — clean
+  // up so the interceptor returns to top-of-list-only.
+  if (importScrollActive) {
+    importScrollActive = false;
+    setInterceptorImportMode(false);
+  }
+}
+
+function stopImportScroll(summary) {
+  importScrollActive = false;
+  setInterceptorImportMode(false);
+  const n = summary && typeof summary.imported === 'number' ? summary.imported : null;
+  if (n !== null) {
+    showGatherToast(
+      n > 0 ? `Imported ${n} bookmark${n === 1 ? '' : 's'}` : 'No new bookmarks to import',
+      { tone: 'ok' },
+    );
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (!msg) return undefined;
+  if (msg.type === 'gatheros:start-import') { runImportScroll(); return false; }
+  if (msg.type === 'gatheros:stop-import') { stopImportScroll(msg.summary); return false; }
+  return undefined;
+});
+
 // Use the capture phase so we read the article BEFORE X's own click
 // handler can re-render or detach it. Reading is synchronous so
 // there's no race with the subsequent state flip.

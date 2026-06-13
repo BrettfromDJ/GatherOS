@@ -18,6 +18,7 @@
     link: '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
     open: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   };
   const svg = (paths, w = 17) =>
     `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
@@ -95,6 +96,12 @@
       .open .ico { color:var(--on-accent); }
       .open:hover { background:var(--accent-hover); }
       .open:active { transform:scale(0.985); }
+      .scope { display:flex; flex-direction:column; gap:6px; margin-top:8px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
+      .scope-label { font-size:11px; font-weight:600; color:var(--text-secondary); letter-spacing:-0.005em; margin:0 1px 1px; }
+      .chip { width:100%; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; text-align:left; cursor:pointer; }
+      .chip:hover { background:var(--hover-bg); }
+      .chip:active { transform:scale(0.985); }
+      .scope-note { font-size:10.5px; color:var(--text-tertiary); letter-spacing:-0.003em; line-height:1.35; margin:2px 1px 0; }
     </style>
     <div class="panel" part="panel">
       <div class="head" id="head">
@@ -108,6 +115,14 @@
         <button class="btn" data-action="gatheros:capture-full-page"><span class="ico">${svg(ICONS.full)}</span><span class="txt"><span class="label">Capture full page</span><span class="sub">Entire scrollable page</span></span></button>
         <button class="btn" data-action="gatheros:capture-area"><span class="ico">${svg(ICONS.area)}</span><span class="txt"><span class="label">Capture area</span><span class="sub">Drag to select a region</span></span></button>
         <button class="btn" data-action="gatheros:save-url"><span class="ico">${svg(ICONS.link)}</span><span class="txt"><span class="label">Save URL</span><span class="sub">This page as a link</span></span></button>
+        <button class="btn" id="importBookmarks"><span class="ico">${svg(ICONS.bookmark)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub">Backfill your X bookmarks</span></span></button>
+      </div>
+      <div class="scope" id="scope" hidden>
+        <div class="scope-label">How many to import?</div>
+        <button class="chip" data-limit="100">Most recent 100</button>
+        <button class="chip" data-limit="500">Most recent 500</button>
+        <button class="chip" data-limit="0">All bookmarks</button>
+        <div class="scope-note">Opens x.com and scrolls your bookmarks. Duplicates are skipped.</div>
       </div>
       <button class="open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
     </div>
@@ -124,10 +139,25 @@
   // in a screenshot), then fire the message. pageUrl/pageTitle come
   // from this page; the worker fills in the window/tab ids.
   root.querySelectorAll('.btn').forEach((btn) => {
+    const action = btn.getAttribute('data-action');
+    if (!action) return; // non-action buttons (e.g. Import) wire up below
     btn.addEventListener('click', () => {
-      const action = btn.getAttribute('data-action');
       close();
       chrome.runtime.sendMessage({ type: action, pageUrl: location.href, pageTitle: document.title });
+    });
+  });
+
+  // Import bookmarks: reveal the count chooser; each chip kicks off a
+  // backfill in the background worker (which opens x.com and scrolls).
+  const scope = root.getElementById('scope');
+  root.getElementById('importBookmarks').addEventListener('click', () => {
+    scope.hidden = !scope.hidden;
+  });
+  scope.querySelectorAll('.chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const limit = Number(chip.getAttribute('data-limit')) || 0; // 0 = all
+      close();
+      chrome.runtime.sendMessage({ type: 'gatheros:import-bookmarks', limit });
     });
   });
 

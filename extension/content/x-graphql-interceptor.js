@@ -23,6 +23,21 @@
   if (window.__GATHEROS_INTERCEPTOR__) return;
   window.__GATHEROS_INTERCEPTOR__ = true;
 
+  // Backfill switch. Normal browsing only imports the TOP of the
+  // bookmarks list (newest), so scrolling never floods the library
+  // with history. When the user runs "Import bookmarks" from the
+  // panel, the isolated-world watcher flips this on via a postMessage
+  // — while on, we forward bookmark entries from EVERY page, including
+  // the cursor-paginated deep-scroll pages, which is what lets old
+  // bookmarks import.
+  let IMPORT_MODE = false;
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const d = event.data;
+    if (!d || d.source !== 'gatheros-control') return;
+    if (d.type === 'import-mode') IMPORT_MODE = !!d.on;
+  });
+
   // Recursively walk a GraphQL response looking for tweet objects
   // (anything with a legacy.id_str and a media array containing
   // video_info.variants). Returns a Map<tweetId, {videoUrl, posterUrl}>.
@@ -433,19 +448,25 @@
         postVideos(videoMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
-        // Only the TOP-of-list bookmarks request drives imports. New
-        // bookmarks always land at the top of the feed, so paginated
-        // (deep-scroll) pages only ever surface old bookmarks —
-        // importing from them floods the library with history. Video
-        // extraction above still runs for every response.
-        if (isBookmarksEndpoint(reqUrl) && isTopOfBookmarksRequest(reqUrl)) {
-          postBookmarks(extractBookmarkEntries(json));
-          // fetch(Request) puts the headers on args[0]; fetch(url,
-          // init) puts them on args[1]. Read both.
-          const reqInit = (args[0] && typeof args[0] === 'object' && args[0].headers)
-            ? args[0]
-            : args[1];
-          postRefreshTemplate(reqUrl, readAuthorization(reqInit));
+        // Normally only the TOP-of-list bookmarks request drives
+        // imports — new bookmarks land at the top, so paginated
+        // (deep-scroll) pages only surface history and importing them
+        // would flood the library. During an explicit backfill
+        // (IMPORT_MODE) we forward every page so old bookmarks import.
+        // Video extraction above still runs for every response.
+        if (isBookmarksEndpoint(reqUrl)) {
+          const top = isTopOfBookmarksRequest(reqUrl);
+          if (IMPORT_MODE || top) {
+            postBookmarks(extractBookmarkEntries(json));
+          }
+          if (top) {
+            // fetch(Request) puts the headers on args[0]; fetch(url,
+            // init) puts them on args[1]. Read both.
+            const reqInit = (args[0] && typeof args[0] === 'object' && args[0].headers)
+              ? args[0]
+              : args[1];
+            postRefreshTemplate(reqUrl, readAuthorization(reqInit));
+          }
         }
       }).catch(() => { /* non-JSON or parse error — silently ignore */ });
     }).catch(() => { /* fetch error — page-level concern, ignore */ });
@@ -482,12 +503,17 @@
         postVideos(videoMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
-        // Only top-of-list bookmarks requests drive imports — see the
-        // fetch path above.
-        if (isBookmarksEndpoint(this.__gatherUrl) && isTopOfBookmarksRequest(this.__gatherUrl)) {
-          postBookmarks(extractBookmarkEntries(json));
-          const auth = this.__gatherHeaders && this.__gatherHeaders.authorization;
-          postRefreshTemplate(this.__gatherUrl, auth || null);
+        // Same gate as the fetch path: top-of-list always, every page
+        // during an explicit backfill (IMPORT_MODE).
+        if (isBookmarksEndpoint(this.__gatherUrl)) {
+          const top = isTopOfBookmarksRequest(this.__gatherUrl);
+          if (IMPORT_MODE || top) {
+            postBookmarks(extractBookmarkEntries(json));
+          }
+          if (top) {
+            const auth = this.__gatherHeaders && this.__gatherHeaders.authorization;
+            postRefreshTemplate(this.__gatherUrl, auth || null);
+          }
         }
       } catch { /* non-JSON or parse error */ }
     });
