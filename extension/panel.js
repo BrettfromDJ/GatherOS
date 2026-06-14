@@ -27,10 +27,13 @@
     link: '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
     open: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-    bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   };
   const svg = (paths, w = 17) =>
     `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  // The X (Twitter) logo is a filled glyph on its own viewBox, so it
+  // can't go through the stroke-based svg() helper above.
+  const xLogo = (w = 15) =>
+    `<svg viewBox="0 0 1200 1227" width="${w}" height="${w}" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>`;
 
   // The app icon, served from the extension as a web-accessible
   // resource. Loading it via chrome-extension:// (rather than a data:
@@ -140,7 +143,7 @@
         <button class="btn" data-action="gatheros:save-url"><span class="ico">${svg(ICONS.link)}</span><span class="txt"><span class="label">Save URL</span><span class="sub">This page as a link</span></span></button>
       </div>
       <div class="import" id="import">
-        <button class="btn" id="importBookmarks"><span class="ico">${svg(ICONS.bookmark)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub" id="importSub">Backfill your X bookmarks</span></span></button>
+        <button class="btn" id="importBookmarks"><span class="ico">${xLogo(15)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub" id="importSub">Backfill your X bookmarks</span></span></button>
         <div class="scope" id="scope" hidden>
           <select class="count" id="count">
             <option value="25" selected>Most recent 25</option>

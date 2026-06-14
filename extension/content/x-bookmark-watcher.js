@@ -118,7 +118,7 @@ function awaitTweetVideo(tweetId, timeoutMs = 1500) {
 // they survive React-like rerenders of X's own page chrome.
 let toastEl = null;
 let toastTimer = null;
-function showGatherToast(message, { tone = 'ok' } = {}) {
+function showGatherToast(message, { tone = 'ok', sticky = false } = {}) {
   if (!toastEl) {
     toastEl = document.createElement('div');
     // Pin via inline styles so X's CSS / class scoping can't break
@@ -162,12 +162,16 @@ function showGatherToast(message, { tone = 'ok' } = {}) {
     toastEl.style.opacity = '1';
     toastEl.style.transform = 'translateY(0)';
   });
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    if (!toastEl) return;
-    toastEl.style.opacity = '0';
-    toastEl.style.transform = 'translateY(8px)';
-  }, 2200);
+  // Sticky toasts (live import progress) stay until explicitly replaced
+  // by a non-sticky one; everything else auto-dismisses.
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!sticky) {
+    toastTimer = setTimeout(() => {
+      if (!toastEl) return;
+      toastEl.style.opacity = '0';
+      toastEl.style.transform = 'translateY(8px)';
+    }, 2200);
+  }
 }
 
 // The click target inside the bookmark button is often the inner SVG
@@ -431,7 +435,9 @@ async function runImportScroll() {
   if (importScrollActive) return; // already running — ignore duplicate start
   importScrollActive = true;
   setInterceptorImportMode(true);
-  showGatherToast('Importing bookmarks…', { tone: 'ok' });
+  // Sticky so it persists for the whole scroll; the background updates
+  // it live via 'gatheros:import-progress'.
+  showGatherToast('Importing bookmarks…', { tone: 'ok', sticky: true });
 
   // ~1.2s/tick is fast enough to feel responsive but slow enough to
   // stay under x.com's rate limiting. MAX_TICKS caps a single run at a
@@ -459,8 +465,8 @@ function stopImportScroll(summary) {
   const n = summary && typeof summary.imported === 'number' ? summary.imported : null;
   if (n !== null) {
     showGatherToast(
-      n > 0 ? `Imported ${n} bookmark${n === 1 ? '' : 's'}` : 'No new bookmarks to import',
-      { tone: 'ok' },
+      n > 0 ? `Done — imported ${n} bookmark${n === 1 ? '' : 's'}` : 'No new bookmarks to import',
+      { tone: 'ok' }, // non-sticky → auto-dismisses
     );
   }
 }
@@ -468,6 +474,13 @@ function stopImportScroll(summary) {
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg) return undefined;
   if (msg.type === 'gatheros:start-import') { runImportScroll(); return false; }
+  if (msg.type === 'gatheros:import-progress') {
+    if (importScrollActive) {
+      const n = typeof msg.imported === 'number' ? msg.imported : 0;
+      showGatherToast(`Importing… ${n} saved`, { tone: 'ok', sticky: true });
+    }
+    return false;
+  }
   if (msg.type === 'gatheros:stop-import') { stopImportScroll(msg.summary); return false; }
   return undefined;
 });

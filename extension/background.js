@@ -458,6 +458,15 @@ async function handleImportBatch(bookmarks) {
   // re-handle these later.
   await markBookmarksSeen(bookmarks.map((b) => b && b.tweetId).filter(Boolean));
 
+  // Stream the running count to the tab so the import toast updates live.
+  if (importState.tabId != null) {
+    chrome.tabs.sendMessage(importState.tabId, {
+      type: 'gatheros:import-progress',
+      imported: importState.imported,
+      processed: importState.processed.size,
+    }, () => { void chrome.runtime.lastError; });
+  }
+
   if (foundNew) importState.stagnant = 0;
   else importState.stagnant += 1;
 
