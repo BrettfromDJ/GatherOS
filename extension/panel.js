@@ -104,6 +104,7 @@
       .import.open .btn { border:none; box-shadow:none; background:transparent; }
       .import.open .btn:hover { background:var(--hover-bg); }
       .scope { display:flex; flex-direction:column; gap:8px; padding:0 10px 10px; }
+      .scope[hidden] { display:none; }
       .chips { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
       .chip { padding:9px 6px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; text-align:center; cursor:pointer; font-variant-numeric:tabular-nums; }
       .chip:hover { background:var(--hover-bg); }
