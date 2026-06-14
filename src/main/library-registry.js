@@ -255,7 +255,13 @@ function createLibrary(name) {
   const reg = readRegistry() || bootstrap();
   const trimmed = (name || '').trim() || 'Untitled Library';
   const id = `library_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  // Create the root AND the images/thumbs subdirs the save path writes
+  // into — without these, the first upload to a fresh library fails with
+  // ENOENT because nothing else ever creates them.
   fs.mkdirSync(libraryRoot(id), { recursive: true });
+  for (const dir of ['images', 'thumbs']) {
+    fs.mkdirSync(path.join(libraryRoot(id), dir), { recursive: true });
+  }
   const lib = { id, name: trimmed, createdAt: Date.now() };
   reg.libraries.push(lib);
   writeRegistry(reg);

@@ -912,10 +912,13 @@ ipcMain.handle('library:delete', (_e, id) => {
 ipcMain.handle('library:switch', (_e, id) => {
   const result = libraryRegistry.setActiveLibrary(id);
   if (!result.ok) return result;
-  // Closing + reopening the DB picks up the new active path. The
-  // image and thumb dirs are also derived per-call so they need no
-  // explicit refresh.
+  // Closing + reopening the DB picks up the new active path.
   reopenDatabase();
+  // Make sure the now-active library has its images/ + thumbs/ dirs.
+  // Dirs are derived per-call, but they still have to exist before the
+  // first save writes into them — older libraries (or any created
+  // before this guard) may be missing them.
+  ensureStorageDirs();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('library:switched', { activeId: id });
   }
