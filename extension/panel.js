@@ -77,6 +77,7 @@
       .head.dragging { cursor:grabbing; }
       .logo { width:18px; height:18px; display:block; flex:none; margin-left:-1px; border-radius:4px; -webkit-user-drag:none; user-select:none; }
       .brand { font-size:13px; font-weight:600; letter-spacing:-0.012em; }
+      .ver { font-size:10px; color:var(--text-tertiary); font-variant-numeric:tabular-nums; margin-left:1px; }
       .status { display:inline-flex; align-items:center; gap:6px; margin-left:auto; font-size:11px; color:var(--text-secondary); }
       .dot { width:7px; height:7px; border-radius:50%; background:#c7c7c7; flex:none; }
       .dot.on { background:#34c759; box-shadow:0 0 0 3px rgba(52,199,89,0.18); }
@@ -120,6 +121,7 @@
       <div class="head" id="head">
         <img class="logo" src="${logoUrl}" alt="" draggable="false" />
         <span class="brand">GatherOS</span>
+        <span class="ver" id="ver"></span>
         <span class="status"><span class="dot" id="dot"></span><span id="statusText">Checking…</span></span>
         <button class="x" id="close" title="Close">${svg(ICONS.close, 14)}</button>
       </div>
@@ -152,6 +154,9 @@
 
   const dot = root.getElementById('dot');
   const statusText = root.getElementById('statusText');
+  // Visible build marker — if this number doesn't change after a reload,
+  // you're looking at a stale panel (reload the page, or close + reopen).
+  root.getElementById('ver').textContent = 'v' + chrome.runtime.getManifest().version;
 
   const close = () => host.remove();
 
