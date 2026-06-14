@@ -2858,6 +2858,7 @@ export default function App({ entitlement } = {}) {
                 activeLibraryId={activeLibraryId}
                 onSwitchLibrary={handleSwitchLibrary}
                 onCreateLibrary={handleCreateLibrary}
+                onRefreshLibraries={refreshLibraries}
                 onRenameLibrary={handleRenameLibrary}
                 onDeleteLibrary={handleDeleteLibrary}
                 onManageLibraries={() => {

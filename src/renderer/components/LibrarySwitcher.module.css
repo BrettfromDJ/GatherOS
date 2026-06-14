@@ -29,6 +29,13 @@
   background: var(--hover-bg);
 }
 
+/* No focus ring — the open-state background is the affordance. Kills the
+   grey stroke that lingered around the trigger while the dropdown was open. */
+.trigger:focus,
+.trigger:focus-visible {
+  outline: none;
+}
+
 .triggerLabel {
   min-width: 0;
   white-space: nowrap;

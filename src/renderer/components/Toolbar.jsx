@@ -448,6 +448,7 @@ export default function Toolbar({
   onRenameLibrary,
   onDeleteLibrary,
   onManageLibraries,
+  onRefreshLibraries,
   onUpload,
   onSaveUrl,
 }) {
@@ -579,6 +580,7 @@ export default function Toolbar({
               onSwitch={onSwitchLibrary}
               onCreate={onCreateLibrary}
               onOpenManage={onManageLibraries}
+              onOpen={onRefreshLibraries}
             />
           </div>
         )}

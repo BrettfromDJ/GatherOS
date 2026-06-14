@@ -42,6 +42,7 @@ export default function LibrarySwitcher({
   onSwitch,
   onCreate,
   onOpenManage,
+  onOpen,
 }) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -115,7 +116,13 @@ export default function LibrarySwitcher({
         className={[styles.trigger, open && styles.triggerOpen]
           .filter(Boolean)
           .join(' ')}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((v) => {
+          const next = !v;
+          // Refresh covers/counts on open so a library you just added
+          // saves to shows fresh thumbnails without an app restart.
+          if (next) onOpen?.();
+          return next;
+        })}
         aria-haspopup="listbox"
         aria-expanded={open}
         data-tooltip={open ? undefined : active.name}
