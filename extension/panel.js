@@ -111,9 +111,9 @@
          becomes a grouped card with the button as its borderless header
          and the chooser nested inside. */
       .import { margin-top:6px; }
-      .import.open { border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
-      .import.open .btn { border:none; box-shadow:none; background:transparent; }
-      .import.open .btn:hover { background:var(--hover-bg); }
+      .import.expanded { border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
+      .import.expanded .btn { border:none; box-shadow:none; background:transparent; }
+      .import.expanded .btn:hover { background:var(--hover-bg); }
       .scope { display:flex; flex-direction:column; gap:8px; padding:0 10px 10px; }
       .scope[hidden] { display:none; }
       .chips { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
@@ -194,7 +194,7 @@
 
   root.getElementById('importBookmarks').addEventListener('click', () => {
     scope.hidden = !scope.hidden;
-    importEl.classList.toggle('open', !scope.hidden);
+    importEl.classList.toggle('expanded', !scope.hidden);
     importSub.textContent = scope.hidden
       ? 'Backfill your X bookmarks'
       : 'Choose how many, then import';
