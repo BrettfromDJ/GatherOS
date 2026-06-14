@@ -113,7 +113,7 @@
       .import { margin-top:6px; }
       .import.expanded { border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
       .import.expanded .btn { border:none; box-shadow:none; background:transparent; }
-      .import.expanded .btn:hover { background:var(--hover-bg); }
+      .import.expanded .btn:hover { background:transparent; }
       .scope { display:flex; flex-direction:column; gap:8px; padding:0 10px 10px; }
       .scope[hidden] { display:none; }
       .chips { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
