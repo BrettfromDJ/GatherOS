@@ -476,8 +476,15 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'gatheros:start-import') { runImportScroll(); return false; }
   if (msg.type === 'gatheros:import-progress') {
     if (importScrollActive) {
-      const n = typeof msg.imported === 'number' ? msg.imported : 0;
-      showGatherToast(`Importing… ${n} saved`, { tone: 'ok', sticky: true });
+      const saved = typeof msg.imported === 'number' ? msg.imported : 0;
+      const scanned = typeof msg.processed === 'number' ? msg.processed : 0;
+      // Be honest: only say "saved" for genuinely-new imports. While
+      // everything so far is a duplicate/already-saved, show the scan
+      // count ticking so it never claims to import when it isn't.
+      const text = saved > 0
+        ? `Importing… ${saved} saved`
+        : `Scanning bookmarks… ${scanned}`;
+      showGatherToast(text, { tone: 'ok', sticky: true });
     }
     return false;
   }

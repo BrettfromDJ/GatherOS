@@ -443,10 +443,11 @@ async function handleImportBatch(bookmarks) {
     importState.processed.add(b.tweetId);
     foundNew = true;
     try {
-      // Let the desktop dedup (content_hash) + tombstones decide; only
-      // count genuinely new saves toward the summary.
-      const resp = await syncBookmarkToGather(b);
-      if (resp && resp.ok && !resp.duplicate) importState.imported += 1;
+      // force: true → explicit backfill overrides tombstones (re-imports
+      // bookmarks the user previously deleted). Count only genuinely new
+      // saves — not duplicates, and not dismissed (so the toast is honest).
+      const resp = await syncBookmarkToGather(b, { force: true });
+      if (resp && resp.ok && !resp.duplicate && !resp.dismissed) importState.imported += 1;
     } catch (err) {
       console.warn('[gatheros] backfill import failed:', err?.message || err);
     }
@@ -520,11 +521,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Send a single bookmark down the same /save pipeline as the click
 // capture. Mirrors the payload shape the bookmark watcher uses so
 // the native-host + extension-server contract stays single-source.
-async function syncBookmarkToGather(b) {
+async function syncBookmarkToGather(b, { force = false } = {}) {
   const payload = {
     type: 'save',
     pageUrl: b.tweetUrl,
     tags: ['x:bookmark'],
+    // Explicit backfill overrides the desktop tombstone for bookmarks the
+    // user previously removed. Passive sync omits this.
+    ...(force ? { forceImport: true } : {}),
     tweetMeta: {
       authorName: b.authorName || '',
       authorHandle: b.authorHandle || '',

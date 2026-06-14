@@ -157,9 +157,20 @@ async function handleSave(req, res) {
     // tombstone makes deletions stick across re-scrolls.
     const isBookmark = !!tweetMeta;
     const tweetKey = tweetKeyFromUrl(pageUrl);
+    // Explicit "Import bookmarks" backfill sends forceImport: the user is
+    // deliberately pulling their X bookmarks, so honor it even for ones
+    // they previously removed — lift the tombstone and save. Passive sync
+    // (no flag) still respects deletions so re-scrolls don't resurrect
+    // anything the user trashed.
+    const forceImport = body?.forceImport === true;
     if (isBookmark && tweetKey && isTweetDismissed(tweetKey)) {
-      sendJson(res, 200, { ok: true, dismissed: true });
-      return;
+      if (forceImport) {
+        const { undismissTweet } = require('./db');
+        undismissTweet(tweetKey);
+      } else {
+        sendJson(res, 200, { ok: true, dismissed: true });
+        return;
+      }
     }
     const notifyNew = isBookmark ? notifyBookmarkSaved : notifySaved;
 
