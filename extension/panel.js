@@ -98,7 +98,9 @@
       .open:active { transform:scale(0.985); }
       .scope { display:flex; flex-direction:column; gap:6px; margin-top:8px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
       .scope-label { font-size:11px; font-weight:600; color:var(--text-secondary); letter-spacing:-0.005em; margin:0 1px 1px; }
+      .chips { display:flex; flex-wrap:wrap; gap:6px; }
       .chip { width:100%; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; text-align:left; cursor:pointer; }
+      .chip.num { flex:1 1 0; min-width:42px; width:auto; padding:8px 4px; text-align:center; font-variant-numeric:tabular-nums; }
       .chip:hover { background:var(--hover-bg); }
       .chip:active { transform:scale(0.985); }
       .scope-note { font-size:10.5px; color:var(--text-tertiary); letter-spacing:-0.003em; line-height:1.35; margin:2px 1px 0; }
@@ -119,10 +121,15 @@
       </div>
       <div class="scope" id="scope" hidden>
         <div class="scope-label">How many to import?</div>
-        <button class="chip" data-limit="100">Most recent 100</button>
-        <button class="chip" data-limit="500">Most recent 500</button>
+        <div class="chips">
+          <button class="chip num" data-limit="25">25</button>
+          <button class="chip num" data-limit="50">50</button>
+          <button class="chip num" data-limit="100">100</button>
+          <button class="chip num" data-limit="200">200</button>
+          <button class="chip num" data-limit="500">500</button>
+        </div>
         <button class="chip" data-limit="0">All bookmarks</button>
-        <div class="scope-note">Opens x.com and scrolls your bookmarks. Duplicates are skipped.</div>
+        <div class="scope-note">Imports your most recent bookmarks. Opens x.com and scrolls — duplicates are skipped.</div>
       </div>
       <button class="open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
     </div>
