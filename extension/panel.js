@@ -118,7 +118,8 @@
       .import.expanded .btn:hover { background:transparent; }
       .scope { display:flex; flex-direction:column; gap:8px; padding:0 10px 10px; }
       .scope[hidden] { display:none; }
-      .count { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; cursor:pointer; }
+      .count { width:100%; padding:9px 16px 9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; cursor:pointer; }
+      .count:focus, .count:focus-visible { outline:none; border-color:var(--border); }
       .import-go { width:100%; padding:9px 12px; border:none; border-radius:8px; background:var(--accent); color:var(--on-accent); font-family:inherit; font-size:12.5px; font-weight:550; letter-spacing:-0.01em; cursor:pointer; }
       .import-go:disabled { opacity:0.4; cursor:default; }
       .import-go:not(:disabled):hover { background:var(--accent-hover); }
@@ -142,8 +143,7 @@
         <button class="btn" id="importBookmarks"><span class="ico">${svg(ICONS.bookmark)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub" id="importSub">Backfill your X bookmarks</span></span></button>
         <div class="scope" id="scope" hidden>
           <select class="count" id="count">
-            <option value="" disabled selected>Choose how many…</option>
-            <option value="25">Most recent 25</option>
+            <option value="25" selected>Most recent 25</option>
             <option value="50">Most recent 50</option>
             <option value="100">Most recent 100</option>
             <option value="200">Most recent 200</option>
@@ -200,10 +200,12 @@
   });
 
   const count = root.getElementById('count');
-  count.addEventListener('change', () => {
+  const syncCount = () => {
     selectedLimit = count.value === '' ? null : Number(count.value); // 0 = all
     importGo.disabled = selectedLimit === null;
-  });
+  };
+  count.addEventListener('change', syncCount);
+  syncCount(); // default is "Most recent 25" → Import enabled on open
 
   importGo.addEventListener('click', () => {
     if (selectedLimit === null) return; // nothing picked yet
