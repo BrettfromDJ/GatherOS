@@ -17,3 +17,16 @@ export function tweetMediaItems(record, tweetMeta) {
   }
   return urls.map((url, i) => ({ type: 'image', url, primary: i === 0 }));
 }
+
+// Rewrite a twimg URL to its 'large' variant for crisper display. Only
+// the name= param is touched (format= is left as captured — synthesizing
+// it broke non-JPEG tweets). A no-op on non-twimg / unparseable URLs.
+export function twimgLarge(url) {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('name', 'large');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}

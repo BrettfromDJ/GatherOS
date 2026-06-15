@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
-import { tweetMediaItems } from '../lib/tweetMedia.js';
+import { tweetMediaItems, twimgLarge } from '../lib/tweetMedia.js';
 import TweetCard from './TweetCard.jsx';
 
 // Official-ish X glyph — used as a source badge in the bottom-left
@@ -102,7 +102,7 @@ export default function ImageCard({
   // Render the inline <video> only when the active item is the video.
   const showVideo = record.kind === 'video' && (!activeMedia || activeMedia.type === 'video');
   const displaySrc = (activeMedia && activeMedia.type === 'image')
-    ? (activeMedia.primary ? src : activeMedia.url)
+    ? (activeMedia.primary ? src : twimgLarge(activeMedia.url))
     : src;
   const pageImage = (delta) => (e) => {
     e.preventDefault();
@@ -123,7 +123,7 @@ export default function ImageCard({
       if (m.type === 'image' && !m.primary) {
         const im = new Image();
         im.decoding = 'async';
-        im.src = m.url;
+        im.src = twimgLarge(m.url);
       }
     }
   };
