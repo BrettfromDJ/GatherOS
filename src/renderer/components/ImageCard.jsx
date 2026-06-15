@@ -104,6 +104,11 @@ export default function ImageCard({
   const displaySrc = (activeMedia && activeMedia.type === 'image')
     ? (activeMedia.primary ? src : twimgLarge(activeMedia.url))
     : src;
+  // The hover quick-look follows the paged image. When the active item
+  // is the video itself, peek its poster rather than the raw MP4.
+  const peekSrc = showVideo
+    ? fileUrl(record.thumb_path || record.file_path)
+    : displaySrc;
   const pageImage = (delta) => (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -459,7 +464,7 @@ export default function ImageCard({
         )}
       </div>
 
-      {peeking && src && createPortal(
+      {peeking && peekSrc && createPortal(
         <div
           className={styles.lightbox}
           // Cursor can pass over the dim backdrop on its way to the
@@ -468,7 +473,7 @@ export default function ImageCard({
           aria-hidden="true"
         >
           <img
-            src={src}
+            src={peekSrc}
             alt=""
             className={styles.lightboxImage}
             decoding="async"
