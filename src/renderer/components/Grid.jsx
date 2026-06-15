@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SquareLibrary, Bookmark, Chrome, Folder } from 'lucide-react';
+import { SquareLibrary, Bookmark, Chrome, Folder, Download, RotateCw } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -222,28 +222,32 @@ export default function Grid({
           </div>
           <div className={styles.emptyTitle}>No bookmarks yet</div>
           <div className={styles.emptyHint}>
-            With the GatherOS Chrome extension installed, there are two ways to get your X bookmarks in here:
+            Two ways to sync your X bookmarks, once the GatherOS extension is installed.
           </div>
-          <ol className={styles.bmSteps}>
-            <li className={styles.bmStep}>
-              <span className={styles.bmStepNum}>1</span>
+          <div className={styles.bmWrap}>
+            <div className={styles.bmRow}>
+              <span className={styles.bmStepNum}>
+                <Download size={12} strokeWidth={2.2} aria-hidden="true" />
+              </span>
               <span className={styles.bmStepText}>
-                <span className={styles.bmStepTitle}>Backfill your existing bookmarks</span>
+                <span className={styles.bmStepTitle}>Backfill existing</span>
                 <span className={styles.bmStepDesc}>
                   Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.
                 </span>
               </span>
-            </li>
-            <li className={styles.bmStep}>
-              <span className={styles.bmStepNum}>2</span>
+            </div>
+            <div className={styles.bmRow}>
+              <span className={styles.bmStepNum}>
+                <RotateCw size={12} strokeWidth={2.2} aria-hidden="true" />
+              </span>
               <span className={styles.bmStepText}>
                 <span className={styles.bmStepTitle}>Bookmark as you browse</span>
                 <span className={styles.bmStepDesc}>
                   Bookmark any post on X and it imports here automatically.
                 </span>
               </span>
-            </li>
-          </ol>
+            </div>
+          </div>
           <button
             type="button"
             className={styles.emptyAction}

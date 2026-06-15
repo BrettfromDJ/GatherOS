@@ -131,26 +131,25 @@
 .emptyAction:active { transform: scale(0.98); }
 
 /* Bookmarks onboarding — the two ways to fill the view. */
-.bmSteps {
-  list-style: none;
+/* Bookmarks onboarding — two compact rows in one container. */
+.bmWrap {
   margin: 14px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 360px;
-  text-align: left;
-}
-.bmStep {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  padding: 13px 15px;
+  width: 100%;
+  max-width: 380px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-1);
   box-shadow: var(--shadow-control);
+  overflow: hidden;
+  text-align: left;
 }
+.bmRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+}
+.bmRow + .bmRow { border-top: 1px solid var(--border-hairline); }
 .bmStepNum {
   flex: none;
   width: 22px;
@@ -168,7 +167,7 @@
 .bmStepText {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 .bmStepTitle {
