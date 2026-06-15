@@ -469,18 +469,37 @@ export default function ImageCard({
           className={styles.lightbox}
           // Cursor can pass over the dim backdrop on its way to the
           // image without dismissing — the close decision lives on
-          // the image's own enter/leave below.
+          // the media's own enter/leave below.
           aria-hidden="true"
         >
-          <img
-            src={peekSrc}
-            alt=""
-            className={styles.lightboxImage}
-            decoding="async"
-            onMouseEnter={cancelClose}
-            onMouseLeave={() => setPeeking(false)}
-            draggable={false}
-          />
+          {showVideo ? (
+            // Quick-look a video by actually playing it — muted, looping,
+            // no controls — so it reads like a live preview rather than a
+            // frozen poster. The poster covers the brief load.
+            <video
+              src={fileUrl(record.file_path)}
+              poster={record.thumb_path ? fileUrl(record.thumb_path) : undefined}
+              className={styles.lightboxImage}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              onMouseEnter={cancelClose}
+              onMouseLeave={() => setPeeking(false)}
+              draggable={false}
+            />
+          ) : (
+            <img
+              src={peekSrc}
+              alt=""
+              className={styles.lightboxImage}
+              decoding="async"
+              onMouseEnter={cancelClose}
+              onMouseLeave={() => setPeeking(false)}
+              draggable={false}
+            />
+          )}
         </div>,
         document.body,
       )}
