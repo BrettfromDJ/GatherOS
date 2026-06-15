@@ -84,6 +84,33 @@ export default function FocusedView({
     setZoom(1);
   }, [record.id]);
 
+  // Warm the browser cache for a tweet's *other* images. The primary
+  // (altImageIdx 0) is a local file, but the rest are remote twimg URLs
+  // fetched on click — without this, clicking a thumbnail in the strip
+  // has a visible load delay. Preloading the 'large' variants up front
+  // makes the swap instant.
+  useEffect(() => {
+    let urls = [];
+    try {
+      const parsed = JSON.parse(record.tweet_meta || 'null');
+      if (Array.isArray(parsed?.imageUrls) && parsed.imageUrls.length > 1) {
+        urls = parsed.imageUrls;
+      }
+    } catch { /* malformed meta — nothing to preload */ }
+    if (urls.length < 2) return undefined;
+    const large = (u) => {
+      try { const x = new URL(u); x.searchParams.set('name', 'large'); return x.toString(); }
+      catch { return u; }
+    };
+    const imgs = urls.map((u) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = large(u);
+      return im;
+    });
+    return () => { imgs.forEach((im) => { im.src = ''; }); };
+  }, [record.id, record.tweet_meta]);
+
   // Re-center the scroll position whenever the wrapper size changes,
   // so zooming feels like it pivots around the middle of the image.
   useEffect(() => {
