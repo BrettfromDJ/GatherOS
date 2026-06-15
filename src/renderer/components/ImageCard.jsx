@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ImageCard.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { tweetMediaItems } from '../lib/tweetMedia.js';
 import TweetCard from './TweetCard.jsx';
 
 // Official-ish X glyph — used as a source badge in the bottom-left
@@ -87,21 +88,26 @@ export default function ImageCard({
     catch { return null; }
   })();
   const isTweet = record.kind === 'tweet' && !!tweetMeta;
-  const tweetImageCount = Array.isArray(tweetMeta?.imageUrls) ? tweetMeta.imageUrls.length : 0;
 
-  // Inline image paging on the grid card. The badge's arrows cycle
-  // through a multi-image tweet's photos without opening the focused
-  // view. idx 0 is the locally-saved primary; the rest are the remote
-  // twimg URLs captured at save time.
-  const tweetImages = Array.isArray(tweetMeta?.imageUrls) ? tweetMeta.imageUrls : [];
-  const canPageImages = !isTweet && record.kind !== 'video' && tweetImages.length > 1;
+  // Inline media paging on the grid card. The badge's arrows cycle
+  // through a tweet's media without opening the focused view. The list
+  // is shared with the focused view: image tweets = their photos
+  // (idx 0 = the locally-saved primary); video tweets = [video, ...photos]
+  // so a video-first post can page to its images too.
+  const media = tweetMediaItems(record, tweetMeta);
+  const canPageImages = !isTweet && media.length > 1;
   const [imgIdx, setImgIdx] = useState(0);
   useEffect(() => { setImgIdx(0); }, [record.id]);
-  const displaySrc = (canPageImages && imgIdx > 0) ? tweetImages[imgIdx] : src;
+  const activeMedia = media.length > 0 ? media[Math.min(imgIdx, media.length - 1)] : null;
+  // Render the inline <video> only when the active item is the video.
+  const showVideo = record.kind === 'video' && (!activeMedia || activeMedia.type === 'video');
+  const displaySrc = (activeMedia && activeMedia.type === 'image')
+    ? (activeMedia.primary ? src : activeMedia.url)
+    : src;
   const pageImage = (delta) => (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const n = tweetImages.length;
+    const n = media.length;
     if (n > 1) setImgIdx((i) => ((i + delta) % n + n) % n);
   };
   // Swallow every gesture event on the arrows so they never reach the
@@ -113,10 +119,12 @@ export default function ImageCard({
   const preloadPagedImages = () => {
     if (pagePreloadedRef.current || !canPageImages) return;
     pagePreloadedRef.current = true;
-    for (let i = 1; i < tweetImages.length; i += 1) {
-      const im = new Image();
-      im.decoding = 'async';
-      im.src = tweetImages[i];
+    for (const m of media) {
+      if (m.type === 'image' && !m.primary) {
+        const im = new Image();
+        im.decoding = 'async';
+        im.src = m.url;
+      }
     }
   };
 
@@ -318,7 +326,7 @@ export default function ImageCard({
       >
         {inView && (isTweet ? (
           <TweetCard meta={tweetMeta} variant="grid" />
-        ) : record.kind === 'video' ? (
+        ) : showVideo ? (
           // Video saves: render an inline <video> instead of an
           // <img> — the file_path is an MP4 that browsers can't
           // render as a static image. The poster attribute shows
@@ -367,11 +375,11 @@ export default function ImageCard({
             <XGlyphIcon />
           </span>
         )}
-        {inView && tweetImageCount > 1 && (
+        {inView && canPageImages && (
           // Top-right count chip. On hover, arrows page through the
-          // tweet's photos inline on the grid (no need to open the
-          // focused view). At rest it's just the stack icon + count.
-          <span className={styles.countBadge} aria-label={`${imgIdx + 1} of ${tweetImageCount} images`}>
+          // tweet's media inline on the grid (no need to open the
+          // focused view). At rest it's just the count.
+          <span className={styles.countBadge} aria-label={`${imgIdx + 1} of ${media.length}`}>
             {canPageImages && (
               <span
                 className={`${styles.countArrow} ${styles.countArrowPrev}`}
@@ -385,7 +393,7 @@ export default function ImageCard({
                 <ChevronLeftIcon />
               </span>
             )}
-            <span className={styles.countMain}>{imgIdx + 1}/{tweetImageCount}</span>
+            <span className={styles.countMain}>{imgIdx + 1}/{media.length}</span>
             {canPageImages && (
               <span
                 className={`${styles.countArrow} ${styles.countArrowNext}`}
