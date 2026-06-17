@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bookmarks empty state — "how importing works" hover reveal</title>
+<style>
+  .app{
+    --content-bg:#FAFAF9;--surface-1:#FAFAF9;--border:rgba(0,0,0,0.07);--border-hairline:rgba(0,0,0,0.06);
+    --text-primary:#000;--text-secondary:rgba(0,0,0,0.55);--text-tertiary:rgba(0,0,0,0.4);
+    --icon-muted:#c7c7c7;--hover-bg:#EAEAEA;--shadow-control:0 1px 3px -1px rgba(16,16,19,0.05);
+    --shadow-pop:0 8px 28px rgba(0,0,0,0.12);
+    --font:'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  .app[data-theme="dark"]{
+    --content-bg:#1C1C1E;--surface-1:#242426;--border:rgba(255,255,255,0.09);--border-hairline:rgba(255,255,255,0.07);
+    --text-primary:#fff;--text-secondary:rgba(255,255,255,0.6);--text-tertiary:rgba(255,255,255,0.42);
+    --icon-muted:#4a4a4a;--hover-bg:rgba(255,255,255,0.08);--shadow-control:0 1px 3px -1px rgba(0,0,0,0.4);
+    --shadow-pop:0 12px 36px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);background:#18181b;color:#fff;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em;}
+
+  .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0d0d0f;border-bottom:1px solid rgba(255,255,255,0.12);}
+  .topbar h1{font-size:13px;font-weight:600;margin:0;white-space:nowrap;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+  .tab{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;}
+  .tab:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .tab.active{background:rgba(255,255,255,0.12);color:#fff;}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:rgba(255,255,255,0.12);font-size:10px;font-weight:700;}
+  .tab.active .n{background:#ff5a1f;}
+  .ctrlbtn{padding:6px 11px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:inherit;font-size:12px;font-weight:500;white-space:nowrap;}
+  .ctrlbtn.on{background:#ff5a1f;border-color:#ff5a1f;}
+  .meta{padding:16px 22px 4px;}
+  .meta .name{font-size:14px;font-weight:650;}
+  .meta .rationale{font-size:12.5px;color:rgba(255,255,255,0.55);margin-top:3px;max-width:800px;line-height:1.45;}
+  .panel{display:none;padding:14px 22px 40px;}
+  .panel.active{display:block;}
+
+  .app{height:640px;max-width:1000px;margin:0 auto;border-radius:16px;overflow:hidden;background:var(--content-bg);border:1px solid var(--border);box-shadow:0 14px 40px rgba(0,0,0,0.4);display:flex;flex-direction:column;color:var(--text-primary);}
+  .winbar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border-hairline);}
+  .dots{display:flex;gap:6px;} .dots i{width:11px;height:11px;border-radius:50%;display:block;}
+  .dots i:nth-child(1){background:#ff5f57;} .dots i:nth-child(2){background:#febc2e;} .dots i:nth-child(3){background:#28c840;}
+  .winmid{flex:1;display:flex;justify-content:center;gap:4px;}
+  .modepill{font-size:12px;font-weight:550;color:var(--text-secondary);padding:5px 12px;border-radius:999px;}
+  .modepill.on{background:var(--text-primary);color:var(--content-bg);}
+  .chiprail{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border-hairline);}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-tertiary);padding:6px 10px;border-radius:8px;}
+  .chip.on{color:var(--text-primary);background:var(--hover-bg);}
+  .chip svg{width:15px;height:15px;}
+  .canvas{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;overflow:visible;}
+
+  .empty{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .emptyIcon{color:var(--icon-muted);display:inline-flex;}
+  .emptyIcon svg{width:30px;height:30px;}
+  .emptyTitle{font-size:18px;font-weight:500;color:var(--text-secondary);letter-spacing:-0.01em;margin-top:10px;}
+  .emptyHint{font-size:12px;color:var(--text-tertiary);max-width:330px;line-height:1.45;margin-top:8px;text-wrap:pretty;}
+  .cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;padding:9px 18px;border-radius:999px;border:none;background:var(--text-primary);color:var(--surface-1);font-family:inherit;font-size:13px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;}
+  .cta svg{width:16px;height:16px;}
+
+  /* disclosure trigger + reveal */
+  .discloser{position:relative;margin-top:14px;display:flex;flex-direction:column;align-items:center;}
+  .trigger{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-tertiary);cursor:default;background:none;border:none;font-family:inherit;}
+  .trigger:hover{color:var(--text-secondary);}
+  .trigger svg{width:13px;height:13px;}
+
+  .reveal{
+    position:absolute;left:50%;transform:translateX(-50%) translateY(4px);
+    width:300px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-1);
+    box-shadow:var(--shadow-pop);text-align:left;opacity:0;pointer-events:none;
+    transition:opacity .16s ease, transform .16s ease;z-index:5;
+  }
+  .reveal.above{bottom:calc(100% + 10px);}
+  .reveal.below{top:calc(100% + 10px);transform:translateX(-50%) translateY(-4px);}
+  .discloser:hover .reveal,.pinned .reveal{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+  .reveal::after{content:'';position:absolute;left:50%;width:10px;height:10px;background:var(--surface-1);transform:translateX(-50%) rotate(45deg);}
+  .reveal.above::after{bottom:-5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+  .reveal.below::after{top:-5px;border-left:1px solid var(--border);border-top:1px solid var(--border);}
+
+  .methods{display:flex;flex-direction:column;gap:11px;}
+  .methods.two{flex-direction:row;gap:0;}
+  .methods.two .method{flex:1;padding:0 12px;}
+  .methods.two .method+.method{border-left:1px solid var(--border-hairline);}
+  .method{display:flex;gap:10px;}
+  .badge{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--text-primary);color:var(--surface-1);}
+  .badge svg{width:12px;height:12px;}
+  .mTitle{display:block;font-size:12px;font-weight:550;color:var(--text-secondary);letter-spacing:-0.005em;}
+  .mDesc{display:block;font-size:12px;color:var(--text-tertiary);line-height:1.45;margin-top:1px;text-wrap:pretty;}
+  .mDesc strong{font-weight:600;color:var(--text-secondary);}
+
+  /* trigger variants */
+  .trig-link{} /* plain */
+  .trig-dotted{border-bottom:1px dotted currentColor;padding-bottom:1px;color:var(--text-tertiary);}
+  .trig-chip{padding:5px 11px;border:1px solid var(--border);border-radius:999px;background:var(--surface-1);box-shadow:var(--shadow-control);}
+  .trig-chip:hover{background:var(--hover-bg);}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-weight:700;}
+
+  /* iter 3: inline accordion (in-flow, not a popover) */
+  .acc{overflow:hidden;max-height:0;width:300px;opacity:0;transition:max-height .2s ease,opacity .18s ease,margin .2s ease;}
+  .discloser:hover .acc,.pinned .acc{max-height:200px;opacity:1;margin-top:12px;}
+  .acc-inner{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-1);box-shadow:var(--shadow-control);text-align:left;}
+  .chev{transition:transform .18s ease;}
+  .discloser:hover .chev,.pinned .chev{transform:rotate(180deg);}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>"How importing works" hover reveal</h1>
+    <div class="tabs" id="tabs"></div>
+    <button class="ctrlbtn on" id="pin">📌 Pinned open</button>
+    <button class="ctrlbtn" id="theme">◐ Dark</button>
+  </div>
+  <div class="meta"><div class="name" id="metaName"></div><div class="rationale" id="metaRat"></div></div>
+
+  <!-- 1: link + chevron → popover above -->
+  <section class="panel" data-i="1"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="discloser" data-disc>
+        <span class="trigger trig-link">How importing works <span class="chev" data-ic="chevdown"></span></span>
+        <div class="reveal above" data-methods="stack"></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 2: info "?" → popover below -->
+  <section class="panel" data-i="2"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="discloser" data-disc>
+        <span class="trigger trig-link"><span class="info">?</span> How importing works</span>
+        <div class="reveal below" data-methods="stack"></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 3: dotted underline → inline accordion -->
+  <section class="panel" data-i="3"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="discloser" data-disc>
+        <span class="trigger trig-dotted">How importing works</span>
+        <div class="acc"><div class="acc-inner" data-methods="stack"></div></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 4: ghost chip → wide popover above, two columns -->
+  <section class="panel" data-i="4"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="discloser" data-disc>
+        <span class="trigger trig-chip">How importing works</span>
+        <div class="reveal above" style="width:430px" data-methods="two"></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 5: quiet link → compact tooltip below -->
+  <section class="panel" data-i="5"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="discloser" data-disc>
+        <span class="trigger trig-link">How importing works</span>
+        <div class="reveal below" style="width:280px" data-methods="stack-compact"></div>
+      </div>
+    </div></div>
+  </div></section>
+
+<script>
+  const ICONS={
+    bookmark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+    x:'<svg viewBox="0 0 1200 1227" fill="currentColor"><path d="M714 519 1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>',
+    download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
+    auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/></svg>',
+    chrome:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>',
+    chevdown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  };
+  document.querySelectorAll('[data-ic]').forEach(el=>{ el.insertAdjacentHTML('afterbegin', ICONS[el.getAttribute('data-ic')]||''); });
+
+  function methodHtml(compact){
+    const d1 = compact ? 'Panel on x.com → <strong>Import bookmarks</strong>.' : 'Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.';
+    const d2 = compact ? 'Bookmark on X → imports automatically.' : 'Bookmark any post on X and it imports here automatically.';
+    return `
+      <div class="method"><span class="badge">${ICONS.download}</span><span><span class="mTitle">Backfill existing</span><span class="mDesc">${d1}</span></span></div>
+      <div class="method"><span class="badge">${ICONS.auto}</span><span><span class="mTitle">Bookmark as you browse</span><span class="mDesc">${d2}</span></span></div>`;
+  }
+  document.querySelectorAll('[data-methods]').forEach(el=>{
+    const mode = el.getAttribute('data-methods');
+    el.classList.add('methods');
+    if (mode==='two') el.classList.add('two');
+    el.innerHTML = methodHtml(mode==='stack-compact');
+  });
+  const chipRail=`<span class="chip">All</span><span class="chip">Unsorted</span><span class="chip on">${ICONS.x}Bookmarks</span><span class="chip">Trash</span>`;
+  document.querySelectorAll('[data-chips]').forEach(el=>{ el.innerHTML=chipRail; });
+
+  const ITER={
+    1:{name:'Link + chevron, popover above',rat:'Quiet "How importing works ⌄" link; hovering floats a card above it with the two methods stacked. Classic, discoverable, gets the popover out of the way of anything below.'},
+    2:{name:'Info "?" , popover below',rat:'A small "?" circle signals "explainer"; the card drops below on hover. Reads explicitly as help rather than a menu.'},
+    3:{name:'Dotted link, inline accordion',rat:'Dotted-underline link expands the methods in-flow (no floating layer), pushing nothing since it\'s the last element. Calmest — feels like part of the page, not an overlay.'},
+    4:{name:'Ghost chip, two-column popover',rat:'A subtle pill chip opens a wider popover with the methods side by side. Most substantial/clickable-looking trigger; good if you want the affordance to be obvious.'},
+    5:{name:'Quiet link, compact tooltip',rat:'Plainest text link, smallest tooltip below with terse copy. Lightest touch — nearly invisible until needed; best if the resting state should feel completely empty.'},
+  };
+  const tabs=document.getElementById('tabs'),panels=[...document.querySelectorAll('.panel')];
+  const metaName=document.getElementById('metaName'),metaRat=document.getElementById('metaRat');
+  Object.keys(ITER).forEach(k=>{const b=document.createElement('button');b.className='tab';b.dataset.go=k;b.innerHTML=`<span class="n">${k}</span>${ITER[k].name}`;b.onclick=()=>show(k);tabs.appendChild(b);});
+  function show(k){panels.forEach(p=>p.classList.toggle('active',p.dataset.i===String(k)));[...tabs.children].forEach(t=>t.classList.toggle('active',t.dataset.go===String(k)));metaName.textContent=`${k} · ${ITER[k].name}`;metaRat.textContent=ITER[k].rat;}
+  document.addEventListener('keydown',e=>{if(ITER[e.key])show(e.key);});
+
+  // Pin-open toggle: forces every reveal visible so the reviewer sees the
+  // open state without hovering. Off = real hover behavior.
+  let pinned=true;
+  function applyPin(){ document.querySelectorAll('[data-disc]').forEach(d=>d.classList.toggle('pinned',pinned)); document.getElementById('pin').classList.toggle('on',pinned); document.getElementById('pin').textContent = pinned?'📌 Pinned open':'📌 Pin open'; }
+  document.getElementById('pin').onclick=()=>{pinned=!pinned;applyPin();};
+  applyPin();
+
+  let dark=false;
+  document.getElementById('theme').onclick=()=>{dark=!dark;document.querySelectorAll('.app').forEach(a=>a.setAttribute('data-theme',dark?'dark':'light'));document.getElementById('theme').textContent=dark?'◑ Light':'◐ Dark';};
+  show('1');
+</script>
+</body>
+</html>
