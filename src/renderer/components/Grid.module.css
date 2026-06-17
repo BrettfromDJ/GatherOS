@@ -200,23 +200,20 @@
 }
 .bmMethod {
   display: flex;
+  align-items: flex-start;
   gap: 11px;
   padding: 14px 15px;
 }
 .bmMethod + .bmMethod { border-top: 1px solid var(--border-hairline); }
+/* Plain muted icon (no filled badge) — matches how icons read elsewhere
+   in the app. Top-aligned with the title line. */
 .bmStepNum {
   flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--text-primary);
-  color: var(--surface-1);
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  margin-top: 1px;
 }
 .bmStepText {
   display: flex;

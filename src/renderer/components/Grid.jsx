@@ -240,7 +240,7 @@ export default function Grid({
             <div className={styles.bmReveal} role="tooltip">
               <div className={styles.bmMethod}>
                 <span className={styles.bmStepNum}>
-                  <Download size={12} strokeWidth={2.2} aria-hidden="true" />
+                  <Download size={16} strokeWidth={1.8} aria-hidden="true" />
                 </span>
                 <span className={styles.bmStepText}>
                   <span className={styles.bmStepTitle}>Backfill existing</span>
@@ -251,7 +251,7 @@ export default function Grid({
               </div>
               <div className={styles.bmMethod}>
                 <span className={styles.bmStepNum}>
-                  <RotateCw size={12} strokeWidth={2.2} aria-hidden="true" />
+                  <RotateCw size={16} strokeWidth={1.8} aria-hidden="true" />
                 </span>
                 <span className={styles.bmStepText}>
                   <span className={styles.bmStepTitle}>Bookmark as you browse</span>
