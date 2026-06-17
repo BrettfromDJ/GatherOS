@@ -167,16 +167,13 @@
   left: 50%;
   top: calc(100% + 10px);
   transform: translateX(-50%) translateY(-4px);
-  width: 300px;
-  padding: 12px;
+  width: 320px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-1);
   box-shadow: var(--shadow-card);
   text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur-instant) ease, transform var(--dur-instant) ease;
@@ -201,7 +198,12 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
-.bmMethod { display: flex; gap: 10px; }
+.bmMethod {
+  display: flex;
+  gap: 11px;
+  padding: 14px 15px;
+}
+.bmMethod + .bmMethod { border-top: 1px solid var(--border-hairline); }
 .bmStepNum {
   flex: none;
   width: 22px;
@@ -219,21 +221,24 @@
 .bmStepText {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   min-width: 0;
 }
 .bmStepTitle {
-  font-size: var(--text-sm);
-  font-weight: 550;
-  color: var(--text-secondary);
-  letter-spacing: -0.005em;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 .bmStepDesc {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
+  line-height: 1.45;
   text-wrap: pretty;
 }
-.bmStepDesc strong { font-weight: 600; color: var(--text-secondary); }
+/* "Import bookmarks" is emphasized but clearly below the title (which is
+   text-primary) — secondary + medium weight, not another heading. */
+.bmStepDesc strong { font-weight: 550; color: var(--text-secondary); }
 
 /* ── First-launch hero ──────────────────────────────────────────────
    Brand-aligned empty state for a fresh library. The fan of three
