@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bookmarks empty state — CTA up, two methods side by side</title>
+<style>
+  .app {
+    --content-bg:#FAFAF9; --surface-1:#FAFAF9; --border:rgba(0,0,0,0.07); --border-hairline:rgba(0,0,0,0.06);
+    --text-primary:#000; --text-secondary:rgba(0,0,0,0.55); --text-tertiary:rgba(0,0,0,0.4);
+    --icon-muted:#c7c7c7; --hover-bg:#EAEAEA; --shadow-control:0 1px 3px -1px rgba(16,16,19,0.05);
+    --font:'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  .app[data-theme="dark"]{
+    --content-bg:#1C1C1E; --surface-1:#242426; --border:rgba(255,255,255,0.09); --border-hairline:rgba(255,255,255,0.07);
+    --text-primary:#fff; --text-secondary:rgba(255,255,255,0.6); --text-tertiary:rgba(255,255,255,0.42);
+    --icon-muted:#4a4a4a; --hover-bg:rgba(255,255,255,0.08); --shadow-control:0 1px 3px -1px rgba(0,0,0,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);background:#18181b;color:#fff;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em;}
+
+  .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0d0d0f;border-bottom:1px solid rgba(255,255,255,0.12);}
+  .topbar h1{font-size:13px;font-weight:600;margin:0;white-space:nowrap;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+  .tab{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;}
+  .tab:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .tab.active{background:rgba(255,255,255,0.12);color:#fff;}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:rgba(255,255,255,0.12);font-size:10px;font-weight:700;}
+  .tab.active .n{background:#ff5a1f;}
+  .themebtn{padding:6px 11px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:inherit;font-size:12px;font-weight:500;}
+  .meta{padding:16px 22px 4px;}
+  .meta .name{font-size:14px;font-weight:650;}
+  .meta .rationale{font-size:12.5px;color:rgba(255,255,255,0.55);margin-top:3px;max-width:780px;line-height:1.45;}
+  .panel{display:none;padding:14px 22px 40px;}
+  .panel.active{display:block;}
+
+  /* faux app window */
+  .app{height:640px;max-width:1000px;margin:0 auto;border-radius:16px;overflow:hidden;background:var(--content-bg);border:1px solid var(--border);box-shadow:0 14px 40px rgba(0,0,0,0.4);display:flex;flex-direction:column;color:var(--text-primary);}
+  .winbar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border-hairline);}
+  .dots{display:flex;gap:6px;} .dots i{width:11px;height:11px;border-radius:50%;display:block;}
+  .dots i:nth-child(1){background:#ff5f57;} .dots i:nth-child(2){background:#febc2e;} .dots i:nth-child(3){background:#28c840;}
+  .winmid{flex:1;display:flex;justify-content:center;gap:4px;}
+  .modepill{font-size:12px;font-weight:550;color:var(--text-secondary);padding:5px 12px;border-radius:999px;}
+  .modepill.on{background:var(--text-primary);color:var(--content-bg);}
+  .chiprail{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border-hairline);}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-tertiary);padding:6px 10px;border-radius:8px;}
+  .chip.on{color:var(--text-primary);background:var(--hover-bg);}
+  .chip svg{width:15px;height:15px;}
+  .canvas{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;overflow:auto;}
+
+  /* shared empty-state atoms */
+  .empty{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .emptyIcon{color:var(--icon-muted);display:inline-flex;}
+  .emptyIcon svg{width:30px;height:30px;}
+  .emptyTitle{font-size:18px;font-weight:500;color:var(--text-secondary);letter-spacing:-0.01em;margin-top:10px;}
+  .emptyHint{font-size:12px;color:var(--text-tertiary);max-width:330px;line-height:1.45;margin-top:8px;text-wrap:pretty;}
+  .cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;padding:9px 18px;border-radius:999px;border:none;background:var(--text-primary);color:var(--surface-1);font-family:inherit;font-size:13px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;}
+  .cta svg{width:16px;height:16px;}
+  .cta:hover{opacity:.9;}
+  .mBadge{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--text-primary);color:var(--surface-1);font-size:12px;font-weight:600;}
+  .mBadge svg{width:12px;height:12px;}
+  .mTitle{font-size:12px;font-weight:550;color:var(--text-secondary);letter-spacing:-0.005em;}
+  .mDesc{font-size:12px;color:var(--text-tertiary);line-height:1.45;text-wrap:pretty;}
+  .mDesc strong{font-weight:600;color:var(--text-secondary);}
+
+  /* ===== 1: two bordered cards ===== */
+  .i1-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:30px;width:100%;max-width:460px;text-align:left;}
+  .i1-card{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-1);box-shadow:var(--shadow-control);}
+
+  /* ===== 2: two columns, center divider, icon-led ===== */
+  .i2-two{display:flex;align-items:stretch;gap:0;margin-top:30px;width:100%;max-width:520px;text-align:left;}
+  .i2-col{flex:1;display:flex;gap:10px;padding:2px 18px;}
+  .i2-vline{width:1px;background:var(--border-hairline);flex:none;}
+
+  /* ===== 3: minimal label+text columns, no icons, no card ===== */
+  .i3-two{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px;width:100%;max-width:480px;text-align:left;}
+  .i3-col .lab{font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-tertiary);}
+  .i3-col .mTitle{margin-top:6px;font-size:13px;}
+  .i3-col .mDesc{margin-top:3px;}
+
+  /* ===== 4: numbered two-up ===== */
+  .i4-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:30px;width:100%;max-width:470px;text-align:left;}
+  .i4-col{display:flex;gap:11px;}
+  .i4-col .mTitle{font-size:12.5px;}
+
+  /* ===== 5: single container, two cells split by vertical hairline ===== */
+  .i5-wrap{display:flex;margin-top:30px;width:100%;max-width:500px;border:1px solid var(--border);border-radius:12px;background:var(--surface-1);box-shadow:var(--shadow-control);overflow:hidden;text-align:left;}
+  .i5-cell{flex:1;display:flex;gap:10px;padding:15px 16px;}
+  .i5-cell + .i5-cell{border-left:1px solid var(--border-hairline);}
+  .i5-cell .mBadge{width:20px;height:20px;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Bookmarks empty state — CTA up, two methods side by side</h1>
+    <div class="tabs" id="tabs"></div>
+    <button class="themebtn" id="theme">◐ Dark</button>
+  </div>
+  <div class="meta"><div class="name" id="metaName"></div><div class="rationale" id="metaRat"></div></div>
+
+  <!-- 1 -->
+  <section class="panel" data-i="1"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="i1-two">
+        <div class="i1-card"><span class="mBadge" data-ic="download"></span><span class="mTitle">Backfill existing</span><span class="mDesc">Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.</span></div>
+        <div class="i1-card"><span class="mBadge" data-ic="auto"></span><span class="mTitle">Bookmark as you browse</span><span class="mDesc">Bookmark any post on X and it imports here automatically.</span></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 2 -->
+  <section class="panel" data-i="2"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="i2-two">
+        <div class="i2-col"><span class="mBadge" data-ic="download"></span><span><span class="mTitle">Backfill existing</span><br><span class="mDesc">Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.</span></span></div>
+        <div class="i2-vline"></div>
+        <div class="i2-col"><span class="mBadge" data-ic="auto"></span><span><span class="mTitle">Bookmark as you browse</span><br><span class="mDesc">Bookmark any post on X and it imports here automatically.</span></span></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 3 -->
+  <section class="panel" data-i="3"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="i3-two">
+        <div class="i3-col"><span class="lab">Backfill</span><div class="mTitle">Import your existing bookmarks</div><div class="mDesc">Open the GatherOS panel on x.com → <strong>Import bookmarks</strong>.</div></div>
+        <div class="i3-col"><span class="lab">Ongoing</span><div class="mTitle">Bookmark as you browse</div><div class="mDesc">Bookmark any post on X — it imports here automatically.</div></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 4 -->
+  <section class="panel" data-i="4"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="i4-two">
+        <div class="i4-col"><span class="mBadge">1</span><span><span class="mTitle">Backfill existing</span><br><span class="mDesc">Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.</span></span></div>
+        <div class="i4-col"><span class="mBadge">2</span><span><span class="mTitle">Bookmark as you browse</span><br><span class="mDesc">Bookmark any post on X and it imports here automatically.</span></span></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- 5 -->
+  <section class="panel" data-i="5"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill on">Library</span><span class="modepill">Collections</span><span class="modepill">Spaces</span></span></div>
+    <div class="chiprail" data-chips></div>
+    <div class="canvas"><div class="empty">
+      <span class="emptyIcon" data-ic="bookmark"></span>
+      <div class="emptyTitle">No bookmarks yet</div>
+      <div class="emptyHint">Two ways to sync your X bookmarks, once the GatherOS extension is installed.</div>
+      <button class="cta" data-ic="chrome">Get the Chrome extension</button>
+      <div class="i5-wrap">
+        <div class="i5-cell"><span class="mBadge" data-ic="download"></span><span><span class="mTitle">Backfill existing</span><br><span class="mDesc">Panel on x.com → <strong>Import bookmarks</strong>.</span></span></div>
+        <div class="i5-cell"><span class="mBadge" data-ic="auto"></span><span><span class="mTitle">Bookmark as you browse</span><br><span class="mDesc">Bookmark on X → imports automatically.</span></span></div>
+      </div>
+    </div></div>
+  </div></section>
+
+<script>
+  const ICONS={
+    bookmark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+    x:'<svg viewBox="0 0 1200 1227" fill="currentColor"><path d="M714 519 1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>',
+    download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
+    auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/></svg>',
+    chrome:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>',
+  };
+  document.querySelectorAll('[data-ic]').forEach(el=>{ el.insertAdjacentHTML('afterbegin', ICONS[el.getAttribute('data-ic')]||''); });
+  const chipRail=`<span class="chip">All</span><span class="chip">Unsorted</span><span class="chip on">${ICONS.x}Bookmarks</span><span class="chip">Trash</span>`;
+  document.querySelectorAll('[data-chips]').forEach(el=>{ el.innerHTML=chipRail; });
+
+  const ITER={
+    1:{name:'Two bordered cards',rat:'The two methods as a pair of bordered cards at the bottom. Most structured — each option reads as its own discrete tile; closest to what you have now but side-by-side.'},
+    2:{name:'Columns + center divider',rat:'Icon-led columns with a single hairline between them — no card chrome. Lighter and airier; the divider does the separating instead of two boxes.'},
+    3:{name:'Minimal labels',rat:'No icons, no cards — just two text columns with a small uppercase label ("Backfill" / "Ongoing"). The quietest, most editorial; leans on the CTA as the only emphasis.'},
+    4:{name:'Numbered two-up',rat:'Two columns each led by a 1/2 badge — reads as "first do this, then this happens" while still being side-by-side. Good if you want a faint sense of sequence.'},
+    5:{name:'One split container',rat:'Both methods inside a single bordered box, split by a vertical hairline. One object to scan, tightest footprint, compact copy.'},
+  };
+  const tabs=document.getElementById('tabs'),panels=[...document.querySelectorAll('.panel')];
+  const metaName=document.getElementById('metaName'),metaRat=document.getElementById('metaRat');
+  Object.keys(ITER).forEach(k=>{const b=document.createElement('button');b.className='tab';b.dataset.go=k;b.innerHTML=`<span class="n">${k}</span>${ITER[k].name}`;b.onclick=()=>show(k);tabs.appendChild(b);});
+  function show(k){panels.forEach(p=>p.classList.toggle('active',p.dataset.i===String(k)));[...tabs.children].forEach(t=>t.classList.toggle('active',t.dataset.go===String(k)));metaName.textContent=`${k} · ${ITER[k].name}`;metaRat.textContent=ITER[k].rat;}
+  document.addEventListener('keydown',e=>{if(ITER[e.key])show(e.key);});
+  let dark=false;
+  document.getElementById('theme').onclick=()=>{dark=!dark;document.querySelectorAll('.app').forEach(a=>a.setAttribute('data-theme',dark?'dark':'light'));document.getElementById('theme').textContent=dark?'◑ Light':'◐ Dark';};
+  show('1');
+</script>
+</body>
+</html>
