@@ -459,16 +459,28 @@ function extractBottomCursor(json) {
 // tombstones) up to `limit`. Uses the stored bearer + a fresh ct0 cookie;
 // no tab, no scroll.
 async function runXApiImport(limit) {
-  const { [STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(STORAGE_TEMPLATE_KEY);
+  // Signed-in check first. auth_token is X's real login cookie (ct0 is
+  // the CSRF token and can exist for guests), so check it before doing
+  // anything — a signed-out user gets a clear message instead of being
+  // dumped on x.com's login page by the tab fallback.
+  let authToken = false;
   let csrf = null;
   try {
+    const at = await chrome.cookies.get({ url: 'https://x.com/', name: 'auth_token' });
+    authToken = !!(at && at.value);
     const c = await chrome.cookies.get({ url: 'https://x.com/', name: 'ct0' });
     if (c && c.value) csrf = c.value;
   } catch { /* ignore */ }
+  if (!authToken) {
+    notify('Sign in to X in this browser, then run Import bookmarks.');
+    return;
+  }
 
-  // No replayable request yet (or no session) — fall back to the visible
-  // bookmarks tab, which captures a fresh template so the quiet path works
-  // next time.
+  const { [STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(STORAGE_TEMPLATE_KEY);
+
+  // Signed in but no replayable request yet (or no csrf) — fall back to
+  // the visible bookmarks tab, which captures a fresh template so the
+  // quiet path works next time.
   if (!template || !template.url || !template.authorization || !csrf) {
     return runXScrollImport(limit);
   }
@@ -755,14 +767,19 @@ async function pollBookmarksRefresh() {
   }
 
   let csrf = null;
+  let signedIn = false;
   try {
+    // auth_token is the real login cookie — skip the poll when signed out
+    // so we don't fire doomed requests at X every alarm/focus.
+    const at = await chrome.cookies.get({ url: 'https://x.com/', name: 'auth_token' });
+    signedIn = !!(at && at.value);
     const cookie = await chrome.cookies.get({ url: 'https://x.com/', name: 'ct0' });
     if (cookie && cookie.value) csrf = cookie.value;
   } catch (err) {
-    console.warn('[gatheros] reading ct0 cookie failed:', err?.message || err);
+    console.warn('[gatheros] reading X cookies failed:', err?.message || err);
     return;
   }
-  if (!csrf) return; // user not signed in to x.com in this Chrome profile
+  if (!signedIn || !csrf) return; // user not signed in to x.com in this Chrome profile
 
   let res;
   try {
