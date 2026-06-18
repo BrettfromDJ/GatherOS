@@ -12,7 +12,6 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Maximize,
 } from 'lucide-react';
 import styles from './FocusedView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -92,12 +91,6 @@ export default function FocusedView({
     const v = videoRef.current;
     if (!v || !v.duration) return;
     v.currentTime = (Number(e.target.value) / 1000) * v.duration;
-  };
-  const toggleVideoFullscreen = () => {
-    const target = videoRef.current?.parentElement || videoRef.current;
-    if (!target) return;
-    if (document.fullscreenElement) document.exitFullscreen?.();
-    else target.requestFullscreen?.();
   };
   // Capture once on mount: was this focused view opened via a morph
   // transition? If so, the .focused fadeIn keyframe is permanently
@@ -499,9 +492,6 @@ export default function FocusedView({
               />
               <button type="button" className={styles.vBtn} onClick={toggleVideoMute} aria-label={vid.muted ? 'Unmute' : 'Mute'}>
                 {vid.muted ? <VolumeX size={16} strokeWidth={2} /> : <Volume2 size={16} strokeWidth={2} />}
-              </button>
-              <button type="button" className={styles.vBtn} onClick={toggleVideoFullscreen} aria-label="Fullscreen">
-                <Maximize size={15} strokeWidth={2} />
               </button>
             </div>
           </div>

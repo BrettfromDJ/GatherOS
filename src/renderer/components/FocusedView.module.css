@@ -420,13 +420,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   cursor: pointer;
 }
-/* Fullscreen: fill the screen, center the clip, keep the bar at bottom. */
-.videoStage:fullscreen {
-  width: 100% !important;
-  height: 100% !important;
-  background: #000;
-}
-.videoStage:fullscreen .image { width: 100%; height: 100%; }
 
 /* URL-kind saves render here. Fills the wrap like .image does so
    the zoom slider scales the live page just like a screenshot.
