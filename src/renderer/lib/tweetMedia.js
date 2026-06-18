@@ -55,6 +55,10 @@ export function tweetMediaItems(record, tweetMeta) {
 export function twimgLarge(url) {
   try {
     const u = new URL(url);
+    // Only twimg serves name= variants. Leave everything else untouched —
+    // notably Instagram CDN URLs and local moodmark-file:// URLs, which an
+    // appended name= param would corrupt.
+    if (!/(^|\.)twimg\.com$/i.test(u.hostname)) return url;
     u.searchParams.set('name', 'large');
     return u.toString();
   } catch {

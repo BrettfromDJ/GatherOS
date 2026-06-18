@@ -79,6 +79,37 @@ function readJsonBody(req) {
   });
 }
 
+// A custom-protocol URL the renderer resolves to a local file — same
+// scheme src/renderer/lib/fileUrl.js produces, so a media item rewritten
+// to this loads from disk just like a primary save.
+function localMediaUrl(absPath) {
+  return `moodmark-file://local/${encodeURIComponent(absPath)}`;
+}
+
+// Download an Instagram save's secondary carousel media to disk and
+// rewrite the tweet_meta media list to point at the local copies, so
+// they survive Instagram's signed-URL expiry. Mutates tweetMeta in place.
+async function localizeInstagramMedia(tweetMeta) {
+  if (!tweetMeta || !Array.isArray(tweetMeta.media) || tweetMeta.media.length < 2) return;
+  const { saveAuxMedia } = require('./storage');
+  for (let i = 1; i < tweetMeta.media.length; i += 1) {
+    const item = tweetMeta.media[i];
+    if (!item || typeof item.url !== 'string' || /^moodmark-file:/i.test(item.url)) continue;
+    try {
+      const saved = await saveAuxMedia(item.url);
+      if (saved) item.url = localMediaUrl(saved.path);
+      // A secondary video's poster (used by the detail-strip thumbnail)
+      // expires too — persist it as well.
+      if (item.poster && /^https?:\/\//i.test(item.poster)) {
+        const p = await saveAuxMedia(item.poster);
+        if (p) item.poster = localMediaUrl(p.path);
+      }
+    } catch (err) {
+      console.warn('[ext-server] localize media failed:', err?.message || err);
+    }
+  }
+}
+
 async function handleSave(req, res) {
   // Defense in depth: the token is the real check, but rejecting
   // anything that isn't a browser-extension origin keeps stray
@@ -272,6 +303,15 @@ async function handleSave(req, res) {
     const pageTitle = typeof body?.pageTitle === 'string' ? body.pageTitle.trim() : null;
     // Optional notes — same. Left blank by both current flows.
     const notes = typeof body?.notes === 'string' ? body.notes.trim() : null;
+    // Instagram CDN URLs are short-lived signed links, so a carousel's
+    // secondary media would go dead once the signature expired. Download
+    // them now and rewrite the media list to local paths. (X's twimg URLs
+    // are durable, so X secondaries stay remote.) Index 0 is the
+    // already-downloaded primary, rendered from file_path, so only
+    // secondaries need persisting.
+    if (source === 'instagram') {
+      await localizeInstagramMedia(tweetMeta);
+    }
     const record = insertSave({
       ...mediaData,
       sourceUrl: pageUrl || imageUrl || videoUrl,

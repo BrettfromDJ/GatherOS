@@ -246,6 +246,40 @@ function deleteImageFiles(filePath, thumbPath) {
   try { fs.unlinkSync(thumbPath); } catch {}
 }
 
+// Download a secondary carousel asset (image or video) into the images
+// dir so it survives the source CDN's signed-URL expiry. Unlike
+// saveImageFromUrl / saveVideoFromUrl this writes no `saves` row, no
+// thumbnail, and no palette — the file lives only inside a save's
+// tweet_meta media list, referenced by its local absolute path. Returns
+// { path, isVideo } or null on any failure (caller keeps the remote URL
+// as a best-effort fallback).
+async function saveAuxMedia(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const res = await fetch(url, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+        Accept: '*/*',
+      },
+    });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0) return null;
+    const ct = res.headers.get('content-type') || '';
+    const isVideo = /^video\//i.test(ct) || /\.mp4(\?|$)/i.test(url);
+    const ext = isVideo ? 'mp4' : (extFromMime(ct) || extFromUrl(url) || 'jpg');
+    const id = crypto.randomUUID();
+    const p = path.join(getImagesDir(), `${id}.${ext}`);
+    fs.writeFileSync(p, buf);
+    return { path: p, isVideo };
+  } catch (err) {
+    console.warn('[gatheros] aux media download failed:', err?.message || err);
+    return null;
+  }
+}
+
 // Compose a multi-image mood board PNG. Greedy-packs into N columns
 // (column count scales with selection size) — each new tile lands in
 // whichever column is currently shortest, mirroring the in-app
@@ -454,6 +488,7 @@ module.exports = {
   saveImageFromBuffer,
   saveImageFromUrl,
   saveVideoFromUrl,
+  saveAuxMedia,
   deleteImageFiles,
   composeMoodBoard,
 };

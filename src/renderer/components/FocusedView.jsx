@@ -202,6 +202,8 @@ export default function FocusedView({
   function twimgLarge(url) {
     try {
       const u = new URL(url);
+      // twimg only — leave Instagram CDN + local moodmark-file URLs alone.
+      if (!/(^|\.)twimg\.com$/i.test(u.hostname)) return url;
       u.searchParams.set('name', 'large');
       return u.toString();
     } catch { return url; }
