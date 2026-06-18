@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Infinity view — zoomable canvas of your saves</title>
+<style>
+  :root{ --bar:#0d0d0f; }
+  .app{
+    --content-bg:#FAFAF9;--surface-1:#fff;--border:rgba(0,0,0,0.07);--border-hairline:rgba(0,0,0,0.06);
+    --text-primary:#000;--text-secondary:rgba(0,0,0,0.55);--text-tertiary:rgba(0,0,0,0.4);
+    --hover-bg:#EAEAEA;--canvas-bg:#f2f1ef;
+    --font:'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  .app[data-theme="dark"]{
+    --content-bg:#1C1C1E;--surface-1:#242426;--border:rgba(255,255,255,0.09);--border-hairline:rgba(255,255,255,0.07);
+    --text-primary:#fff;--text-secondary:rgba(255,255,255,0.6);--text-tertiary:rgba(255,255,255,0.42);
+    --hover-bg:rgba(255,255,255,0.08);--canvas-bg:#141416;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);background:#18181b;color:#fff;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em;overflow:hidden;height:100vh;}
+  .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--bar);border-bottom:1px solid rgba(255,255,255,0.12);}
+  .topbar h1{font-size:13px;font-weight:600;margin:0;}
+  .topbar .hint{font-size:12px;color:rgba(255,255,255,0.5);flex:1;}
+  .themebtn{padding:6px 11px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:inherit;font-size:12px;font-weight:500;}
+
+  .wrap{padding:14px 22px 22px;height:calc(100vh - 41px);}
+  .app{height:100%;border-radius:16px;overflow:hidden;background:var(--content-bg);border:1px solid var(--border);box-shadow:0 14px 40px rgba(0,0,0,0.4);display:flex;flex-direction:column;color:var(--text-primary);}
+  .winbar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border-hairline);flex:none;}
+  .dots{display:flex;gap:6px;} .dots i{width:11px;height:11px;border-radius:50%;display:block;}
+  .dots i:nth-child(1){background:#ff5f57;} .dots i:nth-child(2){background:#febc2e;} .dots i:nth-child(3){background:#28c840;}
+  .winmid{flex:1;display:flex;justify-content:center;gap:4px;}
+  .modepill{font-size:12px;font-weight:550;color:var(--text-secondary);padding:5px 12px;border-radius:999px;}
+  .modepill.on{background:var(--text-primary);color:var(--content-bg);}
+  .chiprail{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border-hairline);flex:none;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-tertiary);padding:6px 10px;border-radius:8px;}
+  .chip.on{color:var(--text-primary);background:var(--hover-bg);}
+  .chip svg{width:15px;height:15px;}
+
+  /* canvas */
+  .viewport{position:relative;flex:1;overflow:hidden;background:var(--canvas-bg);cursor:grab;touch-action:none;}
+  .viewport.grabbing{cursor:grabbing;}
+  .world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;}
+  .tile{position:absolute;top:0;left:0;border-radius:10px;will-change:transform;transition:transform .55s cubic-bezier(.22,.8,.28,1);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+  .tile .detail{position:absolute;inset:0;opacity:0;transition:opacity .15s ease;}
+  /* far = overview: just color swatches (cheap). near = thumbnails (detail). */
+  .world:not(.far) .tile .detail{opacity:1;}
+  .world.far .tile{border-radius:3px;box-shadow:none;}
+  /* faux thumbnail content */
+  .detail .strip{position:absolute;left:0;right:0;bottom:0;height:34%;background:rgba(255,255,255,0.82);}
+  .detail .strip.dark{background:rgba(0,0,0,0.35);}
+  .detail .ln{position:absolute;height:6px;border-radius:3px;background:rgba(0,0,0,0.18);}
+
+  .focusedSel{outline:3px solid #fff;outline-offset:2px;}
+
+  /* HUD */
+  .hud{position:absolute;left:14px;bottom:14px;display:flex;align-items:center;gap:8px;z-index:10;}
+  .seg{display:inline-flex;padding:3px;gap:3px;background:rgba(20,20,22,0.7);backdrop-filter:blur(16px);border:0.5px solid rgba(255,255,255,0.14);border-radius:10px;}
+  .seg button{border:none;background:transparent;color:rgba(255,255,255,0.65);font-family:inherit;font-size:12px;font-weight:550;padding:6px 12px;border-radius:7px;cursor:pointer;}
+  .seg button.on{background:rgba(255,255,255,0.16);color:#fff;}
+  .pillbtn{background:rgba(20,20,22,0.7);backdrop-filter:blur(16px);border:0.5px solid rgba(255,255,255,0.14);color:#fff;font-family:inherit;font-size:12px;font-weight:550;padding:7px 12px;border-radius:10px;cursor:pointer;}
+  .readout{position:absolute;right:14px;bottom:14px;z-index:10;display:flex;gap:8px;align-items:center;}
+  .badge{background:rgba(20,20,22,0.7);backdrop-filter:blur(16px);border:0.5px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.9);font-size:11px;font-variant-numeric:tabular-nums;padding:7px 10px;border-radius:999px;}
+
+  /* lightbox mock */
+  .lb{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);}
+  .lb.open{display:flex;}
+  .lb .card{width:300px;height:300px;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,0.5);}
+  .lb .cap{position:absolute;bottom:40px;color:#fff;font-size:13px;opacity:.8;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Infinity view — zoomable canvas of your saves</h1>
+    <span class="hint">Drag to pan · scroll / pinch to zoom · click a tile to open · toggle layout bottom-left</span>
+    <button class="themebtn" id="theme">◐ Dark</button>
+  </div>
+  <div class="wrap"><div class="app" data-theme="light">
+    <div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="winmid"><span class="modepill">Library</span><span class="modepill">Spaces</span><span class="modepill on">Infinity</span></span></div>
+    <div class="chiprail" id="chiprail"></div>
+    <div class="viewport" id="vp">
+      <div class="world" id="world"></div>
+      <div class="hud">
+        <div class="seg" id="seg">
+          <button class="on" data-layout="grid">Packed grid</button>
+          <button data-layout="cluster">Taste clusters</button>
+        </div>
+        <button class="pillbtn" id="fit">Fit</button>
+      </div>
+      <div class="readout">
+        <span class="badge" id="count"></span>
+        <span class="badge" id="zoomr"></span>
+      </div>
+      <div class="lb" id="lb"><div class="card" id="lbcard"></div><div class="cap">click anywhere to close</div></div>
+    </div>
+  </div></div>
+
+<script>
+  const X='<svg viewBox="0 0 1200 1227" fill="currentColor"><path d="M714 519 1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>';
+  document.getElementById('chiprail').innerHTML =
+    `<span class="chip">All</span><span class="chip">Unsorted</span><span class="chip">${X}Bookmarks</span><span class="chip on">✦ Infinity</span><span class="chip">Trash</span>`;
+
+  const vp=document.getElementById('vp'), world=document.getElementById('world');
+  const N=1400, TILE=120, GAP=14;
+
+  // ── build tiles ─────────────────────────────────────────────
+  const tiles=[];
+  for(let i=0;i<N;i++){
+    const hue=Math.floor(Math.random()*360);
+    const sat=35+Math.random()*45, light=42+Math.random()*30;
+    tiles.push({ i, hue, c1:`hsl(${hue} ${sat}% ${light}%)`, c2:`hsl(${(hue+30)%360} ${sat}% ${Math.min(82,light+18)}%)`, dark: light<55 });
+  }
+
+  // grid layout (centered on origin)
+  const cols=Math.round(Math.sqrt(N));
+  const rows=Math.ceil(N/cols);
+  const gw=cols*(TILE+GAP), gh=rows*(TILE+GAP);
+  tiles.forEach((t,i)=>{ const c=i%cols, r=Math.floor(i/cols); t.gx=c*(TILE+GAP)-gw/2; t.gy=r*(TILE+GAP)-gh/2; });
+
+  // cluster layout: 12 hue buckets, each its own region (so similar colors group)
+  const K=12;
+  const buckets=Array.from({length:K},()=>[]);
+  tiles.forEach(t=>buckets[Math.floor(t.hue/(360/K))%K].push(t));
+  const kcols=4, clusterPad=240;
+  buckets.forEach((b,bi)=>{
+    const sub=Math.ceil(Math.sqrt(b.length));
+    const cw=sub*(TILE+GAP), ch=sub*(TILE+GAP);
+    const ccol=bi%kcols, crow=Math.floor(bi/kcols);
+    // region origin in a grid of clusters, roughly centered
+    const ox=ccol*(cw+clusterPad) - (kcols*(cw+clusterPad))/2;
+    const oy=crow*(ch+clusterPad) - (Math.ceil(K/kcols)*(ch+clusterPad))/2;
+    b.forEach((t,j)=>{ const c=j%sub, r=Math.floor(j/sub); t.cx=ox+c*(TILE+GAP); t.cy=oy+r*(TILE+GAP); });
+  });
+
+  // ── render tiles into the world (once) ──────────────────────
+  const frag=document.createDocumentFragment();
+  tiles.forEach(t=>{
+    const el=document.createElement('div');
+    el.className='tile';
+    el.style.width=TILE+'px'; el.style.height=TILE+'px';
+    el.style.background=t.c1;
+    el.dataset.i=t.i;
+    el.innerHTML=`<div class="detail" style="background:linear-gradient(135deg, ${t.c1}, ${t.c2})">
+      <div class="strip ${t.dark?'dark':''}"></div>
+      <div class="ln" style="left:10px;right:30%;bottom:18%;${t.dark?'background:rgba(255,255,255,0.3)':''}"></div>
+      <div class="ln" style="left:10px;right:50%;bottom:9%;height:5px;${t.dark?'background:rgba(255,255,255,0.22)':''}"></div>
+    </div>`;
+    t.el=el;
+    frag.appendChild(el);
+  });
+  world.appendChild(frag);
+
+  let layout='grid';
+  function place(){ tiles.forEach(t=>{ const x=layout==='grid'?t.gx:t.cx, y=layout==='grid'?t.gy:t.cy; t.el.style.transform=`translate3d(${x}px,${y}px,0)`; }); }
+  place();
+
+  // ── camera ──────────────────────────────────────────────────
+  let cam={x:0,y:0,zoom:0.34};
+  function apply(){
+    world.style.transform=`translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
+    world.classList.toggle('far', cam.zoom<0.62);
+    document.getElementById('zoomr').textContent=Math.round(cam.zoom*100)+'%';
+  }
+  function fit(){ const r=vp.getBoundingClientRect(); cam.zoom=0.34; cam.x=r.width/2; cam.y=r.height/2; apply(); }
+  document.getElementById('count').textContent=N.toLocaleString()+' saves';
+
+  // pan
+  let dragging=false,last=null,moved=0;
+  vp.addEventListener('pointerdown',e=>{ if(e.target.closest('.hud,.readout,.lb')) return; dragging=true;moved=0;last={x:e.clientX,y:e.clientY};vp.classList.add('grabbing');vp.setPointerCapture(e.pointerId); });
+  vp.addEventListener('pointermove',e=>{ if(!dragging)return; const dx=e.clientX-last.x,dy=e.clientY-last.y; moved+=Math.abs(dx)+Math.abs(dy); cam.x+=dx;cam.y+=dy;last={x:e.clientX,y:e.clientY};apply(); });
+  vp.addEventListener('pointerup',e=>{ dragging=false;vp.classList.remove('grabbing');
+    if(moved<5){ const tile=e.target.closest('.tile'); if(tile) openLb(tile.dataset.i); } });
+
+  // zoom to cursor (wheel + pinch via ctrl)
+  vp.addEventListener('wheel',e=>{ e.preventDefault();
+    const r=vp.getBoundingClientRect(), sx=e.clientX-r.left, sy=e.clientY-r.top;
+    const wx=(sx-cam.x)/cam.zoom, wy=(sy-cam.y)/cam.zoom;
+    const factor=Math.exp(-e.deltaY*0.0016);
+    cam.zoom=Math.min(3.2,Math.max(0.08,cam.zoom*factor));
+    cam.x=sx-wx*cam.zoom; cam.y=sy-wy*cam.zoom; apply();
+  },{passive:false});
+
+  // lightbox
+  const lb=document.getElementById('lb'), lbcard=document.getElementById('lbcard');
+  function openLb(i){ const t=tiles[i]; lbcard.style.background=`linear-gradient(135deg, ${t.c1}, ${t.c2})`; lb.classList.add('open'); }
+  lb.addEventListener('click',()=>lb.classList.remove('open'));
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') lb.classList.remove('open'); });
+
+  // layout toggle
+  document.getElementById('seg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
+    document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b)); layout=b.dataset.layout; place(); });
+  document.getElementById('fit').onclick=fit;
+  let dark=false;
+  document.getElementById('theme').onclick=()=>{ dark=!dark; document.querySelector('.app').setAttribute('data-theme',dark?'dark':'light'); document.getElementById('theme').textContent=dark?'◑ Light':'◐ Dark'; };
+
+  requestAnimationFrame(fit);
+</script>
+</body>
+</html>
