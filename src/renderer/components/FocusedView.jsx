@@ -161,6 +161,11 @@ export default function FocusedView({
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'Escape') {
+        // A fullscreen video swallows Escape to exit fullscreen — don't
+        // ALSO back out of the focused view (that was dumping the user
+        // all the way to the grid). Let the browser exit fullscreen and
+        // stop here; the next Escape backs out as usual.
+        if (document.fullscreenElement) return;
         e.preventDefault();
         // If the eyedropper is armed, Escape disarms it without
         // closing the focused view. Second Escape (when not picking)
