@@ -129,6 +129,11 @@
       .import-go:not(:disabled):hover { background:var(--accent-hover); }
       .import-go:not(:disabled):active { transform:scale(0.985); }
       .scope-note { font-size:10.5px; color:var(--text-tertiary); letter-spacing:-0.003em; line-height:1.35; margin:0 1px; }
+      /* Inline result message (only shown on a problem — e.g. signed out).
+         Lives in the panel so it can't be missed like a system toast. */
+      .scope-msg { font-size:11.5px; font-weight:500; color:#e5484d; letter-spacing:-0.005em; line-height:1.4; margin:1px 1px 0; }
+      .scope-msg[hidden] { display:none; }
+      .scope-msg .msg-link { color:inherit; font-weight:600; text-decoration:underline; cursor:pointer; }
     </style>
     <div class="panel" part="panel">
       <div class="head" id="head">
@@ -155,7 +160,8 @@
             <option value="0">All bookmarks</option>
           </select>
           <button class="import-go" id="importGo" disabled>Import</button>
-          <div class="scope-note">Imports your most recent bookmarks. Opens x.com and scrolls — duplicates are skipped.</div>
+          <div class="scope-note">Imports your most recent bookmarks in the background — duplicates are skipped.</div>
+          <div class="scope-msg" id="msg" hidden></div>
         </div>
       </div>
       <div class="import" id="igImport">
@@ -170,7 +176,8 @@
             <option value="0">All saved posts</option>
           </select>
           <button class="import-go" id="igGo" disabled>Import</button>
-          <div class="scope-note">Best on your Instagram Saved page. Scrolls to load posts — duplicates are skipped.</div>
+          <div class="scope-note">Imports your most recent saved posts in the background — duplicates are skipped.</div>
+          <div class="scope-msg" id="igMsg" hidden></div>
         </div>
       </div>
       <button class="open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
@@ -200,6 +207,33 @@
     });
   });
 
+  // Shared import-result handling: keep the panel open and surface any
+  // problem inline (signed out, GatherOS closed, …) instead of a system
+  // notification that's easy to miss. On success, close the panel.
+  const clearMsg = (el) => { el.hidden = true; el.textContent = ''; };
+  const showText = (el, text) => { el.textContent = text; el.hidden = false; };
+  const showSignIn = (el, label, url) => {
+    el.textContent = '';
+    const span = document.createElement('span');
+    span.textContent = `Sign in to ${label} to import. `;
+    const a = document.createElement('a');
+    a.className = 'msg-link';
+    a.textContent = `Open ${label} ↗`;
+    a.addEventListener('click', (e) => { e.preventDefault(); window.open(url, '_blank', 'noopener'); });
+    el.append(span, a);
+    el.hidden = false;
+  };
+  const handleImportResult = (resp, { goBtn, msgEl, label, url }) => {
+    goBtn.disabled = false;
+    if (chrome.runtime.lastError) { showText(msgEl, 'Could not reach the extension. Reload it and try again.'); return; }
+    if (!resp || resp.ok) { close(); return; } // success — import runs in the background
+    if (resp.needsSignIn) { showSignIn(msgEl, label, url); return; }
+    if (resp.appClosed) { showText(msgEl, 'Open GatherOS first, then import.'); return; }
+    if (resp.disabled) { showText(msgEl, 'Import is temporarily unavailable.'); return; }
+    if (resp.busy) { showText(msgEl, 'An import is already running.'); return; }
+    close();
+  };
+
   // Import bookmarks — a two-step flow nested inside the button:
   //   1. click the button → reveal the count chooser
   //   2. pick a count (highlights, but doesn't start)
@@ -226,10 +260,14 @@
   count.addEventListener('change', syncCount);
   syncCount(); // default is "Most recent 25" → Import enabled on open
 
+  const msg = root.getElementById('msg');
   importGo.addEventListener('click', () => {
     if (selectedLimit === null) return; // nothing picked yet
-    close();
-    chrome.runtime.sendMessage({ type: 'gatheros:import-bookmarks', limit: selectedLimit });
+    clearMsg(msg);
+    importGo.disabled = true;
+    chrome.runtime.sendMessage({ type: 'gatheros:import-bookmarks', limit: selectedLimit }, (resp) => {
+      handleImportResult(resp, { goBtn: importGo, msgEl: msg, label: 'X', url: 'https://x.com/i/bookmarks' });
+    });
   });
 
   // Import saved (Instagram) — same two-step flow as Import bookmarks.
@@ -255,10 +293,14 @@
   igCount.addEventListener('change', syncIgCount);
   syncIgCount();
 
+  const igMsg = root.getElementById('igMsg');
   igGo.addEventListener('click', () => {
     if (igSelectedLimit === null) return;
-    close();
-    chrome.runtime.sendMessage({ type: 'gatheros:import-saved', limit: igSelectedLimit });
+    clearMsg(igMsg);
+    igGo.disabled = true;
+    chrome.runtime.sendMessage({ type: 'gatheros:import-saved', limit: igSelectedLimit }, (resp) => {
+      handleImportResult(resp, { goBtn: igGo, msgEl: igMsg, label: 'Instagram', url: 'https://www.instagram.com/' });
+    });
   });
 
   root.getElementById('open').addEventListener('click', () => {

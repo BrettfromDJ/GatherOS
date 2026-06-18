@@ -397,6 +397,23 @@ const IMPORT_WATCHDOG_MS = 6 * 60 * 1000;
 //   stagnant:number, watchdog:timeoutId }
 let importState = null;
 
+// Signed-in checks via each platform's real login cookie (auth_token /
+// sessionid — the CSRF tokens exist for guests, so they aren't proof of
+// a session). Returned to the panel so it can show an inline "sign in"
+// message rather than relying on a missable system notification.
+async function xSignedIn() {
+  try {
+    const a = await chrome.cookies.get({ url: 'https://x.com/', name: 'auth_token' });
+    return !!(a && a.value);
+  } catch { return false; }
+}
+async function igSignedIn() {
+  try {
+    const s = await chrome.cookies.get({ url: 'https://www.instagram.com/', name: 'sessionid' });
+    return !!(s && s.value);
+  } catch { return false; }
+}
+
 async function handleImportBookmarks(msg) {
   const { [STORAGE_IMPORT_DISABLED_KEY]: disabled } =
     await chrome.storage.local.get(STORAGE_IMPORT_DISABLED_KEY);
@@ -407,6 +424,9 @@ async function handleImportBookmarks(msg) {
   if (importState && importState.active) {
     notify('A bookmark import is already running.');
     return { ok: false, busy: true };
+  }
+  if (!(await xSignedIn())) {
+    return { ok: false, needsSignIn: true, platform: 'x' };
   }
 
   // No point opening x.com and scrolling if the desktop can't receive
@@ -1109,6 +1129,9 @@ async function handleImportSaved(msg, sender) {
   if (igImportState && igImportState.active) {
     notify('A saved-post import is already running.');
     return { ok: false, busy: true };
+  }
+  if (!(await igSignedIn())) {
+    return { ok: false, needsSignIn: true, platform: 'instagram' };
   }
 
   const status = await pingApp();
