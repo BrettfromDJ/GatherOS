@@ -602,7 +602,7 @@ document.addEventListener('click', async (e) => {
     // 'x:' namespace keeps it visually distinct from user-authored
     // tags and reserves space for future capture surfaces
     // (instagram:, pinterest:, …).
-    tags: ['x:bookmark'],
+    tags: ['bookmark'],
     tweetMeta: {
       authorName: author.displayName,
       authorHandle: author.handle,

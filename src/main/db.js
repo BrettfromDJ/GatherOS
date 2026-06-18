@@ -270,6 +270,28 @@ const MIGRATIONS = [
       "UPDATE saves SET source = 'instagram' WHERE source = 'x' AND source_url LIKE '%instagram.com%'",
     ).run();
   },
+  // Rename the namespaced auto-tags to plain words: 'x:bookmark' →
+  // 'bookmark', 'instagram:save' → 'instagram'. If the plain name already
+  // exists (e.g. a user-made tag), merge into it — repoint every edge then
+  // drop the old row — so the UNIQUE(name) constraint holds. Idempotent.
+  (database) => {
+    const rename = (from, to) => {
+      const old = database.prepare('SELECT id FROM tags WHERE name = ?').get(from);
+      if (!old) return;
+      const existing = database.prepare('SELECT id FROM tags WHERE name = ?').get(to);
+      if (existing) {
+        database.prepare(
+          'INSERT OR IGNORE INTO save_tags (save_id, tag_id) SELECT save_id, ? FROM save_tags WHERE tag_id = ?',
+        ).run(existing.id, old.id);
+        database.prepare('DELETE FROM save_tags WHERE tag_id = ?').run(old.id);
+        database.prepare('DELETE FROM tags WHERE id = ?').run(old.id);
+      } else {
+        database.prepare('UPDATE tags SET name = ? WHERE id = ?').run(to, old.id);
+      }
+    };
+    rename('x:bookmark', 'bookmark');
+    rename('instagram:save', 'instagram');
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {
@@ -636,13 +658,14 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
       conditions.push('id NOT IN (SELECT save_id FROM collection_items)');
     } else if (view === 'bookmarks') {
       // The combined "Saved" view — saves captured from X (tagged
-      // 'x:bookmark') or Instagram (tagged 'instagram:save'). The view
-      // key stays 'bookmarks' for back-compat; the chip label reads
-      // "Saved".
+      // 'bookmark') or Instagram (tagged 'instagram'). The legacy
+      // namespaced tags are kept in the filter as a safety net for any
+      // row a tag-rename migration didn't reach. The view key stays
+      // 'bookmarks' for back-compat; the chip label reads "Saved".
       conditions.push(`id IN (
         SELECT save_id FROM save_tags
         JOIN tags ON save_tags.tag_id = tags.id
-        WHERE tags.name IN ('x:bookmark', 'instagram:save')
+        WHERE tags.name IN ('bookmark', 'instagram', 'x:bookmark', 'instagram:save')
       )`);
     } else if (view === 'onThisDay') {
       // Same calendar month + day as today, in any prior year. Local
@@ -977,7 +1000,7 @@ function getSmartViewCounts() {
       AND id IN (
         SELECT save_id FROM save_tags
         JOIN tags ON save_tags.tag_id = tags.id
-        WHERE tags.name IN ('x:bookmark', 'instagram:save')
+        WHERE tags.name IN ('bookmark', 'instagram', 'x:bookmark', 'instagram:save')
       )
   `).get();
   // Saves whose calendar date matches today in some prior year — same

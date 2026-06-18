@@ -460,6 +460,13 @@ export default function FocusedView({
             style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
             onMouseEnter={() => setVideoHovered(true)}
             onMouseLeave={() => setVideoHovered(false)}
+            /* Clicks on the video + its controls must not bubble to the
+               stage's click-to-dismiss — without an <img> to hit-test
+               against, the dismiss handler treats every control click
+               (play, scrub, mute) as "clicked the whitespace" and closes
+               the view. Same guard the tweet card uses. */
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <video
               // Remount on source change so paging between videos loads

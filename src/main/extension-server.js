@@ -212,7 +212,7 @@ async function handleSave(req, res) {
     const notifyNew = isBookmark ? notifyBookmarkSaved : notifySaved;
 
     // Optional tag list — currently used by the X-bookmark capture to
-    // auto-tag every X save with 'x:bookmark' so the user can filter
+    // auto-tag every X save with 'bookmark' so the user can filter
     // their library to just bookmarks from X. Each entry routes through
     // addTagToSave which trims, lowercases, and dedupes.
     const attachTags = (saveId) => {

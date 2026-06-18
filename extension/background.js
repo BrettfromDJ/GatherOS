@@ -674,7 +674,7 @@ async function syncBookmarkToGather(b, { force = false } = {}) {
   const payload = {
     type: 'save',
     pageUrl: b.tweetUrl,
-    tags: ['x:bookmark'],
+    tags: ['bookmark'],
     // Explicit backfill overrides the desktop tombstone for bookmarks the
     // user previously removed. Passive sync omits this.
     ...(force ? { forceImport: true } : {}),
@@ -1286,7 +1286,7 @@ async function syncSavedPostToGather(p, { force = false } = {}) {
     type: 'save',
     source: 'instagram',
     pageUrl: p.tweetUrl, // IG permalink — shares the X field name through the relay
-    tags: ['instagram:save'],
+    tags: ['instagram'],
     ...(force ? { forceImport: true } : {}),
     tweetMeta: {
       authorName: p.authorName || '',
