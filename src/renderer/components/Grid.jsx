@@ -65,7 +65,7 @@ function hostnameOf(url) {
 export default function Grid({
   saves, selected, onSelect, onSetSelection, onOpen, onContextMenu, onDragStart, onHover, onForceClick,
   columns, loading, view, search, semanticSearchActive, colorFilter,
-  freshIds, layout = 'masonry', morphId = null, tweetTypeFilter = 'all',
+  freshIds, layout = 'masonry', morphId = null, tweetTypeFilter = 'all', sourceFilter = 'all',
 }) {
   const marqueeRef = useRef(null);
   const [marqueeRect, setMarqueeRect] = useState(null);
@@ -211,18 +211,20 @@ export default function Grid({
       );
     }
 
-    // Bookmarks view, genuinely empty (no search / color / type filter):
-    // onboard the two ways to fill it, assuming the extension is set up.
+    // Saved view, genuinely empty (no search / color / type / source
+    // filter): onboard the two ways to fill it, assuming the extension is
+    // set up. Now spans X bookmarks + Instagram saves.
     if (isBookmarks && !trimmedSearch && !colorFilter
-        && !(tweetTypeFilter && tweetTypeFilter !== 'all')) {
+        && !(tweetTypeFilter && tweetTypeFilter !== 'all')
+        && !(sourceFilter && sourceFilter !== 'all')) {
       return (
         <div className={styles.state}>
           <div className={styles.emptyIcon} style={{ color: 'var(--icon-muted)' }}>
             <Bookmark {...EMPTY_ICON} />
           </div>
-          <div className={styles.emptyTitle}>No bookmarks yet</div>
+          <div className={styles.emptyTitle}>No saves yet</div>
           <div className={styles.emptyHint}>
-            Two ways to sync your X bookmarks, once the GatherOS extension is installed.
+            Bookmark on X or save on Instagram — they sync in automatically once the GatherOS extension is installed.
           </div>
           <button
             type="button"
@@ -245,7 +247,7 @@ export default function Grid({
                 <span className={styles.bmStepText}>
                   <span className={styles.bmStepTitle}>Backfill existing</span>
                   <span className={styles.bmStepDesc}>
-                    Open the GatherOS panel on x.com and click <strong>Import bookmarks</strong>.
+                    Open the GatherOS panel and click <strong>Import bookmarks</strong> or <strong>Import saved</strong>.
                   </span>
                 </span>
               </div>
@@ -254,9 +256,9 @@ export default function Grid({
                   <RotateCw size={16} strokeWidth={1.8} aria-hidden="true" />
                 </span>
                 <span className={styles.bmStepText}>
-                  <span className={styles.bmStepTitle}>Bookmark as you browse</span>
+                  <span className={styles.bmStepTitle}>Save as you browse</span>
                   <span className={styles.bmStepDesc}>
-                    Bookmark any post on X and it imports here automatically.
+                    Bookmark on X or save on Instagram and it imports here automatically.
                   </span>
                 </span>
               </div>
@@ -299,6 +301,13 @@ export default function Grid({
       emptyIconColor = 'var(--icon-muted)';
       // The genuinely-empty bookmarks view is handled by the two-method
       // onboarding early-return above.
+    } else if (isBookmarks && sourceFilter && sourceFilter !== 'all') {
+      // Saves exist, just none from the selected source.
+      const label = sourceFilter === 'instagram' ? 'Instagram' : 'X';
+      title = `No ${label} saves yet`;
+      hint = `Nothing from ${label} here. Pick a different source, or switch back to all saves.`;
+      EmptyIcon = Bookmark;
+      emptyIconColor = 'var(--icon-muted)';
     } else if (isTrash) {
       title = 'Trash is empty';
       hint = 'Deleted saves land here. Empty Trash to remove for good.';

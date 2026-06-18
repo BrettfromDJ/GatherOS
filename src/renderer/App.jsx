@@ -425,6 +425,15 @@ export default function App({ entitlement } = {}) {
       setTweetTypeFilter('all');
     }
   }, [view.type, tweetTypeFilter]);
+  // Source sub-filter for the Saved view — 'all' | 'x' | 'instagram'.
+  // Same lifecycle as the tweet-type filter: only applies in the Saved
+  // (bookmarks) view and resets when the user leaves it.
+  const [sourceFilter, setSourceFilter] = useState('all');
+  useEffect(() => {
+    if (view.type !== 'bookmarks' && sourceFilter !== 'all') {
+      setSourceFilter('all');
+    }
+  }, [view.type, sourceFilter]);
   // Restore the focused-view save on launch from the persisted
   // window state. If the save no longer exists we'll clear it once
   // the saves list loads (see effect below) so the focused view
@@ -1874,9 +1883,14 @@ export default function App({ entitlement } = {}) {
     if (view.type === 'bookmarks' && tweetTypeFilter !== 'all') {
       base = base.filter((s) => tweetTypeOf(s) === tweetTypeFilter);
     }
+    // Source sub-filter ('x' | 'instagram'). Rows default to source 'x',
+    // so a missing/legacy value reads as X.
+    if (view.type === 'bookmarks' && sourceFilter !== 'all') {
+      base = base.filter((s) => (s.source || 'x') === sourceFilter);
+    }
     if (pendingVariants.length === 0) return base;
     return [...pendingVariants, ...base];
-  }, [pendingVariants, displaySaves, view.type, tweetTypeFilter]);
+  }, [pendingVariants, displaySaves, view.type, tweetTypeFilter, sourceFilter]);
 
   // Live per-type counts for the Bookmarks filter pills — a breakdown
   // of whatever's currently loaded in the Bookmarks view (so they
@@ -1890,6 +1904,18 @@ export default function App({ entitlement } = {}) {
       if (!t) continue;
       counts.all += 1;
       counts[t] += 1;
+    }
+    return counts;
+  }, [saves, view.type]);
+
+  // Live per-source counts for the Saved view's source toggle. null
+  // outside the Saved view, where the toggle isn't shown.
+  const sourceCounts = useMemo(() => {
+    if (view.type !== 'bookmarks') return null;
+    const counts = { all: 0, x: 0, instagram: 0 };
+    for (const s of saves) {
+      counts.all += 1;
+      counts[(s.source || 'x') === 'instagram' ? 'instagram' : 'x'] += 1;
     }
     return counts;
   }, [saves, view.type]);
@@ -2951,6 +2977,9 @@ export default function App({ entitlement } = {}) {
                     tweetTypeFilter={tweetTypeFilter}
                     tweetTypeCounts={tweetTypeCounts}
                     onTweetTypeChange={setTweetTypeFilter}
+                    sourceFilter={sourceFilter}
+                    sourceCounts={sourceCounts}
+                    onSourceChange={setSourceFilter}
                     sortMode={sortMode}
                     onSortChange={setSortMode}
                     columns={gridColumns}
@@ -3002,6 +3031,7 @@ export default function App({ entitlement } = {}) {
                   layout={gridLayout}
                   morphId={morphId}
                   tweetTypeFilter={tweetTypeFilter}
+                  sourceFilter={sourceFilter}
                 />
               </div>
               )}

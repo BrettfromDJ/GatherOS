@@ -49,6 +49,27 @@ const TYPE_FILTERS = [
   { value: 'video', label: 'Video',     Icon: Film },
 ];
 
+// Saved-view source toggle — a segmented control (All saves · X ·
+// Instagram) shown only on the Saved view. 'all' is the default.
+const SOURCE_FILTERS = [
+  { value: 'all',       label: 'All saves', Icon: null },
+  { value: 'x',         label: 'X',         Icon: XGlyph },
+  { value: 'instagram', label: 'Instagram', Icon: InstagramGlyph },
+];
+
+// Instagram mark, drawn to match the lucide icon API (takes a `size`)
+// so it slots beside the X glyph in the source toggle.
+function InstagramGlyph({ size = 15 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect width="20" height="20" x="2" y="2" rx="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
 const COLS_MIN = 2;
 const COLS_MAX = 8;
 
@@ -66,6 +87,10 @@ export default function SmartChipRail({
   tweetTypeFilter = 'all',
   tweetTypeCounts = null,
   onTweetTypeChange = null,
+  // Saved-view source toggle. onSourceChange absent → toggle hidden.
+  sourceFilter = 'all',
+  sourceCounts = null,
+  onSourceChange = null,
   sortMode = 'recent',
   onSortChange,
   columns,
@@ -243,6 +268,27 @@ export default function SmartChipRail({
             onChange={onSortChange}
             ariaLabel="Sort by"
           />
+        )}
+        {!inFolder && activeViewType === 'bookmarks' && onSourceChange && (
+          <div className={styles.sourceToggle} role="group" aria-label="Filter by source">
+            {SOURCE_FILTERS.map(({ value, label, Icon }) => {
+              const n = sourceCounts ? (sourceCounts[value] ?? 0) : null;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.sourceSeg}${sourceFilter === value ? ` ${styles.sourceSegOn}` : ''}`}
+                  onClick={() => onSourceChange(value)}
+                  aria-pressed={sourceFilter === value}
+                  title={value === 'all' ? 'All saves' : `${label} saves`}
+                >
+                  {Icon ? <Icon size={14} /> : null}
+                  {value === 'all' ? <span>{label}</span> : <span className={styles.srcLabel}>{label}</span>}
+                  {n !== null && <span className={styles.srcCount}>{n}</span>}
+                </button>
+              );
+            })}
+          </div>
         )}
         {!inFolder && activeViewType === 'bookmarks' && onTweetTypeChange && (
           <Dropdown
