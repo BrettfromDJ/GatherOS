@@ -38,6 +38,64 @@
     if (d.type === 'import-mode') IMPORT_MODE = !!d.on;
   });
 
+  // Build an ordered media list for a tweet from its legacy media array:
+  // [{ type:'image', url } | { type:'video', url, poster }, …] in the
+  // order they appear on the tweet. Photos use the large variant; videos
+  // and animated GIFs use the highest-bitrate MP4 (twimg MP4 URLs are
+  // durable, so secondary videos play later too). This is what lets a
+  // tweet with more than one video bring in every video as a video —
+  // not just the first, with the rest stranded as poster stills.
+  function buildMediaList(legacy) {
+    const mediaList = (legacy.extended_entities && legacy.extended_entities.media)
+      || (legacy.entities && legacy.entities.media)
+      || [];
+    const out = [];
+    for (const m of mediaList) {
+      if (!m) continue;
+      if (m.type === 'photo' && m.media_url_https) {
+        out.push({ type: 'image', url: `${m.media_url_https}?format=jpg&name=large` });
+      } else if (
+        (m.type === 'video' || m.type === 'animated_gif')
+        && m.video_info && Array.isArray(m.video_info.variants)
+      ) {
+        let best = null;
+        for (const v of m.video_info.variants) {
+          if (!v || v.content_type !== 'video/mp4' || !v.url) continue;
+          const br = typeof v.bitrate === 'number' ? v.bitrate : 0;
+          if (!best || br > best.bitrate) best = { url: v.url, bitrate: br };
+        }
+        if (best) out.push({ type: 'video', url: best.url, poster: m.media_url_https || '' });
+      }
+    }
+    return out;
+  }
+
+  // Cache ordered media lists for multi-media tweets so the click-capture
+  // watcher (which reads the DOM, not GraphQL) can attach every video URL
+  // to a bookmark. Keyed by tweet id; only multi-item tweets are cached
+  // (a single photo/video needs nothing extra).
+  function extractTweetMedia(node, out) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { for (const c of node) extractTweetMedia(c, out); return; }
+    const legacy = node.legacy;
+    if (legacy && legacy.id_str) {
+      const media = buildMediaList(legacy);
+      if (media.length > 1 && !out.has(legacy.id_str)) out.set(legacy.id_str, media);
+    }
+    for (const key of Object.keys(node)) {
+      if (key === '__typename') continue;
+      extractTweetMedia(node[key], out);
+    }
+  }
+
+  function postTweetMedia(map) {
+    if (map.size === 0) return;
+    window.postMessage(
+      { source: 'gatheros-interceptor', type: 'tweet-media', media: Array.from(map.entries()) },
+      window.location.origin,
+    );
+  }
+
   // Recursively walk a GraphQL response looking for tweet objects
   // (anything with a legacy.id_str and a media array containing
   // video_info.variants). Returns a Map<tweetId, {videoUrl, posterUrl}>.
@@ -247,6 +305,9 @@
       imageUrls,
       videoUrl,
       posterUrl,
+      // Ordered media list — lets a multi-video tweet bring in every
+      // video. The desktop's primary download follows media[0].
+      media: buildMediaList(legacy),
       quoted: quotedFromTweet(t),
     };
   }
@@ -446,6 +507,9 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
+        const mediaMap = new Map();
+        extractTweetMedia(json, mediaMap);
+        postTweetMedia(mediaMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
         // Normally only the TOP-of-list bookmarks request drives
@@ -501,6 +565,9 @@
         const videoMap = new Map();
         extractTweetVideos(json, videoMap);
         postVideos(videoMap);
+        const mediaMap = new Map();
+        extractTweetMedia(json, mediaMap);
+        postTweetMedia(mediaMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
         // Same gate as the fetch path: top-of-list always, every page

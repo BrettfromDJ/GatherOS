@@ -28,6 +28,11 @@ const tweetThreadCache = new Map();
 // tweetId -> { authorName, authorHandle, authorAvatarUrl, caption, imageUrls }
 // for the tweet embedded inside a quote tweet.
 const tweetQuotedCache = new Map();
+// tweetId -> ordered media list [{type:'image'|'video', url, poster}] for
+// multi-media tweets, from the interceptor. Lets a bookmark of a tweet
+// with more than one video carry every video URL (the DOM only exposes
+// the first video's stream + the rest as poster stills).
+const tweetMediaCache = new Map();
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   const data = event.data;
@@ -35,6 +40,11 @@ window.addEventListener('message', (event) => {
   if (data.type === 'tweet-videos' && Array.isArray(data.videos)) {
     for (const [id, info] of data.videos) {
       if (id && info && info.videoUrl) tweetVideoCache.set(id, info);
+    }
+  }
+  if (data.type === 'tweet-media' && Array.isArray(data.media)) {
+    for (const [id, list] of data.media) {
+      if (id && Array.isArray(list) && list.length > 1) tweetMediaCache.set(id, list);
     }
   }
   if (data.type === 'thread-cache' && Array.isArray(data.threads)) {
@@ -627,6 +637,28 @@ document.addEventListener('click', async (e) => {
     // a no-op on non-twimg URLs, so the poster fallback flows
     // through it unchanged.
     payload.imageUrl = twimgLarge(imageUrls[0]);
+  }
+
+  // Multi-media tweet (e.g. two videos): attach the full ordered media
+  // list the interceptor cached, and re-route the local primary download
+  // to media[0] so index 0 of the saved media matches the on-disk file.
+  // Every other video then streams from its MP4 URL instead of showing a
+  // frozen poster.
+  const cachedMedia = tweetMediaCache.get(tweetIdFromUrl(tweetUrl));
+  if (Array.isArray(cachedMedia) && cachedMedia.length > 1) {
+    payload.tweetMeta.media = cachedMedia;
+    const first = cachedMedia[0];
+    delete payload.imageUrl;
+    delete payload.videoUrl;
+    delete payload.posterUrl;
+    if (first.type === 'video') {
+      payload.videoUrl = first.url;
+      payload.posterUrl = first.poster || '';
+      payload.tweetMeta.videoUrl = first.url;
+      payload.tweetMeta.posterUrl = first.poster || '';
+    } else {
+      payload.imageUrl = twimgLarge(first.url);
+    }
   }
 
   chrome.runtime.sendMessage(payload, (response) => {

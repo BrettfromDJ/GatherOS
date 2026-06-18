@@ -535,6 +535,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // capture. Mirrors the payload shape the bookmark watcher uses so
 // the native-host + extension-server contract stays single-source.
 async function syncBookmarkToGather(b, { force = false } = {}) {
+  const hasMediaList = Array.isArray(b.media) && b.media.length > 0;
   const payload = {
     type: 'save',
     pageUrl: b.tweetUrl,
@@ -547,13 +548,27 @@ async function syncBookmarkToGather(b, { force = false } = {}) {
       authorHandle: b.authorHandle || '',
       authorAvatarUrl: b.authorAvatarUrl || '',
       caption: b.caption || '',
+      // Ordered media list — carries every video on a multi-video tweet.
+      media: hasMediaList ? b.media : undefined,
       imageUrls: Array.isArray(b.imageUrls) ? b.imageUrls : [],
       videoUrl: b.videoUrl || null,
       posterUrl: b.posterUrl || '',
       quoted: b.quoted || null,
     },
   };
-  if (b.videoUrl) {
+  // Primary download follows media[0] when we have an explicit list, so
+  // the on-disk file matches index 0 of the saved media.
+  if (hasMediaList) {
+    const first = b.media[0];
+    if (first.type === 'video') {
+      payload.videoUrl = first.url;
+      payload.posterUrl = first.poster || '';
+      payload.tweetMeta.videoUrl = first.url;
+      payload.tweetMeta.posterUrl = first.poster || '';
+    } else {
+      payload.imageUrl = first.url;
+    }
+  } else if (b.videoUrl) {
     payload.videoUrl = b.videoUrl;
     payload.posterUrl = b.posterUrl;
   } else if (Array.isArray(b.imageUrls) && b.imageUrls.length > 0) {
@@ -736,6 +751,33 @@ function pollExtractTweetCore(result) {
   };
 }
 
+// Background mirror of the interceptor's buildMediaList — an ordered
+// [{type:'image'|'video', url, poster}] list off a tweet's legacy media.
+function pollBuildMediaList(legacy) {
+  const mediaList = (legacy.extended_entities && legacy.extended_entities.media)
+    || (legacy.entities && legacy.entities.media)
+    || [];
+  const out = [];
+  for (const m of mediaList) {
+    if (!m) continue;
+    if (m.type === 'photo' && m.media_url_https) {
+      out.push({ type: 'image', url: `${m.media_url_https}?format=jpg&name=large` });
+    } else if (
+      (m.type === 'video' || m.type === 'animated_gif')
+      && m.video_info && Array.isArray(m.video_info.variants)
+    ) {
+      let best = null;
+      for (const v of m.video_info.variants) {
+        if (!v || v.content_type !== 'video/mp4' || !v.url) continue;
+        const br = typeof v.bitrate === 'number' ? v.bitrate : 0;
+        if (!best || br > best.bitrate) best = { url: v.url, bitrate: br };
+      }
+      if (best) out.push({ type: 'video', url: best.url, poster: m.media_url_https || '' });
+    }
+  }
+  return out;
+}
+
 function pollParseTweetForBookmark(result) {
   const t = result.tweet || result;
   const legacy = t.legacy;
@@ -796,6 +838,7 @@ function pollParseTweetForBookmark(result) {
     imageUrls,
     videoUrl,
     posterUrl,
+    media: pollBuildMediaList(legacy),
     quoted: pollExtractTweetCore(t.quoted_status_result && t.quoted_status_result.result),
   };
 }
