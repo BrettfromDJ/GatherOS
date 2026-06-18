@@ -460,18 +460,17 @@ function extractBottomCursor(json) {
 // no tab, no scroll.
 async function runXApiImport(limit) {
   const { [STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(STORAGE_TEMPLATE_KEY);
-  if (!template || !template.url || !template.authorization) {
-    notify('Open x.com/i/bookmarks once, then try Import bookmarks again.');
-    return;
-  }
   let csrf = null;
   try {
     const c = await chrome.cookies.get({ url: 'https://x.com/', name: 'ct0' });
     if (c && c.value) csrf = c.value;
   } catch { /* ignore */ }
-  if (!csrf) {
-    notify('Sign in to X in this browser, then run Import bookmarks.');
-    return;
+
+  // No replayable request yet (or no session) — fall back to the visible
+  // bookmarks tab, which captures a fresh template so the quiet path works
+  // next time.
+  if (!template || !template.url || !template.authorization || !csrf) {
+    return runXScrollImport(limit);
   }
 
   const headers = {
@@ -483,6 +482,20 @@ async function runXApiImport(limit) {
     accept: '*/*',
   };
 
+  // Probe the top request VERBATIM (byte-identical to the working
+  // background poll — no variables rewrite). Any failure → fall back to
+  // the reliable tab import rather than silently importing nothing.
+  let json;
+  try {
+    const res = await fetch(template.url, { method: 'GET', credentials: 'include', headers });
+    if (!res.ok) return runXScrollImport(limit);
+    json = await res.json();
+  } catch {
+    return runXScrollImport(limit);
+  }
+  let entries = pollExtractBookmarkEntries(json);
+  if (entries.length === 0) return runXScrollImport(limit);
+
   importState = { active: true, apiMode: true, limit, imported: 0, processed: 0 };
   notify('Importing bookmarks from X…');
 
@@ -491,24 +504,8 @@ async function runXApiImport(limit) {
   let cursor = null;
   let lastCursor = null;
   let pages = 0;
-  let authFailedFirstPage = false;
   try {
-    while (importState && importState.active
-      && importState.processed < limit && pages < MAX_PAGES) {
-      let res;
-      try {
-        res = await fetch(xWithCursor(template.url, cursor), {
-          method: 'GET', credentials: 'include', headers,
-        });
-      } catch (err) {
-        console.warn('[gatheros] X import fetch failed:', err?.message || err);
-        break;
-      }
-      if (!res.ok) { authFailedFirstPage = pages === 0; break; }
-      let json;
-      try { json = await res.json(); } catch { break; }
-
-      const entries = pollExtractBookmarkEntries(json);
+    while (importState && importState.active && importState.processed < limit && pages < MAX_PAGES) {
       for (const b of entries) {
         if (importState.processed >= limit) break;
         importState.processed += 1;
@@ -521,12 +518,19 @@ async function runXApiImport(limit) {
       }
       pages += 1;
       const next = extractBottomCursor(json);
-      // Stop at the bottom: no cursor, an unchanging cursor, or a page
-      // with no tweet entries (X pads the tail with cursor-only pages).
-      if (!next || next === lastCursor || entries.length === 0) break;
+      // Stop at the bottom: no cursor, an unchanging cursor, an empty
+      // page (X pads the tail with cursor-only pages), or limit reached.
+      if (!next || next === lastCursor || entries.length === 0 || importState.processed >= limit) break;
       lastCursor = next;
       cursor = next;
       await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+      let res;
+      try {
+        res = await fetch(xWithCursor(template.url, cursor), { method: 'GET', credentials: 'include', headers });
+      } catch { break; }
+      if (!res.ok) break;
+      try { json = await res.json(); } catch { break; }
+      entries = pollExtractBookmarkEntries(json);
     }
   } finally {
     const imported = importState ? importState.imported : 0;
@@ -535,14 +539,33 @@ async function runXApiImport(limit) {
       const { seen } = await readSeenSet();
       await writeSeenSet(seen, { baseline: true, version: CAPTURE_VERSION });
     } catch { /* ignore */ }
-    if (authFailedFirstPage) {
-      notify('Could not read your X bookmarks. Open x.com/i/bookmarks once, then try again.');
-    } else {
-      notify(imported > 0
-        ? `Imported ${imported} bookmark${imported === 1 ? '' : 's'} from X.`
-        : 'No new bookmarks to import.');
-    }
+    notify(imported > 0
+      ? `Imported ${imported} bookmark${imported === 1 ? '' : 's'} from X.`
+      : 'No new bookmarks to import.');
   }
+}
+
+// Reliable fallback: open the bookmarks tab and auto-scroll (the original
+// import). Also re-captures a fresh request template so the quiet API path
+// works on the next run.
+async function runXScrollImport(limit) {
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url: 'https://x.com/i/bookmarks', active: true });
+  } catch (err) {
+    notify("Couldn't open your X bookmarks.");
+    return;
+  }
+  importState = {
+    active: true,
+    tabId: tab.id,
+    limit,
+    processed: new Set(),
+    imported: 0,
+    stagnant: 0,
+    watchdog: setTimeout(() => { endImport('timeout'); }, IMPORT_WATCHDOG_MS),
+  };
+  scheduleImportStart(tab.id);
 }
 
 // Tell the bookmarks tab's watcher to begin auto-scrolling. The content
