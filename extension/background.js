@@ -145,7 +145,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   // Panel-triggered Instagram backfill.
   if (msg.type === 'gatheros:import-saved') {
-    handleImportSaved(msg).then(sendResponse);
+    handleImportSaved(msg, sender).then(sendResponse);
     return true;
   }
   // Panel-driven actions. The in-page panel (panel.js) doesn't know
@@ -890,7 +890,12 @@ async function handleIgSavedBatch(posts) {
   await writeIgSeenSet(seen);
 }
 
-async function handleImportSaved(msg) {
+function isSavedPageUrl(url) {
+  return typeof url === 'string'
+    && /^https:\/\/(www\.)?instagram\.com\/.*\/saved(\/|$)/i.test(url);
+}
+
+async function handleImportSaved(msg, sender) {
   const { [IG_STORAGE_IMPORT_DISABLED_KEY]: disabled } =
     await chrome.storage.local.get(IG_STORAGE_IMPORT_DISABLED_KEY);
   if (disabled) {
@@ -911,27 +916,44 @@ async function handleImportSaved(msg) {
   const n = Number(msg && msg.limit);
   const limit = Number.isFinite(n) && n > 0 ? n : Infinity;
 
-  let tab;
-  try {
-    // Open Instagram; the watcher resolves + navigates to the saved tab
-    // (it owns the username, which the worker can't see) and self-starts
-    // the scroll via the IG_STORAGE_IMPORT_ACTIVE_KEY flag.
-    tab = await chrome.tabs.create({ url: 'https://www.instagram.com/', active: true });
-  } catch (err) {
-    notify("Couldn't open Instagram.");
-    return { ok: false, error: String(err && err.message || err) };
+  // Reliable path: the panel was opened on the user's Saved page —
+  // scroll that tab directly. Fallback: open Instagram fresh and let
+  // the watcher resolve + navigate to the saved tab (the watcher owns
+  // the viewer username, which the worker can't see) and self-start via
+  // the IG_STORAGE_IMPORT_ACTIVE_KEY flag.
+  const senderTab = sender && sender.tab;
+  const onSavedTab = senderTab && isSavedPageUrl(senderTab.url);
+  let tabId;
+  if (onSavedTab) {
+    tabId = senderTab.id;
+  } else {
+    let tab;
+    try {
+      tab = await chrome.tabs.create({ url: 'https://www.instagram.com/', active: true });
+    } catch (err) {
+      notify("Couldn't open Instagram.");
+      return { ok: false, error: String(err && err.message || err) };
+    }
+    tabId = tab.id;
   }
 
   await chrome.storage.local.set({ [IG_STORAGE_IMPORT_ACTIVE_KEY]: true });
   igImportState = {
     active: true,
-    tabId: tab.id,
+    tabId,
     limit,
     processed: new Set(),
     imported: 0,
     stagnant: 0,
     watchdog: setTimeout(() => { endIgImport('timeout'); }, IG_IMPORT_WATCHDOG_MS),
   };
+  // When reusing the current saved tab, kick the scroll now (no reload,
+  // so the storage flag's on-load self-start won't fire here).
+  if (onSavedTab) {
+    chrome.tabs.sendMessage(tabId, { type: 'gatheros:ig-start-import' }, () => {
+      void chrome.runtime.lastError;
+    });
+  }
   return { ok: true };
 }
 

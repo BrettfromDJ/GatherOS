@@ -170,7 +170,7 @@
             <option value="0">All saved posts</option>
           </select>
           <button class="import-go" id="igGo" disabled>Import</button>
-          <div class="scope-note">Imports your most recent saved posts. Opens Instagram and scrolls — duplicates are skipped.</div>
+          <div class="scope-note">Best on your Instagram Saved page. Scrolls to load posts — duplicates are skipped.</div>
         </div>
       </div>
       <button class="open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
