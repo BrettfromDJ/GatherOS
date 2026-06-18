@@ -917,8 +917,11 @@ async function markIgSeen(ids) {
 async function handleIgSavedBatch(posts) {
   if (!Array.isArray(posts) || posts.length === 0) return;
 
-  // A backfill owns the saved tab — route pages through the import path.
+  // A backfill owns the import: the API-driven import drives itself, so
+  // ignore passive batches; the legacy scroll import routes through
+  // handleIgImportBatch.
   if (igImportState) {
+    if (igImportState.apiMode) return;
     if (igImportState.active) await handleIgImportBatch(posts);
     return;
   }
@@ -973,55 +976,104 @@ async function handleImportSaved(msg, sender) {
   const n = Number(msg && msg.limit);
   const limit = Number.isFinite(n) && n > 0 ? n : Infinity;
 
-  // Reliable path: the panel was opened on the user's Saved page —
-  // scroll that tab directly. Fallback: open Instagram fresh and let
-  // the watcher resolve + navigate to the saved tab (the watcher owns
-  // the viewer username, which the worker can't see) and self-start via
-  // the IG_STORAGE_IMPORT_ACTIVE_KEY flag.
-  const senderTab = sender && sender.tab;
-  const onSavedTab = senderTab && isSavedPageUrl(senderTab.url);
-  let tabId;
-  if (onSavedTab) {
-    tabId = senderTab.id;
-  } else {
-    // Open the remembered saved (all-posts) page directly so the import
-    // auto-navigates + starts scrolling like X's /i/bookmarks. Falls back
-    // to instagram.com (the watcher then resolves the saved link) if we
-    // haven't learned the URL yet — i.e. the user has never opened Saved
-    // on desktop.
-    let url = 'https://www.instagram.com/';
-    try {
-      const { [IG_STORAGE_SAVED_URL_KEY]: saved } = await chrome.storage.local.get(IG_STORAGE_SAVED_URL_KEY);
-      if (saved) url = saved;
-    } catch { /* use fallback */ }
-    let tab;
-    try {
-      tab = await chrome.tabs.create({ url, active: true });
-    } catch (err) {
-      notify("Couldn't open Instagram.");
-      return { ok: false, error: String(err && err.message || err) };
-    }
-    tabId = tab.id;
+  // Import directly from Instagram's saved API in the background — no tab,
+  // no navigation, no username (the saved feed is session-scoped). Same
+  // request the mobile-sync poll replays, just paginated + forced. Runs
+  // async and reports progress via notifications.
+  runIgApiImport(limit);
+  return { ok: true };
+}
+
+// Paginate /api/v1/feed/saved/posts/ from the worker, following
+// next_max_id, importing each saved post (force = overrides tombstones)
+// up to `limit`. Uses the captured request template (URL + headers) plus
+// a fresh csrftoken cookie; gently paced for Meta account safety.
+function igWithMaxId(baseUrl, maxId) {
+  try {
+    const u = new URL(baseUrl);
+    if (maxId) u.searchParams.set('max_id', maxId);
+    else u.searchParams.delete('max_id');
+    return u.toString();
+  } catch {
+    if (!maxId) return baseUrl;
+    return baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'max_id=' + encodeURIComponent(maxId);
+  }
+}
+
+async function runIgApiImport(limit) {
+  const { [IG_STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(IG_STORAGE_TEMPLATE_KEY);
+  const baseUrl = (template && template.url)
+    || 'https://www.instagram.com/api/v1/feed/saved/posts/?count=12';
+
+  let csrf = null;
+  try {
+    const c = await chrome.cookies.get({ url: 'https://www.instagram.com/', name: 'csrftoken' });
+    if (c && c.value) csrf = c.value;
+  } catch { /* ignore */ }
+  if (!csrf) {
+    notify('Sign in to Instagram in this browser, then run Import saved.');
+    return;
   }
 
-  await chrome.storage.local.set({ [IG_STORAGE_IMPORT_ACTIVE_KEY]: true });
-  igImportState = {
-    active: true,
-    tabId,
-    limit,
-    processed: new Set(),
-    imported: 0,
-    stagnant: 0,
-    watchdog: setTimeout(() => { endIgImport('timeout'); }, IG_IMPORT_WATCHDOG_MS),
-  };
-  // When reusing the current saved tab, kick the scroll now (no reload,
-  // so the storage flag's on-load self-start won't fire here).
-  if (onSavedTab) {
-    chrome.tabs.sendMessage(tabId, { type: 'gatheros:ig-start-import' }, () => {
-      void chrome.runtime.lastError;
-    });
+  const headers = { ...((template && template.headers) || {}), 'x-csrftoken': csrf, accept: '*/*' };
+  if (!headers['x-ig-app-id']) headers['x-ig-app-id'] = IG_WEB_APP_ID;
+
+  igImportState = { active: true, apiMode: true, limit, imported: 0, processed: 0 };
+  notify('Importing saved posts from Instagram…');
+
+  const PAGE_DELAY_MS = 1400; // gentle pacing — looks like a slow scroll
+  const MAX_PAGES = 300;
+  let maxId = null;
+  let pages = 0;
+  let authFailedFirstPage = false;
+  try {
+    while (igImportState && igImportState.active
+      && igImportState.processed < limit && pages < MAX_PAGES) {
+      let res;
+      try {
+        res = await fetch(igWithMaxId(baseUrl, maxId), {
+          method: 'GET', credentials: 'include', headers,
+        });
+      } catch (err) {
+        console.warn('[gatheros] IG import fetch failed:', err?.message || err);
+        break;
+      }
+      if (!res.ok) { authFailedFirstPage = pages === 0; break; }
+      let json;
+      try { json = await res.json(); } catch { break; }
+
+      const posts = pollExtractSavedPosts(json);
+      for (const p of posts) {
+        if (igImportState.processed >= limit) break;
+        igImportState.processed += 1;
+        try {
+          const resp = await syncSavedPostToGather(p, { force: true });
+          if (resp && resp.ok && !resp.duplicate && !resp.dismissed) igImportState.imported += 1;
+        } catch (err) {
+          console.warn('[gatheros] IG import save failed:', err?.message || err);
+        }
+      }
+      pages += 1;
+      if (!json.more_available || !json.next_max_id) break;
+      maxId = json.next_max_id;
+      await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+    }
+  } finally {
+    const imported = igImportState ? igImportState.imported : 0;
+    igImportState = null;
+    // Establish the baseline so passive sync only imports newer posts.
+    try {
+      const { seen } = await readIgSeenSet();
+      await writeIgSeenSet(seen, { baseline: true, version: IG_CAPTURE_VERSION });
+    } catch { /* ignore */ }
+    if (authFailedFirstPage) {
+      notify('Could not read your Instagram saved feed. Open your Saved page once, then try again.');
+    } else {
+      notify(imported > 0
+        ? `Imported ${imported} saved post${imported === 1 ? '' : 's'} from Instagram.`
+        : 'No new saved posts to import.');
+    }
   }
-  return { ok: true };
 }
 
 async function handleIgImportBatch(posts) {
