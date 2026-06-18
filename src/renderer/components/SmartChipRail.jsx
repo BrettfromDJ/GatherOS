@@ -49,12 +49,12 @@ const TYPE_FILTERS = [
   { value: 'video', label: 'Video',     Icon: Film },
 ];
 
-// Saved-view source toggle — a segmented control (All saves · X ·
-// Instagram) shown only on the Saved view. 'all' is the default.
+// Saved-view source filter — a dropdown (matching sort + tweet-type)
+// shown only on the Saved view. 'all' is the no-op default.
 const SOURCE_FILTERS = [
-  { value: 'all',       label: 'All saves', Icon: null },
-  { value: 'x',         label: 'X',         Icon: XGlyph },
-  { value: 'instagram', label: 'Instagram', Icon: InstagramGlyph },
+  { value: 'all',       label: 'All sources', Icon: Images },
+  { value: 'x',         label: 'X',           Icon: XGlyph },
+  { value: 'instagram', label: 'Instagram',   Icon: InstagramGlyph },
 ];
 
 // Instagram mark, drawn to match the lucide icon API (takes a `size`)
@@ -270,25 +270,17 @@ export default function SmartChipRail({
           />
         )}
         {!inFolder && activeViewType === 'bookmarks' && onSourceChange && (
-          <div className={styles.sourceToggle} role="group" aria-label="Filter by source">
-            {SOURCE_FILTERS.map(({ value, label, Icon }) => {
-              const n = sourceCounts ? (sourceCounts[value] ?? 0) : null;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={`${styles.sourceSeg}${sourceFilter === value ? ` ${styles.sourceSegOn}` : ''}`}
-                  onClick={() => onSourceChange(value)}
-                  aria-pressed={sourceFilter === value}
-                  title={value === 'all' ? 'All saves' : `${label} saves`}
-                >
-                  {Icon ? <Icon size={14} /> : null}
-                  {value === 'all' ? <span>{label}</span> : <span className={styles.srcLabel}>{label}</span>}
-                  {n !== null && <span className={styles.srcCount}>{n}</span>}
-                </button>
-              );
-            })}
-          </div>
+          <Dropdown
+            value={sourceFilter}
+            options={SOURCE_FILTERS.map((o) => ({
+              ...o,
+              // Append the live count, matching the tweet-type dropdown
+              // (e.g. "Instagram · 132"). Counts honour an active search.
+              label: sourceCounts ? `${o.label} · ${sourceCounts[o.value] ?? 0}` : o.label,
+            }))}
+            onChange={onSourceChange}
+            ariaLabel="Filter by source"
+          />
         )}
         {!inFolder && activeViewType === 'bookmarks' && onTweetTypeChange && (
           <Dropdown
