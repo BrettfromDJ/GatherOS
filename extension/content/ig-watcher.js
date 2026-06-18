@@ -24,6 +24,15 @@ window.addEventListener('message', (event) => {
   if (data.type === 'saved-batch' && Array.isArray(data.posts)) {
     chrome.runtime.sendMessage({ type: 'gatheros:ig-saved-batch', posts: data.posts });
   }
+  // Replay template for the background poll (saves made on mobile sync
+  // without a desktop Saved-page visit).
+  if (data.type === 'saved-refresh-template' && data.url) {
+    chrome.runtime.sendMessage({
+      type: 'gatheros:ig-saved-refresh-template',
+      url: data.url,
+      headers: data.headers || {},
+    });
+  }
 });
 
 // ── In-page toast (mirrors the X watcher's pill) ───────────────────

@@ -56,9 +56,11 @@ chrome.runtime.onInstalled.addListener(() => {
   // this only needs to fire-and-forget; the alarm itself wakes the
   // worker to run the poll on the BOOKMARK_POLL_PERIOD_MINUTES cadence.
   ensureBookmarkPollAlarm();
+  ensureIgPollAlarm();
 });
 chrome.runtime.onStartup.addListener(() => {
   ensureBookmarkPollAlarm();
+  ensureIgPollAlarm();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -141,6 +143,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // own "seen" baseline.
   if (msg.type === 'gatheros:ig-saved-batch') {
     handleIgSavedBatch(msg.posts);
+    return false;
+  }
+  if (msg.type === 'gatheros:ig-saved-refresh-template') {
+    saveIgRefreshTemplate(msg.url, msg.headers);
     return false;
   }
   // Panel-triggered Instagram backfill.
@@ -675,6 +681,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     ensureBookmarkPollAlarm();
     maybePollBookmarks();
   }
+  if (alarm && alarm.name === IG_POLL_ALARM) {
+    ensureIgPollAlarm();
+    maybePollIgSaved();
+  }
 });
 
 // Poll the moment the user returns focus to Chrome. The common flow is
@@ -686,6 +696,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.windows.onFocusChanged.addListener((windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) return;
   maybePollBookmarks();
+  maybePollIgSaved();
 });
 
 // Background-side mirror of extractBookmarkEntries + parseTweetForBookmark
@@ -1107,6 +1118,196 @@ async function syncSavedPostToGather(p, { force = false } = {}) {
     return; // nothing to save
   }
   return chrome.runtime.sendNativeMessage(HOST_NAME, payload);
+}
+
+// ── Instagram background poll (mobile-save sync, X-style) ──────────
+//
+// Instagram saved posts are server-side, and desktop Chrome holds the
+// user's instagram.com session — so we re-fire the captured top-of-saved
+// request on a timer + on window focus using their cookies + a fresh
+// csrftoken, picking up posts saved on the phone without a Saved-page
+// visit. Gentler cadence than X (Meta is stricter about automation) and
+// self-healing: a stale template/claim just refreshes on the next real
+// Saved-page visit. Only the top of the feed is replayed (one request).
+
+const IG_POLL_ALARM = 'gatherosIgSavedPoll';
+const IG_POLL_PERIOD_MINUTES = 5;
+const IG_POLL_THROTTLE_MS = 90 * 1000;
+const IG_STORAGE_LAST_POLL_KEY = 'gatherosIgLastPollAt';
+const IG_STORAGE_TEMPLATE_KEY = 'gatherosIgSavedRefreshTemplate';
+const IG_STORAGE_POLL_DISABLED_KEY = 'gatherosIgPollDisabled';
+// The Instagram web client's app id. Captured from the live request when
+// possible; this constant is the fallback so a replay still authenticates.
+const IG_WEB_APP_ID = '936619743392459';
+
+function ensureIgPollAlarm() {
+  chrome.alarms.create(IG_POLL_ALARM, { periodInMinutes: IG_POLL_PERIOD_MINUTES });
+}
+
+async function maybePollIgSaved() {
+  const data = await chrome.storage.local.get([IG_STORAGE_POLL_DISABLED_KEY, IG_STORAGE_LAST_POLL_KEY]);
+  if (data[IG_STORAGE_POLL_DISABLED_KEY]) return;
+  const now = Date.now();
+  if (now - (data[IG_STORAGE_LAST_POLL_KEY] || 0) < IG_POLL_THROTTLE_MS) return;
+  await chrome.storage.local.set({ [IG_STORAGE_LAST_POLL_KEY]: now });
+  await pollIgSavedRefresh();
+}
+
+async function saveIgRefreshTemplate(url, headers) {
+  if (!url) return;
+  const { [IG_STORAGE_TEMPLATE_KEY]: existing } = await chrome.storage.local.get(IG_STORAGE_TEMPLATE_KEY);
+  const next = {
+    url,
+    // Keep any previously-captured headers if this capture missed some.
+    headers: { ...((existing && existing.headers) || {}), ...((headers && typeof headers === 'object') ? headers : {}) },
+    updatedAt: Date.now(),
+  };
+  await chrome.storage.local.set({ [IG_STORAGE_TEMPLATE_KEY]: next });
+}
+
+async function pollIgSavedRefresh() {
+  if (igImportState && igImportState.active) return; // don't poll mid-backfill
+  const { [IG_STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(IG_STORAGE_TEMPLATE_KEY);
+  if (!template || !template.url) return; // user hasn't visited Saved since install
+
+  let csrf = null;
+  try {
+    const cookie = await chrome.cookies.get({ url: 'https://www.instagram.com/', name: 'csrftoken' });
+    if (cookie && cookie.value) csrf = cookie.value;
+  } catch (err) {
+    console.warn('[gatheros] reading IG csrftoken failed:', err?.message || err);
+    return;
+  }
+  if (!csrf) return; // not signed in to instagram.com in this Chrome profile
+
+  const headers = { ...(template.headers || {}), 'x-csrftoken': csrf, accept: '*/*' };
+  if (!headers['x-ig-app-id']) headers['x-ig-app-id'] = IG_WEB_APP_ID;
+
+  let res;
+  try {
+    res = await fetch(template.url, { method: 'GET', credentials: 'include', headers });
+  } catch (err) {
+    console.warn('[gatheros] IG saved poll fetch failed:', err?.message || err);
+    return;
+  }
+  // 4xx/claim drift: keep the template; the next Saved visit refreshes it.
+  if (!res.ok) return;
+
+  let json;
+  try { json = await res.json(); } catch { return; }
+
+  const posts = pollExtractSavedPosts(json);
+  if (posts.length > 0) await handleIgSavedBatch(posts);
+}
+
+// Background mirror of the interceptor's saved-post parser (the MAIN-world
+// script isn't reachable from the worker). Keep in sync with
+// content/ig-interceptor.js — same shapes, same field handling.
+function igPollBestImageUrl(node) {
+  const cands = node && node.image_versions2 && Array.isArray(node.image_versions2.candidates)
+    ? node.image_versions2.candidates : null;
+  if (cands && cands.length) {
+    let best = cands[0];
+    for (const c of cands) if (c && typeof c.width === 'number' && c.width > (best.width || 0)) best = c;
+    if (best && best.url) return best.url;
+  }
+  return node.display_url || node.thumbnail_url || node.thumbnail_src || '';
+}
+function igPollBestVideoUrl(node) {
+  if (Array.isArray(node.video_versions) && node.video_versions.length) {
+    let best = node.video_versions[0];
+    for (const v of node.video_versions) if (v && typeof v.width === 'number' && v.width > (best.width || 0)) best = v;
+    if (best && best.url) return best.url;
+  }
+  return node.video_url || '';
+}
+function igPollCarouselChildren(node) {
+  if (Array.isArray(node.carousel_media)) return node.carousel_media;
+  const edges = node.edge_sidecar_to_children && Array.isArray(node.edge_sidecar_to_children.edges)
+    ? node.edge_sidecar_to_children.edges : null;
+  if (edges) return edges.map((e) => e && e.node).filter(Boolean);
+  return null;
+}
+function igPollIsVideoNode(node) {
+  return node.media_type === 2 || node.is_video === true
+    || (Array.isArray(node.video_versions) && node.video_versions.length > 0);
+}
+function igPollCaptionOf(node) {
+  if (node.caption && typeof node.caption.text === 'string') return node.caption.text;
+  if (typeof node.caption === 'string') return node.caption;
+  const edges = node.edge_media_to_caption && Array.isArray(node.edge_media_to_caption.edges)
+    ? node.edge_media_to_caption.edges : null;
+  if (edges && edges[0] && edges[0].node && typeof edges[0].node.text === 'string') return edges[0].node.text;
+  return '';
+}
+function igPollOwnerOf(node) {
+  const u = node.user || node.owner || {};
+  return {
+    username: u.username || '',
+    fullName: u.full_name || u.fullName || '',
+    avatarUrl: u.profile_pic_url || u.profile_pic_url_hd || '',
+  };
+}
+function igPollMediaItemOf(node) {
+  if (igPollIsVideoNode(node)) {
+    return { type: 'video', url: igPollBestVideoUrl(node) || '', poster: igPollBestImageUrl(node) || '' };
+  }
+  return { type: 'image', url: igPollBestImageUrl(node) || '' };
+}
+function igPollLooksLikeMedia(node) {
+  if (!node || typeof node !== 'object') return false;
+  const hasCode = typeof node.code === 'string' || typeof node.shortcode === 'string';
+  const hasMedia = !!node.image_versions2 || !!node.display_url
+    || Array.isArray(node.carousel_media) || !!node.edge_sidecar_to_children
+    || Array.isArray(node.video_versions) || typeof node.video_url === 'string';
+  return hasCode && hasMedia;
+}
+function igPollParseSavedMedia(node) {
+  const shortcode = node.code || node.shortcode;
+  const postId = node.pk || node.id || shortcode;
+  if (!shortcode && !postId) return null;
+  const owner = igPollOwnerOf(node);
+  const permalink = `https://www.instagram.com/p/${shortcode || postId}/`;
+  const children = igPollCarouselChildren(node);
+  let media = [];
+  if (children && children.length) media = children.map(igPollMediaItemOf).filter((m) => m.url);
+  else { const item = igPollMediaItemOf(node); if (item.url) media = [item]; }
+  const imageUrls = media.map((m) => (m.type === 'video' ? m.poster : m.url)).filter(Boolean);
+  let videoUrl = null;
+  let posterUrl = '';
+  if (media[0] && media[0].type === 'video') { videoUrl = media[0].url || null; posterUrl = media[0].poster || ''; }
+  const caption = igPollCaptionOf(node);
+  if (media.length === 0 && !caption.trim()) return null;
+  return {
+    postId: String(postId),
+    shortcode: shortcode || '',
+    tweetUrl: permalink,
+    authorName: owner.fullName,
+    authorHandle: owner.username ? `@${owner.username}` : '',
+    authorAvatarUrl: owner.avatarUrl,
+    caption,
+    media,
+    imageUrls,
+    videoUrl,
+    posterUrl,
+    isCarousel: !!(children && children.length),
+  };
+}
+function pollExtractSavedPosts(json) {
+  const out = [];
+  const seen = new Set();
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { for (const c of node) walk(c); return; }
+    if (igPollLooksLikeMedia(node)) {
+      const parsed = igPollParseSavedMedia(node);
+      if (parsed && !seen.has(parsed.postId)) { seen.add(parsed.postId); out.push(parsed); }
+      return;
+    }
+    for (const key of Object.keys(node)) { if (key === '__typename') continue; walk(node[key]); }
+  }
+  walk(json);
+  return out;
 }
 
 function notify(message) {

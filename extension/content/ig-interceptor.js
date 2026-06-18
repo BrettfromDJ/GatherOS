@@ -276,6 +276,48 @@
     );
   }
 
+  // ── Replay template (background poll, X-style) ─────────────────────
+  // Instagram's saved feed is server-side, and desktop Chrome holds the
+  // user's instagram.com session — so the background worker can re-fire
+  // the top-of-saved request on a timer/focus and pick up posts the user
+  // saved on their phone, without a Saved-page visit. We capture the
+  // request URL + the IG private-API headers here so the worker can
+  // replay it (the session cookies + a fresh csrftoken come from the
+  // cookie store on the worker side). Self-healing: a stale template is
+  // refreshed on the next real Saved-page visit, same as X's bearer.
+  const IG_REPLAY_HEADERS = [
+    'x-ig-app-id', 'x-csrftoken', 'x-ig-www-claim',
+    'x-asbd-id', 'x-requested-with', 'x-ig-nav-chain',
+  ];
+  function readIgHeaders(init) {
+    const out = {};
+    if (!init || !init.headers) return out;
+    const h = init.headers;
+    const get = (k) => {
+      if (h && typeof h.get === 'function') return h.get(k);
+      if (Array.isArray(h)) {
+        for (const [hk, hv] of h) if (hk && hk.toLowerCase() === k) return hv;
+        return null;
+      }
+      if (typeof h === 'object') {
+        for (const hk of Object.keys(h)) if (hk.toLowerCase() === k) return h[hk];
+      }
+      return null;
+    };
+    for (const k of IG_REPLAY_HEADERS) { const v = get(k); if (v) out[k] = v; }
+    return out;
+  }
+  function postIgRefreshTemplate(url, headers) {
+    // Absolutize — Instagram often issues relative request URLs, and the
+    // background worker's fetch needs a full URL to replay.
+    let abs = url;
+    try { abs = new URL(url, window.location.origin).href; } catch { /* keep as-is */ }
+    window.postMessage(
+      { source: 'gatheros-ig-interceptor', type: 'saved-refresh-template', url: abs, headers: headers || {} },
+      window.location.origin,
+    );
+  }
+
   // Shared handler for both fetch + XHR captures.
   function handleResponse(url, json) {
     const posts = extractSavedPosts(json);
@@ -297,6 +339,12 @@
     debugSawRequest(reqUrl);
     const p = ORIGINAL_FETCH.apply(this, args);
     if (!shouldIntercept(reqUrl)) return p;
+    // Capture a replay template off the top-of-saved REST request so the
+    // background worker can re-fire it on a timer/focus (mobile-save sync).
+    if (isSavedRestEndpoint(reqUrl) && isTopOfFeedRequest(reqUrl)) {
+      const init = (args[0] && typeof args[0] === 'object' && args[0].headers) ? args[0] : args[1];
+      postIgRefreshTemplate(reqUrl, readIgHeaders(init));
+    }
     p.then((res) => {
       if (!res || !res.ok) return;
       res.clone().json()
@@ -307,13 +355,25 @@
   };
 
   const XHR_OPEN = XMLHttpRequest.prototype.open;
+  const XHR_SET_HEADER = XMLHttpRequest.prototype.setRequestHeader;
   const XHR_SEND = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.open = function gatherIgXhrOpen(method, url, ...rest) {
     this.__gatherIgUrl = url;
+    this.__gatherIgHeaders = {};
     return XHR_OPEN.call(this, method, url, ...rest);
+  };
+  XMLHttpRequest.prototype.setRequestHeader = function gatherIgXhrSetHeader(name, value) {
+    if (this.__gatherIgHeaders && typeof name === 'string'
+      && IG_REPLAY_HEADERS.includes(name.toLowerCase())) {
+      this.__gatherIgHeaders[name.toLowerCase()] = value;
+    }
+    return XHR_SET_HEADER.call(this, name, value);
   };
   XMLHttpRequest.prototype.send = function gatherIgXhrSend(...args) {
     debugSawRequest(this.__gatherIgUrl);
+    if (isSavedRestEndpoint(this.__gatherIgUrl) && isTopOfFeedRequest(this.__gatherIgUrl)) {
+      postIgRefreshTemplate(this.__gatherIgUrl, this.__gatherIgHeaders || {});
+    }
     this.addEventListener('load', () => {
       if (!shouldIntercept(this.__gatherIgUrl)) return;
       try {
