@@ -31,6 +31,11 @@ window.addEventListener('message', (event) => {
       type: 'gatheros:ig-saved-refresh-template',
       url: data.url,
       headers: data.headers || {},
+      // The page that fired this request IS the saved (all-posts) page,
+      // so remember its URL — the worker can then open it directly on a
+      // future "Import saved" (Instagram has no username-less saved URL
+      // like X's /i/bookmarks).
+      savedPageUrl: location.href,
     });
   }
 });

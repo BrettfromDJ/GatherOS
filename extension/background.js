@@ -147,6 +147,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === 'gatheros:ig-saved-refresh-template') {
     saveIgRefreshTemplate(msg.url, msg.headers);
+    if (msg.savedPageUrl) {
+      chrome.storage.local.set({ [IG_STORAGE_SAVED_URL_KEY]: msg.savedPageUrl });
+    }
     return false;
   }
   // Panel-triggered Instagram backfill.
@@ -981,9 +984,19 @@ async function handleImportSaved(msg, sender) {
   if (onSavedTab) {
     tabId = senderTab.id;
   } else {
+    // Open the remembered saved (all-posts) page directly so the import
+    // auto-navigates + starts scrolling like X's /i/bookmarks. Falls back
+    // to instagram.com (the watcher then resolves the saved link) if we
+    // haven't learned the URL yet — i.e. the user has never opened Saved
+    // on desktop.
+    let url = 'https://www.instagram.com/';
+    try {
+      const { [IG_STORAGE_SAVED_URL_KEY]: saved } = await chrome.storage.local.get(IG_STORAGE_SAVED_URL_KEY);
+      if (saved) url = saved;
+    } catch { /* use fallback */ }
     let tab;
     try {
-      tab = await chrome.tabs.create({ url: 'https://www.instagram.com/', active: true });
+      tab = await chrome.tabs.create({ url, active: true });
     } catch (err) {
       notify("Couldn't open Instagram.");
       return { ok: false, error: String(err && err.message || err) };
@@ -1136,6 +1149,9 @@ const IG_POLL_THROTTLE_MS = 90 * 1000;
 const IG_STORAGE_LAST_POLL_KEY = 'gatherosIgLastPollAt';
 const IG_STORAGE_TEMPLATE_KEY = 'gatherosIgSavedRefreshTemplate';
 const IG_STORAGE_POLL_DISABLED_KEY = 'gatherosIgPollDisabled';
+// Last-seen saved (all-posts) page URL — Instagram has no username-less
+// saved route, so we remember the user's and open it directly on import.
+const IG_STORAGE_SAVED_URL_KEY = 'gatherosIgSavedPageUrl';
 // The Instagram web client's app id. Captured from the live request when
 // possible; this constant is the fallback so a replay still authenticates.
 const IG_WEB_APP_ID = '936619743392459';
