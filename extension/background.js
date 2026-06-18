@@ -320,11 +320,11 @@ async function markBookmarksSeen(ids) {
 async function handleBookmarkBatch(bookmarks) {
   if (!Array.isArray(bookmarks) || bookmarks.length === 0) return;
 
-  // A panel-triggered backfill owns the bookmarks tab: route pages
-  // through the import path. While winding down (active=false but state
-  // not yet cleared) swallow trailing cursor pages so they don't import
-  // past the chosen limit via the normal baseline path below.
+  // A backfill owns the import: the API-driven import drives itself, so
+  // ignore passive batches; the legacy scroll import routes through
+  // handleImportBatch.
   if (importState) {
+    if (importState.apiMode) return;
     if (importState.active) await handleImportBatch(bookmarks);
     return;
   }
@@ -421,25 +421,128 @@ async function handleImportBookmarks(msg) {
   const n = Number(msg && msg.limit);
   const limit = Number.isFinite(n) && n > 0 ? n : Infinity;
 
-  let tab;
+  // Background import — replay the captured Bookmarks request and follow
+  // the cursor, no tab or auto-scroll (mirrors the Instagram path).
+  runXApiImport(limit);
+  return { ok: true };
+}
+
+// Rewrite the Bookmarks request URL's `variables` JSON to page from a
+// given cursor (X paginates via variables.cursor, not a query param).
+function xWithCursor(baseUrl, cursor) {
   try {
-    tab = await chrome.tabs.create({ url: 'https://x.com/i/bookmarks', active: true });
-  } catch (err) {
-    notify("Couldn't open your X bookmarks.");
-    return { ok: false, error: String(err && err.message || err) };
+    const u = new URL(baseUrl);
+    const raw = u.searchParams.get('variables');
+    if (!raw) return baseUrl;
+    let vars;
+    try { vars = JSON.parse(raw); } catch { return baseUrl; }
+    if (cursor) vars.cursor = cursor; else delete vars.cursor;
+    u.searchParams.set('variables', JSON.stringify(vars));
+    return u.toString();
+  } catch { return baseUrl; }
+}
+
+// Find the timeline's bottom cursor in a Bookmarks response.
+function extractBottomCursor(json) {
+  let found = null;
+  (function walk(node) {
+    if (found || !node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { for (const c of node) walk(c); return; }
+    if (node.cursorType === 'Bottom' && typeof node.value === 'string') { found = node.value; return; }
+    for (const k of Object.keys(node)) { if (k === '__typename') continue; walk(node[k]); }
+  })(json);
+  return found;
+}
+
+// Paginate the captured Bookmarks GraphQL request from the worker,
+// following the bottom cursor, importing each bookmark (force = override
+// tombstones) up to `limit`. Uses the stored bearer + a fresh ct0 cookie;
+// no tab, no scroll.
+async function runXApiImport(limit) {
+  const { [STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(STORAGE_TEMPLATE_KEY);
+  if (!template || !template.url || !template.authorization) {
+    notify('Open x.com/i/bookmarks once, then try Import bookmarks again.');
+    return;
+  }
+  let csrf = null;
+  try {
+    const c = await chrome.cookies.get({ url: 'https://x.com/', name: 'ct0' });
+    if (c && c.value) csrf = c.value;
+  } catch { /* ignore */ }
+  if (!csrf) {
+    notify('Sign in to X in this browser, then run Import bookmarks.');
+    return;
   }
 
-  importState = {
-    active: true,
-    tabId: tab.id,
-    limit,
-    processed: new Set(),
-    imported: 0,
-    stagnant: 0,
-    watchdog: setTimeout(() => { endImport('timeout'); }, IMPORT_WATCHDOG_MS),
+  const headers = {
+    authorization: template.authorization,
+    'x-csrf-token': csrf,
+    'x-twitter-active-user': 'yes',
+    'x-twitter-auth-type': 'OAuth2Session',
+    'x-twitter-client-language': 'en',
+    accept: '*/*',
   };
-  scheduleImportStart(tab.id);
-  return { ok: true };
+
+  importState = { active: true, apiMode: true, limit, imported: 0, processed: 0 };
+  notify('Importing bookmarks from X…');
+
+  const PAGE_DELAY_MS = 1200;
+  const MAX_PAGES = 400;
+  let cursor = null;
+  let lastCursor = null;
+  let pages = 0;
+  let authFailedFirstPage = false;
+  try {
+    while (importState && importState.active
+      && importState.processed < limit && pages < MAX_PAGES) {
+      let res;
+      try {
+        res = await fetch(xWithCursor(template.url, cursor), {
+          method: 'GET', credentials: 'include', headers,
+        });
+      } catch (err) {
+        console.warn('[gatheros] X import fetch failed:', err?.message || err);
+        break;
+      }
+      if (!res.ok) { authFailedFirstPage = pages === 0; break; }
+      let json;
+      try { json = await res.json(); } catch { break; }
+
+      const entries = pollExtractBookmarkEntries(json);
+      for (const b of entries) {
+        if (importState.processed >= limit) break;
+        importState.processed += 1;
+        try {
+          const resp = await syncBookmarkToGather(b, { force: true });
+          if (resp && resp.ok && !resp.duplicate && !resp.dismissed) importState.imported += 1;
+        } catch (err) {
+          console.warn('[gatheros] X import save failed:', err?.message || err);
+        }
+      }
+      pages += 1;
+      const next = extractBottomCursor(json);
+      // Stop at the bottom: no cursor, an unchanging cursor, or a page
+      // with no tweet entries (X pads the tail with cursor-only pages).
+      if (!next || next === lastCursor || entries.length === 0) break;
+      lastCursor = next;
+      cursor = next;
+      await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
+    }
+  } finally {
+    const imported = importState ? importState.imported : 0;
+    importState = null;
+    try {
+      const { seen } = await readSeenSet();
+      await writeSeenSet(seen, { baseline: true, version: CAPTURE_VERSION });
+    } catch { /* ignore */ }
+    if (authFailedFirstPage) {
+      notify('Could not read your X bookmarks. Open x.com/i/bookmarks once, then try again.');
+    } else {
+      notify(imported > 0
+        ? `Imported ${imported} bookmark${imported === 1 ? '' : 's'} from X.`
+        : 'No new bookmarks to import.');
+    }
+  }
 }
 
 // Tell the bookmarks tab's watcher to begin auto-scrolling. The content
@@ -620,6 +723,7 @@ async function saveRefreshTemplate(url, authorization) {
 }
 
 async function pollBookmarksRefresh() {
+  if (importState && importState.active) return; // don't poll mid-import
   const { [STORAGE_TEMPLATE_KEY]: template } = await chrome.storage.local.get(STORAGE_TEMPLATE_KEY);
   if (!template || !template.url || !template.authorization) {
     // No template yet — user hasn't visited /i/bookmarks since the
