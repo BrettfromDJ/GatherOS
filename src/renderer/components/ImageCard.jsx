@@ -5,6 +5,24 @@ import { fileUrl } from '../lib/fileUrl.js';
 import { tweetMediaItems, twimgLarge } from '../lib/tweetMedia.js';
 import TweetCard from './TweetCard.jsx';
 
+// ── Global grid-video playback cap ──────────────────────────────────
+// Decoding video is the dominant GPU/CPU cost in the grid, so cap how
+// many play simultaneously across ALL cards. A video-dense viewport
+// would otherwise decode a dozen+ clips at once and pin the GPU process.
+// Cards acquire a slot when they become visible and release on
+// scroll-away / unmount; the rest hold on their poster. 5 keeps the
+// board feeling alive without the fans spinning up.
+const MAX_CONCURRENT_VIDEOS = 5;
+let videoSlotsUsed = 0;
+function acquireVideoSlot() {
+  if (videoSlotsUsed >= MAX_CONCURRENT_VIDEOS) return false;
+  videoSlotsUsed += 1;
+  return true;
+}
+function releaseVideoSlot() {
+  if (videoSlotsUsed > 0) videoSlotsUsed -= 1;
+}
+
 // Official-ish X glyph — used as a source badge in the bottom-left
 // of cards whose save was captured via the X bookmark watcher. Same
 // path the DetailPanel tweet card uses; copied here to avoid an
@@ -287,18 +305,28 @@ export default function ImageCard({
     return () => obs.disconnect();
   }, []);
 
-  // Play the grid <video> only while it's visible; pause it otherwise.
+  // Play the grid <video> only while visible AND under a global cap on
+  // how many play at once — a screenful of videos all decoding is what
+  // pins the GPU process. Cards grab a slot when they become visible and
+  // release it when they scroll away / unmount; visible cards that can't
+  // get a slot sit paused on their poster. The top-most visible videos
+  // win the slots (they mount/observe first).
   const gridVideoRef = useRef(null);
   useEffect(() => {
     const v = gridVideoRef.current;
-    if (!v) return undefined;
-    if (visible) {
+    if (!v || !showVideo) return undefined;
+    let held = false;
+    if (visible && acquireVideoSlot()) {
+      held = true;
       const p = v.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } else {
       try { v.pause(); } catch { /* ignore */ }
     }
-    return undefined;
+    return () => {
+      try { v.pause(); } catch { /* ignore */ }
+      if (held) releaseVideoSlot();
+    };
   }, [visible, showVideo, displaySrc]);
 
   // bounce the source card so the user feels the snap-back instead
