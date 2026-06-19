@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Improving the saved tweet / Instagram card</title>
+<style>
+  :root{
+    --panel:#1c1c1e; --card:#2a2a2c; --card-2:#303032;
+    --border:rgba(255,255,255,0.08); --hair:rgba(255,255,255,0.07);
+    --t1:#fff; --t2:rgba(255,255,255,0.62); --t3:rgba(255,255,255,0.42);
+    --glyph:rgba(255,255,255,0.7);
+    --font:-apple-system,BlinkMacSystemFont,"Geist",system-ui,sans-serif;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font);background:#0e0e10;color:var(--t1);-webkit-font-smoothing:antialiased}
+
+  .topbar{position:fixed;inset:0 0 auto 0;height:52px;z-index:50;display:flex;align-items:center;gap:14px;
+    padding:0 16px;background:rgba(18,18,20,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+  .topbar h1{font-size:13px;font-weight:600;letter-spacing:-.01em;margin:0;white-space:nowrap}
+  .tabs{display:flex;gap:4px;margin-left:6px;overflow:auto}
+  .tab{display:flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--t2);font:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:rgba(255,255,255,.1);font-size:10px;font-weight:600}
+  .tab:hover{background:rgba(255,255,255,.06);color:var(--t1)}
+  .tab.on{background:rgba(255,255,255,.1);border-color:var(--border);color:var(--t1)}
+  .tab.on .n{background:#fff;color:#111}
+
+  .stage{position:fixed;inset:52px 0 0 0;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:24px}
+  .meta{text-align:center;margin-bottom:20px;max-width:640px}
+  .meta .name{font-size:15px;font-weight:600;letter-spacing:-.015em}
+  .meta .why{font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.45}
+  .iter{display:none}
+  .iter.active{display:block}
+
+  /* detail-panel context column */
+  .panel{width:380px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
+  .fieldLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:0 2px 7px}
+  .urlField{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;border-radius:11px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:16px}
+  .urlField .u{flex:1;min-width:0;font-size:13px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .urlField .ext{color:var(--t3);cursor:pointer}
+  .addNote{margin-top:14px;font-size:14px;color:var(--t3);cursor:pointer}
+  .addNote:hover{color:var(--t2)}
+  .divider{height:1px;background:var(--hair);margin:16px 0 0}
+
+  /* base card */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:0 6px 22px rgba(0,0,0,.3);transition:border-color .14s ease, box-shadow .14s ease}
+  .card:hover{border-color:rgba(255,255,255,.14);box-shadow:0 8px 26px rgba(0,0,0,.38)}
+  .chead{display:flex;align-items:center;gap:9px}
+  .av{width:34px;height:34px;border-radius:50%;flex:none;background:linear-gradient(135deg,#5b6cff,#3a2a7a)}
+  .av.sm{width:22px;height:22px}
+  .cid{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  .cname{font-size:13.5px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:5px}
+  .vrf{color:#4ea3ff}
+  .chandle{font-size:12px;color:var(--t3)}
+  .cx{margin-left:auto;color:var(--glyph)}
+  .ctext{font-size:13.5px;line-height:1.45;color:var(--t1);margin:10px 0 11px}
+  .ctext .lnk{color:#5b8cff;text-decoration:none}
+  .linkchip{display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid var(--hair);font-size:11.5px;color:var(--t2)}
+
+  /* 2x2 grid */
+  .g4{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;height:200px}
+  .g4 .tile{border-radius:9px;min-width:0;min-height:0}
+  .tile{background:#3a3a3d}
+
+  .t-a{background:linear-gradient(135deg,#8a7a5a,#3b3326)}
+  .t-b{background:linear-gradient(135deg,#3a5a4a,#243b30)}
+  .t-c{background:linear-gradient(135deg,#5a4a6a,#2a2340)}
+  .t-d{background:linear-gradient(135deg,#6a4a4a,#402327)}
+
+  /* footer meta */
+  .foot{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid var(--hair);font-size:11.5px;color:var(--t3)}
+  .foot .open{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--t2);cursor:pointer}
+  .foot .open:hover{color:var(--t1)}
+  .dotsep{opacity:.5}
+</style>
+</head>
+<body>
+  <div class="topbar"><h1>Improving the saved tweet / Instagram card</h1><div class="tabs" id="tabs"></div></div>
+  <div class="stage" id="stage"></div>
+<script>
+const XG=`<svg viewBox="0 0 1200 1227" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>`;
+const XGsm=`<svg viewBox="0 0 1200 1227" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>`;
+const EXT=`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
+const LINK=`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>`;
+const VER=`<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 1.8 3 .2.9 2.9 2.4 1.8-.9 2.9.9 2.9-2.4 1.8-.9 2.9-3 .2L12 22l-2.4-1.8-3-.2-.9-2.9L3.3 15.3l.9-2.9-.9-2.9 2.4-1.8.9-2.9 3-.2z" opacity=".25"/><path d="M9.5 12.5l1.8 1.8 3.5-3.8" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+const grid4 = `<div class="g4"><div class="tile t-a"></div><div class="tile t-b"></div><div class="tile t-c"></div><div class="tile t-d"></div></div>`;
+const urlField = `<div class="fieldLabel">URL</div><div class="urlField"><span class="u">https://x.com/piyushsphere/status/20…</span><span class="ext">${EXT}</span></div>`;
+const addNote = `<div class="addNote">+ Add a note</div>`;
+
+const ITER=[
+{name:'Polish pass', why:'Same structure, just cleaner: the ugly trailing t.co link is stripped, spacing + type are tightened, the X glyph aligns to the name, and the card gets a subtle hover.',
+ card:`<div class="card">
+   <div class="chead"><span class="av"></span><span class="cid"><span class="cname">Piyush</span><span class="chandle">@piyushsphere</span></span><span class="cx">${XG}</span></div>
+   <div class="ctext">The quality you get if you hire me for product design</div>
+   ${grid4}
+ </div>`},
+
+{name:'Full-bleed media', why:'Header + caption stay padded, but the image grid runs edge-to-edge to the card\'s rounded bottom — the work becomes the hero, the chrome recedes.',
+ card:`<div class="card" style="padding-bottom:0;overflow:hidden">
+   <div class="chead"><span class="av"></span><span class="cid"><span class="cname">Piyush</span><span class="chandle">@piyushsphere</span></span><span class="cx">${XG}</span></div>
+   <div class="ctext" style="margin-bottom:12px">The quality you get if you hire me for product design</div>
+   <div class="g4" style="gap:2px;height:210px;margin:0 -14px;border-radius:0">
+     <div class="tile t-a" style="border-radius:0"></div><div class="tile t-b" style="border-radius:0"></div>
+     <div class="tile t-c" style="border-radius:0"></div><div class="tile t-d" style="border-radius:0"></div>
+   </div>
+ </div>`},
+
+{name:'Footer meta', why:'Drops the corner glyph and adds a quiet footer — source · domain · when it was posted · “Open ↗”. Surfaces provenance without crowding the header.',
+ card:`<div class="card">
+   <div class="chead"><span class="av"></span><span class="cid"><span class="cname">Piyush <span class="vrf">${VER}</span></span><span class="chandle">@piyushsphere</span></span></div>
+   <div class="ctext">The quality you get if you hire me for product design</div>
+   ${grid4}
+   <div class="foot"><span style="color:var(--glyph)">${XGsm}</span> x.com <span class="dotsep">·</span> 2d ago <span class="open">Open ${EXT}</span></div>
+ </div>`},
+
+{name:'Editorial quote', why:'Promotes the caption to a hero line and compacts the byline beneath it — the saved post reads like a pulled quote, with the media as support.',
+ card:`<div class="card">
+   <div style="font-size:17px;font-weight:600;line-height:1.32;letter-spacing:-.015em;color:var(--t1);margin-bottom:11px">The quality you get if you hire me for product design</div>
+   <div class="chead" style="margin-bottom:12px"><span class="av sm"></span><span class="cid"><span class="cname" style="font-size:12.5px">Piyush</span></span><span class="chandle" style="margin-left:-2px">@piyushsphere</span><span class="cx" style="color:var(--glyph)">${XGsm}</span></div>
+   ${grid4}
+ </div>`},
+
+{name:'Minimal / image-forward', why:'Header shrinks to a single quiet line and the media dominates. Best when the images are the point and the text is incidental.',
+ card:`<div class="card" style="padding:11px">
+   <div class="chead" style="gap:7px;margin-bottom:10px"><span class="av sm"></span><span class="chandle" style="color:var(--t2);font-weight:500">@piyushsphere</span><span class="cx" style="color:var(--t3)">${XGsm}</span></div>
+   <div class="g4" style="height:230px">
+     <div class="tile t-a"></div><div class="tile t-b"></div><div class="tile t-c"></div><div class="tile t-d"></div>
+   </div>
+   <div class="ctext" style="font-size:12px;color:var(--t2);margin:11px 0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">The quality you get if you hire me for product design</div>
+ </div>`},
+];
+
+const tabsEl=document.getElementById('tabs'), stage=document.getElementById('stage');
+ITER.forEach((it,idx)=>{
+  const d=idx+1;
+  const tab=document.createElement('button');tab.className='tab';tab.dataset.i=d;tab.innerHTML=`<span class="n">${d}</span>${it.name}`;tab.onclick=()=>show(d);tabsEl.appendChild(tab);
+  const sec=document.createElement('section');sec.className='iter';sec.dataset.i=d;
+  sec.innerHTML=`<div class="meta"><div class="name">${d}. ${it.name}</div><div class="why">${it.why}</div></div>
+    <div class="panel">${urlField}${it.card}${addNote}<div class="divider"></div></div>`;
+  stage.appendChild(sec);
+});
+function show(d){
+  document.querySelectorAll('.iter').forEach(s=>s.classList.toggle('active',s.dataset.i==d));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.i==d));
+  stage.scrollTop=0;
+}
+document.addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='5')show(e.key);});
+show(1);
+</script>
+</body>
+</html>
