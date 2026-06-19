@@ -92,7 +92,17 @@
 
 .input:focus { border-color: var(--accent-ring, rgba(0, 0, 0, 0.4)); }
 
-.pv { display: flex; gap: 11px; }
+/* Glassy link box — same surface/hairline/shadow recipe as the toolbar
+   search box, so the auto-pop presents the URL in a lifted glass card. */
+.pv {
+  display: flex;
+  gap: 11px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-control);
+}
 
 .thumb,
 .thumbFallback {

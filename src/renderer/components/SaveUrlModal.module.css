@@ -91,10 +91,13 @@
 
 .input {
   width: 100%;
-  padding: 10px 12px;
-  background: var(--surface-2, rgba(0, 0, 0, 0.03));
+  padding: 11px 15px;
+  /* Glassy lift — matches the toolbar search box (surface-1 fill +
+     hairline + soft control shadow) instead of a flat inset field. */
+  background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-pill, 999px);
+  box-shadow: var(--shadow-control);
   color: var(--text-primary);
   font-family: var(--font-mono, monospace);
   font-size: var(--text-sm);
@@ -108,8 +111,8 @@
 }
 
 .input:focus {
-  border-color: var(--accent-ring, rgba(0, 0, 0, 0.25));
-  box-shadow: 0 0 0 3px var(--accent-bg-faint, rgba(0, 0, 0, 0.06));
+  border-color: var(--border-strong, var(--accent-ring, rgba(0, 0, 0, 0.25)));
+  box-shadow: var(--shadow-control), 0 0 0 3px var(--accent-bg-faint, rgba(0, 0, 0, 0.06));
 }
 
 .input:disabled {
