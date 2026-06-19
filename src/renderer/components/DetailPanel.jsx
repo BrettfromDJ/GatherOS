@@ -218,6 +218,9 @@ export default function DetailPanel({
   }, [record?.tweet_meta]);
   // Picks the source glyph + open label on the card (Instagram vs X).
   const igSource = record?.source === 'instagram';
+  // Motion saves (video / animated GIF) can't be image-varied, so the
+  // "Generate variation" action is hidden for them.
+  const isMotion = record?.kind === 'video' || /\.gif$/i.test(record?.file_path || '');
   // AI features (auto-tag, prompt generation, "more like this") are pro;
   // locked in the free tier. Fails open to unlocked.
   const proLocked = isLocked(useEntitlementValue());
@@ -779,7 +782,7 @@ export default function DetailPanel({
             ))}
           </div>
         )}
-        {aiConfigured && onGenerateVariant && (
+        {aiConfigured && onGenerateVariant && !isMotion && (
           <button
             type="button"
             className={styles.variantBtn}
@@ -920,55 +923,62 @@ export default function DetailPanel({
               </div>
             )}
 
-            {tweetMediaItems(record, tweetMeta).length > 1 && (
-              <div className={styles.tweetThumbs}>
-                {tweetMediaItems(record, tweetMeta).map((m, i) => {
-                  // The locally-saved primary (the video, or the first
-                  // image) renders from thumb_path for an instant,
-                  // offline-safe tile. Remote images use the URL exactly
-                  // as the content script captured it from
-                  // img.currentSrc — the variant the browser already
-                  // loaded on x.com, so it's guaranteed to resolve.
-                  // Primary (the downloaded video or first image) uses the
-                  // local thumbnail. A secondary video shows its own poster;
-                  // secondary images use their captured URL.
-                  const thumbSrc = m.type === 'video'
-                    ? (m.primaryLocal || !m.poster
-                        ? fileUrl(record.thumb_path || record.file_path)
-                        : m.poster)
-                    : (m.primary ? fileUrl(record.thumb_path || record.file_path) : m.url);
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      className={[
-                        styles.tweetThumb,
-                        i === altImageIdx && styles.tweetThumbActive,
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => onAltImageIdxChange?.(i)}
-                      aria-label={`Show image ${i + 1}`}
-                      aria-pressed={i === altImageIdx}
-                    >
-                      <img
-                        src={thumbSrc}
-                        alt=""
-                        draggable={false}
-                        onError={(e) => {
-                          // The captured URL was loading on x.com when
-                          // the bookmark was clicked, so it should
-                          // load here too. If it doesn't, the image
-                          // was deleted from twimg, the user is
-                          // offline, or the variant expired — log so
-                          // we can debug, then let it render broken.
-                          // eslint-disable-next-line no-console
-                          console.warn('[tweet-card] image failed', e.currentTarget.src);
-                        }}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {(() => {
+              const items = tweetMediaItems(record, tweetMeta);
+              if (items.length <= 1) return null;
+              const n = items.length;
+              // X-style layout by count: 2 = two columns, 3 = tall left +
+              // two stacked right, 4 = 2×2. Anything beyond 4 shows the
+              // first four with a "+N" overlay on the last tile (the rest
+              // are reachable by paging the focused view).
+              const layout = n === 2 ? styles.thumbsTwo
+                : n === 3 ? styles.thumbsThree
+                  : styles.thumbsFour;
+              const visible = items.slice(0, 4);
+              const extra = n - 4;
+              return (
+                <div className={`${styles.tweetThumbs} ${layout}`}>
+                  {visible.map((m, i) => {
+                    // The locally-saved primary (the video, or the first
+                    // image) renders from thumb_path for an instant,
+                    // offline-safe tile. A secondary video shows its own
+                    // poster; secondary images use their captured URL.
+                    const thumbSrc = m.type === 'video'
+                      ? (m.primaryLocal || !m.poster
+                          ? fileUrl(record.thumb_path || record.file_path)
+                          : m.poster)
+                      : (m.primary ? fileUrl(record.thumb_path || record.file_path) : m.url);
+                    const isOverflow = i === 3 && extra > 0;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className={[
+                          styles.tweetThumb,
+                          i === altImageIdx && styles.tweetThumbActive,
+                        ].filter(Boolean).join(' ')}
+                        onClick={() => onAltImageIdxChange?.(i)}
+                        aria-label={`Show image ${i + 1}`}
+                        aria-pressed={i === altImageIdx}
+                      >
+                        <img
+                          src={thumbSrc}
+                          alt=""
+                          draggable={false}
+                          onError={(e) => {
+                            // eslint-disable-next-line no-console
+                            console.warn('[tweet-card] image failed', e.currentTarget.src);
+                          }}
+                        />
+                        {isOverflow && (
+                          <span className={styles.tweetThumbMore} aria-hidden="true">+{extra}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

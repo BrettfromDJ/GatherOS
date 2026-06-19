@@ -838,14 +838,33 @@
    strip readable regardless of source aspect. */
 .tweetThumbs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-  gap: 6px;
+  gap: 4px;
   margin-top: 2px;
+}
+/* X-style layouts by image count. */
+.thumbsTwo {
+  grid-template-columns: 1fr 1fr;
+  height: 150px;
+}
+.thumbsThree {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: 168px;
+}
+/* 3 images: first tile is the tall left column, the other two stack. */
+.thumbsThree .tweetThumb:first-child {
+  grid-row: 1 / 3;
+}
+.thumbsFour {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: 180px;
 }
 
 .tweetThumb {
   position: relative;
-  aspect-ratio: 1 / 1;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -867,6 +886,21 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* "+N more" overlay on the 4th tile when a post has 5+ images. */
+.tweetThumbMore {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(2px);
 }
 
 .tweetThumb:hover {
