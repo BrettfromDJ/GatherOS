@@ -186,3 +186,101 @@
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ── Live link preview ──────────────────────────────────────────────
+   Shown between the input and the actions once a link is entered —
+   title, favicon, cover (og:image), description. */
+.previewLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.previewSpinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border-strong, rgba(0, 0, 0, 0.14));
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: surlSpin 0.7s linear infinite;
+  flex: none;
+}
+
+@keyframes surlSpin { to { transform: rotate(360deg); } }
+
+.preview {
+  display: flex;
+  gap: 13px;
+  margin-top: 14px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2, rgba(0, 0, 0, 0.03));
+  animation: cardIn 160ms var(--ease-out, ease);
+}
+
+.previewThumb,
+.previewThumbFallback {
+  width: 116px;
+  height: 78px;
+  flex: none;
+  border-radius: 9px;
+  object-fit: cover;
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+}
+
+.previewThumbFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.previewMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+}
+
+.previewTitle {
+  font-size: var(--text-md, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.previewSite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs, 12px);
+  color: var(--text-tertiary);
+}
+
+.previewFav {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.previewDesc {
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

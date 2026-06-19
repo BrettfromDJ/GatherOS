@@ -388,6 +388,19 @@ function registerIpcHandlers() {
   // FocusedView knows to swap the image for a live webview at
   // view time. Distinct from saves:drop-url, which treats the URL
   // as a direct image-file URL and downloads it.
+  // Live preview for the Save-a-URL panel — fetch title/favicon/cover
+  // without screenshotting. No entitlement gate (it's just a preview,
+  // not a save).
+  ipcMain.handle('saves:preview-url', async (_e, url) => {
+    if (typeof url !== 'string' || !url.trim()) return { ok: false, error: 'missing_url' };
+    try {
+      const { fetchUrlPreview } = require('./urlPreview');
+      return { ok: true, preview: await fetchUrlPreview(url.trim()) };
+    } catch (err) {
+      return { ok: false, error: err?.message || 'preview failed' };
+    }
+  });
+
   ipcMain.handle('saves:capture-url', async (_e, url) => {
     if (blockNewSave('save')) return { ok: false, needsUpgrade: true };
     if (typeof url !== 'string' || !url.trim()) {

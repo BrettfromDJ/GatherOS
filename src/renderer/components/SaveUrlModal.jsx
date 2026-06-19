@@ -17,6 +17,11 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [savedRecord, setSavedRecord] = useState(null);
+  // Live preview of the link being entered (title / favicon / cover).
+  const [preview, setPreview] = useState(null);
+  const [previewState, setPreviewState] = useState('idle'); // idle|loading|done|fail
+  const [coverError, setCoverError] = useState(false);
+  const previewReqRef = useRef(0);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -27,6 +32,9 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
       setSaving(false);
       setError(null);
       setSavedRecord(null);
+      setPreview(null);
+      setPreviewState('idle');
+      setCoverError(false);
       return undefined;
     }
     // Auto-focus the input on open. Slight delay so the modal's
@@ -57,6 +65,30 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
     // does via the closure even without the dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Debounced live preview as the link changes. Only fires for things
+  // that look like a URL; tracks the latest request so a slow earlier
+  // fetch can't overwrite a newer one.
+  useEffect(() => {
+    if (!open) return undefined;
+    const raw = url.trim();
+    const looksUrl = /^https?:\/\//i.test(raw) || /^[\w-]+(\.[\w-]+)+([/?#].*)?$/.test(raw);
+    if (!looksUrl) { setPreview(null); setPreviewState('idle'); return undefined; }
+    setPreviewState('loading');
+    setCoverError(false);
+    const reqId = ++previewReqRef.current;
+    const t = setTimeout(async () => {
+      try {
+        const res = await window.moodmark?.saves?.previewUrl?.(raw);
+        if (reqId !== previewReqRef.current) return; // a newer edit superseded this
+        if (res?.ok && res.preview) { setPreview(res.preview); setPreviewState('done'); }
+        else { setPreview(null); setPreviewState('fail'); }
+      } catch {
+        if (reqId === previewReqRef.current) { setPreview(null); setPreviewState('fail'); }
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [url, open]);
 
   if (!open) return null;
 
@@ -143,6 +175,47 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
             required
           />
           {error && <div className={styles.error}>{error}</div>}
+
+          {previewState === 'loading' && (
+            <div className={styles.previewLoading}>
+              <span className={styles.previewSpinner} aria-hidden="true" />
+              Fetching preview…
+            </div>
+          )}
+          {previewState === 'done' && preview && (
+            <div className={styles.preview}>
+              {preview.image && !coverError ? (
+                <img
+                  className={styles.previewThumb}
+                  src={preview.image}
+                  alt=""
+                  onError={() => setCoverError(true)}
+                />
+              ) : (
+                <div className={styles.previewThumbFallback} aria-hidden="true">
+                  <LinkIcon size={18} strokeWidth={1.8} />
+                </div>
+              )}
+              <div className={styles.previewMeta}>
+                <span className={styles.previewTitle}>{preview.title}</span>
+                <span className={styles.previewSite}>
+                  {preview.favicon && (
+                    <img
+                      className={styles.previewFav}
+                      src={preview.favicon}
+                      alt=""
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  )}
+                  {preview.siteName}
+                </span>
+                {preview.description && (
+                  <span className={styles.previewDesc}>{preview.description}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className={styles.actions}>
             <button
               type="button"

@@ -80,6 +80,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     // kind='url'. Returns { ok, record, duplicate? } on success,
     // { ok: false, error } otherwise.
     captureUrl: (url) => ipcRenderer.invoke('saves:capture-url', url),
+    // Lightweight metadata fetch for the Save-a-URL preview — title,
+    // favicon, cover (og:image), description. No screenshot; fast.
+    previewUrl: (url) => ipcRenderer.invoke('saves:preview-url', url),
     // Import raw image bytes (e.g. an image pasted from the system
     // clipboard, which has no filesystem path so dropFile can't be
     // used). `bytes` is a Uint8Array / ArrayBuffer of the image file.
