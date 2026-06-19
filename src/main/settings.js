@@ -39,6 +39,13 @@ const DEFAULT_PREFS = {
   // copy it into the extension's Options page.
   extensionToken: null,
 
+  // ── Social sync ──────────────────────────────────────────────
+  // Master switches for the X-bookmark and Instagram-saved sync.
+  // When off, the local /save endpoint drops those captures; manual
+  // image/page saves from the extension are unaffected. Default on.
+  syncXEnabled: true,
+  syncInstagramEnabled: true,
+
   // ── Trial / free tier ────────────────────────────────────────
   // Timestamp (ms) of when the local no-account trial started, set on
   // first launch. Drives the 14-day reverse trial: full app while the

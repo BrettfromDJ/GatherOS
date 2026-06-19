@@ -193,6 +193,22 @@ async function handleSave(req, res) {
     // entirely — the tombstone makes deletions stick across re-scrolls.
     // sourceKeyFromUrl resolves either an X status or an IG permalink.
     const isBookmark = !!tweetMeta;
+
+    // Master sync switches (Settings → Capture → Syncing). When a source
+    // is turned off, drop its social captures here so they never enter the
+    // library — regardless of what the extension keeps sending. Manual
+    // image/page/URL saves (no tweetMeta) are never gated by this.
+    if (isBookmark) {
+      const settings = require('./settings');
+      const sourceEnabled = source === 'instagram'
+        ? settings.getPref('syncInstagramEnabled', true) !== false
+        : settings.getPref('syncXEnabled', true) !== false;
+      if (!sourceEnabled) {
+        sendJson(res, 200, { ok: true, skipped: true, syncDisabled: true });
+        return;
+      }
+    }
+
     const tweetKey = sourceKeyFromUrl(pageUrl);
     // Explicit "Import bookmarks" backfill sends forceImport: the user is
     // deliberately pulling their X bookmarks, so honor it even for ones

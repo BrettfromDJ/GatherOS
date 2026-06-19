@@ -1317,6 +1317,29 @@ export default function SettingsModal({
                   empty to keep them in your library only.
                 </span>
               </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Syncing</label>
+                <div className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>Sync X bookmarks</span>
+                  <ToggleSwitch
+                    on={prefs.syncXEnabled !== false}
+                    onChange={(v) => updatePref('syncXEnabled', v)}
+                  />
+                </div>
+                <div className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>Sync Instagram saves</span>
+                  <ToggleSwitch
+                    on={prefs.syncInstagramEnabled !== false}
+                    onChange={(v) => updatePref('syncInstagramEnabled', v)}
+                  />
+                </div>
+                <span className={styles.fieldHint}>
+                  When off, posts you bookmark on X or save on Instagram
+                  stop flowing into your library. Saving images and pages
+                  from the browser extension still works.
+                </span>
+              </div>
             </div>
           )}
 
