@@ -413,6 +413,7 @@ export default function Grid({
             <ImageCard
               key={s.id}
               record={s}
+              columns={columns}
               selected={selected.has(s.id)}
               selectionActive={selected.size > 0}
               onSelect={onSelect}

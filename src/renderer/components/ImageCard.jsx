@@ -96,6 +96,7 @@ function ChevronRightIcon() {
 
 export default function ImageCard({
   record,
+  columns = 4,
   selected,
   selectionActive,
   onSelect,
@@ -109,15 +110,20 @@ export default function ImageCard({
   morphSource = false,
 }) {
   const src = fileUrl(record.file_path);
-  // Grid cards render the small (≈400px) thumbnail, not the full-res
-  // original — full res only loads in the focused view. On a large
-  // library this is the difference between a few hundred MB and several
-  // GB of decoded bitmaps. GIFs are the exception: their thumb is a
-  // static first frame, so animated sources keep the original to play.
+  // Pick the grid image source by how large the card actually renders and
+  // how big the original is — balancing sharpness against memory:
+  //   • many columns (small cards) → the light ~400px thumbnail is plenty
+  //     and keeps decoded-bitmap memory down;
+  //   • few columns (large cards) → use the original so it stays crisp;
+  //   • pathologically large originals (full-page captures) → always the
+  //     thumbnail, so a single card can't decode hundreds of MB;
+  //   • GIFs → always the original so they animate.
+  // (Full res still loads in the focused view regardless.)
   const isAnimated = /\.gif$/i.test(record.file_path || '');
-  const gridImgSrc = (record.thumb_path && !isAnimated)
-    ? fileUrl(record.thumb_path)
-    : src;
+  const maxEdge = Math.max(record.width || 0, record.height || 0);
+  const useThumbInGrid = record.thumb_path && !isAnimated
+    && (columns >= 7 || maxEdge > 3000);
+  const gridImgSrc = useThumbInGrid ? fileUrl(record.thumb_path) : src;
   const aspect =
     record.width && record.height ? record.width / record.height : 4 / 3;
 
