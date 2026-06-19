@@ -100,6 +100,11 @@
   .pv .ttl{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pv .url{font-size:11.5px;color:var(--t3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .toast .row{margin-top:13px}
+  .seg3{display:inline-flex;background:rgba(255,255,255,.06);border-radius:8px;padding:2px;gap:2px}
+  .seg3 .m3{border:none;background:transparent;color:var(--t3);font:inherit;font-size:11px;font-weight:500;letter-spacing:-.005em;padding:4px 9px;border-radius:6px;cursor:pointer}
+  .seg3 .m3:hover{color:var(--t2)}
+  .seg3 .m3.on{background:rgba(255,255,255,.13);color:#fff}
+  .pvph{margin-top:11px;padding:16px;border:1px dashed var(--border);border-radius:10px;color:var(--t3);font-size:12px;text-align:center}
 
   /* 4: rich preview */
   .pre{display:flex;gap:16px;margin-top:18px;padding:12px;border:1px solid var(--border-2);border-radius:14px;background:rgba(255,255,255,.02)}
@@ -174,17 +179,30 @@ const ITER = [
    <button class="pill">Save</button>
  </div>`},
 
-{name:'Paste-aware prompt', why:'Detects a URL on your clipboard and offers a one-tap save from the corner, with a live preview so you know what you\'re saving. Zero typing.',
- html:`<div class="toast">
-   <div class="ph">${fav(210,'fav')}<span>Link on your clipboard</span></div>
-   <div class="pv">
-     ${thumb(265)}
-     <div class="meta2">
-       <span class="ttl">Linear — Plan and build products</span>
-       <span class="url">${fav(265,'fav')}linear.app</span>
-     </div>
+{name:'Paste-aware prompt', why:'Detects a URL on your clipboard for a one-tap save with a live preview — but the same panel has an "Enter manually" toggle (and opens input-first from the + menu), so typing a link is always one click away. Click the tabs to see both modes.',
+ html:`<div class="toast" style="width:392px">
+   <div class="ph" style="justify-content:space-between">
+     <span style="display:flex;align-items:center;gap:7px;color:var(--t2)">${fav(210,'fav')}<span>Save a URL</span></span>
+     <span class="seg3">
+       <button class="m3 on" data-m="clip">From clipboard</button>
+       <button class="m3" data-m="manual">Enter manually</button>
+     </span>
    </div>
-   <div class="row"><button class="btnText">Dismiss</button><button class="pill">Save this link</button></div>
+   <div class="v3 v3clip">
+     <div class="pv">
+       ${thumb(265)}
+       <div class="meta2">
+         <span class="ttl">Linear — Plan and build products</span>
+         <span class="url">${fav(265,'fav')}linear.app</span>
+       </div>
+     </div>
+     <div class="row"><button class="btnText">Dismiss</button><button class="pill">Save this link</button></div>
+   </div>
+   <div class="v3 v3manual" hidden>
+     <input class="input" placeholder="https://example.com" style="margin-top:0;height:42px" />
+     <div class="pvph">Preview appears as you paste or type a link…</div>
+     <div class="row"><button class="btnText">Cancel</button><button class="pill">Save URL</button></div>
+   </div>
  </div>`},
 
 {name:'Rich preview', why:'Fetches the page title, favicon and cover image before saving, with an optional note and a collection picker — turn a link into a well-formed save in one step.',
@@ -240,6 +258,16 @@ function show(n){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.i==n));
 }
 document.addEventListener('keydown',e=>{ if(e.key>='1'&&e.key<='5') show(e.key); });
+// Direction 3 mode toggle (clipboard vs manual entry).
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.m3'); if(!b) return;
+  const toast=b.closest('.toast');
+  toast.querySelectorAll('.m3').forEach(x=>x.classList.toggle('on',x===b));
+  const manual=b.dataset.m==='manual';
+  toast.querySelector('.v3clip').hidden=manual;
+  toast.querySelector('.v3manual').hidden=!manual;
+  if(manual) toast.querySelector('.v3manual .input').focus();
+});
 show(1);
 </script>
 </body>
