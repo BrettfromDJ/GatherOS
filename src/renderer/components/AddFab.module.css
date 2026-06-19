@@ -102,28 +102,39 @@
 .action {
   position: relative;
   display: inline-flex;
-  /* Reveal with transform + visibility only — NO opacity fade. An
-     ancestor with opacity < 1 disables backdrop-filter on its children
-     in Chromium, which made the mini-FAB's blur "pop on" only after the
-     fade finished. Keeping opacity at 1 throughout lets the glass blur
-     render for the whole pop-out. visibility hides it at rest (delayed
-     on close so it animates out first). */
   visibility: hidden;
+  opacity: 0;
   transform: translateY(12px) scale(0.85);
-  transition:
-    transform var(--dur-medium, 240ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s linear var(--dur-medium, 240ms);
 }
 
+/* Open: slide UP into place. opacity stays 1 the whole time (not in the
+   keyframes) so the mini-FAB's backdrop blur renders throughout — an
+   opacity fade would disable it mid-animation in Chromium. */
 .dockOpen .action {
   visibility: visible;
+  opacity: 1;
   transform: none;
   pointer-events: auto;
+  animation: actionIn var(--dur-medium, 240ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
   /* Stagger from the FAB outward: Add image (--i:0) leads. */
-  transition:
-    transform var(--dur-medium, 240ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s linear 0s;
-  transition-delay: calc(var(--i, 0) * 0.05s);
+  animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+/* Close: the exact reversal — slide back DOWN + scale + fade out. The
+   blur dropping during the fade is fine here since it's leaving. */
+.dockClosing .action {
+  visibility: visible;
+  animation: actionOut var(--dur-medium, 240ms) cubic-bezier(0.4, 0, 0.7, 1) both;
+}
+
+@keyframes actionIn {
+  from { transform: translateY(12px) scale(0.85); }
+  to   { transform: none; }
+}
+
+@keyframes actionOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(12px) scale(0.85); }
 }
 
 /* Hover-only tooltip — springs in from behind the mini-FAB. Absolute
@@ -163,6 +174,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fab { animation: none; }
+  .dockOpen .action,
+  .dockClosing .action { animation: none; }
   .action,
   .actionLabel,
   .fabPlus { transition: none; }

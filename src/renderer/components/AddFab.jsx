@@ -13,17 +13,39 @@ import styles from './AddFab.module.css';
 // the active collection where relevant.
 export default function AddFab({ onUpload, onSaveUrl, visible = true }) {
   const [open, setOpen] = useState(false);
+  // Brief flag held for the close animation: the actions stay mounted and
+  // play the reverse (slide-down + fade) before hiding. Cleared after the
+  // animation so they return to the resting hidden state.
+  const [closing, setClosing] = useState(false);
   const dockRef = useRef(null);
   const btnRef = useRef(null);
+  const closeTimerRef = useRef(null);
+
+  const openDock = () => {
+    clearTimeout(closeTimerRef.current);
+    setClosing(false);
+    setOpen(true);
+  };
+  const closeDock = () => {
+    setOpen((wasOpen) => {
+      if (wasOpen) {
+        setClosing(true);
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = setTimeout(() => setClosing(false), 300);
+      }
+      return false;
+    });
+  };
+  useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
   useEffect(() => {
     if (!open) return undefined;
     function onDown(e) {
-      if (dockRef.current && !dockRef.current.contains(e.target)) setOpen(false);
+      if (dockRef.current && !dockRef.current.contains(e.target)) closeDock();
     }
     function onEsc(e) {
       if (e.key === 'Escape') {
-        setOpen(false);
+        closeDock();
         // Drop focus so the trigger doesn't keep a focus-visible ring
         // after a click → Esc.
         btnRef.current?.blur();
@@ -39,7 +61,7 @@ export default function AddFab({ onUpload, onSaveUrl, visible = true }) {
 
   function go(action) {
     return () => {
-      setOpen(false);
+      closeDock();
       action?.();
     };
   }
@@ -49,7 +71,7 @@ export default function AddFab({ onUpload, onSaveUrl, visible = true }) {
   return (
     <div
       ref={dockRef}
-      className={[styles.dock, open && styles.dockOpen].filter(Boolean).join(' ')}
+      className={[styles.dock, open && styles.dockOpen, closing && styles.dockClosing].filter(Boolean).join(' ')}
     >
       {/* Fanned actions — Add image sits closest to the FAB (--i:0) so
           it springs out first; Save URL follows above it. */}
@@ -92,7 +114,7 @@ export default function AddFab({ onUpload, onSaveUrl, visible = true }) {
         ref={btnRef}
         type="button"
         className={styles.fab}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? closeDock() : openDock())}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Add to library"
