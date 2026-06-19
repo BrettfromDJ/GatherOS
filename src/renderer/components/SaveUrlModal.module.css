@@ -2,9 +2,10 @@
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(0, 0, 0, 0.36);
-  backdrop-filter: blur(30px) saturate(1.1);
-  -webkit-backdrop-filter: blur(30px) saturate(1.1);
+  /* No full-screen blur — the heavy blur is localized to the modal's
+     own glass backdrop (blur(80px) on .card), so only the box's
+     footprint is blurred; the rest of the library just dims. */
+  background: rgba(0, 0, 0, 0.32);
   display: flex;
   align-items: center;
   justify-content: center;
