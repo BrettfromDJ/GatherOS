@@ -4,6 +4,19 @@ import { Link as LinkIcon, X as XIcon } from 'lucide-react';
 import styles from './SaveUrlModal.module.css';
 import { requestUpgrade } from '../context/entitlement.jsx';
 
+// Minimal preview derived purely from the URL — used as a fallback when
+// the metadata fetch fails (site blocks it, offline, etc.) so a valid
+// link always shows *something* rather than silently nothing.
+function minimalPreview(raw) {
+  try {
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    const host = u.hostname.replace(/^www\./, '');
+    return { url: u.toString(), title: host, siteName: host, image: '', favicon: `${u.origin}/favicon.ico`, description: '' };
+  } catch {
+    return null;
+  }
+}
+
 // Compact modal for the toolbar's "+ Add → Save URL…" path.
 // Collects a URL, kicks off the main-process capture (screenshot
 // the page, store as a save with kind='url'), and surfaces basic
@@ -82,9 +95,11 @@ export default function SaveUrlModal({ open, onClose, onSaved }) {
         const res = await window.moodmark?.saves?.previewUrl?.(raw);
         if (reqId !== previewReqRef.current) return; // a newer edit superseded this
         if (res?.ok && res.preview) { setPreview(res.preview); setPreviewState('done'); }
-        else { setPreview(null); setPreviewState('fail'); }
+        else { const m = minimalPreview(raw); if (m) { setPreview(m); setPreviewState('done'); } else { setPreview(null); setPreviewState('fail'); } }
       } catch {
-        if (reqId === previewReqRef.current) { setPreview(null); setPreviewState('fail'); }
+        if (reqId !== previewReqRef.current) return;
+        const m = minimalPreview(raw);
+        if (m) { setPreview(m); setPreviewState('done'); } else { setPreview(null); setPreviewState('fail'); }
       }
     }, 450);
     return () => clearTimeout(t);

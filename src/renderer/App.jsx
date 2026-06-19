@@ -12,6 +12,7 @@ import RediscoverMode from './components/RediscoverMode.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
 import SaveUrlModal from './components/SaveUrlModal.jsx';
+import PasteToSavePrompt from './components/PasteToSavePrompt.jsx';
 import AddFab from './components/AddFab.jsx';
 import WhatsNewModal from './components/WhatsNewModal.jsx';
 import { pickNotesForUpgrade, RELEASE_NOTES } from './data/releaseNotes.js';
@@ -3452,6 +3453,22 @@ export default function App({ entitlement } = {}) {
               await window.moodmark.collections.addSave({
                 collectionId: view.id, saveId: record.id,
               });
+              loadCollections();
+            } catch (err) {
+              console.error('Add-URL-to-collection failed:', err);
+            }
+          }
+          reload();
+        }}
+      />
+
+      <PasteToSavePrompt
+        // Don't pop the prompt over a modal or the focused view.
+        paused={saveUrlOpen || !!focusedId}
+        onSaved={async (record) => {
+          if (view.type === 'collection' && view.id && record?.id) {
+            try {
+              await window.moodmark.collections.addSave({ collectionId: view.id, saveId: record.id });
               loadCollections();
             } catch (err) {
               console.error('Add-URL-to-collection failed:', err);
