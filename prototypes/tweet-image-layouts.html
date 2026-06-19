@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tweet card image layouts (1–4 images)</title>
+<style>
+  :root{
+    --bg:#161617; --card:#2a2a2c; --border:rgba(255,255,255,0.08);
+    --t1:#fff; --t2:rgba(255,255,255,0.62); --t3:rgba(255,255,255,0.42);
+    --font:-apple-system,BlinkMacSystemFont,"Geist",system-ui,sans-serif;
+    --gap:4px; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+
+  .topbar{position:fixed;inset:0 0 auto 0;height:52px;z-index:50;display:flex;align-items:center;gap:14px;
+    padding:0 16px;background:rgba(20,20,21,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+  .topbar h1{font-size:13px;font-weight:600;letter-spacing:-.01em;margin:0;white-space:nowrap}
+  .tabs{display:flex;gap:4px;margin-left:6px;overflow:auto}
+  .tab{display:flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid transparent;border-radius:9px;
+    background:transparent;color:var(--t2);font:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;background:rgba(255,255,255,.1);font-size:10px;font-weight:600}
+  .tab:hover{background:rgba(255,255,255,.06);color:var(--t1)}
+  .tab.on{background:rgba(255,255,255,.1);border-color:var(--border);color:var(--t1)}
+  .tab.on .n{background:#fff;color:#111}
+
+  .stage{position:fixed;inset:52px 0 0 0;overflow:auto;padding:26px}
+  .meta{text-align:center;margin-bottom:22px}
+  .meta .name{font-size:15px;font-weight:600;letter-spacing:-.015em}
+  .meta .why{font-size:12.5px;color:var(--t2);margin-top:4px;max-width:680px;margin:4px auto 0;line-height:1.45}
+
+  .iter{display:none}
+  .iter.active{display:block}
+  .row{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-start}
+  .cell{display:flex;flex-direction:column;gap:9px}
+  .clabel{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--t3);text-align:center}
+
+  /* card */
+  .card{width:340px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 6px 22px rgba(0,0,0,.3)}
+  .chead{display:flex;align-items:center;gap:9px}
+  .av{width:34px;height:34px;border-radius:50%;flex:none}
+  .cid{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  .cname{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+  .chandle{font-size:12px;color:var(--t3)}
+  .cx{margin-left:auto;color:var(--t1)}
+  .ctext{font-size:13.5px;line-height:1.45;color:var(--t1);margin:10px 0 11px}
+
+  /* image grid */
+  .imgs{display:grid;gap:var(--gap)}
+  .tile{width:100%;height:100%;border-radius:var(--radius);min-height:0;min-width:0}
+  .strip{display:flex;gap:var(--gap)}
+  .strip .tile{flex:1;height:100%}
+</style>
+</head>
+<body>
+  <div class="topbar"><h1>Tweet card image layouts (1–4 images)</h1><div class="tabs" id="tabs"></div></div>
+  <div class="stage" id="stage"></div>
+<script>
+const XG=`<svg viewBox="0 0 1200 1227" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>`;
+const HUES=[255,18,142,330,200,48];
+const grad=h=>`linear-gradient(135deg,hsl(${h} 62% 42%),hsl(${(h+45)%360} 58% 30%))`;
+const tile=(i,extra='')=>`<div class="tile" style="background:${grad(HUES[i%HUES.length])};${extra}"></div>`;
+
+// returns the image-grid HTML for a direction (1..5) and image count (1..4)
+function grid(dir,n){
+  const t=(i,ex)=>tile(i,ex);
+  if(dir===1){ // X-style
+    if(n===1) return `<div class="imgs" style="height:190px">${t(0)}</div>`;
+    if(n===2) return `<div class="imgs" style="height:168px;grid-template-columns:1fr 1fr">${t(0)}${t(1)}</div>`;
+    if(n===3) return `<div class="imgs" style="height:190px;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr">${t(0,'grid-row:1/3')}${t(1)}${t(2)}</div>`;
+    return `<div class="imgs" style="height:196px;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr">${t(0)}${t(1)}${t(2)}${t(3)}</div>`;
+  }
+  if(dir===2){ // uniform
+    if(n===1) return `<div class="imgs" style="height:190px">${t(0)}</div>`;
+    if(n===2) return `<div class="imgs" style="height:156px;grid-template-columns:1fr 1fr">${t(0)}${t(1)}</div>`;
+    if(n===3) return `<div class="imgs" style="height:104px;grid-template-columns:repeat(3,1fr)">${t(0)}${t(1)}${t(2)}</div>`;
+    return `<div class="imgs" style="height:196px;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr">${t(0)}${t(1)}${t(2)}${t(3)}</div>`;
+  }
+  if(dir===3){ // hero + strip
+    const hero=`<div class="imgs" style="height:${n===1?190:148}px">${t(0)}</div>`;
+    if(n===1) return hero;
+    let strip='';
+    for(let i=1;i<n;i++) strip+=t(i);
+    return `<div style="display:flex;flex-direction:column;gap:var(--gap)">${hero}<div class="strip" style="height:62px">${strip}</div></div>`;
+  }
+  if(dir===4){ // equal-height filmstrip row
+    const h=n===1?186:n===2?150:124;
+    let tiles='';for(let i=0;i<n;i++) tiles+=t(i);
+    return `<div class="imgs" style="height:${h}px;grid-template-columns:repeat(${n},1fr)">${tiles}</div>`;
+  }
+  // dir 5: asymmetric feature (wide lead + even row)
+  if(n===1) return `<div class="imgs" style="height:190px">${t(0)}</div>`;
+  if(n===2) return `<div class="imgs" style="height:158px;grid-template-columns:1.55fr 1fr">${t(0)}${t(1)}</div>`;
+  if(n===3) return `<div class="imgs" style="grid-template-columns:repeat(6,1fr);grid-template-rows:104px 86px">${t(0,'grid-column:1/7')}${t(1,'grid-column:1/4')}${t(2,'grid-column:4/7')}</div>`;
+  return `<div class="imgs" style="grid-template-columns:repeat(6,1fr);grid-template-rows:92px 84px">${t(0,'grid-column:1/7')}${t(1,'grid-column:1/3')}${t(2,'grid-column:3/5')}${t(3,'grid-column:5/7')}</div>`;
+}
+
+function card(dir,n){
+  return `<div class="cell">
+    <div class="clabel">${n} image${n>1?'s':''}</div>
+    <div class="card">
+      <div class="chead">
+        <span class="av" style="background:${grad(255)}"></span>
+        <span class="cid"><span class="cname">Kyle Anthony Miller</span><span class="chandle">@kyleanthony</span></span>
+        <span class="cx">${XG}</span>
+      </div>
+      <div class="ctext">Working on the MTS brand was such a vibe</div>
+      ${grid(dir,n)}
+    </div>
+  </div>`;
+}
+
+const ITER=[
+  {name:'X / Twitter style', why:'1 full, 2 equal columns, 3 = one tall left + two stacked right, 4 = a clean 2×2. The familiar, no-orphan answer most people already read fluently.'},
+  {name:'Uniform grid', why:'Always balanced: 1 full, 2 columns, 3 across in one row, 4 as 2×2. Most regular and predictable; treats every image equally.'},
+  {name:'Hero + strip', why:'First image leads large, the rest sit as a small equal row beneath. Emphasizes the primary image; scales to any count with no orphan.'},
+  {name:'Equal filmstrip', why:'All images in one equal-height row, tile width divided by the count. Dead simple and orphan-proof, but tiles get narrow at 4.'},
+  {name:'Asymmetric feature', why:'A wide lead image on top with an even row beneath (2 or 3 across). Editorial feel; the lead carries weight while the row stays tidy.'},
+];
+
+const tabsEl=document.getElementById('tabs'), stage=document.getElementById('stage');
+ITER.forEach((it,idx)=>{
+  const d=idx+1;
+  const tab=document.createElement('button');
+  tab.className='tab';tab.dataset.i=d;tab.innerHTML=`<span class="n">${d}</span>${it.name}`;
+  tab.onclick=()=>show(d);tabsEl.appendChild(tab);
+  const sec=document.createElement('section');sec.className='iter';sec.dataset.i=d;
+  sec.innerHTML=`<div class="meta"><div class="name">${d}. ${it.name}</div><div class="why">${it.why}</div></div>
+    <div class="row">${[1,2,3,4].map(n=>card(d,n)).join('')}</div>`;
+  stage.appendChild(sec);
+});
+function show(d){
+  document.querySelectorAll('.iter').forEach(s=>s.classList.toggle('active',s.dataset.i==d));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.i==d));
+  stage.scrollTop=0;
+}
+document.addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='5')show(e.key);});
+show(1);
+</script>
+</body>
+</html>
