@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Info as InfoIcon, Eclipse as LayersIcon } from 'lucide-react';
+import { Info as InfoIcon, Eclipse as LayersIcon, ExternalLink } from 'lucide-react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
 import { tweetMediaItems } from '../lib/tweetMedia.js';
@@ -221,6 +221,11 @@ export default function DetailPanel({
   // Motion saves (video / animated GIF) can't be image-varied, so the
   // "Generate variation" action is hidden for them.
   const isMotion = record?.kind === 'video' || /\.gif$/i.test(record?.file_path || '');
+  // Domain shown in the tweet card footer.
+  const sourceDomain = (() => {
+    try { return new URL(record?.source_url).hostname.replace(/^www\./, ''); }
+    catch { return ''; }
+  })();
   // AI features (auto-tag, prompt generation, "more like this") are pro;
   // locked in the free tier. Fails open to unlocked.
   const proLocked = isLocked(useEntitlementValue());
@@ -877,21 +882,6 @@ export default function DetailPanel({
                   <span className={styles.tweetHandle}>{tweetMeta.authorHandle}</span>
                 )}
               </div>
-              {record?.source_url ? (
-                <button
-                  type="button"
-                  className={`${styles.tweetSourceIcon} ${styles.tweetSourceBtn}`}
-                  title={igSource ? 'Open on Instagram' : 'Open on X'}
-                  aria-label={igSource ? 'Open on Instagram' : 'Open on X'}
-                  onClick={() => window.moodmark?.shell?.openUrl?.(record.source_url)}
-                >
-                  {igSource ? <InstagramGlyphIcon /> : <XGlyphIcon />}
-                </button>
-              ) : (
-                <span className={styles.tweetSourceIcon} title={igSource ? 'From Instagram' : 'From X'} aria-label={igSource ? 'From Instagram' : 'From X'}>
-                  {igSource ? <InstagramGlyphIcon /> : <XGlyphIcon />}
-                </span>
-              )}
             </div>
 
             {tweetMeta.caption && (
@@ -979,6 +969,28 @@ export default function DetailPanel({
                 </div>
               );
             })()}
+
+            <div className={styles.tweetFooter}>
+              <span className={styles.tweetFooterSrc} aria-hidden="true">
+                {igSource ? <InstagramGlyphIcon /> : <XGlyphIcon />}
+              </span>
+              {sourceDomain && <span>{sourceDomain}</span>}
+              <span className={styles.tweetFooterDot} aria-hidden="true">·</span>
+              <span title={formatAbsoluteDate(record.created_at)}>
+                {formatRelativeDate(record.created_at)}
+              </span>
+              {record?.source_url && (
+                <button
+                  type="button"
+                  className={styles.tweetFooterOpen}
+                  onClick={() => window.moodmark?.shell?.openUrl?.(record.source_url)}
+                  title={igSource ? 'Open on Instagram' : 'Open on X'}
+                >
+                  Open
+                  <ExternalLink size={12} strokeWidth={1.9} aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
         )}
 

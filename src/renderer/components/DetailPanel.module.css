@@ -1565,3 +1565,45 @@
 .panel .tagRemove {
   color: rgba(255, 255, 255, 0.95);
 }
+
+/* Tweet card footer — source · domain · relative date · open. */
+.tweetFooter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--hair, rgba(255, 255, 255, 0.07));
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.tweetFooterSrc {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+.tweetFooterSrc svg { width: 12px; height: 12px; }
+
+.tweetFooterDot { opacity: 0.5; }
+
+.tweetFooterOpen {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+.tweetFooterOpen:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg-soft, rgba(255, 255, 255, 0.08));
+}
