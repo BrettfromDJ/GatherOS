@@ -16,39 +16,6 @@ function VideoIcon() {
   );
 }
 
-// Official-ish X glyph — used as a source badge in the bottom-left
-// of cards whose save was captured via the X bookmark watcher. Same
-// path the DetailPanel tweet card uses; copied here to avoid an
-// import cycle / cross-component dependency for a single SVG.
-function XGlyphIcon() {
-  return (
-    <svg
-      viewBox="0 0 1200 1227"
-      width="11"
-      height="11"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z" />
-    </svg>
-  );
-}
-
-// Instagram glyph — the source badge for saves captured from Instagram
-// saved posts. Stroke-based (matches lucide's instagram mark) so it
-// reads at the same weight as the rest of the app's iconography.
-function InstagramGlyphIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
-      stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect width="20" height="20" x="2" y="2" rx="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-  );
-}
-
 function CheckIcon() {
   return (
     <svg viewBox="0 0 14 14" width="11" height="11" aria-hidden="true">
@@ -446,21 +413,6 @@ export default function ImageCard({
             style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
           />
         ))}
-        {inView && record.tweet_meta && !isTweet && (
-          // Bottom-left glass badge — marks media saves captured from a
-          // social source. Instagram saves show the IG glyph; everything
-          // else (X bookmarks) shows the X mark. Skipped for text tweets:
-          // their card already shows the source glyph in its header.
-          record.source === 'instagram' ? (
-            <span className={styles.sourceBadge} aria-label="From Instagram">
-              <InstagramGlyphIcon />
-            </span>
-          ) : (
-            <span className={styles.sourceBadge} aria-label="From X">
-              <XGlyphIcon />
-            </span>
-          )
-        )}
         {inView && showVideo && !canPageImages && !videoHover && (
           // Top-right "this is a video" badge, shown at rest. Hidden once
           // you hover (the clip plays). Suppressed for multi-media cards
