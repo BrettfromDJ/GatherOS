@@ -153,6 +153,9 @@ route exist — it does *not* require the full web app first.
 ## Phasing
 
 Ordered so each phase ships something usable and de-risks the next.
+**Brett's call (locked):** the first visible milestone is the
+**read-only web app** — get the library reachable from any device/
+browser before adding sharing.
 
 - **Phase 0 — Cloud store stands up.** D1 saves/collections/etc.
   migrations + R2 bucket + Saves API + upload path. No UI yet; verify
@@ -163,14 +166,14 @@ Ordered so each phase ships something usable and de-risks the next.
   existing local library into the cloud once. *Outcome: your real
   library is in the cloud, multi-device-ready.*
 
-- **Phase 2 — Share a collection by link.** `share` flag + `/s/:slug`
-  public page. *Outcome: the #1 ask — send someone a link to your
-  saves. Ship this early; it's the headline.*
+- **Phase 2 — Read-only web app.** Host the SPA on Cloudflare Pages with
+  the web adapter; sign in, browse, view your full library from any
+  device. Writes still come from desktop + extension. *Outcome: the
+  headline — your library on your phone / any browser.*
 
-- **Phase 3 — Read-mostly web app.** Host the SPA on Cloudflare Pages
-  with the web adapter; sign in, browse, view, share from any device.
-  Writes still come from desktop + extension. *Outcome: your library on
-  your phone/any browser.*
+- **Phase 3 — Share a collection by link.** `share` flag + `/s/:slug`
+  public page (reuses the web app in a read-only public mode). *Outcome:
+  send someone a link to your saves.*
 
 - **Phase 4 — Extension writes to cloud directly.** Repoint capture +
   background polls at the Saves API; native bridge becomes optional.
@@ -207,10 +210,9 @@ Ordered so each phase ships something usable and de-risks the next.
 
 ## Open questions (for Brett)
 
-1. **Headline first?** I'd ship **Phase 2 (share a collection by link)**
-   as early as possible after the store stands up, before the full web
-   app — it's the thing you actually asked for and it's far less work
-   than a complete web client. Agree, or do you want the web app first?
+1. ~~**Headline first?**~~ *Resolved: read-only web app first (Phase 2),
+   then share-by-link (Phase 3). Multi-device browsing before
+   shareability.*
 2. **Thumbnails/palette:** generate client-side and upload (simplest,
    no Worker image dep) vs. a server-side image service (cleaner long
    term)? Leaning client-side first.
