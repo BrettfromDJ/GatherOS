@@ -205,15 +205,80 @@ browser before adding sharing.
   it initially. The desktop app can keep a local cache for offline +
   speed, syncing to the cloud — but that's a later nicety, not Phase 0.
 
-## Cost / privacy notes
+## Economics & risks
 
-- R2 has no egress fees, which makes serving everyone's media (and
-  public shares) viable.
-- Private-by-default holds: a save is only reachable with the owner's
-  session token until they flip `share`. Public routes never accept a
-  tenant token and only read explicitly-shared rows.
-- This is a real change to the privacy promise (bytes now live on our
-  infra). Worth saying plainly to users when it ships.
+### Does this double the dev work? No.
+
+The platform adapter (§4) is exactly what prevents building the app
+twice. The React renderer is **one codebase** running on both desktop
+(IPC) and web (HTTP); a new card, filter, or view is written **once**
+and both platforms get it. The only genuinely platform-specific code is
+thin: the two transport adapters (a one-time build) and native-only
+capabilities (URL-screenshotting, local file access) that simply don't
+exist on web. Marginal feature work is ~1.2–1.3×, not 2×. The real cost
+is the **one-time** backend + adapter build in Phase 0, plus an ongoing
+"more moving parts to keep in sync" tax: a cloud backend that didn't
+exist before, two DB schemas (local SQLite + D1) that must not drift,
+and a second auth surface.
+
+### Hosting hi-res images + video: cheaper than it sounds
+
+The decisive fact is **R2 has zero egress fees** — serving media to
+viewers, including every public share page, costs nothing in bandwidth.
+Egress is what makes media hosting expensive on S3; R2 removes it.
+
+- **Storage** ≈ $0.015/GB/month. **Ops** are pennies per million; with
+  Cloudflare's CDN in front, most thumbnail loads are cache hits (free).
+- A heavy power user — ~50k saves at ~3 MB ≈ 150 GB — is **~$2–5/month**
+  of storage, served for free.
+- **The one thing to watch is video**, because storage is *cumulative*
+  (only shrinks on delete) and X/IG videos are large and compound over
+  years. Mitigation when it matters: store a compressed playback version
+  rather than full-res originals, or a fair-use ceiling for the top tier.
+  Not a Phase-0 problem.
+
+### Is $4.99/mo viable for power users? For the core, yes.
+
+After payment/LemonSqueezy fees (~$4.40 net), a power user's infra
+(storage + Workers + D1 + R2 ops) lands around **$3–5/month even at the
+heavy end** — thin but positive. **The thing that breaks $4.99 is AI,
+not storage.** Embeddings and vision descriptions are cheap; **image
+*generation* is real money per call** and scales with usage, so a power
+user generating all day can exceed $4.99 alone.
+
+> **Pricing call:** keep the flat $4.99 for the library / sync / share
+> **core** (infra fits comfortably), but **meter or cap AI generation**
+> — credits, a fair-use limit, or a higher AI tier — rather than
+> promising unlimited generation at the flat price. That single decision
+> is what keeps the pricing safe against power users.
+
+### New risk classes (private local app → multi-tenant public web)
+
+Roughly in priority. **(1) must be designed into the first Saves API
+query; (2)–(4) need a plan before Phase 3 (public sharing) ships.**
+
+1. **Multi-tenant security.** Every query scoped by `user_id`; one
+   missed filter leaks one user's library into another's. Public share
+   routes must **never** accept a logged-in token — they read only rows
+   explicitly marked shared.
+2. **Copyright / content liability.** We'll be hosting and re-publishing
+   others' images (X, IG, the open web) on public pages — a different
+   legal posture than a private cache. Need a DMCA/takedown process and
+   terms that put responsibility on the sharer.
+3. **Abuse / moderation.** Public pages can host anything (NSFW,
+   illegal, spam). Need a report/takedown path and to meet
+   content-scanning obligations (e.g. CSAM) that come with public media.
+4. **Privacy-promise change.** We told users local-first + private;
+   moving their bytes to our servers is material. Needs a clear heads-up,
+   an updated privacy policy, and ideally consent on migration.
+5. **We now own durability.** A bug that deletes saves affects everyone;
+   R2 + D1 backups and disaster recovery are on us.
+6. **Sync conflicts.** Same library edited on desktop + web + extension
+   needs a conflict story (last-write-wins to start; tombstones help).
+7. **Web auth surface.** Tokens in a browser bring XSS/CSRF/cookie
+   concerns; the extension's session token is a credential to protect.
+8. **Account deletion / data export** (GDPR-style) becomes an obligation
+   once we hold people's data.
 
 ## Open questions (for Brett)
 
