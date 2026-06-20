@@ -100,6 +100,11 @@ announcementRoutes.post('/', async (c) => {
     typeof payload.expiresAt === 'number' && Number.isFinite(payload.expiresAt)
       ? payload.expiresAt
       : null;
+  // A past expiry would publish-then-immediately-vanish. Reject it with a
+  // clear error rather than silently serving nothing.
+  if (active === 1 && expiresAt != null && expiresAt <= Date.now()) {
+    return c.json({ ok: false, error: 'expiry_in_past' }, 400);
+  }
 
   const id = crypto.randomUUID();
   await c.env.DB.prepare(
@@ -210,6 +215,7 @@ const ADMIN_HTML = `<!doctype html>
     <div>
       <label>Auto-expire <span style="text-transform:none;font-weight:400;color:#777">(optional)</span></label>
       <input id="expires" type="datetime-local" />
+      <div class="hint">Leave blank to stay up until you take it down.</div>
     </div>
   </div>
 
@@ -270,6 +276,10 @@ const ADMIN_HTML = `<!doctype html>
     var token = $('token').value.trim();
     if (!token) { setMsg('Enter your password first.', false); return; }
     var expires = $('expires').value ? new Date($('expires').value).getTime() : null;
+    if (active && expires && expires <= Date.now()) {
+      setMsg('Auto-expire is in the past — leave it blank or pick a future time.', false);
+      return;
+    }
     var payload = {
       active: active,
       title: $('title').value,
@@ -287,6 +297,8 @@ const ADMIN_HTML = `<!doctype html>
     }).then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
         if (res.status === 401) { setMsg('Wrong password.', false); }
+        else if (res.d.error === 'expiry_in_past') { setMsg('Auto-expire is in the past — leave it blank or pick a future time.', false); }
+        else if (res.d.error === 'missing_body') { setMsg('Add some body text before publishing.', false); }
         else if (!res.d.ok) { setMsg('Failed: ' + (res.d.error || 'unknown'), false); }
         else if (active) { setMsg('Published. It is now live.', true); }
         else { setMsg('Taken down.', true); }
