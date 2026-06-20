@@ -73,11 +73,13 @@ Local files and `moodmark-file://` get replaced by **Cloudflare R2**:
   (`localizeInstagramMedia`, `saveAuxMedia`), the *server* fetches once
   into R2 and everyone reads from there.
 
-Thumbnail/palette generation (today `sharp` in the main process) moves
-to either the Worker (a WASM image lib or a thumbnail service) or stays
-client-side at capture time with the client uploading the derived
-thumb. **Decision needed** (see open questions) — leaning client-side
-first to avoid a heavy Worker dependency.
+Thumbnail/palette generation (today `sharp` in the main process) stays
+**client-side** (Brett's call): whoever saves — desktop or extension —
+generates the thumbnail + reads the palette at capture time and uploads
+both alongside the original, and the Worker just stores what it's
+handed. No image-processing dependency in the Worker. (A server-side
+image service stays a future option if keeping every client in sync
+gets annoying.)
 
 ### 3. Saves API
 
@@ -213,9 +215,9 @@ browser before adding sharing.
 1. ~~**Headline first?**~~ *Resolved: read-only web app first (Phase 2),
    then share-by-link (Phase 3). Multi-device browsing before
    shareability.*
-2. **Thumbnails/palette:** generate client-side and upload (simplest,
-   no Worker image dep) vs. a server-side image service (cleaner long
-   term)? Leaning client-side first.
+2. ~~**Thumbnails/palette:**~~ *Resolved: generate client-side and
+   upload alongside the original — no Worker image dependency. A
+   server-side image service stays a future option.*
 3. **Desktop after cloud:** keep the desktop app as a syncing cache
    (offline + speed), or eventually fold it into "web is the product"?
    Doesn't block anything now — just sets the long-term target.
