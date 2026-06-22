@@ -208,6 +208,20 @@ export default function Grid({
               Screenshot
             </span>
           </div>
+          {/* Or fill it automatically by syncing X + Instagram. */}
+          <div className={styles.heroExtension}>
+            <span className={styles.heroExtensionText}>
+              Or sync your X bookmarks &amp; Instagram saves
+            </span>
+            <button
+              type="button"
+              className={styles.emptyAction}
+              onClick={() => window.moodmark?.shell?.openUrl?.('https://chromewebstore.google.com/detail/gatheros/jflmnonpoapjncoeankehcmenldecojk')}
+            >
+              <Chrome size={16} strokeWidth={1.8} aria-hidden="true" />
+              Get the Chrome extension
+            </button>
+          </div>
         </div>
       );
     }

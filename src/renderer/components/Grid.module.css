@@ -318,6 +318,20 @@
   gap: 4px;
 }
 
+/* Secondary "fill it automatically" path under the hero shortcuts. */
+.heroExtension {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.heroExtensionText {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
 .heroDot {
   color: var(--text-tertiary);
   opacity: 0.5;
