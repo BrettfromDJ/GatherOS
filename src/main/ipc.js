@@ -20,6 +20,8 @@ const {
   saveImageFromUrl,
   saveImageFromBuffer,
   composeMoodBoard,
+  getStorageUsage,
+  reclaimLibraryStorage,
 } = require('./storage');
 const {
   startScreenshotCapture,
@@ -1060,6 +1062,17 @@ function registerIpcHandlers() {
   // analyze + embed pipeline. Emits ai:reindex-progress events so the
   // UI can show "Indexing N of M" in real time. Sequential to keep
   // memory bounded and to be polite to the API.
+  // Settings → Storage. Usage readout + the opt-in reclaim sweep.
+  ipcMain.handle('storage:get-usage', () => getStorageUsage());
+  ipcMain.handle('storage:reclaim', async (event) =>
+    reclaimLibraryStorage({
+      onProgress: (p) => event.sender.send('storage:reclaim-progress', p),
+      // Patch each repointed save into the live grid so a reclaimed
+      // image opens from its new path without a full reload.
+      onUpdated: (rec) => { if (rec) event.sender.send('save:updated', rec); },
+    }),
+  );
+
   ipcMain.handle('ai:reindex-library', async (event) => {
     if (!hasAiSession()) return { ok: false, reason: 'no-session' };
     const targets = getUnindexedSaves();

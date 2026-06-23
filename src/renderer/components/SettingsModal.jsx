@@ -713,6 +713,122 @@ function UpdatesPage({ prefs, updatePref }) {
 }
 
 // Tiny on/off toggle pill — used for boolean prefs.
+function formatBytes(n) {
+  if (!n || n < 0) return '0 MB';
+  const mb = n / (1024 * 1024);
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  if (mb >= 10) return `${Math.round(mb)} MB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+// Settings → Storage. Library size readout, the optimized-import toggle,
+// and the opt-in "reclaim space" sweep (re-encodes existing originals).
+function StoragePage({ prefs, updatePref }) {
+  const [usage, setUsage] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    window.moodmark.storage.getUsage()
+      .then((u) => { if (alive) setUsage(u); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  async function runReclaim() {
+    const count = usage?.optimizable || 0;
+    const ok = await confirm({
+      title: 'Optimize existing images?',
+      message: count > 0
+        ? `Re-compresses up to ${count} full-resolution ${count === 1 ? 'image' : 'images'} and frees the originals to save space. This can’t be undone — animated and already-optimized images are left alone.`
+        : 'Re-compresses full-resolution images and frees the originals to save space. This can’t be undone.',
+      confirmLabel: 'Optimize',
+      destructive: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    setProgress({ processed: 0, total: count, optimized: 0, bytesFreed: 0 });
+    const off = window.moodmark.on('storage:reclaim-progress', (p) => setProgress(p));
+    try {
+      const summary = await window.moodmark.storage.reclaim();
+      setProgress({ ...summary, done: true });
+      const u = await window.moodmark.storage.getUsage();
+      setUsage(u);
+    } catch {
+      setProgress(null);
+    } finally {
+      off();
+      setBusy(false);
+    }
+  }
+
+  const nothingToReclaim = usage && usage.optimizable === 0 && !progress;
+
+  return (
+    <div className={styles.page}>
+      <p className={styles.sectionHint}>
+        How much disk your library uses. New images are optimized as they’re
+        saved; collections, tags, and search are never affected.
+      </p>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>On this Mac</label>
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Library size</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
+            {usage ? formatBytes(usage.totalBytes) : '…'}
+          </span>
+        </div>
+        <span className={styles.fieldHint}>
+          {usage
+            ? `Images ${formatBytes(usage.imagesBytes)} · thumbnails ${formatBytes(usage.thumbsBytes)}`
+            : 'Measuring…'}
+        </span>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Image quality</label>
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Keep full-resolution originals</span>
+          <ToggleSwitch
+            on={prefs.keepOriginals === true}
+            onChange={(v) => updatePref('keepOriginals', v)}
+          />
+        </div>
+        <span className={styles.fieldHint}>
+          Off (recommended) optimizes new images on import — caps the longest
+          edge and re-encodes to WebP — to keep your library small. Turn it on
+          to store the full-size file instead; your library will be larger.
+        </span>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Reclaim space</label>
+        <p className={styles.sectionHint} style={{ margin: '0 0 10px' }}>
+          Optimize images already in your library and free their originals.
+          This can’t be undone; saves stay in place, just at a smaller size.
+        </p>
+        {progress && (
+          <span className={styles.fieldHint} style={{ display: 'block', marginBottom: 10 }}>
+            {progress.done
+              ? `Done — optimized ${progress.optimized} of ${progress.total}, freed ${formatBytes(progress.bytesFreed)}.`
+              : `Optimizing ${progress.processed} of ${progress.total}… freed ${formatBytes(progress.bytesFreed)} so far`}
+          </span>
+        )}
+        <button
+          type="button"
+          className={styles.btn}
+          disabled={busy || nothingToReclaim}
+          onClick={runReclaim}
+        >
+          {busy ? 'Optimizing…' : nothingToReclaim ? 'Nothing to optimize' : 'Reclaim space'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ToggleSwitch({ on, onChange }) {
   return (
     <button
@@ -1585,31 +1701,7 @@ export default function SettingsModal({
           )}
 
           {activePage === 'storage' && (
-            <div className={styles.page}>
-              <p className={styles.sectionHint}>
-                Control how much disk your library uses. New images are
-                optimized as they're saved; your collections, tags, and
-                search are never affected.
-              </p>
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Image quality</label>
-                <div className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>Keep full-resolution originals</span>
-                  <ToggleSwitch
-                    on={prefs.keepOriginals === true}
-                    onChange={(v) => updatePref('keepOriginals', v)}
-                  />
-                </div>
-                <span className={styles.fieldHint}>
-                  Off (recommended) optimizes new images on import — caps the
-                  longest edge and re-encodes to WebP — to keep your library
-                  small. Turn it on to store the full-size file instead; your
-                  library will be larger. Either way, saves already in your
-                  library are left untouched.
-                </span>
-              </div>
-            </div>
+            <StoragePage prefs={prefs} updatePref={updatePref} />
           )}
 
           {activePage === 'data' && (

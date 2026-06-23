@@ -515,10 +515,110 @@ async function saveVideoFromUrl(videoUrl, posterUrl) {
   };
 }
 
+// Sum the byte size of every file directly inside a dir (non-recursive;
+// our images/ and thumbs/ are flat). Returns 0 for a missing dir.
+function dirBytes(dir) {
+  let total = 0;
+  let names = [];
+  try { names = fs.readdirSync(dir); } catch { return 0; }
+  for (const name of names) {
+    try { total += fs.statSync(path.join(dir, name)).size; } catch { /* ignore */ }
+  }
+  return total;
+}
+
+// On-disk footprint of the active library's media, plus a rough count of
+// images that could still be shrunk (anything not already stored as
+// WebP). Drives the Settings → Storage readout.
+function getStorageUsage() {
+  const imagesBytes = dirBytes(getImagesDir());
+  const thumbsBytes = dirBytes(getThumbsDir());
+  let optimizable = 0;
+  try {
+    const { getReclaimableSaves } = require('./db');
+    for (const s of getReclaimableSaves()) {
+      if (s.file_path && !/\.webp$/i.test(s.file_path)) optimizable += 1;
+    }
+  } catch { /* db not ready — report 0 optimizable */ }
+  return { imagesBytes, thumbsBytes, totalBytes: imagesBytes + thumbsBytes, optimizable };
+}
+
+const RECLAIM_EXTS = new Set(['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'heic', 'heif', 'avif']);
+
+// One-time, opt-in sweep that re-encodes existing full-resolution images
+// to the same optimized WebP new imports get, and frees the originals.
+// Safety: write the new file and verify it, update the DB, and only then
+// delete the original — a crash mid-sweep can never lose an image.
+// Animated images, already-WebP files, and anything that wouldn't shrink
+// are skipped. content_hash is preserved (it keys dedup on the source).
+async function reclaimLibraryStorage({ onProgress, onUpdated } = {}) {
+  const sharp = require('sharp');
+  const { getReclaimableSaves, updateSaveStorage, getSave } = require('./db');
+  const targets = getReclaimableSaves().filter((s) => {
+    if (!s.file_path || /\.webp$/i.test(s.file_path)) return false;
+    const ext = path.extname(s.file_path).slice(1).toLowerCase();
+    return RECLAIM_EXTS.has(ext);
+  });
+  const total = targets.length;
+  let processed = 0;
+  let optimized = 0;
+  let bytesFreed = 0;
+
+  for (let i = 0; i < targets.length; i += 1) {
+    const s = targets[i];
+    const oldPath = s.file_path;
+    try {
+      if (fs.existsSync(oldPath)) {
+        const buffer = fs.readFileSync(oldPath);
+        const meta = await sharp(buffer).metadata();
+        const animated = (meta.pages || 1) > 1;
+        if (!animated) {
+          const out = await sharp(buffer)
+            .rotate()
+            .resize(2560, 2560, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 82 })
+            .toBuffer();
+          if (out.length < buffer.length) {
+            const id = path.basename(oldPath, path.extname(oldPath));
+            const newPath = path.join(getImagesDir(), `${id}.webp`);
+            fs.writeFileSync(newPath, out);
+            // Verify the bytes landed before we touch the original.
+            const ok = (() => { try { return fs.statSync(newPath).size === out.length; } catch { return false; } })();
+            if (ok) {
+              const outMeta = await sharp(out).metadata();
+              updateSaveStorage(s.id, {
+                filePath: newPath,
+                fileSize: out.length,
+                width: outMeta.width || null,
+                height: outMeta.height || null,
+              });
+              if (newPath !== oldPath) { try { fs.unlinkSync(oldPath); } catch { /* keep going */ } }
+              bytesFreed += buffer.length - out.length;
+              optimized += 1;
+              if (onUpdated) { try { onUpdated(getSave(s.id)); } catch { /* ignore */ } }
+            } else {
+              try { fs.unlinkSync(newPath); } catch { /* drop partial */ }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[gatheros] reclaim failed for', s.id, '-', err.message);
+    }
+    processed += 1;
+    if (onProgress) onProgress({ processed, total, optimized, bytesFreed });
+    // Yield every 10 items so the main thread stays responsive.
+    if (i % 10 === 9) await new Promise((r) => setImmediate(r));
+  }
+  return { processed, total, optimized, bytesFreed };
+}
+
 module.exports = {
   ensureStorageDirs,
   getImagesDir,
   getThumbsDir,
+  getStorageUsage,
+  reclaimLibraryStorage,
   saveImageFromBase64,
   saveImageFromFile,
   saveImageFromBuffer,

@@ -456,6 +456,42 @@ function insertSave({
   return record;
 }
 
+// Image saves eligible for the "reclaim space" sweep — non-trashed,
+// non-video/url rows with a file on disk. The caller decides per row
+// whether re-encoding actually saves space (and skips animated images).
+function getReclaimableSaves() {
+  return getDatabase()
+    .prepare(
+      `SELECT id, file_path, file_size
+         FROM saves
+        WHERE deleted_at IS NULL
+          AND file_path IS NOT NULL
+          AND kind NOT IN ('video', 'url')`,
+    )
+    .all();
+}
+
+// Repoint a save at its newly-optimized file. Used by the reclaim sweep
+// after it has written + verified the optimized image. content_hash is
+// deliberately left alone — it identifies the original source bytes for
+// dedup, not the stored file.
+function updateSaveStorage(id, { filePath, fileSize, width, height } = {}) {
+  getDatabase()
+    .prepare(
+      `UPDATE saves
+          SET file_path = @file_path, file_size = @file_size,
+              width = @width, height = @height
+        WHERE id = @id`,
+    )
+    .run({
+      id,
+      file_path: filePath,
+      file_size: fileSize ?? null,
+      width: width ?? null,
+      height: height ?? null,
+    });
+}
+
 // Find a non-trashed save by its SHA-256 hash. Returns the row or
 // undefined. Trashed dupes are ignored on purpose — re-saving a
 // previously-deleted image should produce a fresh entry rather than
@@ -1623,6 +1659,8 @@ module.exports = {
   reopenDatabase,
   getDatabasePath,
   insertSave,
+  getReclaimableSaves,
+  updateSaveStorage,
   // Source tombstones (X bookmark / IG saved-post dismiss/dedup)
   tweetKeyFromUrl,
   igKeyFromUrl,

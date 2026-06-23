@@ -197,6 +197,10 @@ contextBridge.exposeInMainWorld('moodmark', {
     setPref: (name, value) => ipcRenderer.invoke('settings:set-pref', { name, value }),
     pickFolder: () => ipcRenderer.invoke('settings:pick-folder'),
   },
+  storage: {
+    getUsage: () => ipcRenderer.invoke('storage:get-usage'),
+    reclaim: () => ipcRenderer.invoke('storage:reclaim'),
+  },
   onboarding: {
     // Idempotent on the install side — ingestZip dedups by content
     // hash, so calling this on every walkthrough start is safe.
@@ -249,6 +253,7 @@ contextBridge.exposeInMainWorld('moodmark', {
       'update-ready',
       'update-error',
       'ai:reindex-progress',
+      'storage:reclaim-progress',
       'library:switched',
       'licensing:auth-result',
       'menu:command',
