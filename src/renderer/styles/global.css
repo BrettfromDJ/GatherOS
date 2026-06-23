@@ -668,9 +668,13 @@ body:has(.selection-bar) .trash-toast {
   left: 0;
   width: 60vw;
   pointer-events: none;
-  z-index: 99998;
-  /* Parked off-screen left; ThemeToggle animates it across on a flip. */
+  /* Above every overlay (focused view, onboarding, board) so a flip from
+     anywhere shows the sweep. */
+  z-index: 2147483646;
+  /* Parked off-screen left and hidden; ThemeToggle adds .glimm-band--sweep
+     to play the cross-window pass, then removes it on animationend. */
   transform: translateX(-130%);
+  opacity: 0;
   /* Soft prismatic wash: colours faded to transparent at both edges so
      there's no block, then blurred into a single diffuse smear of light.
      Alpha is high because the heavy blur spreads (and so dilutes) the
@@ -686,6 +690,17 @@ body:has(.selection-bar) .trash-toast {
     rgba(188, 120, 255, 0) 100%
   );
   filter: blur(56px) saturate(1.35);
+}
+
+.glimm-band--sweep {
+  animation: glimmSweep 1050ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+@keyframes glimmSweep {
+  0%   { transform: translateX(-130%); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) { .glimm-band { display: none; } }

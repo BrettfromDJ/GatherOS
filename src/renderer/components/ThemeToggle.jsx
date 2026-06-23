@@ -39,13 +39,16 @@ export default function ThemeToggle({ className }) {
     const reduced = typeof window !== 'undefined'
       && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const el = bandRef.current;
-    if (reduced || !el || typeof el.animate !== 'function') return;
+    if (reduced || !el) return;
 
-    // Sweep the rainbow shimmer band left → right across the window.
-    el.animate(
-      [{ transform: 'translateX(-130%)' }, { transform: 'translateX(200%)' }],
-      { duration: 1050, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
-    );
+    // Sweep the rainbow shimmer band left → right across the window by
+    // (re)playing the CSS animation. Clear the class and force a reflow
+    // first so rapid repeated flips always restart it from the left.
+    el.classList.remove('glimm-band--sweep');
+    void el.offsetWidth; // reflow — restarts the animation
+    el.classList.add('glimm-band--sweep');
+    const done = () => el.classList.remove('glimm-band--sweep');
+    el.addEventListener('animationend', done, { once: true });
   }
 
   const isDark = theme === 'dark';
