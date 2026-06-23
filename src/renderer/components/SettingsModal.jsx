@@ -764,6 +764,11 @@ function StoragePage({ prefs, updatePref }) {
   }
 
   const nothingToReclaim = usage && usage.optimizable === 0 && !progress;
+  // Derive completion from the counts rather than a flag: the final
+  // progress event can land just after the reclaim() call resolves and
+  // would otherwise clobber a "done" flag back to in-progress.
+  const isDone = !busy && progress && progress.total > 0
+    && progress.processed >= progress.total;
 
   return (
     <div className={styles.page}>
@@ -811,7 +816,7 @@ function StoragePage({ prefs, updatePref }) {
         </p>
         {progress && (
           <span className={styles.fieldHint} style={{ display: 'block', marginBottom: 10 }}>
-            {progress.done
+            {isDone
               ? `Done — optimized ${progress.optimized} of ${progress.total}, freed ${formatBytes(progress.bytesFreed)}.`
               : `Optimizing ${progress.processed} of ${progress.total}… freed ${formatBytes(progress.bytesFreed)} so far`}
           </span>
