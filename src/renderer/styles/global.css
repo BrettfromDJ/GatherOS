@@ -655,21 +655,22 @@ body:has(.selection-bar) .trash-toast {
   animation-duration: var(--dur-medium);
 }
 
-/* Rainbow theme-switch — a soft gradient BAND sweeps across while the
-   new theme is revealed behind it (glimm-style). The band is a real
-   element given a view-transition-name only while armed, so it rides in
-   the transition's top layer and tweens left→right between snapshots;
-   the old root is clip-wiped away underneath it (see ThemeToggle). */
+/* Rainbow theme-switch shimmer — a soft, heavily-blurred gradient BAND
+   sweeps left→right across the window on a flip. Purely decorative and
+   decoupled from the theme swap itself (which switches instantly). The
+   band is a fixed overlay parked off-screen left; ThemeToggle animates
+   its transform across on each flip (see ThemeToggle). */
 .glimm-band {
   position: fixed;
   /* Extend past the viewport so the heavy blur never shows a hard edge. */
   top: -15vh;
   bottom: -15vh;
-  left: -85vw;
-  width: 66vw;
-  opacity: 0;
+  left: 0;
+  width: 60vw;
   pointer-events: none;
   z-index: 99998;
+  /* Parked off-screen left; ThemeToggle animates it across on a flip. */
+  transform: translateX(-130%);
   /* Soft prismatic wash: colours faded to transparent at both edges so
      there's no block, low alpha so it's a glow not a fill, then blurred
      hard into a single diffuse smear of light. */
@@ -685,24 +686,6 @@ body:has(.selection-bar) .trash-toast {
   );
   filter: blur(72px) saturate(1.1);
 }
-.glimm-band--armed { opacity: 1; view-transition-name: glimmband; }
-.glimm-band--swept { left: 150vw; }
-
-::view-transition-group(glimmband) {
-  animation-duration: 0.85s;
-  animation-timing-function: cubic-bezier(0.5, 0, 0.2, 1);
-}
-
-/* Theme sweep root behaviour, scoped so the focused-view morph's root
-   cross-fade is untouched. Old snapshot on top, clip-wiped away to
-   reveal the new theme underneath as the band passes. */
-:root.theme-sweeping::view-transition-old(root),
-:root.theme-sweeping::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-:root.theme-sweeping::view-transition-old(root) { z-index: 2; }
-:root.theme-sweeping::view-transition-new(root) { z-index: 1; }
 
 @media (prefers-reduced-motion: reduce) { .glimm-band { display: none; } }
 

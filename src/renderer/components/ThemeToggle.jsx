@@ -7,9 +7,9 @@ import { Sun, Moon } from 'lucide-react';
 // localStorage via setPref AND to the main process via setTheme so the
 // next BrowserWindow that opens picks the right material variant.
 //
-// The flip plays a glimm-style transition: a soft rainbow band sweeps
-// across the window (riding the View Transitions top layer) while the
-// old theme is clip-wiped away to reveal the new one underneath.
+// The flip switches the theme instantly (no animated crossfade) and
+// sweeps a soft, heavily-blurred rainbow shimmer band across the window
+// — the two effects are decoupled on purpose.
 export default function ThemeToggle({ className }) {
   const [theme, setTheme] = React.useState(() =>
     typeof document !== 'undefined' &&
@@ -30,54 +30,22 @@ export default function ThemeToggle({ className }) {
 
   function flip() {
     const next = theme === 'dark' ? 'light' : 'dark';
+
+    // Switch the theme straight away — no transition on the swap itself.
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
     persist(next);
 
-    const root = document.documentElement;
-    const band = bandRef.current;
-    const supported = typeof document !== 'undefined'
-      && typeof document.startViewTransition === 'function';
     const reduced = typeof window !== 'undefined'
       && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const el = bandRef.current;
+    if (reduced || !el || typeof el.animate !== 'function') return;
 
-    if (!supported || reduced || !band) {
-      root.setAttribute('data-theme', next);
-      setTheme(next);
-      return;
-    }
-
-    // Arm the band off-screen-left WITH its view-transition-name before
-    // the snapshot, so the "old" frame captures it ready to sweep.
-    band.classList.add('glimm-band--armed');
-    root.classList.add('theme-sweeping');
-
-    const transition = document.startViewTransition(() => {
-      // Runs between the two snapshots: swap the theme and send the band
-      // off-screen-right so its group tweens all the way across.
-      root.setAttribute('data-theme', next);
-      band.classList.add('glimm-band--swept');
-    });
-
-    transition.ready
-      .then(() => {
-        // Wipe the old theme away left→right, revealing the new one
-        // underneath as the band passes over the seam.
-        root.animate(
-          { clipPath: ['inset(0 0 0 0)', 'inset(0 0 0 100%)'] },
-          {
-            duration: 850,
-            easing: 'cubic-bezier(0.5, 0, 0.2, 1)',
-            pseudoElement: '::view-transition-old(root)',
-            fill: 'forwards',
-          },
-        );
-      })
-      .catch(() => {});
-
-    transition.finished.finally(() => {
-      band.classList.remove('glimm-band--armed', 'glimm-band--swept');
-      root.classList.remove('theme-sweeping');
-      setTheme(next);
-    });
+    // Sweep the rainbow shimmer band left → right across the window.
+    el.animate(
+      [{ transform: 'translateX(-130%)' }, { transform: 'translateX(200%)' }],
+      { duration: 850, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
+    );
   }
 
   const isDark = theme === 'dark';
