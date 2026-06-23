@@ -126,13 +126,6 @@ export default function FocusedView({
     justCopied,
   } = useEyedropper(imageRef, record.id);
 
-  // If the active media becomes a video (e.g. paging a media tweet from
-  // a photo to its clip) while the eyedropper is armed, disarm it —
-  // there's no image to sample and the button is hidden.
-  useEffect(() => {
-    if (showVideo && picking) togglePicking();
-  }, [showVideo, picking, togglePicking]);
-
   // Reset zoom whenever the user moves to a different image.
   useEffect(() => {
     setZoom(1);
@@ -245,6 +238,14 @@ export default function FocusedView({
   const showVideo = activeMedia ? activeMedia.type === 'video' : record.kind === 'video';
   const localVideo = !activeMedia || activeMedia.primaryLocal || !activeMedia.url;
   const videoSrc = localVideo ? fileUrl(record.file_path) : activeMedia.url;
+
+  // If the active media is a video while the eyedropper is armed (e.g.
+  // paging a media tweet from a photo to its clip), disarm it — there's
+  // no image to sample and the button is hidden. Defined here, after
+  // showVideo, so the dependency isn't read in its temporal dead zone.
+  useEffect(() => {
+    if (showVideo && picking) togglePicking();
+  }, [showVideo, picking, togglePicking]);
   const videoPoster = (showVideo && !localVideo && activeMedia.poster)
     ? activeMedia.poster
     : (record.thumb_path ? fileUrl(record.thumb_path) : undefined);
