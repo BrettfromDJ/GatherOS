@@ -20,6 +20,26 @@ import {
 
 export const RELEASE_NOTES = [
   {
+    version: '0.4.1',
+    items: [
+      {
+        Icon: WindowIcon,
+        title: 'A colorful light/dark switch',
+        description: 'Toggling between light and dark now sweeps a soft, liquid rainbow across the window — a fresh colorway every time.',
+      },
+      {
+        Icon: CardsIcon,
+        title: 'Collections on the search page',
+        description: 'Your collections now sit right under the search bar, so you can jump straight into one without leaving search.',
+      },
+      {
+        Icon: GlassIcon,
+        title: 'Search clears when you switch tabs',
+        description: 'Hop from search back to your library and you’ll see all your saves again, instead of being stuck on old results.',
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     items: [
       {
