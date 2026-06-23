@@ -405,6 +405,8 @@ export default function FocusedView({
           // map the click to the rendered image rect and only spare
           // hits that fall inside it.
           if (picking) return;
+          // The floating video controls never dismiss.
+          if (e.target.closest && e.target.closest(`.${styles.vControls}`)) return;
           if (e.target === imageRef.current) {
             const img = imageRef.current;
             const nw = img.naturalWidth;
@@ -431,6 +433,39 @@ export default function FocusedView({
               if (onContent) return;
             } else {
               // Image hasn't loaded yet; play it safe and don't dismiss.
+              return;
+            }
+          }
+          // Video: clicking the picture toggles play; clicking the
+          // letterbox / surrounding whitespace dismisses, mirroring the
+          // image's content-vs-whitespace hit test.
+          if (e.target === videoRef.current) {
+            const v = videoRef.current;
+            const vw = v.videoWidth;
+            const vh = v.videoHeight;
+            if (vw && vh) {
+              const rect = v.getBoundingClientRect();
+              const elAspect = rect.width / rect.height;
+              const mediaAspect = vw / vh;
+              let renderedW, renderedH;
+              if (elAspect > mediaAspect) {
+                renderedH = rect.height;
+                renderedW = rect.height * mediaAspect;
+              } else {
+                renderedW = rect.width;
+                renderedH = rect.width / mediaAspect;
+              }
+              const offsetX = (rect.width - renderedW) / 2;
+              const offsetY = (rect.height - renderedH) / 2;
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              const onContent =
+                x >= offsetX && x <= offsetX + renderedW &&
+                y >= offsetY && y <= offsetY + renderedH;
+              if (onContent) { toggleVideoPlay(); return; }
+            } else {
+              // Metadata not loaded yet — toggle play, don't dismiss.
+              toggleVideoPlay();
               return;
             }
           }
@@ -488,13 +523,12 @@ export default function FocusedView({
             style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
             onMouseEnter={() => setVideoHovered(true)}
             onMouseLeave={() => setVideoHovered(false)}
-            /* Clicks on the video + its controls must not bubble to the
-               stage's click-to-dismiss — without an <img> to hit-test
-               against, the dismiss handler treats every control click
-               (play, scrub, mute) as "clicked the whitespace" and closes
-               the view. Same guard the tweet card uses. */
+            /* Stop mousedown so dragging the scrubber doesn't start a
+               text selection on the stage. Clicks are allowed to bubble:
+               the stage's handler hit-tests the video so clicking the
+               picture toggles play, clicking the surrounding letterbox
+               dismisses, and control clicks are spared. */
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
           >
             <video
               // Remount on source change so paging between videos loads
@@ -519,7 +553,6 @@ export default function FocusedView({
               // "everything in one window" model.
               disablePictureInPicture
               poster={videoPoster}
-              onClick={toggleVideoPlay}
               onPlay={() => setVid((s) => ({ ...s, playing: true }))}
               onPause={() => setVid((s) => ({ ...s, playing: false }))}
               onTimeUpdate={() => { const v = videoRef.current; if (v) setVid((s) => ({ ...s, current: v.currentTime })); }}
