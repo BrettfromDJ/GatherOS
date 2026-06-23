@@ -749,7 +749,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: var(--surface-1);
-  box-shadow: var(--shadow-card);
 }
 .libHeroMain { flex: 1 1 auto; min-width: 0; }
 .libHeroName {
@@ -952,6 +951,7 @@
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
 }
