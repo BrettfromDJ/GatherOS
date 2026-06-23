@@ -20,6 +20,31 @@ import {
 
 export const RELEASE_NOTES = [
   {
+    version: '0.4.0',
+    items: [
+      {
+        Icon: GlassIcon,
+        title: 'A dedicated search tab',
+        description: 'Search is now its own tab — a full, scrollable canvas built to find anything fast across thousands of saves, instead of the small ⌘K box.',
+      },
+      {
+        Icon: WindowIcon,
+        title: 'Smaller libraries',
+        description: 'New images are optimized as they’re saved, so your library takes far less disk. Already large? Settings → Storage → Reclaim space re-compresses what’s already there.',
+      },
+      {
+        Icon: CardsIcon,
+        title: 'Redesigned Libraries settings',
+        description: 'Switch between libraries from a cleaner pane — a hero for the one you’re in, with the rest a tap away.',
+      },
+      {
+        Icon: PermissionIcon,
+        title: 'Smoother grid and video',
+        description: 'Scrolling stays smooth with thousands of saves, and clicking outside a video in the focused view now takes you back to the grid.',
+      },
+    ],
+  },
+  {
     version: '0.1.21',
     items: [
       {
