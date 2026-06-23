@@ -655,18 +655,21 @@ body:has(.selection-bar) .trash-toast {
   animation-duration: var(--dur-medium);
 }
 
-/* Rainbow theme-switch shimmer — a soft, heavily-blurred gradient BAND
-   sweeps left→right across the window on a flip. Purely decorative and
-   decoupled from the theme swap itself (which switches instantly). The
-   band is a fixed overlay parked off-screen left; ThemeToggle animates
-   its transform across on each flip (see ThemeToggle). */
+/* Theme-switch shimmer — a soft, heavily-blurred ribbon of light sweeps
+   left→right across the window on a flip. Purely decorative and decoupled
+   from the theme swap itself (which switches instantly). Instead of one
+   boxy linear gradient it's a stack of six colour blobs at alternating
+   heights, so the band undulates like a wave rather than reading as a
+   rectangle. The six --c* slots are filled by a colourway class (prism,
+   berry, …) that ThemeToggle rotates through on each flip. */
 .glimm-band {
   position: fixed;
-  /* Extend past the viewport so the heavy blur never shows a hard edge. */
-  top: -15vh;
-  bottom: -15vh;
+  /* Overshoot top/bottom so the blobs fade to nothing well past the
+     viewport — the wave never shows a hard top or bottom edge. */
+  top: -40vh;
+  bottom: -40vh;
   left: 0;
-  width: 60vw;
+  width: 72vw;
   pointer-events: none;
   /* Above every overlay (focused view, onboarding, board) so a flip from
      anywhere shows the sweep. */
@@ -675,32 +678,49 @@ body:has(.selection-bar) .trash-toast {
      to play the cross-window pass, then removes it on animationend. */
   transform: translateX(-130%);
   opacity: 0;
-  /* Soft prismatic wash: colours faded to transparent at both edges so
-     there's no block, then blurred into a single diffuse smear of light.
-     Alpha is high because the heavy blur spreads (and so dilutes) the
-     colour a lot — keep it vivid enough to read on both themes. */
-  background: linear-gradient(
-    90deg,
-    rgba(255, 95, 109, 0) 0%,
-    rgba(255, 95, 109, 0.7) 24%,
-    rgba(255, 184, 92, 0.7) 38%,
-    rgba(122, 224, 140, 0.7) 52%,
-    rgba(92, 170, 255, 0.7) 66%,
-    rgba(188, 120, 255, 0.7) 80%,
-    rgba(188, 120, 255, 0) 100%
-  );
-  filter: blur(56px) saturate(1.35);
+  will-change: transform, opacity;
+  /* Default colourway (prism) — overridden by .glimm-band--<name>. */
+  --c1: #3de8a8;
+  --c2: #2bb7f0;
+  --c3: #3a6ff0;
+  --c4: #7b4dff;
+  --c5: #e14dd8;
+  --c6: #ff9f45;
+  /* Six soft blobs marching across the width at alternating vertical
+     centres — the offset heights give the ribbon its wave; each fades to
+     transparent so there are no blocks, then a heavy blur fuses them into
+     one continuous flowing smear that filters through the colourway. */
+  background:
+    radial-gradient(46% 78% at 8%  30%, var(--c1), transparent 72%),
+    radial-gradient(44% 82% at 26% 70%, var(--c2), transparent 72%),
+    radial-gradient(44% 80% at 44% 28%, var(--c3), transparent 72%),
+    radial-gradient(44% 82% at 62% 72%, var(--c4), transparent 72%),
+    radial-gradient(46% 80% at 80% 30%, var(--c5), transparent 72%),
+    radial-gradient(48% 84% at 97% 68%, var(--c6), transparent 74%);
+  filter: blur(64px) saturate(1.3);
 }
+
+/* Colourways — each maps the six blob slots to a palette from the
+   reference. ThemeToggle adds one of these alongside --sweep per flip. */
+.glimm-band--prism  { --c1:#3de8a8; --c2:#2bb7f0; --c3:#3a6ff0; --c4:#7b4dff; --c5:#e14dd8; --c6:#ff9f45; }
+.glimm-band--berry  { --c1:#ff7a3c; --c2:#f2453d; --c3:#f0479e; --c4:#d24df0; --c5:#a24df0; --c6:#7b4dff; }
+.glimm-band--lagoon { --c1:#3a6ff0; --c2:#2b9ff0; --c3:#2bcfe0; --c4:#2be0a6; --c5:#4de86b; --c6:#8fe84d; }
+.glimm-band--citrus { --c1:#4de88a; --c2:#a6e84d; --c3:#f0d34d; --c4:#ff9f45; --c5:#f06b45; --c6:#e1455b; }
+.glimm-band--azure  { --c1:#7ad6ff; --c2:#4db8ff; --c3:#2b9ff0; --c4:#2b6fe0; --c5:#3a8ff0; --c6:#5ad0ff; }
+.glimm-band--ember  { --c1:#c6e84d; --c2:#f0e04d; --c3:#ff9f45; --c4:#ff5a5a; --c5:#f0479e; --c6:#b84dff; }
 
 .glimm-band--sweep {
-  animation: glimmSweep 1050ms cubic-bezier(0.5, 0, 0.2, 1) both;
+  animation: glimmSweep 1150ms cubic-bezier(0.5, 0, 0.2, 1) both;
 }
 
+/* Sweep across while gently bobbing the wave vertically, so it rolls
+   rather than slides flat. */
 @keyframes glimmSweep {
-  0%   { transform: translateX(-130%); opacity: 0; }
-  12%  { opacity: 1; }
-  88%  { opacity: 1; }
-  100% { transform: translateX(200%); opacity: 0; }
+  0%   { transform: translateX(-130%) translateY(-3%); opacity: 0; }
+  12%  { opacity: 0.95; }
+  50%  { transform: translateX(35%) translateY(3%); }
+  88%  { opacity: 0.95; }
+  100% { transform: translateX(200%) translateY(-3%); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) { .glimm-band { display: none; } }

@@ -2,6 +2,12 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { Sun, Moon } from 'lucide-react';
 
+// Shimmer colourways, cycled in order so each flip filters through a
+// different palette. Module-level index is shared across toggle instances
+// (sidebar + toolbar) so the rotation continues no matter which is used.
+const COLORWAYS = ['prism', 'berry', 'lagoon', 'citrus', 'azure', 'ember'];
+let colorwayIndex = 0;
+
 // Local-state theme toggle. Reads the current value off the data-theme
 // attribute set on <html> at boot, flips it, mirrors the new value to
 // localStorage via setPref AND to the main process via setTheme so the
@@ -41,12 +47,17 @@ export default function ThemeToggle({ className }) {
     const el = bandRef.current;
     if (reduced || !el) return;
 
-    // Sweep the rainbow shimmer band left → right across the window by
-    // (re)playing the CSS animation. Clear the class and force a reflow
-    // first so rapid repeated flips always restart it from the left.
+    // Pick the next colourway in the rotation.
+    const colorway = COLORWAYS[colorwayIndex % COLORWAYS.length];
+    colorwayIndex += 1;
+
+    // Sweep the shimmer band left → right across the window by (re)playing
+    // the CSS animation. Clear the sweep + any prior colourway and force a
+    // reflow first so rapid repeated flips always restart from the left.
     el.classList.remove('glimm-band--sweep');
+    COLORWAYS.forEach((c) => el.classList.remove(`glimm-band--${c}`));
     void el.offsetWidth; // reflow — restarts the animation
-    el.classList.add('glimm-band--sweep');
+    el.classList.add(`glimm-band--${colorway}`, 'glimm-band--sweep');
     const done = () => el.classList.remove('glimm-band--sweep');
     el.addEventListener('animationend', done, { once: true });
   }
