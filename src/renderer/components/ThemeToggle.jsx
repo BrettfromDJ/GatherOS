@@ -64,7 +64,7 @@ export default function ThemeToggle({ className }) {
         root.animate(
           { clipPath: ['inset(0 0 0 0)', 'inset(0 0 0 100%)'] },
           {
-            duration: 700,
+            duration: 850,
             easing: 'cubic-bezier(0.5, 0, 0.2, 1)',
             pseudoElement: '::view-transition-old(root)',
             fill: 'forwards',
