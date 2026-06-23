@@ -10,7 +10,7 @@ let colorwayIndex = 0;
 
 // Sweep duration — keep in sync with .glimm-band--sweep in global.css.
 // The theme swap fires at the halfway point.
-const SWEEP_MS = 1100;
+const SWEEP_MS = 2000;
 
 // Local-state theme toggle. Reads the current value off the data-theme
 // attribute set on <html> at boot, flips it, mirrors the new value to
