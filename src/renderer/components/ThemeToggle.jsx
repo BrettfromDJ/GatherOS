@@ -73,6 +73,15 @@ export default function ThemeToggle({ className }) {
       return;
     }
 
+    // The band rides on top of the whole UI, so a plain alpha overlay
+    // tints the text as it passes (and "un-tints" it as it leaves, which
+    // reads as the text animating a second time). Blend it against the UI
+    // so it preserves text luminance instead — only the background takes
+    // the colour. Toggling to light: multiply keeps black text black over
+    // the light backdrop; to dark: screen keeps white text white over the
+    // dark backdrop.
+    el.style.mixBlendMode = next === 'dark' ? 'screen' : 'multiply';
+
     // Pick the next colourway in the rotation.
     const colorway = COLORWAYS[colorwayIndex % COLORWAYS.length];
     colorwayIndex += 1;
