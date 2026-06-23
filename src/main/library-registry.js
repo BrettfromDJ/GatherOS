@@ -224,7 +224,7 @@ function listLibraries() {
         covers: getLibraryPreviews(l.id, 8)
           .map(coverPathFor)
           .filter(Boolean)
-          .slice(0, 3),
+          .slice(0, 4),
       }))
       .sort((a, b) => a.createdAt - b.createdAt),
   };

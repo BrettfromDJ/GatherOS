@@ -740,11 +740,43 @@
 }
 :root[data-theme="dark"] .libCoversEmpty { background: rgba(255, 255, 255, 0.06); }
 
+/* Active-library cover fan — identical treatment + hover fan-out to the
+   collection cards (FeaturedBuckets .stack), retriggered on hero hover. */
+.libStack {
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+}
+.libStack img {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transition: transform var(--dur-pronounced) var(--ease-out);
+}
+.libStack img:nth-child(1) { transform: rotate(-7deg) translate(-10px, 4px); z-index: 1; }
+.libStack img:nth-child(2) { transform: rotate(-2deg) translate(-3px, 0px);  z-index: 2; }
+.libStack img:nth-child(3) { transform: rotate(3deg)  translate(5px, 0px);   z-index: 3; }
+.libStack img:nth-child(4) { transform: rotate(8deg)  translate(12px, 4px);  z-index: 4; }
+.libHero:hover .libStack img:nth-child(1) { transform: rotate(-16deg) translate(-30px, 8px); }
+.libHero:hover .libStack img:nth-child(2) { transform: rotate(-6deg)  translate(-12px, -2px); }
+.libHero:hover .libStack img:nth-child(3) { transform: rotate(7deg)   translate(14px, -2px); }
+.libHero:hover .libStack img:nth-child(4) { transform: rotate(18deg)  translate(32px, 8px); }
+.libStackEmpty { color: var(--icon-muted); }
+
 .libHero {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 18px;
+  gap: 22px;
+  padding: 18px 18px 18px 34px;
   margin-top: 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);

@@ -236,6 +236,26 @@ function LibrariesPage({
     );
   };
 
+  // Active library's cover fan — the exact same stack treatment and
+  // hover fan-out as the collection cards (see FeaturedBuckets .stack).
+  const heroStack = (lib) => {
+    const covers = Array.isArray(lib.covers) ? lib.covers.slice(0, 4) : [];
+    if (covers.length === 0) {
+      return (
+        <div className={`${styles.libStack} ${styles.libStackEmpty}`} aria-hidden="true">
+          <Library size={26} strokeWidth={1.6} />
+        </div>
+      );
+    }
+    return (
+      <div className={styles.libStack} aria-hidden="true">
+        {covers.map((src, i) => (
+          <img key={i} src={fileUrl(src)} alt="" draggable={false} />
+        ))}
+      </div>
+    );
+  };
+
   const renameInput = (lib) => (
     <input
       autoFocus
@@ -312,7 +332,7 @@ function LibrariesPage({
     <>
       {active && (
         <div className={styles.libHero}>
-          {coverStack(active, 'libCoversHero')}
+          {heroStack(active)}
           <div className={styles.libHeroMain}>
             {renamingId === active.id ? renameInput(active) : (
               <div className={styles.libHeroName}>
