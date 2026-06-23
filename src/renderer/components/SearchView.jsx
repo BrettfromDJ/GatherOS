@@ -116,7 +116,8 @@ export default function SearchView({
   };
   const scrollColls = (dir) => {
     const el = collRef.current;
-    if (el) el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: 'smooth' });
+    // Page by a full view (~5 cards); mandatory snap lands it on a card edge.
+    if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
   };
   // Re-measure when the row mounts (landing shown), its content changes,
   // or the window resizes — so the arrows only appear when it overflows.

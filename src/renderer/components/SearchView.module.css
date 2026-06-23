@@ -131,14 +131,17 @@
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  /* Mandatory snap + cards sized to exactly 1/5 of the row means you
+     always rest on whole cards — five at a time, never half of a sixth. */
+  scroll-snap-type: x mandatory;
   padding: 2px 2px 6px;
   scrollbar-width: none;
 }
 .collRow::-webkit-scrollbar { display: none; }
 
 .collCard {
-  flex: 0 0 124px;
+  /* Exactly five per view: five cards + four 12px gaps fill the row. */
+  flex: 0 0 calc((100% - 48px) / 5);
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
