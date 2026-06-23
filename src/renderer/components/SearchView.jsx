@@ -118,10 +118,15 @@ export default function SearchView({
     const el = collRef.current;
     if (el) el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: 'smooth' });
   };
-  // Re-measure when the row mounts (landing shown) or its content changes.
+  // Re-measure when the row mounts (landing shown), its content changes,
+  // or the window resizes — so the arrows only appear when it overflows.
   useEffect(() => {
     const id = requestAnimationFrame(updateCollArrows);
-    return () => cancelAnimationFrame(id);
+    window.addEventListener('resize', updateCollArrows);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('resize', updateCollArrows);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collections.length, hasQuery]);
 
@@ -204,26 +209,28 @@ export default function SearchView({
             <section className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.label}>Your collections</span>
-                <div className={styles.collArrows}>
-                  <button
-                    type="button"
-                    className={styles.collArrow}
-                    onClick={() => scrollColls(-1)}
-                    disabled={!collArrows.left}
-                    aria-label="Scroll collections left"
-                  >
-                    <Chevron dir="left" />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.collArrow}
-                    onClick={() => scrollColls(1)}
-                    disabled={!collArrows.right}
-                    aria-label="Scroll collections right"
-                  >
-                    <Chevron dir="right" />
-                  </button>
-                </div>
+                {(collArrows.left || collArrows.right) && (
+                  <div className={styles.collArrows}>
+                    <button
+                      type="button"
+                      className={styles.collArrow}
+                      onClick={() => scrollColls(-1)}
+                      disabled={!collArrows.left}
+                      aria-label="Scroll collections left"
+                    >
+                      <Chevron dir="left" />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.collArrow}
+                      onClick={() => scrollColls(1)}
+                      disabled={!collArrows.right}
+                      aria-label="Scroll collections right"
+                    >
+                      <Chevron dir="right" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className={styles.collRow} ref={collRef} onScroll={updateCollArrows}>
                 {collections.map((c) => {
