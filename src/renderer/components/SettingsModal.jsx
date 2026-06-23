@@ -771,7 +771,7 @@ function StoragePage({ prefs, updatePref }) {
     && progress.processed >= progress.total;
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.storagePage}`}>
       <p className={styles.sectionHint}>
         How much disk your library uses. New images are optimized as they’re
         saved; collections, tags, and search are never affected.

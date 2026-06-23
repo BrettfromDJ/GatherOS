@@ -1038,6 +1038,22 @@
   border-bottom: none;
 }
 
+/* Storage page — tighten the rhythm so each label / control / hint reads
+   as one group and the sections sit closer together. The shared .field
+   spacing is tuned for forms with taller inputs; this page is lighter. */
+.storagePage .field {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.storagePage .field:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+.storagePage .toggleRow {
+  padding: 2px 0 0;
+}
+
 .toggleLabel {
   font-size: var(--text-md);
   color: var(--text-primary);
