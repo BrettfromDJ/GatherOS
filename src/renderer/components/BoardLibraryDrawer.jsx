@@ -9,7 +9,7 @@ import {
   Check,
 } from 'lucide-react';
 import styles from './BoardView.module.css';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 
 // Static option metadata for the folder dropdown — used both to
 // render the trigger label and to seed the popup menu. Per-collection
@@ -286,8 +286,8 @@ export default function BoardLibraryDrawer({ collections, boardId, onClose }) {
               const ar = s.width && s.height ? s.height / s.width : 1;
               const extremeAspect = ar >= 2 || ar <= 0.5;
               const thumbSrc = extremeAspect
-                ? fileUrl(s.file_path || s.thumb_path)
-                : fileUrl(s.thumb_path || s.file_path);
+                ? resolveAsset(s, 'original')
+                : resolveAsset(s, 'thumb');
               return (
                 <div
                   key={s.id}

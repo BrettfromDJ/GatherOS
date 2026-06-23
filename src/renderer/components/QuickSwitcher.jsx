@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import styles from './QuickSwitcher.module.css';
 import { CollectionIcon } from './Sidebar.jsx';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 
 function HashIcon() {
   return (
@@ -205,7 +205,7 @@ export default function QuickSwitcher({
                 <div className={styles.groupLabel}>Saves</div>
                 {saveResults.map((s) => {
                   const idx = nextIdx();
-                  const src = fileUrl(s.thumb_path || s.file_path);
+                  const src = resolveAsset(s, 'thumb');
                   return (
                     <button
                       key={`s:${s.id}`}

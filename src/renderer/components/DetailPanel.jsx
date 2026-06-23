@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { Info as InfoIcon, Eclipse as LayersIcon, ExternalLink } from 'lucide-react';
 import styles from './DetailPanel.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { tweetMediaItems } from '../lib/tweetMedia.js';
 import ContextMenu from './ContextMenu.jsx';
 import contextMenuStyles from './ContextMenu.module.css';
@@ -1323,7 +1324,7 @@ export default function DetailPanel({
                 title={s.title || ''}
               >
                 <img
-                  src={fileUrl(s.thumb_path || s.file_path)}
+                  src={resolveAsset(s, 'thumb')}
                   alt=""
                   draggable={false}
                 />

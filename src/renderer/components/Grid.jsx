@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SquareLibrary, Bookmark, Chrome, Folder, Download, RotateCw } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { InboxIcon, TrashIcon } from './Sidebar.jsx';
 
 const EMPTY_ICON = { size: 24, strokeWidth: 1.6, 'aria-hidden': true };
@@ -381,7 +381,7 @@ export default function Grid({
             >
               <div className={styles.listThumb}>
                 <img
-                  src={fileUrl(s.thumb_path || s.file_path)}
+                  src={resolveAsset(s, 'thumb')}
                   alt=""
                   loading="lazy"
                   decoding="async"

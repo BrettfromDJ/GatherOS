@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import styles from './RediscoverMode.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { fuzzyMatch } from '../lib/fuzzy.js';
 import TweetCard from './TweetCard.jsx';
 
@@ -297,7 +298,7 @@ export default function RediscoverMode({
                     <div
                       key={s.id}
                       className={`${styles.pileCard} ${t.trashed ? styles.pileCardTrashed : ''}`}
-                      style={{ backgroundImage: `url("${fileUrl(s.thumb_path || s.file_path)}")` }}
+                      style={{ backgroundImage: `url("${resolveAsset(s, 'thumb')}")` }}
                     />
                   ))}
                 </div>

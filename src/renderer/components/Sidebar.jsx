@@ -5,7 +5,7 @@ import ContextMenu from './ContextMenu.jsx';
 import LibrarySwitcher from './LibrarySwitcher.jsx';
 import SidebarSearch from './SidebarSearch.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
 
 import {
@@ -1232,7 +1232,7 @@ export default function Sidebar({
             {hoverPreview.saves.slice(0, 4).map((s) => (
               <img
                 key={s.id}
-                src={fileUrl(s.thumb_path || s.file_path)}
+                src={resolveAsset(s, 'thumb')}
                 alt=""
                 loading="lazy"
                 decoding="async"

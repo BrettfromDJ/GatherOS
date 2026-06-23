@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { Info as InfoIcon, Eclipse as LayersIcon } from 'lucide-react';
 import styles from './DetailPanelV2.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import ContextMenu from './ContextMenu.jsx';
 import TagSuggestions from './TagSuggestions.jsx';
 import { fuzzyMatch } from '../lib/fuzzy.js';
@@ -1118,7 +1119,7 @@ export default function DetailPanel({
                 title={s.title || ''}
               >
                 <img
-                  src={fileUrl(s.thumb_path || s.file_path)}
+                  src={resolveAsset(s, 'thumb')}
                   alt=""
                   draggable={false}
                 />

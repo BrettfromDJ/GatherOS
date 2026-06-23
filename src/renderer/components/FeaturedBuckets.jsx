@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Eclipse as Layers, Plus } from 'lucide-react';
 import styles from './FeaturedBuckets.module.css';
 import { CollectionIcon } from './Sidebar.jsx';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
 import ContextMenu from './ContextMenu.jsx';
 
@@ -293,7 +293,7 @@ export default function FeaturedBuckets({
                     items.slice(0, PREVIEW_COUNT).map((s) => (
                       <img
                         key={s.id}
-                        src={fileUrl(s.thumb_path || s.file_path)}
+                        src={resolveAsset(s, 'thumb')}
                         alt=""
                         loading="lazy"
                         decoding="async"

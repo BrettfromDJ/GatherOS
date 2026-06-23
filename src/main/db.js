@@ -292,6 +292,15 @@ const MIGRATIONS = [
     rename('x:bookmark', 'bookmark');
     rename('instagram:save', 'instagram');
   },
+  // Variant model groundwork (Phase 1). A medium "preview" render that
+  // sits between the 400px thumb and the full original — the focused
+  // view / peek will use it, and it's the local file the cloud layer
+  // keeps when originals are offloaded. Nullable: existing saves have
+  // none, and resolveAsset() falls back to the original until one is
+  // generated, so this migration is purely additive and invisible.
+  (database) => {
+    addColumnIfMissing(database, 'saves', 'preview_path', 'TEXT');
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {

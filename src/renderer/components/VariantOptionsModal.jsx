@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Sparkles, X, Check, ChevronDown } from 'lucide-react';
 import styles from './VariantOptionsModal.module.css';
-import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 
 // Default prompt is short and editable — gives the user a sensible
 // starting point that they can extend ("…and add neon highlights" /
@@ -152,7 +152,7 @@ export default function VariantOptionsModal({ open, record, onCancel, onConfirm 
         <div className={styles.preview}>
           <img
             className={styles.previewImg}
-            src={fileUrl(record.thumb_path || record.file_path)}
+            src={resolveAsset(record, 'thumb')}
             alt=""
             draggable={false}
           />

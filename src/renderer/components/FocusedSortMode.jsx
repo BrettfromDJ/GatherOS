@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './FocusedSortMode.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
+import { resolveAsset } from '../lib/asset.js';
 import { flyToCollection } from '../lib/flyToCollection.js';
 
 // Background "scatter" thumb count — kept low; many heavily-blurred
@@ -130,7 +131,7 @@ export default function FocusedSortMode({ saves, collections, onAssign, onClose 
             <img
               key={id}
               className={styles.bgThumb}
-              src={fileUrl(s.thumb_path || s.file_path)}
+              src={resolveAsset(s, 'thumb')}
               alt=""
               draggable={false}
               style={{
