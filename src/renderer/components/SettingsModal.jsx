@@ -817,7 +817,9 @@ function StoragePage({ prefs, updatePref }) {
         {progress && (
           <span className={styles.fieldHint} style={{ display: 'block', marginBottom: 10 }}>
             {isDone
-              ? `Done — optimized ${progress.optimized} of ${progress.total}, freed ${formatBytes(progress.bytesFreed)}.`
+              ? (progress.optimized > 0
+                ? `Done — optimized ${progress.optimized} of ${progress.total}, freed ${formatBytes(progress.bytesFreed)}.`
+                : 'Everything’s already optimized — nothing to free.')
               : `Optimizing ${progress.processed} of ${progress.total}… freed ${formatBytes(progress.bytesFreed)} so far`}
           </span>
         )}
