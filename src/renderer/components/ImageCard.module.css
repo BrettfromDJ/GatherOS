@@ -66,8 +66,12 @@
 }
 
 .selected .frame {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+  /* Inset ring (negative offset) so the selection chrome is painted
+     inside the card box. .card carries content-visibility: auto, whose
+     paint containment clips to the square card edge — an outset outline
+     got cut into black nubs at the rounded corners. */
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* Tweet text cards adopt the collection-card recipe (FolderGrid tiles):
