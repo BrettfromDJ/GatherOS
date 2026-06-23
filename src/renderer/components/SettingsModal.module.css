@@ -841,7 +841,7 @@
 }
 .libSwitchActions { flex: 0 0 auto; }
 
-.libFoot { margin-top: 22px; }
+.libFoot { margin-top: 18px; }
 .libCreate { display: flex; align-items: center; gap: 8px; }
 
 /* Each row is its own card — surface-1 fill, hairline border,
@@ -1040,7 +1040,6 @@
    library list flex column). */
 .libraryAddBtn {
   align-self: flex-start;
-  margin-top: 14px;
 }
 
 /* ── New settings controls (Appearance / Defaults / Capture /
