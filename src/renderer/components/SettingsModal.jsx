@@ -819,6 +819,7 @@ function StoragePage({ prefs, updatePref }) {
         <button
           type="button"
           className={styles.btn}
+          style={{ alignSelf: 'flex-start' }}
           disabled={busy || nothingToReclaim}
           onClick={runReclaim}
         >
