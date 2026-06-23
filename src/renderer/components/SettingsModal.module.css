@@ -745,7 +745,7 @@
 .libStack {
   position: relative;
   flex: 0 0 auto;
-  width: 150px;
+  width: 130px;
   height: 110px;
   display: flex;
   align-items: center;
@@ -775,8 +775,8 @@
 .libHero {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 18px 18px 18px 34px;
+  gap: 18px;
+  padding: 18px;
   margin-top: 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
