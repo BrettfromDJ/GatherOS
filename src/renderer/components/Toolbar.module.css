@@ -646,6 +646,59 @@
    accent color — typographic restraint. Big presence: 54px tall,
    140px per segment, --text-lg type, sized to read as a primary
    navigation surface rather than a buried control. */
+/* Groups the standalone Search tab with the segmented mode pill so the
+   pair centers together in the toolbar's middle column. */
+.modeCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  -webkit-app-region: no-drag;
+}
+
+/* Dedicated Search tab — a circular icon button sitting first in the
+   mode cluster. At rest it's a bare glyph; hover paints a circular
+   background; active fills with ink (matching the pill's active
+   segment) so the two read as one tab system. */
+.searchTab {
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-circle);
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transform-origin: center top;
+  transition:
+    background var(--dur-instant) ease,
+    color var(--dur-medium) var(--ease-out),
+    transform var(--dur-pronounced) cubic-bezier(0.34, 1.18, 0.40, 1);
+}
+
+.searchTab svg { width: 20px; height: 20px; display: block; }
+
+.searchTab:not(.searchTabActive):hover {
+  background: var(--hover-bg);
+}
+
+.searchTabActive,
+.searchTabActive:hover {
+  background: var(--accent);
+  color: var(--surface-1);
+}
+
+/* Matches the pill's compact scale so both shrink together on scroll. */
+.searchTabCompact { transform: scale(0.86); }
+
+@media (prefers-reduced-motion: reduce) {
+  .searchTab { transition: background var(--dur-instant) ease; }
+}
+
 .modePill {
   position: relative;
   display: inline-flex;

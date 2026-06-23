@@ -603,21 +603,50 @@ export default function Toolbar({
         )}
       </div>
 
-      <ModePill mode={mode} onModeChange={onModeChange} compact={modePillCompact} />
+      {/* Search is its own tab, first in the cluster — a circular icon
+          that fills with ink when the Search mode is active and shows a
+          circular hover background otherwise. Kept beside (not inside)
+          the segmented pill so the pill's sliding-thumb geometry stays
+          untouched. */}
+      <div className={styles.modeCluster}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'search'}
+          aria-label="Search"
+          title="Search"
+          data-onboarding="mode-search"
+          className={[
+            styles.searchTab,
+            mode === 'search' && styles.searchTabActive,
+            modePillCompact && styles.searchTabCompact,
+          ].filter(Boolean).join(' ')}
+          onClick={() => onModeChange('search')}
+        >
+          <Search size={20} strokeWidth={2} />
+        </button>
+        <ModePill mode={mode} onModeChange={onModeChange} compact={modePillCompact} />
+      </div>
 
       <div className={styles.right}>
         {/* Search joins the right-hand tools cluster (search + a
             divider + the chrome icons), so the left column stays pure
             identity / location — logo + Library, plus the back button
-            and collection title when drilled into a collection. */}
-        <SearchField
-          search={search}
-          onSearchChange={onSearchChange}
-          searchInputRef={searchInputRef}
-          onRecordSearch={onRecordSearch}
-          onOpenQuickSwitcher={onOpenQuickSwitcher}
-        />
-        <span className={styles.toolbarDivider} aria-hidden="true" />
+            and collection title when drilled into a collection. The
+            inline field is hidden in the dedicated Search tab, which has
+            its own hero field. */}
+        {mode !== 'search' && (
+          <>
+            <SearchField
+              search={search}
+              onSearchChange={onSearchChange}
+              searchInputRef={searchInputRef}
+              onRecordSearch={onRecordSearch}
+              onOpenQuickSwitcher={onOpenQuickSwitcher}
+            />
+            <span className={styles.toolbarDivider} aria-hidden="true" />
+          </>
+        )}
         {onOpenRediscover && (
           <button
             type="button"

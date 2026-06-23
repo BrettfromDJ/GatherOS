@@ -1,0 +1,158 @@
+/* Search-first canvas. The scroll container piggybacks on the shared
+   .grid-scroll class (flex column, overflow-y auto, scroll-anchor off)
+   so the scroll-top FAB and the compact mode-pill behavior keep
+   working exactly as they do in the library. */
+.scroll {
+  /* nothing extra — see .grid-scroll in global.css */
+}
+
+.hero {
+  padding: 26px 28px 18px;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-control);
+  transition:
+    background var(--dur-instant) ease,
+    border-color var(--dur-instant) ease,
+    box-shadow var(--dur-instant) ease;
+}
+
+.field:focus-within {
+  background: var(--input-bg-focus);
+  border-color: var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-bg-faint);
+}
+
+.fieldIcon {
+  display: inline-flex;
+  color: var(--text-tertiary);
+  flex: 0 0 auto;
+}
+.fieldIcon svg { width: 19px; height: 19px; display: block; }
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  padding: 16px 0;
+}
+.input::placeholder { color: var(--text-tertiary); }
+
+.clear {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--accent-bg-faint);
+  color: var(--text-secondary);
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.clear:hover { background: var(--accent-bg-soft); color: var(--text-primary); }
+
+.meta {
+  margin-top: 12px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+.count {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.metaSoft { color: var(--text-tertiary); }
+
+/* ── Landing (empty query) ──────────────────────────────────────────── */
+.landing {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section { display: flex; flex-direction: column; gap: 11px; }
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link:hover { color: var(--text-primary); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
+}
+.chip:hover { background: var(--hover-bg); color: var(--text-primary); border-color: var(--border-strong); }
+
+.chipHash { display: inline-flex; color: var(--text-tertiary); }
+.chipHash svg { width: 13px; height: 13px; display: block; }
+
+.chipCount {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.blank {
+  padding: 24px 0;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}

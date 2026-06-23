@@ -39,6 +39,7 @@ const DetailPanel = (() => {
   }
 })();
 import FocusedView from './components/FocusedView.jsx';
+import SearchView from './components/SearchView.jsx';
 import BoardView from './components/BoardView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
@@ -218,7 +219,7 @@ export default function App({ entitlement } = {}) {
   const [appMode, setAppMode] = useState(() => {
     try {
       const raw = localStorage.getItem('moodmark.appMode');
-      if (raw === 'folders' || raw === 'boards' || raw === 'library') return raw;
+      if (raw === 'folders' || raw === 'boards' || raw === 'library' || raw === 'search') return raw;
     } catch {}
     // First launch fallback — read the Settings → Defaults pref.
     const def = window.moodmark?.app?.defaults?.defaultMode;
@@ -262,6 +263,14 @@ export default function App({ entitlement } = {}) {
   const handleModeChange = useCallback((nextMode) => {
     setAppMode(nextMode);
     setView({ type: 'all' });
+    // Entering (or re-clicking) the Search tab drops focus straight into
+    // its hero field so the user can start typing immediately.
+    if (nextMode === 'search') {
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select?.();
+      });
+    }
   }, [setView]);
 
   // Per-view shuffle seeds. Persisted to localStorage so a shuffle
@@ -901,6 +910,15 @@ export default function App({ entitlement } = {}) {
   }, []);
 
   useEffect(() => { loadAllTags(); }, [loadAllTags]);
+
+  // Most-used tags, surfaced as quick-jump chips on the Search tab's
+  // landing state. Sorted by usage so the densest tags lead.
+  const suggestedTags = useMemo(
+    () => [...allTags]
+      .sort((a, b) => (b.save_count || 0) - (a.save_count || 0))
+      .slice(0, 12),
+    [allTags],
+  );
 
   // Generic action toast: a single bottom-center pill that supports
   // undo. Works for any reversible-but-deferred action.
@@ -3100,7 +3118,41 @@ export default function App({ entitlement } = {}) {
                 onUpload={handleUploadClick}
                 onSaveUrl={() => setSaveUrlOpen(true)}
               />
-              {appMode === 'folders' && view.type === 'all' ? (
+              {appMode === 'search' ? (
+                // Dedicated Search tab — search-first canvas. Hero field
+                // up top, then the landing chips (empty query) or the
+                // scrollable masonry of matches, reusing the library Grid.
+                <SearchView
+                  search={search}
+                  onSearchChange={setSearch}
+                  onRecordSearch={recentSearches.recordSearch}
+                  onClearRecentSearches={recentSearches.clearAll}
+                  recentSearches={recentSearches.items}
+                  suggestedTags={suggestedTags}
+                  searchInputRef={searchInputRef}
+                  scrollRef={setGridScrollNode}
+                  saves={visibleSaves}
+                  selected={selected}
+                  onSelect={handleSelect}
+                  onSetSelection={(ids) => setSelected(new Set(ids))}
+                  onOpen={handleOpenFromCard}
+                  onContextMenu={handleCardContextMenu}
+                  onDragStart={handleCardDragStart}
+                  onHover={handleCardHover}
+                  onForceClick={handleCardForceClick}
+                  columns={gridColumns}
+                  loading={loading}
+                  view={view}
+                  semanticSearchActive={semanticSearchActive}
+                  colorFilter={colorFilter}
+                  freshIds={freshIds}
+                  layout={gridLayout}
+                  morphId={morphId}
+                  tweetTypeFilter={tweetTypeFilter}
+                  sourceFilter={sourceFilter}
+                  highlightId={highlightId}
+                />
+              ) : appMode === 'folders' && view.type === 'all' ? (
                 // Folders mode, no folder picked yet → tile grid of
                 // root-level folders. Clicking a tile sets view to
                 // that collection; back-to-all returns here.
