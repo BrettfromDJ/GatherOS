@@ -492,6 +492,12 @@ export default function App({ entitlement } = {}) {
   // recreated — an inline arrow here would defeat React.memo on every
   // card.
   const handleCardForceClick = useCallback((id) => setPeekedSaveId(id), []);
+  // Unmute is sticky: persisted in prefs so it carries to the next
+  // video you open in the focused view and survives a restart.
+  const handleVideoMutedChange = useCallback((next) => {
+    setPrefs((p) => ({ ...p, videoMuted: next }));
+    window.moodmark.settings.setPref('videoMuted', next);
+  }, []);
   // Tracks which save is currently morphing between grid and focused
   // view. Used to attach the matching view-transition-name on both
   // source (masonry image) and target (focused image) so the browser
@@ -3046,6 +3052,8 @@ export default function App({ entitlement } = {}) {
               onDelete={handleDelete}
               morphSource={morphId === focused.id}
               onContextMenu={handleFocusedContextMenu}
+              videoMuted={prefs.videoMuted !== false}
+              onVideoMutedChange={handleVideoMutedChange}
               altImageIdx={focusedAltImageIdx}
             />
           ) : (

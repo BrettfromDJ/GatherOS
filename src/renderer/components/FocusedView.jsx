@@ -52,6 +52,11 @@ export default function FocusedView({
   onToggleSidebar,
   morphSource = false,
   onContextMenu,
+  // Mute state lives in App (persisted in prefs) so unmuting one video
+  // carries to the next one you open and survives a restart. Defaults
+  // to muted.
+  videoMuted = true,
+  onVideoMutedChange,
   // X-bookmark multi-image support. App owns the index; DetailPanel's
   // tweet thumbnail strip writes to it. 0 = the locally saved primary
   // image (rendered from record.file_path), >0 = the corresponding
@@ -69,8 +74,17 @@ export default function FocusedView({
   // Custom video controls (replaces the native control bar + its blocky
   // gradient). Driven by <video> events; reset per save.
   const videoRef = useRef(null);
-  const [vid, setVid] = useState({ playing: true, muted: true, current: 0, duration: 0 });
-  useEffect(() => { setVid({ playing: true, muted: true, current: 0, duration: 0 }); }, [record.id]);
+  // Mute is no longer per-save state — it's driven by the videoMuted
+  // prop so it persists across videos and restarts.
+  const [vid, setVid] = useState({ playing: true, current: 0, duration: 0 });
+  useEffect(() => { setVid({ playing: true, current: 0, duration: 0 }); }, [record.id]);
+  // Push the shared mute choice onto the current element whenever it
+  // changes. Clip swaps (keyed remount → fresh <video>) re-assert it
+  // in onLoadedMetadata below.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) v.muted = videoMuted;
+  }, [videoMuted]);
   const fmtTime = (s) => {
     const t = Math.max(0, Math.floor(s || 0));
     return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
@@ -82,10 +96,12 @@ export default function FocusedView({
     else v.pause();
   };
   const toggleVideoMute = () => {
+    const next = !videoMuted;
     const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setVid((s) => ({ ...s, muted: v.muted }));
+    if (v) v.muted = next;
+    // Lift the choice to App so it persists to the next video and across
+    // restarts; the videoMuted prop comes back down as the source of truth.
+    onVideoMutedChange?.(next);
   };
   const seekVideo = (e) => {
     const v = videoRef.current;
@@ -479,7 +495,6 @@ export default function FocusedView({
               className={styles.image}
               autoPlay
               loop
-              muted
               playsInline
               // No native control bar (its gradient scrim reads blocky);
               // we render our own glass controls below. No PiP — it pulls
@@ -491,8 +506,7 @@ export default function FocusedView({
               onPlay={() => setVid((s) => ({ ...s, playing: true }))}
               onPause={() => setVid((s) => ({ ...s, playing: false }))}
               onTimeUpdate={() => { const v = videoRef.current; if (v) setVid((s) => ({ ...s, current: v.currentTime })); }}
-              onLoadedMetadata={() => { const v = videoRef.current; if (v) setVid((s) => ({ ...s, duration: v.duration || 0, muted: v.muted })); }}
-              onVolumeChange={() => { const v = videoRef.current; if (v) setVid((s) => ({ ...s, muted: v.muted })); }}
+              onLoadedMetadata={() => { const v = videoRef.current; if (v) { v.muted = videoMuted; setVid((s) => ({ ...s, duration: v.duration || 0 })); } }}
               style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
             />
             <div className={styles.vControls} data-paused={!vid.playing}>
@@ -512,8 +526,8 @@ export default function FocusedView({
                   background: `linear-gradient(to right, rgba(255,255,255,0.92) ${vid.duration ? (vid.current / vid.duration) * 100 : 0}%, rgba(255,255,255,0.22) ${vid.duration ? (vid.current / vid.duration) * 100 : 0}%)`,
                 }}
               />
-              <button type="button" className={styles.vBtn} onClick={toggleVideoMute} aria-label={vid.muted ? 'Unmute' : 'Mute'}>
-                {vid.muted ? <VolumeX size={16} strokeWidth={2} /> : <Volume2 size={16} strokeWidth={2} />}
+              <button type="button" className={styles.vBtn} onClick={toggleVideoMute} aria-label={videoMuted ? 'Unmute' : 'Mute'}>
+                {videoMuted ? <VolumeX size={16} strokeWidth={2} /> : <Volume2 size={16} strokeWidth={2} />}
               </button>
             </div>
           </div>
