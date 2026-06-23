@@ -129,7 +129,7 @@
 .gotItBtn {
   min-width: 140px;
   padding: 8px 24px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill, 999px);
   border: 1px solid var(--btn-border);
   background: var(--surface-1);
   color: var(--text-primary);
