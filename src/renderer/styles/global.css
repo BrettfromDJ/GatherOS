@@ -669,7 +669,7 @@ body:has(.selection-bar) .trash-toast {
   top: -25vh;
   bottom: -25vh;
   left: 0;
-  width: 44vw;
+  width: 50vw;
   pointer-events: none;
   /* Above every overlay (focused view, onboarding, board) so a flip from
      anywhere shows the sweep. */
@@ -688,18 +688,18 @@ body:has(.selection-bar) .trash-toast {
   --c4: #7b4dff;
   --c5: #e14dd8;
   --c6: #ff9f45;
-  /* Six tall blobs marching across the width at alternating vertical
-     centres — each over-fills the height so the band is full-bleed, while
-     the offset centres make the colour flow diagonally (the "wave") as it
-     filters through the colourway. A blur fuses them into one smear. */
+  /* Six large blobs scattered across a 2-D mesh (not a tidy row), each
+     over-filling the height and overlapping its neighbours heavily so the
+     colours melt into one another with soft, organic seams — a liquid
+     gradient that flows through the colourway. A wide blur fuses it all. */
   background:
-    radial-gradient(40% 80% at 6%  36%, var(--c1), transparent 70%),
-    radial-gradient(38% 82% at 24% 64%, var(--c2), transparent 70%),
-    radial-gradient(38% 80% at 42% 34%, var(--c3), transparent 70%),
-    radial-gradient(38% 82% at 60% 66%, var(--c4), transparent 70%),
-    radial-gradient(40% 80% at 78% 36%, var(--c5), transparent 70%),
-    radial-gradient(42% 84% at 96% 62%, var(--c6), transparent 72%);
-  filter: blur(52px) saturate(1.3);
+    radial-gradient(58% 72% at 12% 28%, var(--c1), transparent 72%),
+    radial-gradient(56% 78% at 26% 78%, var(--c2), transparent 72%),
+    radial-gradient(60% 74% at 46% 44%, var(--c3), transparent 74%),
+    radial-gradient(58% 80% at 64% 74%, var(--c4), transparent 74%),
+    radial-gradient(60% 76% at 80% 24%, var(--c5), transparent 74%),
+    radial-gradient(64% 82% at 96% 64%, var(--c6), transparent 76%);
+  filter: blur(60px) saturate(1.25);
 }
 
 /* Colourways — each maps the six blob slots to a palette from the
