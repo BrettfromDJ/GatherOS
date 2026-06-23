@@ -769,13 +769,10 @@ html.theme-morph *,
 html.theme-morph *::before,
 html.theme-morph *::after {
   transition:
-    background-color 760ms ease,
-    color 760ms ease,
-    border-color 760ms ease,
-    outline-color 760ms ease,
-    fill 760ms ease,
-    stroke 760ms ease,
-    box-shadow 760ms ease !important;
+    background-color 820ms ease,
+    color 820ms ease,
+    border-color 820ms ease,
+    fill 820ms ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

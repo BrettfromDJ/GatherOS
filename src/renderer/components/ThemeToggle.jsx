@@ -12,10 +12,13 @@ let colorwayIndex = 0;
 const SWEEP_MS = 2000;
 // Theme crossfade duration — keep in sync with the html.theme-morph
 // transition in global.css.
-const MORPH_MS = 760;
-// Start the crossfade so its midpoint lands on the gradient's centre pass
-// (≈ SWEEP_MS / 2), letting the rainbow visually carry the change.
-const SWAP_AT = Math.max(0, SWEEP_MS / 2 - MORPH_MS / 2);
+const MORPH_MS = 820;
+// End the colour crossfade exactly when the band has finished fading out
+// (i.e. at the end of the sweep). If the crossfade finished earlier, the
+// text would sit fully settled while the band was still lifting off it —
+// and that trailing un-cover over already-finished text read as a second
+// "blink" after the rainbow. Aligning the two ends removes that gap.
+const SWAP_AT = Math.max(0, SWEEP_MS - MORPH_MS);
 
 // Local-state theme toggle. Reads the current value off the data-theme
 // attribute set on <html> at boot, flips it, mirrors the new value to
