@@ -44,7 +44,7 @@ export default function ThemeToggle({ className }) {
     // Sweep the rainbow shimmer band left → right across the window.
     el.animate(
       [{ transform: 'translateX(-130%)' }, { transform: 'translateX(200%)' }],
-      { duration: 850, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
+      { duration: 1050, easing: 'cubic-bezier(0.5, 0, 0.2, 1)' },
     );
   }
 

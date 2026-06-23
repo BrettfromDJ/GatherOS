@@ -672,19 +672,20 @@ body:has(.selection-bar) .trash-toast {
   /* Parked off-screen left; ThemeToggle animates it across on a flip. */
   transform: translateX(-130%);
   /* Soft prismatic wash: colours faded to transparent at both edges so
-     there's no block, low alpha so it's a glow not a fill, then blurred
-     hard into a single diffuse smear of light. */
+     there's no block, then blurred into a single diffuse smear of light.
+     Alpha is high because the heavy blur spreads (and so dilutes) the
+     colour a lot — keep it vivid enough to read on both themes. */
   background: linear-gradient(
     90deg,
     rgba(255, 95, 109, 0) 0%,
-    rgba(255, 95, 109, 0.34) 24%,
-    rgba(255, 184, 92, 0.34) 38%,
-    rgba(122, 224, 140, 0.34) 52%,
-    rgba(92, 170, 255, 0.34) 66%,
-    rgba(188, 120, 255, 0.34) 80%,
+    rgba(255, 95, 109, 0.7) 24%,
+    rgba(255, 184, 92, 0.7) 38%,
+    rgba(122, 224, 140, 0.7) 52%,
+    rgba(92, 170, 255, 0.7) 66%,
+    rgba(188, 120, 255, 0.7) 80%,
     rgba(188, 120, 255, 0) 100%
   );
-  filter: blur(72px) saturate(1.1);
+  filter: blur(56px) saturate(1.35);
 }
 
 @media (prefers-reduced-motion: reduce) { .glimm-band { display: none; } }
