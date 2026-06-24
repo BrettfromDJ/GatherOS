@@ -1,6 +1,7 @@
-/* "Sun through window blinds" easter egg. Sits above everything; the
-   warm wash and slat shadows blend with the app so the whole window
-   reads as struck by low golden light. */
+/* "Sun through window blinds" easter egg. The blinds tile the whole
+   window with warm, lightly-shadowed slats; each slat carries its own
+   tint so flipping one up reveals the app behind it with NO residual
+   overlay. Sits above everything. */
 .overlay {
   position: fixed;
   inset: 0;
@@ -27,117 +28,82 @@
   to   { opacity: 0; }
 }
 
-/* Directional golden wash — multiply so it tints the app warm rather
-   than just sitting on top as a flat colour. */
-.warmth {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    118deg,
-    rgba(255, 196, 105, 0.52) 0%,
-    rgba(255, 162, 78, 0.30) 45%,
-    rgba(255, 130, 64, 0.08) 78%,
-    rgba(255, 120, 60, 0) 100%
-  );
-  mix-blend-mode: multiply;
-}
-
-/* One broad, soft sun shaft drifting across diagonally. */
-.beam {
-  position: absolute;
-  top: -40%;
-  left: -25%;
-  width: 55%;
-  height: 180%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 238, 184, 0) 0%,
-    rgba(255, 238, 184, 0.55) 50%,
-    rgba(255, 238, 184, 0) 100%
-  );
-  transform: rotate(18deg);
-  filter: blur(26px);
-  mix-blend-mode: screen;
-  animation: sbBeam 4.2s ease forwards;
-}
-
-@keyframes sbBeam {
-  0%   { opacity: 0; transform: rotate(18deg) translateX(-40px); }
-  22%  { opacity: 1; }
-  80%  { opacity: 0.85; }
-  100% { opacity: 0; transform: rotate(18deg) translateX(50px); }
-}
-
 .blinds {
   position: absolute;
-  inset: -6% 0;
-  /* 3D space so a hovered slat can tilt open toward the viewer instead
-     of just flattening. */
-  perspective: 1100px;
-  perspective-origin: 50% 42%;
+  inset: 0;
 }
 
-/* Each slat is a soft horizontal shadow band that drops in with a
-   staggered delay, like blinds settling. Settled base is transform:none /
-   opacity:1; the entrance uses `backwards` fill so the pre-drop state only
-   shows during the stagger delay and the animation doesn't pin the slat
-   afterwards — that lets :hover drive the tilt-open. */
+/* Fixed transparent hit area for one blind — it never moves, so the
+   cursor keeps hovering it even as the face folds away (no flap loop).
+   14 of these tile the full height. */
 .slat {
   position: absolute;
-  left: -2%;
-  right: -2%;
-  height: 30px;
-  top: calc(var(--i) * 7.1%);
+  left: 0;
+  right: 0;
+  top: calc(var(--i) * (100% / 14));
+  /* +1px overlap hides hairline seams between adjacent slats. */
+  height: calc(100% / 14 + 1px);
+  pointer-events: auto;
+}
+
+/* The visible blind: a warm-lit slat with a shadowed lower edge. Drops
+   in on entrance (translate channel) and flips up on hover (transform
+   channel) — kept on separate channels so they never fight. */
+.slatFace {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background: linear-gradient(
     180deg,
-    rgba(46, 28, 8, 0) 0%,
-    rgba(46, 28, 8, 0.42) 45%,
-    rgba(46, 28, 8, 0.42) 55%,
-    rgba(46, 28, 8, 0) 100%
+    rgba(255, 214, 150, 0.50) 0%,
+    rgba(248, 184, 116, 0.60) 30%,
+    rgba(176, 110, 56, 0.72) 72%,
+    rgba(104, 62, 28, 0.86) 96%,
+    rgba(70, 42, 18, 0.92) 100%
   );
   mix-blend-mode: multiply;
-  transform-origin: center center;
-  cursor: pointer;
-  animation: sbSlat 0.62s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  transform-origin: top center;
+  transform: perspective(1100px) rotateX(0deg);
+  backface-visibility: hidden;
+  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.18, 1);
+  /* Staggered drop-in. `backwards` fill shows the pre-drop state only
+     during the delay, then reverts to the settled base so the hover
+     transform isn't pinned by the animation. */
+  animation: sbDrop 0.62s cubic-bezier(0.32, 0.72, 0, 1) backwards;
   animation-delay: calc(var(--i) * 42ms);
-  transition:
-    transform 0.55s cubic-bezier(0.22, 0.61, 0.18, 1),
-    opacity 0.5s ease;
 }
 
-/* Hover a blind → it tilts open like a real venetian slat, its shadow
-   lifting away to reveal the warmly-lit app behind that band. */
-.slat:hover {
-  transform: rotateX(80deg);
-  opacity: 0.2;
-}
-
-/* Warm sunlit lip along the slat's lower edge. */
-.slat::after {
+/* Bright warm line along the slat's top edge — sun catching the lip. */
+.slatFace::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 7px;
+  top: 0;
   height: 2px;
-  background: rgba(255, 226, 152, 0.5);
+  background: rgba(255, 238, 188, 0.55);
   mix-blend-mode: screen;
 }
 
-@keyframes sbSlat {
-  from { transform: translateY(-46px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+/* Hover → flip the slat up on its top hinge until it's edge-on, so the
+   band it covered is fully revealed with no tint left behind. */
+.slat:hover .slatFace {
+  transform: perspective(1100px) rotateX(-90deg);
+}
+
+@keyframes sbDrop {
+  from { translate: 0 -46px; opacity: 0; }
+  to   { translate: 0 0; opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .slat {
+  .slatFace {
     animation: none;
+    translate: none;
     transform: none;
-    opacity: 1;
     transition: opacity 0.3s ease;
   }
-  /* Reveal behind the slat without the 3D tilt. */
-  .slat:hover { transform: none; opacity: 0.18; }
-  .overlay,
-  .beam { animation: sbIn 0.5s ease both; }
+  /* Reveal by lifting the tint without the 3D flip. */
+  .slat:hover .slatFace { transform: none; opacity: 0; }
+  .overlay { animation: sbIn 0.5s ease both; }
 }

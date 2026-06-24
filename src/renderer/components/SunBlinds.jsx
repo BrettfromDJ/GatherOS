@@ -4,11 +4,13 @@ import styles from './SunBlinds.module.css';
 
 const SLATS = 14;
 
-// Easter egg: a warm "late-afternoon sun through window blinds" wash
-// across the whole app. The slats drop in, then stay up so you can peek —
-// hovering an individual slat tilts it open to reveal the app behind it,
-// like looking through real blinds. Click anywhere (or press any key) to
-// draw them back up and dismiss.
+// Easter egg: warm window blinds drawn across the whole app. The slats
+// drop in, then stay up so you can peek — hovering an individual slat
+// flips it up on its top hinge (3D rotateX) and lifts its warm tint
+// away, leaving the app behind that band fully visible with no overlay.
+// Each slat is a fixed transparent hit area wrapping a face that flips,
+// so the cursor never loses the slat as it folds away (no flicker).
+// Click anywhere (or press any key) to draw them back and dismiss.
 export default function SunBlinds({ open, onClose }) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
@@ -39,11 +41,11 @@ export default function SunBlinds({ open, onClose }) {
       onClick={requestClose}
       aria-hidden="true"
     >
-      <div className={styles.warmth} />
-      <div className={styles.beam} />
       <div className={styles.blinds}>
         {Array.from({ length: SLATS }).map((_, i) => (
-          <span key={i} className={styles.slat} style={{ '--i': i }} />
+          <span key={i} className={styles.slat} style={{ '--i': i }}>
+            <span className={styles.slatFace} />
+          </span>
         ))}
       </div>
     </div>,
