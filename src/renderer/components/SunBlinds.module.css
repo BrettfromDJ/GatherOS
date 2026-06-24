@@ -48,27 +48,39 @@
   mix-blend-mode: multiply;
 }
 
-/* Cool daylight spilling through the open gap — a soft tall glow that
-   tracks the cursor (vars set by the component) and lifts the slats it
-   falls across. Screen blend so it adds light. */
+/* Cool daylight spilling through the open gap — a soft horizontal streak
+   (light comes through a horizontal slat, so it reads as a band, not a
+   blob) that tracks the cursor. Screen blend so it adds light. */
 .spill {
   position: absolute;
   left: 0;
   top: 0;
-  width: 420px;
-  height: 520px;
+  width: 860px;
+  height: 90px;
   transform: translate(
-    calc(var(--spill-x, 50vw) - 210px),
-    calc(var(--spill-y, 50vh) - 260px)
+    calc(var(--spill-x, 50vw) - 430px),
+    calc(var(--spill-y, 50vh) - 45px)
   );
-  background: radial-gradient(
-    ellipse 42% 60% at 50% 50%,
-    rgba(205, 222, 255, 0.45) 0%,
-    rgba(188, 208, 255, 0.16) 40%,
-    rgba(188, 208, 255, 0) 72%
-  );
+  /* Bright down the centreline, feathered to nothing at both ends and
+     top/bottom — a streak of light rather than an oval. */
+  background:
+    linear-gradient(
+      90deg,
+      rgba(210, 225, 255, 0) 0%,
+      rgba(210, 225, 255, 0.42) 32%,
+      rgba(222, 233, 255, 0.55) 50%,
+      rgba(210, 225, 255, 0.42) 68%,
+      rgba(210, 225, 255, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(210, 225, 255, 0) 0%,
+      rgba(210, 225, 255, 0.6) 50%,
+      rgba(210, 225, 255, 0) 100%
+    );
+  background-blend-mode: multiply;
   mix-blend-mode: screen;
-  filter: blur(10px);
+  filter: blur(14px);
   pointer-events: none;
   opacity: var(--spill-o, 0);
   transition: opacity 0.35s ease;
