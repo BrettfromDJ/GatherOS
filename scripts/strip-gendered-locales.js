@@ -25,6 +25,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const VARIANT_RE = /_(MASCULINE|FEMININE|NEUTER)\.lproj$/;
 const KEEP_LPROJ = new Set([
@@ -33,6 +34,31 @@ const KEEP_LPROJ = new Set([
   'en_US.lproj',
   'Base.lproj', // the fallback layout strings macOS uses if no match
 ]);
+
+// Clear the extended attributes / file flags that make `codesign --force`
+// fail with "Operation not permitted" on otherwise-fine resource files
+// (en.lproj/locale.pak, chrome_*.pak, …) — the same "restricted attribute"
+// the locale-stripping above works around, except these are English/base
+// files we ship, so they can't just be deleted. On macOS 15/26, freshly
+// written framework files can carry com.apple.provenance, a quarantine, or
+// a "restricted" xattr, plus the occasional uchg immutable flag — any of
+// which blocks codesign from rewriting the file's signature. This hook runs
+// BEFORE codesign, so stripping them here lets every file sign cleanly.
+// (Signatures live in the Mach-O signature slot / _CodeSignature, not in
+// xattrs, so clearing extended attributes pre-sign is safe.)
+function sanitizeForCodesign(appRoot) {
+  try {
+    execFileSync('chflags', ['-R', 'nouchg', appRoot], { stdio: 'ignore' });
+  } catch (err) {
+    console.warn('[strip-locales] chflags -R nouchg failed:', err.message);
+  }
+  try {
+    execFileSync('xattr', ['-cr', appRoot], { stdio: 'ignore' });
+    console.log('[strip-locales] cleared extended attributes + flags before signing');
+  } catch (err) {
+    console.warn('[strip-locales] xattr -cr failed:', err.message);
+  }
+}
 
 function stripDir(dir) {
   if (!fs.existsSync(dir)) return { variants: 0, locales: 0 };
@@ -86,4 +112,8 @@ exports.default = async function afterPack(context) {
   if (totalVariants > 0 || totalLocales > 0) {
     console.log(`[strip-locales] removed ${totalVariants} variant + ${totalLocales} non-English locale dir(s)`);
   }
+
+  // Strip the restricted xattrs/flags off everything that survived, so
+  // codesign can sign the English/base .pak files it kept failing on.
+  sanitizeForCodesign(appRoot);
 };
