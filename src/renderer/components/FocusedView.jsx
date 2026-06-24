@@ -338,7 +338,9 @@ export default function FocusedView({
               className={[styles.iconBtn, picking && styles.iconBtnActive]
                 .filter(Boolean)
                 .join(' ')}
-              title={picking ? 'Click image to sample (Esc to cancel)' : 'Pick a color from the image'}
+              data-tooltip={picking ? 'Click image to sample' : 'Pick a color'}
+              data-tooltip-pos="below"
+              aria-label={picking ? 'Click image to sample (Esc to cancel)' : 'Pick a color from the image'}
               onClick={togglePicking}
               aria-pressed={picking}
             >
@@ -349,7 +351,9 @@ export default function FocusedView({
           <button
             type="button"
             className={styles.iconBtn}
-            title="Open in Preview"
+            data-tooltip="Open in Preview"
+            data-tooltip-pos="below"
+            aria-label="Open in Preview"
             onClick={() => onOpenInPreview(record.file_path)}
           >
             <PreviewIcon />
@@ -358,7 +362,9 @@ export default function FocusedView({
           <button
             type="button"
             className={styles.iconBtn}
-            title="Export…"
+            data-tooltip="Export"
+            data-tooltip-pos="below"
+            aria-label="Export"
             onClick={handleExport}
           >
             <ExportIcon />
@@ -367,7 +373,9 @@ export default function FocusedView({
           <button
             type="button"
             className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-            title="Delete"
+            data-tooltip="Delete"
+            data-tooltip-pos="below"
+            aria-label="Delete"
             onClick={() => onDelete(record.id)}
           >
             <TrashIcon />
@@ -378,7 +386,8 @@ export default function FocusedView({
           <button
             type="button"
             className={styles.iconBtn}
-            title="Close (Esc)"
+            data-tooltip="Close"
+            data-tooltip-pos="below"
             aria-label="Close focused view"
             onClick={onBack}
             data-onboarding="detail-close"

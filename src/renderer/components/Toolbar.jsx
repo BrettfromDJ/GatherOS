@@ -224,7 +224,9 @@ function HelpMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Help"
+        data-tooltip="Help"
+        data-tooltip-pos="below"
+        aria-label="Help"
       >
         <HelpIcon />
         {releaseNotesUnseen && (
@@ -648,21 +650,23 @@ export default function Toolbar({
             type="button"
             className={styles.iconBtn}
             onClick={onOpenRediscover}
-            title="Rediscover (⌘⇧R)"
-            aria-label="Rediscover"
+            data-tooltip="Rediscover"
+            data-tooltip-pos="below"
+            aria-label="Rediscover (⌘⇧R)"
           >
             <RediscoverIcon />
           </button>
         )}
         <span data-onboarding="theme-toggle" style={{ display: 'inline-flex' }}>
-          <ThemeToggle className={styles.iconBtn} />
+          <ThemeToggle className={styles.iconBtn} tooltipPos="below" />
         </span>
         {onOpenSettings && (
           <button
             type="button"
             className={styles.iconBtn}
             onClick={onOpenSettings}
-            title="Settings"
+            data-tooltip="Settings"
+            data-tooltip-pos="below"
             aria-label="Settings"
           >
             <SettingsIcon />

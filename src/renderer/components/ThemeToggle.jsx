@@ -28,7 +28,7 @@ const SWAP_AT = Math.max(0, SWEEP_MS - MORPH_MS);
 // The flip switches the theme instantly (no animated crossfade) and
 // sweeps a soft, heavily-blurred rainbow shimmer band across the window
 // — the two effects are decoupled on purpose.
-export default function ThemeToggle({ className }) {
+export default function ThemeToggle({ className, tooltipPos }) {
   const [theme, setTheme] = React.useState(() =>
     typeof document !== 'undefined' &&
     document.documentElement.getAttribute('data-theme') === 'dark'
@@ -126,7 +126,8 @@ export default function ThemeToggle({ className }) {
         className={className}
         onClick={flip}
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        data-tooltip={isDark ? 'Light mode' : 'Dark mode'}
+        data-tooltip-pos={tooltipPos}
       >
         {isDark
           ? <Sun strokeWidth={1.6} aria-hidden="true" />
