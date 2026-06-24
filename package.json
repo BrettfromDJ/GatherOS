@@ -21,7 +21,7 @@
     "smoke-test": "node scripts/smoke-test.js",
     "pack:extension": "node scripts/pack-extension.js",
     "pack:starter": "ELECTRON_RUN_AS_NODE=1 electron scripts/build-starter-pack.js",
-    "release": "vite build && electron-builder --publish never && node scripts/smoke-test.js && electron-builder --publish always",
+    "release": "rm -rf dist/build && mkdir -p dist && touch dist/.metadata_never_index && vite build && electron-builder --publish never && node scripts/smoke-test.js && electron-builder --publish always",
     "ship": "node scripts/ship.js",
     "postrelease": "electron-builder install-app-deps",
     "version:patch": "npm version patch",

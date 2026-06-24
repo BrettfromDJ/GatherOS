@@ -53,6 +53,13 @@ function sanitizeForCodesign(appRoot) {
     console.warn('[strip-locales] chflags -R nouchg failed:', err.message);
   }
   try {
+    // Drop any inherited ACLs — a "deny write" ACL also surfaces as
+    // codesign "Operation not permitted" even when you own the file.
+    execFileSync('chmod', ['-R', '-N', appRoot], { stdio: 'ignore' });
+  } catch (err) {
+    console.warn('[strip-locales] chmod -R -N (ACL strip) failed:', err.message);
+  }
+  try {
     execFileSync('xattr', ['-cr', appRoot], { stdio: 'ignore' });
     console.log('[strip-locales] cleared extended attributes + flags before signing');
   } catch (err) {
