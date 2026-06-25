@@ -492,29 +492,6 @@ function updateSaveStorage(id, { filePath, fileSize, width, height } = {}) {
     });
 }
 
-// Swap a save's underlying image files. Used by the optimistic URL-save
-// flow: the og:image cover is stored first so the card shows instantly,
-// then the rendered page screenshot replaces it here. Only the image
-// columns move; the cover's palette / content_hash stay (fine for
-// url-kind saves, which are deduped by source_url, not hash).
-function replaceSaveImage(id, { filePath, thumbPath, width, height, fileSize } = {}) {
-  getDatabase()
-    .prepare(
-      `UPDATE saves
-          SET file_path = @file_path, thumb_path = @thumb_path,
-              width = @width, height = @height, file_size = @file_size
-        WHERE id = @id`,
-    )
-    .run({
-      id,
-      file_path: filePath,
-      thumb_path: thumbPath ?? null,
-      width: width ?? null,
-      height: height ?? null,
-      file_size: fileSize ?? null,
-    });
-}
-
 // Find a non-trashed save by its SHA-256 hash. Returns the row or
 // undefined. Trashed dupes are ignored on purpose — re-saving a
 // previously-deleted image should produce a fresh entry rather than
@@ -1684,7 +1661,6 @@ module.exports = {
   insertSave,
   getReclaimableSaves,
   updateSaveStorage,
-  replaceSaveImage,
   // Source tombstones (X bookmark / IG saved-post dismiss/dedup)
   tweetKeyFromUrl,
   igKeyFromUrl,

@@ -414,108 +414,27 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('saves:capture-url', async (event, url) => {
+  ipcMain.handle('saves:capture-url', async (_e, url) => {
     if (blockNewSave('save')) return { ok: false, needsUpgrade: true };
     if (typeof url !== 'string' || !url.trim()) {
       return { ok: false, error: 'missing_url' };
     }
-    const target = url.trim();
-
-    // Original behaviour: load the page, settle, screenshot, insert. This
-    // takes a few seconds, so it's the fallback — used when we can't seed
-    // an instant cover, or if the optimistic path errors.
-    const captureSync = async () => {
-      const captured = await captureUrl(target);
+    try {
+      const captured = await captureUrl(url.trim());
       if (captured.duplicateOf) {
         notifyDuplicate(captured.existing);
         return { ok: true, record: captured.existing, duplicate: true };
       }
-      const record = insertSave({ ...captured, sourceUrl: target, kind: 'url' });
-      notifySaved(record);
-      return { ok: true, record };
-    };
-
-    try {
-      const { getDatabase, replaceSaveImage } = require('./db');
-      const { saveImageFromUrl, deleteImageFiles } = require('./storage');
-      const { fetchUrlPreview } = require('./urlPreview');
-
-      // Dedup url-kind saves by their page URL — re-saving the same link
-      // points the user at the one they already have.
-      try {
-        const existing = getDatabase()
-          .prepare(
-            "SELECT * FROM saves WHERE source_url = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1",
-          )
-          .get(target);
-        if (existing) {
-          notifyDuplicate(existing);
-          return { ok: true, record: existing, duplicate: true };
-        }
-      } catch { /* non-fatal — fall through to capture */ }
-
-      // Fast metadata fetch for an instant cover (og:image) + title.
-      let preview = null;
-      try { preview = await fetchUrlPreview(target); } catch { /* ignore */ }
-      const coverUrl = preview?.image;
-      if (!coverUrl) return captureSync();
-
-      // Seed the save with the cover so the card appears right away.
-      let seed;
-      try { seed = await saveImageFromUrl(coverUrl); } catch { return captureSync(); }
-      // Cover already exists as a save (or didn't download) → fall back
-      // rather than create a confusing optimistic dup.
-      if (!seed || seed.duplicateOf) return captureSync();
-
       const record = insertSave({
-        ...seed,
-        sourceUrl: target,
+        ...captured,
+        sourceUrl: url.trim(),
         kind: 'url',
-        title: preview?.title || '',
       });
       notifySaved(record);
-
-      // Background: render the real screenshot and swap it in, then patch
-      // the live card (the renderer merges save:updated by id).
-      captureUrl(target)
-        .then((cap) => {
-          if (!cap || cap.duplicateOf || !cap.filePath) return;
-          try {
-            replaceSaveImage(record.id, {
-              filePath: cap.filePath,
-              thumbPath: cap.thumbPath,
-              width: cap.width,
-              height: cap.height,
-              fileSize: cap.fileSize,
-            });
-            // Clean up the now-orphaned cover files.
-            if (record.file_path && record.file_path !== cap.filePath) {
-              deleteImageFiles(record.file_path, record.thumb_path);
-            }
-            if (!event.sender.isDestroyed()) {
-              event.sender.send('save:updated', {
-                id: record.id,
-                file_path: cap.filePath,
-                thumb_path: cap.thumbPath,
-                width: cap.width,
-                height: cap.height,
-                file_size: cap.fileSize,
-              });
-            }
-          } catch (e) {
-            console.warn('[capture-url] screenshot swap failed:', e?.message || e);
-          }
-        })
-        .catch((err) => {
-          // Keep the cover — the save is still good, just not a screenshot.
-          console.warn('[capture-url] background screenshot failed:', err?.message || err);
-        });
-
       return { ok: true, record };
     } catch (err) {
-      console.error('[saves:capture-url] optimistic path failed, falling back:', err?.message || err);
-      try { return await captureSync(); }
-      catch (e) { return { ok: false, error: e?.message || String(e) }; }
+      console.error('[saves:capture-url] failed:', err?.message || err);
+      return { ok: false, error: err?.message || String(err) };
     }
   });
 
