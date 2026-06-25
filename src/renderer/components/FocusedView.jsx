@@ -23,6 +23,50 @@ const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.05;
 
+// Magnifier loupe rendered at the cursor while the eyedropper is
+// active. Paints the hook's N×N pixel block onto a small canvas and
+// lets CSS scale it up with pixelated rendering, so each source pixel
+// reads as a crisp cell. The sampled pixel sits dead-center under the
+// reticle; the live hex (or "Copied" flash) shows in the label below.
+function EyedropperLoupe({ loupe, hex, copied, pos }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const cv = canvasRef.current;
+    if (!cv || !loupe) return;
+    if (cv.width !== loupe.n) cv.width = loupe.n;
+    if (cv.height !== loupe.n) cv.height = loupe.n;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, loupe.n, loupe.n);
+    ctx.putImageData(loupe.block, 0, 0);
+  }, [loupe]);
+  return (
+    <div
+      className={[styles.loupe, copied && styles.loupeCopied].filter(Boolean).join(' ')}
+      style={{
+        left: pos.x || window.innerWidth / 2,
+        top: pos.y || window.innerHeight / 2,
+        '--loupe-color': hex || '#ffffff',
+      }}
+      aria-hidden="true"
+    >
+      <div className={styles.loupeDisc}>
+        <canvas ref={canvasRef} className={styles.loupeCanvas} />
+        <span className={styles.loupeReticle} />
+      </div>
+      <div className={styles.loupeLabel}>
+        {copied ? (
+          <span className={styles.loupeCopiedText}>Copied</span>
+        ) : (
+          <>
+            <span className={styles.loupeSwatch} style={{ background: hex }} />
+            <span>{hex}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const FV_ICON = { strokeWidth: 1.6, 'aria-hidden': true };
 const SidebarIcon = () => <PanelLeft {...FV_ICON} />;
 const PreviewIcon = () => <ExternalLink {...FV_ICON} />;
@@ -124,6 +168,7 @@ export default function FocusedView({
     hoverHex,
     hoverPos,
     justCopied,
+    loupe,
   } = useEyedropper(imageRef, record.id);
 
   // Reset zoom whenever the user moves to a different image.
@@ -644,30 +689,13 @@ export default function FocusedView({
         )}
       </div>
 
-      {picking && (hoverHex || justCopied) && ReactDOM.createPortal(
-        <div
-          className={[
-            styles.cursorTooltip,
-            justCopied && styles.cursorTooltipCopied,
-          ].filter(Boolean).join(' ')}
-          style={{
-            left: hoverPos.x || window.innerWidth / 2,
-            top: hoverPos.y || window.innerHeight / 2,
-          }}
-          aria-hidden="true"
-        >
-          {justCopied ? (
-            <span>Copied</span>
-          ) : (
-            <>
-              <span
-                className={styles.cursorTooltipSwatch}
-                style={{ background: hoverHex }}
-              />
-              <span>{hoverHex}</span>
-            </>
-          )}
-        </div>,
+      {picking && (loupe || justCopied) && ReactDOM.createPortal(
+        <EyedropperLoupe
+          loupe={loupe}
+          hex={hoverHex}
+          copied={justCopied}
+          pos={hoverPos}
+        />,
         document.body,
       )}
     </div>

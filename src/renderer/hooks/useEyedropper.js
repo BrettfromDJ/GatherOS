@@ -16,17 +16,26 @@ import { useEffect, useRef, useState } from 'react';
 //   • Escape cancels without sampling.
 //   • Resets on recordId change so a stuck-on crosshair doesn't
 //     follow the user across saves.
+// Half-width (in source pixels) of the square the loupe magnifies. The
+// loupe shows an (2*LOUPE_RADIUS + 1) grid with the sampled pixel dead
+// center, so 7 → a 15×15 neighbourhood.
+const LOUPE_RADIUS = 7;
+
 export function useEyedropper(imageRef, recordId) {
   const [picking, setPicking] = useState(false);
   const [hoverHex, setHoverHex] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [justCopied, setJustCopied] = useState(false);
+  // Magnified pixel neighbourhood under the cursor: the raw ImageData
+  // block + its grid size, so the consumer can paint a zoomed loupe.
+  const [loupe, setLoupe] = useState(null); // { block, n }
   const canvasDataRef = useRef(null);
 
   useEffect(() => {
     setPicking(false);
     setHoverHex(null);
     setJustCopied(false);
+    setLoupe(null);
   }, [recordId]);
 
   useEffect(() => {
@@ -46,6 +55,7 @@ export function useEyedropper(imageRef, recordId) {
       canvasDataRef.current = null;
       setHoverHex(null);
       setJustCopied(false);
+      setLoupe(null);
     }
   }, [picking]);
 
@@ -103,7 +113,21 @@ export function useEyedropper(imageRef, recordId) {
   // Here we compute the rendered image rect inside the element, then
   // map the cursor relative to THAT rect. Hits in the letterbox area
   // return null so the hover swatch / click sampler doesn't lie.
-  function pixelAt(clientX, clientY) {
+  function hexFromRgb(r, g, b) {
+    return (
+      '#' +
+      [r, g, b]
+        .map((c) => c.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()
+    );
+  }
+
+  // Map a cursor coord to the source-image pixel under it, returning
+  // both the hex and the integer source coords (sx, sy) so the loupe
+  // can read a neighbourhood block around the same point. Null in the
+  // letterbox bands so nothing lies about what's sampled.
+  function sampleAt(clientX, clientY) {
     const data = ensureCanvas();
     const img = imageRef.current;
     if (!data || !img) return null;
@@ -138,39 +162,53 @@ export function useEyedropper(imageRef, recordId) {
     if (sx < 0 || sy < 0 || sx >= data.width || sy >= data.height) return null;
     try {
       const px = data.ctx.getImageData(sx, sy, 1, 1).data;
-      return (
-        '#' +
-        [px[0], px[1], px[2]]
-          .map((c) => c.toString(16).padStart(2, '0'))
-          .join('')
-          .toUpperCase()
-      );
+      return { hex: hexFromRgb(px[0], px[1], px[2]), sx, sy };
     } catch (err) {
       console.error('[eyedropper] sample failed:', err);
       return null;
     }
   }
 
+  // Read the magnified neighbourhood for the loupe: an N×N block of
+  // source pixels centered on (sx, sy). getImageData returns transparent
+  // black for any cells that fall off the image edge, so the grid stays
+  // aligned (sampled pixel always dead-center at LOUPE_RADIUS,
+  // LOUPE_RADIUS) right up to the borders.
+  function readLoupe(sx, sy) {
+    const data = canvasDataRef.current;
+    if (!data) return null;
+    const n = LOUPE_RADIUS * 2 + 1;
+    try {
+      const block = data.ctx.getImageData(sx - LOUPE_RADIUS, sy - LOUPE_RADIUS, n, n);
+      return { block, n };
+    } catch (err) {
+      console.error('[eyedropper] loupe read failed:', err);
+      return null;
+    }
+  }
+
   function handleImageMouseMove(e) {
     if (!picking || justCopied) return;
-    const hex = pixelAt(e.clientX, e.clientY);
-    if (hex) {
-      setHoverHex(hex);
+    const sample = sampleAt(e.clientX, e.clientY);
+    if (sample) {
+      setHoverHex(sample.hex);
       setHoverPos({ x: e.clientX, y: e.clientY });
+      setLoupe(readLoupe(sample.sx, sample.sy));
     }
   }
 
   async function handleImageClick(e) {
     if (!picking) return;
-    const hex = pixelAt(e.clientX, e.clientY);
-    if (!hex) return;
+    const sample = sampleAt(e.clientX, e.clientY);
+    if (!sample) return;
     try {
-      await navigator.clipboard.writeText(hex.toLowerCase());
+      await navigator.clipboard.writeText(sample.hex.toLowerCase());
     } catch (err) {
       console.error('Eyedropper copy failed:', err);
     }
-    setHoverHex(hex);
+    setHoverHex(sample.hex);
     setHoverPos({ x: e.clientX, y: e.clientY });
+    setLoupe(readLoupe(sample.sx, sample.sy));
     setJustCopied(true);
     setTimeout(() => setPicking(false), 900);
   }
@@ -183,5 +221,6 @@ export function useEyedropper(imageRef, recordId) {
     hoverHex,
     hoverPos,
     justCopied,
+    loupe,
   };
 }

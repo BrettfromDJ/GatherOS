@@ -159,32 +159,94 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
-/* Crosshair cursor on the focused image while picking. Live tooltip
-   floats over the cursor via a portaled div (.cursorTooltip below). */
+/* While picking, the OS cursor is hidden and replaced by the magnifier
+   loupe (portaled .loupe below), which centers on the pointer so it
+   reads as "the cursor became a magnifier". */
 .stagePicking .image {
-  cursor: crosshair;
+  cursor: none;
 }
 
-.cursorTooltip {
+/* Loupe container — fixed at the cursor, centered on it. Holds the
+   magnified disc plus the hex label beneath. pointer-events: none so it
+   never eats the click that samples the pixel. */
+.loupe {
+  --loupe-size: 132px;
   position: fixed;
+  z-index: 999999;
+  pointer-events: none;
+  /* Sized to the disc and centered on the cursor so the magnified
+     center pixel lands exactly under the pointer. The label hangs off
+     the bottom (absolutely positioned) so it never nudges the disc. */
+  width: var(--loupe-size);
+  height: var(--loupe-size);
+  transform: translate(-50%, -50%);
+}
+
+/* The magnifier itself — a circular window onto the zoomed pixels. The
+   ring tints to the sampled colour so the loupe feels "loaded". */
+.loupeDisc {
+  position: relative;
+  width: var(--loupe-size);
+  height: var(--loupe-size);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-1);
+  box-shadow:
+    0 0 0 3px var(--loupe-color),
+    0 0 0 4.5px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 140ms ease-out;
+}
+
+/* The N×N pixel block, scaled up to fill the disc with hard pixel
+   edges (no smoothing) so each source pixel reads as a crisp cell. */
+.loupeCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* Center reticle marking the exact sampled pixel. Sized to one cell of
+   the 15-pixel grid (100% / 15 ≈ 6.667%), double-outlined so it stays
+   visible on both light and dark pixels. */
+.loupeReticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% / 15);
+  height: calc(100% / 15);
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+}
+
+/* Hex readout pill hanging below the disc. Absolutely positioned so it
+   doesn't shift the disc off the sampled pixel. */
+.loupeLabel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 4px 9px;
   background: var(--tooltip-bg);
   color: var(--tooltip-fg);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: 0.02em;
-  pointer-events: none;
-  z-index: 999999;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
   white-space: nowrap;
-  transform: translate(-50%, calc(-100% - 14px));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
 }
 
-.cursorTooltipSwatch {
+.loupeSwatch {
   width: 10px;
   height: 10px;
   border-radius: var(--radius-sm);
@@ -192,10 +254,25 @@
   flex-shrink: 0;
 }
 
-.cursorTooltipCopied {
-  font-family: inherit;
+/* Copy flash — the ring snaps to a full colour band and the label
+   swaps to "Copied" with a brief pop. */
+.loupeCopied .loupeDisc {
+  box-shadow:
+    0 0 0 4px var(--loupe-color),
+    0 0 0 5.5px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.loupeCopiedText {
+  font-family: var(--font-ui);
   letter-spacing: -0.005em;
-  font-weight: 500;
+  font-weight: 600;
+  animation: loupeCopiedPop 200ms var(--ease-out, cubic-bezier(0.2, 0.8, 0.2, 1));
+}
+
+@keyframes loupeCopiedPop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .iconBtnDanger:hover {
