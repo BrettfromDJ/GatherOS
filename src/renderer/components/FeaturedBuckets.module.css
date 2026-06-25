@@ -149,6 +149,28 @@
 .card.cardDropTarget .stack img:nth-child(3) { transform: rotate(7deg)   translate(14px, -2px); }
 .card.cardDropTarget .stack img:nth-child(4) { transform: rotate(18deg)  translate(32px, 8px); }
 
+/* Living cover: when the newest saves change, the cards re-deal in a
+   staggered cascade. Animates the independent translate/scale properties
+   (not transform) so it composes with the rotate-fan above instead of
+   clobbering it; settles back to none so the static/hover fan holds. */
+.stackShuffle img {
+  animation: stackRiffle 520ms var(--ease-out, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+.stackShuffle img:nth-child(1) { animation-delay: 0ms; }
+.stackShuffle img:nth-child(2) { animation-delay: 55ms; }
+.stackShuffle img:nth-child(3) { animation-delay: 110ms; }
+.stackShuffle img:nth-child(4) { animation-delay: 165ms; }
+
+@keyframes stackRiffle {
+  0%   { translate: 0 12px; scale: 0.92; opacity: 0.25; }
+  55%  { translate: 0 -3px; scale: 1.03; opacity: 1; }
+  100% { translate: 0 0;    scale: 1;    opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stackShuffle img { animation: none; }
+}
+
 /* Empty bucket — no preview thumbs yet. Bare bucket icon at low
    opacity, no surrounding tile. Reads as a placeholder, not a card. */
 .stackEmpty {

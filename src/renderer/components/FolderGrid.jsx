@@ -9,6 +9,7 @@ import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
 import Dropdown from './Dropdown.jsx';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
+import { useReshuffle } from '../hooks/useReshuffle.js';
 
 const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
 
@@ -84,6 +85,8 @@ function FolderTile({
 }) {
   const thumbs = Array.isArray(folder.thumbs) ? folder.thumbs.slice(0, 4) : [];
   const count = folder.save_count || 0;
+  // Re-deal the cover collage whenever the newest saves change.
+  const shuffling = useReshuffle(thumbs.join('\x01'));
   return (
     <div
       className={[
@@ -117,7 +120,11 @@ function FolderTile({
     >
       <div className={styles.tileArt}>
         {thumbs.length > 0 ? (
-          <div className={styles.tileStack} aria-hidden="true">
+          <div
+            className={[styles.tileStack, shuffling && styles.tileStackShuffle]
+              .filter(Boolean).join(' ')}
+            aria-hidden="true"
+          >
             {thumbs.map((thumb, i) => (
               <img
                 key={`${i}-${thumb}`}

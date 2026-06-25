@@ -4,9 +4,43 @@ import styles from './FeaturedBuckets.module.css';
 import { CollectionIcon } from './Sidebar.jsx';
 import { resolveAsset } from '../lib/asset.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
+import { useReshuffle } from '../hooks/useReshuffle.js';
 import ContextMenu from './ContextMenu.jsx';
 
 const PREVIEW_COUNT = 4;
+
+// Living cover: the fanned collage of a collection's newest saves. When
+// those newest items change (a save was just added), it re-deals with a
+// staggered riffle. Isolated into its own component so the reshuffle hook
+// is scoped per card.
+function BucketCover({ items }) {
+  const covers = items.slice(0, PREVIEW_COUNT);
+  const shuffling = useReshuffle(covers.map((s) => s.id).join('\x01'));
+  return (
+    <div
+      className={[styles.stack, shuffling && styles.stackShuffle].filter(Boolean).join(' ')}
+    >
+      {covers.length === 0 ? (
+        <div className={styles.stackEmpty}>
+          <span className={styles.stackEmptyIcon}>
+            <CollectionIcon />
+          </span>
+        </div>
+      ) : (
+        covers.map((s) => (
+          <img
+            key={s.id}
+            src={resolveAsset(s, 'thumb')}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+          />
+        ))
+      )}
+    </div>
+  );
+}
 
 function PencilIcon() {
   return (
@@ -282,26 +316,7 @@ export default function FeaturedBuckets({
                 onDrop={(e) => handleCardDrop(e, c.id)}
                 title={c.name}
               >
-                <div className={styles.stack}>
-                  {items.length === 0 ? (
-                    <div className={styles.stackEmpty}>
-                      <span className={styles.stackEmptyIcon}>
-                        <CollectionIcon />
-                      </span>
-                    </div>
-                  ) : (
-                    items.slice(0, PREVIEW_COUNT).map((s) => (
-                      <img
-                        key={s.id}
-                        src={resolveAsset(s, 'thumb')}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        draggable={false}
-                      />
-                    ))
-                  )}
-                </div>
+                <BucketCover items={items} />
                 <div className={styles.meta}>
                   {isRenaming ? (
                     <input
