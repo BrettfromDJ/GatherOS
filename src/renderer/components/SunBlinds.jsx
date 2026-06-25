@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import styles from './SunBlinds.module.css';
 
 const SLATS = 14;
-const MOTES = 130;
+const MOTES = 55;
 
 // Easter egg: window blinds drawn across the whole app, frosting the
 // content behind them. Hovering a slat clears its blur and flips it up
@@ -37,7 +37,7 @@ export default function SunBlinds({ open, onClose }) {
     () => Array.from({ length: MOTES }, () => ({
       left: Math.random() * 100,
       top: Math.random() * 100,
-      size: 2 + Math.random() * 5,
+      size: 1.5 + Math.random() * 3,
       dur: 7 + Math.random() * 10,
       delay: -Math.random() * 16,
       driftX: (Math.random() * 2 - 1) * 48,

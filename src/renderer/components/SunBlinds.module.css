@@ -61,20 +61,19 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(245, 249, 255, 1) 0%,
-    rgba(238, 245, 255, 0.85) 32%,
-    rgba(235, 242, 255, 0) 72%
+    rgba(240, 246, 255, 0.85) 0%,
+    rgba(235, 242, 255, 0) 70%
   );
-  box-shadow: 0 0 6px rgba(240, 246, 255, 0.7);
+  mix-blend-mode: screen;
   opacity: 0;
   animation: sbMote var(--dur, 12s) ease-in-out var(--delay, 0s) infinite;
 }
 
 @keyframes sbMote {
-  0%   { opacity: 0; transform: translate(0, 16px) scale(0.7); }
-  14%  { opacity: 0.95; }
-  86%  { opacity: 0.8; }
-  100% { opacity: 0; transform: translate(var(--driftX, 24px), -60px) scale(1.05); }
+  0%   { opacity: 0; transform: translate(0, 14px) scale(0.75); }
+  18%  { opacity: 0.45; }
+  82%  { opacity: 0.3; }
+  100% { opacity: 0; transform: translate(var(--driftX, 24px), -50px) scale(1); }
 }
 
 /* Fixed transparent hit area for one blind — never moves, so the cursor
