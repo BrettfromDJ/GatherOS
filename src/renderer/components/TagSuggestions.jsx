@@ -19,14 +19,27 @@ export default function TagSuggestions({
           type="button"
           role="option"
           aria-selected={i === activeIndex}
-          className={[styles.item, i === activeIndex && styles.active].filter(Boolean).join(' ')}
+          className={[
+            styles.item,
+            tag.__merge && styles.mergeItem,
+            i === activeIndex && styles.active,
+          ].filter(Boolean).join(' ')}
+          // Near-dup merge row: clarify that picking it folds the typed
+          // variant into the existing tag.
+          title={tag.__merge && draft
+            ? `“${draft}” looks like a duplicate — use the existing #${tag.name}`
+            : undefined}
           // Use mousedown so the click registers before the input's blur fires.
           onMouseDown={(e) => { e.preventDefault(); onPick(tag); }}
           onMouseEnter={() => onHoverIndex(i)}
         >
+          {tag.__merge && <span className={styles.mergeBadge}>Similar</span>}
           <span className={styles.hash}>#</span>
           <span className={styles.name}>{tag.name}</span>
-          {tag.save_count > 0 && (
+          {tag.__merge && draft && (
+            <span className={styles.mergeNote}>merge “{draft}”</span>
+          )}
+          {!tag.__merge && tag.save_count > 0 && (
             <span className={styles.count}>{tag.save_count}</span>
           )}
         </button>

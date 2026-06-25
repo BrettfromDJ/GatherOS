@@ -111,6 +111,33 @@
 
 .itemActive .createLabel { color: var(--accent); }
 
+/* Near-duplicate merge row — soft amber "Similar" badge so it reads as a
+   gentle heads-up; picking it folds the typed variant into the existing
+   tag instead of minting a near-dup. */
+.mergeItem .name { flex: 0 1 auto; }
+
+.mergeBadge {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  background: #f4c66a;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+}
+
+.mergeNote {
+  margin-left: auto;
+  padding-left: 8px;
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
 .empty {
   padding: 14px 8px;
   text-align: center;

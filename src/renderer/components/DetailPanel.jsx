@@ -9,6 +9,7 @@ import ContextMenu from './ContextMenu.jsx';
 import contextMenuStyles from './ContextMenu.module.css';
 import TagSuggestions from './TagSuggestions.jsx';
 import { fuzzyMatch } from '../lib/fuzzy.js';
+import { findNearDuplicateTag } from '../lib/tagSimilarity.js';
 import { CollectionIcon } from './Sidebar.jsx';
 import { useEntitlementValue, isLocked, requestUpgrade } from '../context/entitlement.jsx';
 
@@ -397,7 +398,30 @@ export default function DetailPanel({
     return !exists;
   }, [tagDraft, allTags]);
 
-  const totalSuggestionRows = suggestions.length + (showCreateRow ? 1 : 0);
+  // Near-duplicate guard: when the draft isn't an exact existing tag but
+  // looks like a plural/typo/separator variant of one ("gradients" when
+  // "gradient" exists), surface that tag as a "merge" row so the user
+  // can fold into the canonical tag instead of fragmenting. Only when a
+  // Create row would otherwise show (no exact match) and the candidate
+  // isn't already in the fuzzy list.
+  const nearDuplicate = useMemo(() => {
+    if (!showCreateRow) return null;
+    const usedIds = new Set(tags.map((t) => t.id));
+    const suggestedIds = new Set(suggestions.map((s) => s.id));
+    const dup = findNearDuplicateTag(tagDraft, allTags, { excludeIds: usedIds });
+    if (!dup || suggestedIds.has(dup.id)) return null;
+    return dup;
+  }, [showCreateRow, tagDraft, allTags, tags, suggestions]);
+
+  // The list the popover actually renders: the merge row (if any) leads,
+  // then the fuzzy suggestions. Indexing/commit run off this so keyboard
+  // nav and Enter stay correct.
+  const visibleSuggestions = useMemo(
+    () => (nearDuplicate ? [{ ...nearDuplicate, __merge: true }, ...suggestions] : suggestions),
+    [nearDuplicate, suggestions],
+  );
+
+  const totalSuggestionRows = visibleSuggestions.length + (showCreateRow ? 1 : 0);
 
   // Reset highlight whenever the suggestion list changes shape.
   useEffect(() => {
@@ -532,9 +556,11 @@ export default function DetailPanel({
   }
 
   async function commitTag({ keepOpen = false } = {}) {
-    // Prefer the highlighted suggestion when the popover is open.
-    if (suggestionsOpen && suggestionIndex < suggestions.length && suggestions[suggestionIndex]) {
-      await addTagByName(suggestions[suggestionIndex].name, { keepOpen });
+    // Prefer the highlighted suggestion when the popover is open. This
+    // includes the near-duplicate merge row (visibleSuggestions[0]), so
+    // Enter on "gradients" folds into the existing "gradient".
+    if (suggestionsOpen && suggestionIndex < visibleSuggestions.length && visibleSuggestions[suggestionIndex]) {
+      await addTagByName(visibleSuggestions[suggestionIndex].name, { keepOpen });
       return;
     }
     await addTagByName(tagDraft, { keepOpen });
@@ -1175,7 +1201,7 @@ export default function DetailPanel({
               />
               {suggestionsOpen && (
                 <TagSuggestions
-                  suggestions={suggestions}
+                  suggestions={visibleSuggestions}
                   activeIndex={suggestionIndex}
                   showCreateRow={showCreateRow}
                   draft={tagDraft.trim()}

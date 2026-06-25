@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './BulkTagPicker.module.css';
 import { fuzzyMatch } from '../lib/fuzzy.js';
+import { findNearDuplicateTag } from '../lib/tagSimilarity.js';
 
 // Compact popover for tagging the multi-selected saves in one shot.
 // Renders above the selection bar at a caller-supplied anchor point
@@ -59,7 +60,24 @@ export default function BulkTagPicker({ anchor, allTags, count, onApply, onClose
 
   const showCreate = !!cleanedDraft
     && !allTags.some((t) => t.name.toLowerCase() === cleanedDraft);
-  const totalRows = suggestions.length + (showCreate ? 1 : 0);
+
+  // Near-duplicate guard: offer to merge into an existing tag when the
+  // draft is a plural/typo/separator variant of one ("gradients" →
+  // "gradient"), so bulk-tagging doesn't fragment the vocabulary.
+  const nearDuplicate = useMemo(() => {
+    if (!showCreate) return null;
+    const suggestedIds = new Set(suggestions.map((s) => s.id));
+    const dup = findNearDuplicateTag(cleanedDraft, allTags);
+    if (!dup || suggestedIds.has(dup.id)) return null;
+    return dup;
+  }, [showCreate, cleanedDraft, allTags, suggestions]);
+
+  const visibleSuggestions = useMemo(
+    () => (nearDuplicate ? [{ ...nearDuplicate, __merge: true }, ...suggestions] : suggestions),
+    [nearDuplicate, suggestions],
+  );
+
+  const totalRows = visibleSuggestions.length + (showCreate ? 1 : 0);
 
   function commit(name) {
     const cleaned = (name || '').trim().toLowerCase().replace(/^#+/, '');
@@ -85,8 +103,8 @@ export default function BulkTagPicker({ anchor, allTags, count, onApply, onClose
     }
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (activeIndex < suggestions.length && suggestions[activeIndex]) {
-        commit(suggestions[activeIndex].name);
+      if (activeIndex < visibleSuggestions.length && visibleSuggestions[activeIndex]) {
+        commit(visibleSuggestions[activeIndex].name);
       } else if (showCreate) {
         commit(cleanedDraft);
       }
@@ -112,31 +130,37 @@ export default function BulkTagPicker({ anchor, allTags, count, onApply, onClose
         spellCheck={false}
       />
       <div className={styles.list} role="listbox">
-        {suggestions.map((tag, i) => (
+        {visibleSuggestions.map((tag, i) => (
           <button
             key={tag.id}
             type="button"
             role="option"
             aria-selected={i === activeIndex}
-            className={`${styles.item} ${i === activeIndex ? styles.itemActive : ''}`}
+            className={`${styles.item} ${tag.__merge ? styles.mergeItem : ''} ${i === activeIndex ? styles.itemActive : ''}`}
+            title={tag.__merge
+              ? `“${cleanedDraft}” looks like a duplicate — use the existing #${tag.name}`
+              : undefined}
             onMouseDown={(e) => { e.preventDefault(); commit(tag.name); }}
             onMouseEnter={() => setActiveIndex(i)}
           >
+            {tag.__merge && <span className={styles.mergeBadge}>Similar</span>}
             <span className={styles.hash}>#</span>
             <span className={styles.name}>{tag.name}</span>
-            {tag.save_count > 0 && (
-              <span className={styles.count}>{tag.save_count}</span>
-            )}
+            {tag.__merge
+              ? <span className={styles.mergeNote}>merge “{cleanedDraft}”</span>
+              : tag.save_count > 0 && (
+                <span className={styles.count}>{tag.save_count}</span>
+              )}
           </button>
         ))}
         {showCreate && (
           <button
             type="button"
             role="option"
-            aria-selected={activeIndex === suggestions.length}
-            className={`${styles.item} ${styles.createItem} ${activeIndex === suggestions.length ? styles.itemActive : ''}`}
+            aria-selected={activeIndex === visibleSuggestions.length}
+            className={`${styles.item} ${styles.createItem} ${activeIndex === visibleSuggestions.length ? styles.itemActive : ''}`}
             onMouseDown={(e) => { e.preventDefault(); commit(cleanedDraft); }}
-            onMouseEnter={() => setActiveIndex(suggestions.length)}
+            onMouseEnter={() => setActiveIndex(visibleSuggestions.length)}
           >
             <span className={styles.createLabel}>Create</span>
             <span className={styles.hash}>#</span>
