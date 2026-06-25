@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Grid from './Grid.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
+import { buildSearchPlaceholders } from '../lib/searchPlaceholders.js';
 import styles from './SearchView.module.css';
+
+// How long each rotating placeholder term lingers before the next.
+const PLACEHOLDER_ROTATE_MS = 3600;
 
 function SearchGlyph() {
   return (
@@ -103,6 +107,28 @@ export default function SearchView({
     [recentSearches],
   );
 
+  // Rotating, library-personal placeholder: real tags + the dominant
+  // colours in the user's own saves, cycled while the field is empty so
+  // it teaches what's searchable ("Try 'navy'", "Try 'branding'").
+  const placeholders = useMemo(
+    () => buildSearchPlaceholders({ tags: suggestedTags, saves }),
+    [suggestedTags, saves],
+  );
+  const [phIndex, setPhIndex] = useState(0);
+  useEffect(() => {
+    // Only rotate on the empty landing (no query) with more than one
+    // term to cycle; pause otherwise so a typed query is never disturbed.
+    if (hasQuery || placeholders.length <= 1) return undefined;
+    const id = setInterval(
+      () => setPhIndex((i) => (i + 1) % placeholders.length),
+      PLACEHOLDER_ROTATE_MS,
+    );
+    return () => clearInterval(id);
+  }, [hasQuery, placeholders.length]);
+  const ghostTerm = placeholders.length
+    ? placeholders[phIndex % placeholders.length]
+    : null;
+
   // Horizontal collections row — left/right arrows scroll it, and each
   // arrow disables when there's nothing more to reveal that way.
   const collRef = useRef(null);
@@ -136,26 +162,44 @@ export default function SearchView({
       <div className={styles.hero}>
         <div className={styles.field}>
           <span className={styles.fieldIcon}><SearchGlyph /></span>
-          <input
-            ref={inputRef}
-            className={styles.input}
-            type="text"
-            value={search}
-            placeholder="Search titles, tags and sources…"
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && search.trim()) onRecordSearch?.(search.trim());
-              if (e.key === 'Escape' && search) {
-                // Clear the query but stay in the search tab; swallow so
-                // the global Esc handler doesn't also fire.
-                e.preventDefault();
-                e.stopPropagation();
-                onSearchChange('');
-              }
-            }}
-          />
+          <div className={styles.inputWrap}>
+            <input
+              ref={inputRef}
+              className={styles.input}
+              type="text"
+              value={search}
+              /* Native placeholder is empty — the rotating ghost below
+                 stands in for it so it can cross-fade. aria-label keeps a
+                 stable name for screen readers while the visual rotates. */
+              placeholder=""
+              aria-label="Search your library by title, tag, source or colour"
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && search.trim()) onRecordSearch?.(search.trim());
+                if (e.key === 'Escape' && search) {
+                  // Clear the query but stay in the search tab; swallow so
+                  // the global Esc handler doesn't also fire.
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSearchChange('');
+                }
+              }}
+            />
+            {!hasQuery && (
+              ghostTerm ? (
+                // key on the term so each rotation remounts → fade-in.
+                <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
+                  Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
+                </span>
+              ) : (
+                <span className={styles.ghost} aria-hidden="true">
+                  Search titles, tags and sources…
+                </span>
+              )
+            )}
+          </div>
           {hasQuery && (
             <button
               type="button"

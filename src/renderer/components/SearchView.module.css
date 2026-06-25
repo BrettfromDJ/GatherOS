@@ -55,6 +55,54 @@
 }
 .input::placeholder { color: var(--text-tertiary); }
 
+/* Wraps the input so the rotating placeholder ghost can overlay it
+   exactly. Takes the flex slot the input used to occupy. */
+.inputWrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inputWrap .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Rotating "Try …" placeholder. Overlaid on the input (which carries an
+   empty native placeholder) so each term can fade in as it rotates.
+   Mirrors the input's type metrics so it sits exactly where typed text
+   would. pointer-events: none keeps clicks/caret on the real input. */
+.ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: ghostIn 420ms var(--ease-out, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+/* The library-derived term gets a touch more presence than the "Try "
+   lead-in so the searchable example reads as the point. */
+.ghostTerm {
+  color: var(--text-secondary);
+  margin-left: 0.35ch;
+}
+
+@keyframes ghostIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost { animation: none; }
+}
+
 .clear {
   flex: 0 0 auto;
   width: 24px;
