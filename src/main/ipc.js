@@ -816,17 +816,32 @@ function registerIpcHandlers() {
     });
     if (dlg.canceled || !dlg.filePath) return { ok: false, canceled: true };
 
-    const userDataDir = app.getPath('userData');
-    // Whitelist what we ship in the backup so we don't accidentally
-    // bundle Electron caches, GPU shader caches, log files, etc.
-    const includes = ['moodmark.db', 'images', 'thumbs'];
-    const present = includes.filter((p) => fs.existsSync(path.join(userDataDir, p)));
-    if (present.length === 0) return { ok: false, reason: 'nothing-to-export' };
+    // Flush the WAL into the main db file so the zipped moodmark.db is a
+    // complete, self-consistent snapshot (writes can live in -wal until a
+    // checkpoint). Best-effort — we still include the sidecars below.
+    try {
+      const { getDatabase } = require('./db');
+      getDatabase().pragma('wal_checkpoint(TRUNCATE)');
+    } catch (err) {
+      console.warn('[export-zip] wal checkpoint failed (continuing):', err?.message || err);
+    }
+
+    // The library lives under its own root now —
+    // userData/libraries/library_<id>/{moodmark.db,images,thumbs} — not
+    // the userData root (that's why this used to find nothing and bail).
+    const { getActiveLibraryRoot } = require('./library-registry');
+    const libRoot = getActiveLibraryRoot();
+    if (!libRoot) return { ok: false, reason: 'no-active-library' };
+    // Whitelist what we ship; include the db sidecars so the restore is
+    // consistent even if the checkpoint above couldn't run.
+    const includes = ['moodmark.db', 'moodmark.db-wal', 'moodmark.db-shm', 'images', 'thumbs'];
+    const present = includes.filter((p) => fs.existsSync(path.join(libRoot, p)));
+    if (!present.includes('moodmark.db')) return { ok: false, reason: 'nothing-to-export' };
 
     return new Promise((resolve) => {
       // -r recursive, -X drop extra macOS attrs, -q quiet.
       const args = ['-rXq', dlg.filePath, ...present, '-x', '*.DS_Store'];
-      const proc = spawn('zip', args, { cwd: userDataDir });
+      const proc = spawn('zip', args, { cwd: libRoot });
       let stderr = '';
       proc.stderr.on('data', (d) => { stderr += d.toString(); });
       proc.on('close', (code) => {

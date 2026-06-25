@@ -985,7 +985,12 @@ export default function SettingsModal({
       } else if (result?.canceled) {
         setExportState({ running: false, message: null });
       } else {
-        setExportState({ running: false, message: result?.error || 'Export failed' });
+        const reasonMsg = result?.reason === 'nothing-to-export'
+          ? 'Nothing to export yet'
+          : result?.reason === 'no-active-library'
+            ? 'No active library'
+            : null;
+        setExportState({ running: false, message: result?.error || reasonMsg || 'Export failed' });
       }
     } catch (err) {
       setExportState({ running: false, message: err.message || 'Export failed' });
