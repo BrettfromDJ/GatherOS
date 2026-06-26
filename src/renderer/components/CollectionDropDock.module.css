@@ -132,6 +132,24 @@
   background: var(--accent-bg-faint, rgba(120, 110, 255, 0.14));
 }
 
+/* Already contains the dragged item(s): dimmed, not a drop target, and
+   the count is replaced by a check so it reads as "already added". */
+.rowIn {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rowIn:hover { background: transparent; }
+.rowIn_badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+.rowIn_badge svg { width: 14px; height: 14px; }
+
 /* Mini fanned cover — newest on top. */
 .fan {
   position: relative;

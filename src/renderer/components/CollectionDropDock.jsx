@@ -11,10 +11,19 @@ const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
 // targets, so you can file without scrolling back up and without an
 // edge-to-edge strip. Mirrors FeaturedBuckets' drop routing (in-app
 // saves, Finder files, dragged browser images).
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
+  );
+}
+
 export default function CollectionDropDock({
   collections,
   scrolled,
   dragging,
+  inCollectionIds,
   onAddSavesToBucket,
   onDropFilesToBucket,
   onExternalDropToBucket,
@@ -88,15 +97,22 @@ export default function CollectionDropDock({
         <div className={styles.rows}>
           {collections.map((c) => {
             const thumbs = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
-            const isTarget = dropTargetId === c.id;
+            // Already contains every dragged save → not a valid drop;
+            // mark it and refuse the drop instead of silently adding a dupe.
+            const already = !!(inCollectionIds && inCollectionIds.has(c.id));
+            const isTarget = !already && dropTargetId === c.id;
             return (
               <div
                 key={c.id}
-                className={[styles.row, isTarget && styles.rowTarget].filter(Boolean).join(' ')}
-                onDragOver={(e) => handleRowDragOver(e, c.id)}
-                onDragLeave={handleRowDragLeave}
-                onDrop={(e) => handleRowDrop(e, c.id)}
-                title={c.name}
+                className={[
+                  styles.row,
+                  already && styles.rowIn,
+                  isTarget && styles.rowTarget,
+                ].filter(Boolean).join(' ')}
+                onDragOver={already ? undefined : (e) => handleRowDragOver(e, c.id)}
+                onDragLeave={already ? undefined : handleRowDragLeave}
+                onDrop={already ? undefined : (e) => handleRowDrop(e, c.id)}
+                title={already ? `${c.name} — already in this collection` : c.name}
               >
                 <span className={styles.fan} aria-hidden="true">
                   {thumbs.length > 0 ? (
@@ -109,7 +125,13 @@ export default function CollectionDropDock({
                 </span>
                 <span className={styles.rowMeta}>
                   <span className={styles.rowName}>{c.name}</span>
-                  <span className={styles.rowCount}>{(c.save_count ?? 0).toLocaleString()}</span>
+                  {already ? (
+                    <span className={styles.rowIn_badge} title="Already added">
+                      <CheckGlyph />
+                    </span>
+                  ) : (
+                    <span className={styles.rowCount}>{(c.save_count ?? 0).toLocaleString()}</span>
+                  )}
                 </span>
               </div>
             );

@@ -535,6 +535,9 @@ export default function App({ entitlement } = {}) {
   // True while an in-app save card is being dragged — arms the
   // collection drop-dock so you can file without scrolling up.
   const [saveDragActive, setSaveDragActive] = useState(false);
+  // Collections that already contain ALL the saves in the active drag, so
+  // the drop-dock can mark them "already in" and refuse the drop.
+  const [dragInCollectionIds, setDragInCollectionIds] = useState(() => new Set());
   // True once the grid is scrolled past the featured-buckets row, so the
   // dock only appears when the real cards are out of reach.
   const [scrolledPastBuckets, setScrolledPastBuckets] = useState(false);
@@ -1473,7 +1476,26 @@ export default function App({ entitlement } = {}) {
     // scrolled-down grid still has collection targets. dragend (fires on
     // the source for both drop + cancel) disarms it; once:true cleans up.
     setSaveDragActive(true);
-    window.addEventListener('dragend', () => setSaveDragActive(false), { once: true });
+    setDragInCollectionIds(new Set());
+    // Resolve which collections already contain ALL the dragged saves so
+    // the drop-dock can mark them as already-added (and skip the drop).
+    (async () => {
+      try {
+        const lists = await Promise.all(
+          ids.map((id) => window.moodmark.collections.getForSave(id)),
+        );
+        let inter = null;
+        for (const rows of lists) {
+          const set = new Set((rows || []).map((r) => r.id));
+          inter = inter == null ? set : new Set([...inter].filter((x) => set.has(x)));
+        }
+        setDragInCollectionIds(inter || new Set());
+      } catch { /* leave empty — fail open, all collections droppable */ }
+    })();
+    window.addEventListener('dragend', () => {
+      setSaveDragActive(false);
+      setDragInCollectionIds(new Set());
+    }, { once: true });
 
     // Tweet / text-post cards have no representative image — the only
     // <img> is a tiny avatar, which the canvas path below would upscale
@@ -3474,6 +3496,7 @@ export default function App({ entitlement } = {}) {
                 collections={collections}
                 scrolled={appMode === 'library' && scrolledHideBar && view.type === 'all'}
                 dragging={saveDragActive && view.type === 'all'}
+                inCollectionIds={dragInCollectionIds}
                 onAddSavesToBucket={handleAddSavesToBucket}
                 onDropFilesToBucket={handleDropFilesToBucket}
                 onExternalDropToBucket={handleExternalDropToBucket}
