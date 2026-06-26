@@ -20,7 +20,7 @@ import SunBlinds from './components/SunBlinds.jsx';
 import { pickNotesForUpgrade, RELEASE_NOTES } from './data/releaseNotes.js';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
 import ConfirmHost from './components/ConfirmHost.jsx';
-import Toolbar from './components/Toolbar.jsx';
+import Toolbar, { ModePill } from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import CollectionDropDock from './components/CollectionDropDock.jsx';
@@ -538,6 +538,10 @@ export default function App({ entitlement } = {}) {
   // True once the grid is scrolled past the featured-buckets row, so the
   // dock only appears when the real cards are out of reach.
   const [scrolledPastBuckets, setScrolledPastBuckets] = useState(false);
+  // Hide the full toolbar (leave only floating tabs) once scrolled into
+  // the grid. Hysteresis (hide >140, show <60) so it can't flicker when
+  // the user lingers near the threshold.
+  const [scrolledHideBar, setScrolledHideBar] = useState(false);
   // Sidebar removed in nav stage 4d. The legacy auto-collapse-on-
   // board-entry effect lived here; with no sidebar there's nothing
   // to collapse.
@@ -2367,6 +2371,7 @@ export default function App({ entitlement } = {}) {
       setScrolledFar(false);
       setScrolledOff(false);
       setScrolledPastBuckets(false);
+      setScrolledHideBar(false);
       return;
     }
     let ticking = false;
@@ -2391,6 +2396,9 @@ export default function App({ entitlement } = {}) {
         // ~past the featured-buckets row (chip rail + cards): below this
         // the real collection cards are gone, so the drop-dock takes over.
         setScrolledPastBuckets(t > 150);
+        // Hysteresis band so the toolbar doesn't flicker hide/show when
+        // the user hovers around the threshold.
+        setScrolledHideBar((prev) => (prev ? t > 60 : t > 140));
         ticking = false;
       });
     };
@@ -2412,6 +2420,7 @@ export default function App({ entitlement } = {}) {
     setScrolledFar(t0 > 720);
     setScrolledOff(t0 > 8);
     setScrolledPastBuckets(t0 > 150);
+    setScrolledHideBar(t0 > 140);
   }, []);
   const scrollGridToTop = useCallback(() => {
     gridScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3332,6 +3341,10 @@ export default function App({ entitlement } = {}) {
             />
           ) : (
             <>
+              <div
+                className={`toolbar-shell${appMode === 'library' && scrolledHideBar ? ' toolbar-hidden' : ''}`}
+              >
+               <div className="toolbar-shell-inner">
               <Toolbar
                 search={search}
                 onSearchChange={setSearch}
@@ -3374,6 +3387,15 @@ export default function App({ entitlement } = {}) {
                 onUpload={handleUploadClick}
                 onSaveUrl={() => setSaveUrlOpen(true)}
               />
+               </div>
+              </div>
+              {/* Floating centered mode tabs — shown when the toolbar is
+                  hidden on scroll. Full size (not the compact pill). */}
+              {appMode === 'library' && scrolledHideBar && (
+                <div className="mode-pill-float">
+                  <ModePill mode={appMode} onModeChange={handleModeChange} />
+                </div>
+              )}
               {appMode === 'search' ? (
                 // Dedicated Search tab — search-first canvas. Hero field
                 // up top, then the landing chips (empty query) or the
@@ -3450,7 +3472,8 @@ export default function App({ entitlement } = {}) {
               <div className="library-stage">
               <CollectionDropDock
                 collections={collections}
-                visible={saveDragActive && scrolledPastBuckets && view.type === 'all'}
+                scrolled={appMode === 'library' && scrolledHideBar && view.type === 'all'}
+                dragging={saveDragActive && view.type === 'all'}
                 onAddSavesToBucket={handleAddSavesToBucket}
                 onDropFilesToBucket={handleDropFilesToBucket}
                 onExternalDropToBucket={handleExternalDropToBucket}

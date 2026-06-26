@@ -1,93 +1,143 @@
-/* Slim drop-dock pinned at the top of the content area (just under the
-   toolbar). Hidden — slightly raised + transparent + click-through —
-   until a save drag arms it, when it eases down into place. */
-.dock {
-  position: absolute;
-  top: 0;
-  left: 0;
+/* Edge-tab collection dock — right edge, vertically centered. The slim
+   handle peeks in once scrolled; the list springs out on hover/drag. */
+.edge {
+  position: fixed;
   right: 0;
-  z-index: 24;
+  top: 50%;
+  z-index: 46;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
-  backdrop-filter: blur(14px) saturate(112%);
-  -webkit-backdrop-filter: blur(14px) saturate(112%);
-  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
-  opacity: 0;
-  transform: translateY(-12px);
+  gap: 8px;
+  transform: translate(100%, -50%);
   pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.85, 0.25, 1);
+  transition: transform 0.3s cubic-bezier(0.2, 0.85, 0.25, 1);
 }
-
-.dock.visible {
-  opacity: 1;
-  transform: translateY(0);
+/* Visible (scrolled or dragging): the handle slides in from the edge. */
+.edge.edgeVisible {
+  transform: translate(0, -50%);
   pointer-events: auto;
 }
 
-.hint {
+/* Slim handle — a small frosted tab with a stacked-thumbnail hint. */
+.handle {
   flex: 0 0 auto;
-  font-size: 11px;
+  width: 30px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px 0 0 12px;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid var(--border);
+  border-right: none;
+  box-shadow: -6px 0 20px rgba(0, 0, 0, 0.16);
+}
+.handleStack {
+  position: relative;
+  width: 18px;
+  height: 44px;
+}
+.handleStack img {
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.handleStack img:nth-child(1) { top: 0;  transform: translateX(-50%) rotate(-7deg); z-index: 3; }
+.handleStack img:nth-child(2) { top: 13px; transform: translateX(-50%) rotate(3deg); z-index: 2; }
+.handleStack img:nth-child(3) { top: 26px; transform: translateX(-50%) rotate(-4deg); z-index: 1; }
+.handleDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Floating list — to the LEFT of the handle. Collapsed by default
+   (slid right + faded + non-interactive); springs out when expanded. */
+.list {
+  flex: 0 0 auto;
+  width: 224px;
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 8px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  border: 1px solid var(--border-strong, var(--border));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateX(14px) scale(0.97);
+  transform-origin: right center;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.edge.edgeExpanded .list {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+}
+
+.listLabel {
+  display: block;
+  padding: 4px 8px 7px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
+.rows { display: flex; flex-direction: column; gap: 2px; }
 
-.chips {
+.row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  padding-bottom: 1px;
-}
-.chips::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex: 0 0 auto;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 12px 5px 7px;
+  gap: 10px;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
-  background: var(--surface-2, rgba(127, 127, 127, 0.08));
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
   cursor: default;
-  /* Background-only transition: nothing about a hover/drag-over should
-     move the chip or its cover — it just tints in place. */
   transition: background 0.16s ease;
 }
+.row:hover { background: var(--hover-bg-soft, rgba(127, 127, 127, 0.12)); }
 
-.name {
-  font-size: 12.5px;
+.rowMeta { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1 1 auto; }
+.rowName {
+  flex: 1 1 auto;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
-  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.rowCount {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
 
-/* Drop-target: a calm in-place fill — no ring, no lift, no fanning, no
-   "+1". Just enough tint to say "this one receives the drop". */
-.chipTarget,
-.chipTarget:hover {
+/* Drop-target: calm in-place tint + the cover fans open a touch. No
+   "+1", no accent ring. */
+.rowTarget,
+.rowTarget:hover {
   background: var(--accent-bg-faint, rgba(120, 110, 255, 0.14));
 }
 
-/* Mini fanned cover — same recipe as the featured cards, scaled down,
-   newest save on top. */
+/* Mini fanned cover — newest on top. */
 .fan {
   position: relative;
   flex: 0 0 auto;
-  width: 30px;
-  height: 24px;
+  width: 32px;
+  height: 26px;
 }
 .fan img,
 .fanEmpty {
@@ -95,7 +145,7 @@
   left: 50%;
   top: 50%;
   width: 74%;
-  height: 92%;
+  height: 90%;
   border-radius: 4px;
   object-fit: cover;
   background: rgba(127, 127, 127, 0.18);
@@ -108,15 +158,9 @@
 .fan img:nth-child(4) { transform: translate(-50%, -50%) rotate(11deg)  translate(22%, 4%);  z-index: 1; }
 .fanEmpty { transform: translate(-50%, -50%); }
 
-/* Drag-over: fan the hovered chip's cover open a touch — the only thing
-   that moves, as a "this one receives it" cue. Newest stays on top. */
-.chipTarget .fan img:nth-child(1) { transform: translate(-50%, -50%) rotate(-15deg) translate(-34%, 6%); }
-.chipTarget .fan img:nth-child(2) { transform: translate(-50%, -50%) rotate(-5deg)  translate(-12%, 0); }
-.chipTarget .fan img:nth-child(3) { transform: translate(-50%, -50%) rotate(6deg)   translate(12%, 0); }
-.chipTarget .fan img:nth-child(4) { transform: translate(-50%, -50%) rotate(16deg)  translate(34%, 6%); }
+.rowTarget .fan img:nth-child(1) { transform: translate(-50%, -50%) rotate(-15deg) translate(-34%, 6%); }
+.rowTarget .fan img:nth-child(4) { transform: translate(-50%, -50%) rotate(16deg) translate(34%, 6%); }
 
 @media (prefers-reduced-motion: reduce) {
-  .fan img { transition: none; }
-  .dock { transition: opacity 0.18s ease; transform: none; }
-  .dock:not(.visible) { transform: none; }
+  .edge, .list, .fan img { transition: none; }
 }

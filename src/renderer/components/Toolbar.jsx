@@ -379,7 +379,7 @@ function AddMenu({ compact = false, onUpload, onSaveUrl }) {
   );
 }
 
-function ModePill({ mode, onModeChange, compact = false }) {
+export function ModePill({ mode, onModeChange, compact = false }) {
   // Search lives as the first tab inside the pill, ahead of the three
   // labeled segments. It's icon-only with a circular hover / active fill
   // and sits outside the sliding-thumb track — the thumb only covers the

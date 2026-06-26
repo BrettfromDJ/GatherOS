@@ -5,23 +5,28 @@ import { extractDropImageUrls } from '../lib/dropUrls.js';
 
 const SAVE_DROP_MIME = 'application/x-moodmark-save-ids';
 
-// Drag-activated dock: a slim strip of collection drop-targets that
-// slides in under the toolbar the moment a save is picked up, so you can
-// file it without scrolling back up to the featured row. Mounted (hidden)
-// whenever there are collections; `visible` drives the slide + arms the
-// pointer events. Mirrors FeaturedBuckets' drop routing so it accepts
-// in-app saves, Finder files, and dragged browser images alike.
+// Edge-tab collection dock. While the grid is scrolled (toolbar hidden),
+// collections tuck into a slim handle on the right edge. Hovering it — or
+// dragging a save anywhere — springs out a compact floating list of drop
+// targets, so you can file without scrolling back up and without an
+// edge-to-edge strip. Mirrors FeaturedBuckets' drop routing (in-app
+// saves, Finder files, dragged browser images).
 export default function CollectionDropDock({
   collections,
-  visible,
+  scrolled,
+  dragging,
   onAddSavesToBucket,
   onDropFilesToBucket,
   onExternalDropToBucket,
   onSetAppDragging,
   onDismiss,
 }) {
+  const [hoverExpand, setHoverExpand] = useState(false);
   const [dropTargetId, setDropTargetId] = useState(null);
   if (!collections || collections.length === 0) return null;
+
+  const visible = scrolled || dragging;
+  const expanded = dragging || hoverExpand;
 
   const isSaveDrag = (e) => e.dataTransfer.types.includes(SAVE_DROP_MIME);
   const isFileDrag = (e) => e.dataTransfer.types.includes('Files');
@@ -30,22 +35,18 @@ export default function CollectionDropDock({
     return t.includes('text/uri-list') || t.includes('text/html');
   };
 
-  function handleChipDragOver(e, id) {
+  function handleRowDragOver(e, id) {
     if (!isSaveDrag(e) && !isFileDrag(e) && !isUrlDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
     if (dropTargetId !== id) setDropTargetId(id);
-    // Suppress the full-screen "Drop to save" overlay while hovering a
-    // real target — the chip's own highlight says where it lands.
     onSetAppDragging?.(false);
   }
-
-  function handleChipDragLeave(e) {
+  function handleRowDragLeave(e) {
     if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetId(null);
   }
-
-  async function handleChipDrop(e, id) {
+  async function handleRowDrop(e, id) {
     if (!isSaveDrag(e) && !isFileDrag(e) && !isUrlDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
@@ -54,11 +55,8 @@ export default function CollectionDropDock({
     const files = isFileDrag(e) ? [...e.dataTransfer.files] : [];
     const urls = isUrlDrag(e) ? extractDropImageUrls(e.dataTransfer) : [];
     if (files.length > 0 || urls.length > 0) {
-      if (onExternalDropToBucket) {
-        await onExternalDropToBucket(id, { files, urls });
-      } else if (files.length > 0) {
-        await onDropFilesToBucket?.(id, e.dataTransfer.files);
-      }
+      if (onExternalDropToBucket) await onExternalDropToBucket(id, { files, urls });
+      else if (files.length > 0) await onDropFilesToBucket?.(id, e.dataTransfer.files);
     } else {
       let ids;
       try { ids = JSON.parse(e.dataTransfer.getData(SAVE_DROP_MIME) || '[]'); }
@@ -68,38 +66,66 @@ export default function CollectionDropDock({
     onDismiss?.();
   }
 
+  // Handle artwork: the lead thumbnail of the few most-recent collections,
+  // stacked, so the tab reads as "your collections live here".
+  const handleThumbs = collections
+    .map((c) => (Array.isArray(c.thumbs) && c.thumbs[0]) || null)
+    .filter(Boolean)
+    .slice(0, 3);
+
   return (
     <div
-      className={[styles.dock, visible && styles.visible].filter(Boolean).join(' ')}
-      aria-hidden={!visible}
+      className={[
+        styles.edge,
+        visible && styles.edgeVisible,
+        expanded && styles.edgeExpanded,
+      ].filter(Boolean).join(' ')}
+      onMouseEnter={() => { if (!dragging) setHoverExpand(true); }}
+      onMouseLeave={() => setHoverExpand(false)}
     >
-      <span className={styles.hint}>Drop into</span>
-      <div className={styles.chips}>
-        {collections.map((c) => {
-          const thumbs = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
-          const isTarget = dropTargetId === c.id;
-          return (
-            <div
-              key={c.id}
-              className={[styles.chip, isTarget && styles.chipTarget].filter(Boolean).join(' ')}
-              onDragOver={(e) => handleChipDragOver(e, c.id)}
-              onDragLeave={handleChipDragLeave}
-              onDrop={(e) => handleChipDrop(e, c.id)}
-              title={c.name}
-            >
-              <span className={styles.fan} aria-hidden="true">
-                {thumbs.length > 0 ? (
-                  thumbs.map((t, i) => (
-                    <img key={`${i}-${t}`} src={fileUrl(t)} alt="" draggable={false} />
-                  ))
-                ) : (
-                  <span className={styles.fanEmpty} />
-                )}
-              </span>
-              <span className={styles.name}>{c.name}</span>
-            </div>
-          );
-        })}
+      <div className={styles.list}>
+        <span className={styles.listLabel}>Collections</span>
+        <div className={styles.rows}>
+          {collections.map((c) => {
+            const thumbs = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
+            const isTarget = dropTargetId === c.id;
+            return (
+              <div
+                key={c.id}
+                className={[styles.row, isTarget && styles.rowTarget].filter(Boolean).join(' ')}
+                onDragOver={(e) => handleRowDragOver(e, c.id)}
+                onDragLeave={handleRowDragLeave}
+                onDrop={(e) => handleRowDrop(e, c.id)}
+                title={c.name}
+              >
+                <span className={styles.fan} aria-hidden="true">
+                  {thumbs.length > 0 ? (
+                    thumbs.map((t, i) => (
+                      <img key={`${i}-${t}`} src={fileUrl(t)} alt="" draggable={false} />
+                    ))
+                  ) : (
+                    <span className={styles.fanEmpty} />
+                  )}
+                </span>
+                <span className={styles.rowMeta}>
+                  <span className={styles.rowName}>{c.name}</span>
+                  <span className={styles.rowCount}>{(c.save_count ?? 0).toLocaleString()}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className={styles.handle} aria-hidden="true">
+        <span className={styles.handleStack}>
+          {handleThumbs.length > 0 ? (
+            handleThumbs.map((t, i) => (
+              <img key={`${i}-${t}`} src={fileUrl(t)} alt="" draggable={false} />
+            ))
+          ) : (
+            <span className={styles.handleDot} />
+          )}
+        </span>
       </div>
     </div>
   );
