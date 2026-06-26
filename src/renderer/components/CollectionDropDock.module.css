@@ -24,10 +24,10 @@
    full list. The right edge stays flush against the screen and the drawer
    widens leftward as it fans open. */
 .list {
-  width: 58px;
+  width: 48px;
   max-height: 78vh;
   overflow: hidden;
-  padding: 8px 12px;
+  padding: 8px;
   border-radius: 14px 0 0 14px;
   background: color-mix(in srgb, var(--surface-1) 90%, transparent);
   backdrop-filter: blur(22px) saturate(1.6);
@@ -75,18 +75,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 8px;
+  /* Resting: no side padding so the covers sit centered in the slim deck;
+     the horizontal padding comes back only when fanned open. */
+  padding: 6px 0;
   border-radius: var(--radius-md);
   cursor: pointer;
   /* Resting: rows ride up over each other into a vertical deck. */
   margin-top: -20px;
   transition:
     margin-top 0.3s cubic-bezier(0.2, 0.85, 0.25, 1),
+    padding 0.3s cubic-bezier(0.2, 0.85, 0.25, 1),
     background 0.16s ease;
 }
 .row:first-child { margin-top: 0; }
 /* Fanned open: the deck spreads into spaced, full-width rows. */
-.edge.edgeExpanded .row { margin-top: 2px; }
+.edge.edgeExpanded .row { margin-top: 2px; padding: 6px 8px; }
 .edge.edgeExpanded .row:first-child { margin-top: 0; }
 
 .row:hover { background: var(--hover-bg-soft, rgba(127, 127, 127, 0.12)); }
