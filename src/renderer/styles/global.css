@@ -399,6 +399,61 @@ body:has(.upgrade-banner):has(.selection-bar) .trash-toast {
   white-space: nowrap;
 }
 
+/* Countdown ring for irreversible deferred actions (Empty trash). The
+   ring depletes over the cancel window and the number ticks down inside
+   it; the adjacent "Cancel" chip aborts before the commit fires. */
+.trash-toast-countdown {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+}
+.trash-toast-countdown svg {
+  position: absolute;
+  inset: 0;
+  width: 22px;
+  height: 22px;
+  /* Start the depletion at 12 o'clock. */
+  transform: rotate(-90deg);
+}
+.trash-toast-countdown circle {
+  fill: none;
+  stroke-width: 2.4;
+}
+.trash-toast-ring-track {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+.trash-toast-ring-progress {
+  stroke: #ffffff;
+  stroke-linecap: round;
+  /* 2π·10 ≈ 62.83 — full circumference. Animate the offset from 0 (whole
+     ring drawn) to full (erased) so it empties as the window runs out. */
+  stroke-dasharray: 62.83;
+  stroke-dashoffset: 0;
+  animation: trashCountdownRing linear forwards;
+}
+.trash-toast-countdown-num {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes trashCountdownRing {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 62.83; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trash-toast-ring-progress { animation: none; }
+}
+
 .trash-toast-undo {
   height: 24px;
   padding: 0 12px;

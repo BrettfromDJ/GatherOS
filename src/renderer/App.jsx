@@ -982,10 +982,15 @@ export default function App({ entitlement } = {}) {
     if (commit) commit();
   }, []);
 
-  const showActionToast = useCallback(({ message, onUndo, action, onCommit, thumb, durationMs = 5000 }) => {
+  const showActionToast = useCallback(({ message, onUndo, action, onCommit, thumb, durationMs = 5000, countdown = false }) => {
     runPendingCommit();
     actionToastCommitRef.current = onCommit || null;
-    setActionToast({ message, onUndo, action, thumb });
+    setActionToast({
+      message, onUndo, action, thumb, countdown, durationMs,
+      // Deadline drives the visible countdown ring/number; only set when
+      // a countdown was requested (irreversible commits like Empty trash).
+      deadline: countdown ? Date.now() + durationMs : null,
+    });
     actionToastTimerRef.current = setTimeout(() => {
       const commit = actionToastCommitRef.current;
       actionToastCommitRef.current = null;
@@ -994,6 +999,17 @@ export default function App({ entitlement } = {}) {
       if (commit) commit();
     }, durationMs);
   }, [runPendingCommit]);
+
+  // Live seconds remaining for a countdown toast (Empty trash). Ticks
+  // while a countdown toast is up; the ring itself animates in CSS.
+  const [countdownLeft, setCountdownLeft] = useState(0);
+  useEffect(() => {
+    if (!actionToast?.countdown || !actionToast.deadline) { setCountdownLeft(0); return undefined; }
+    const tick = () => setCountdownLeft(Math.max(0, Math.ceil((actionToast.deadline - Date.now()) / 1000)));
+    tick();
+    const iv = setInterval(tick, 200);
+    return () => clearInterval(iv);
+  }, [actionToast]);
 
   // X bookmark syncs arrive batched: the main process collects the burst
   // and fires one summary instead of a per-save toast/sound/animation.
@@ -1070,11 +1086,12 @@ export default function App({ entitlement } = {}) {
 
   // Deferred permanent delete. Hides items immediately; only hits the
   // unlink IPC if the toast's 5s window expires without an Undo.
-  const showPermanentDeleteToast = useCallback((ids) => {
+  const showPermanentDeleteToast = useCallback((ids, opts = {}) => {
     if (!ids?.length) return;
     hideSavesLocal(ids);
     showActionToast({
-      message: ids.length === 1 ? 'Deleted forever' : `${ids.length} deleted forever`,
+      message: opts.message || (ids.length === 1 ? 'Deleted forever' : `${ids.length} deleted forever`),
+      countdown: !!opts.countdown,
       onUndo: () => reload(), // rows are still in DB with deleted_at set
       onCommit: () => {
         // Window passed without Undo — actually unlink files now.
@@ -2530,8 +2547,14 @@ export default function App({ entitlement } = {}) {
     if (saves.length === 0) return;
     playEmptyTrashSound();
     const ids = saves.map((s) => s.id);
+    const n = ids.length;
     setSelected(new Set());
-    showPermanentDeleteToast(ids);
+    // Emptying trash is irreversible once it commits, so make the cancel
+    // window explicit: a countdown the user can cancel before files unlink.
+    showPermanentDeleteToast(ids, {
+      countdown: true,
+      message: n === 1 ? 'Emptying trash · 1 item' : `Emptying trash · ${n} items`,
+    });
   }, [saves, showPermanentDeleteToast]);
 
   const handleOpenInPreview = useCallback((filePath) => {
@@ -3648,9 +3671,24 @@ export default function App({ entitlement } = {}) {
             )
           )}
           <span className="trash-toast-label">{actionToast.message}</span>
+          {actionToast.countdown && (
+            <span className="trash-toast-countdown" aria-label={`${countdownLeft} seconds to cancel`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="trash-toast-ring-track" cx="12" cy="12" r="10" />
+                <circle
+                  className="trash-toast-ring-progress"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  style={{ animationDuration: `${actionToast.durationMs}ms` }}
+                />
+              </svg>
+              <span className="trash-toast-countdown-num">{countdownLeft}</span>
+            </span>
+          )}
           {actionToast.onUndo && (
             <button type="button" className="trash-toast-undo" onClick={handleActionToastUndo}>
-              Undo
+              {actionToast.countdown ? 'Cancel' : 'Undo'}
             </button>
           )}
           {actionToast.action && (
