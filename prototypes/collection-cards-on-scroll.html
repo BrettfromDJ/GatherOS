@@ -91,6 +91,14 @@
   .fan .t:nth-child(3){transform:translate(-50%,-50%) rotate(4deg)  translate(7%,0);z-index:2}
   .fan .t:nth-child(4){transform:translate(-50%,-50%) rotate(11deg) translate(20%,5%);z-index:1}
 
+  /* collection container — lays the cards out per variant */
+  .js-cols{display:flex;gap:8px;align-items:center;min-width:0}
+  .js-cols[data-variant="full"]{gap:12px;margin-bottom:18px;align-items:flex-start;overflow:hidden}
+  .js-cols[data-variant="chip"]{gap:7px;overflow:hidden}
+  .js-cols[data-variant="dock-chip"]{gap:8px;overflow:hidden}
+  .js-cols[data-variant="row"],
+  .js-cols[data-variant="rail-item"]{flex-direction:column;align-items:stretch;gap:4px}
+
   /* collection element (generic, variant-scaled) */
   .col{position:relative;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s}
   .col-meta{display:flex;flex-direction:column;gap:1px}
