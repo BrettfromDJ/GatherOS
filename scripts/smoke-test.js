@@ -43,7 +43,13 @@ if (!fs.existsSync(BINARY)) {
 console.log(`[smoke-test] Launching ${BINARY}`);
 console.log(`[smoke-test] Watching stderr for ${TIMEOUT_MS / 1000}s…`);
 
-const child = spawn(BINARY, [], {
+// Launch into a throwaway userData dir so the app's single-instance lock
+// can't collide with a GatherOS the developer already has running (dev or
+// installed). Without this the new process quits cleanly on launch and
+// the test reads that exit as a failure even though the build is fine.
+const tmpUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'gatheros-smoke-'));
+
+const child = spawn(BINARY, [`--user-data-dir=${tmpUserData}`], {
   env: { ...process.env, ELECTRON_ENABLE_LOGGING: '1' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -70,6 +76,7 @@ watchStream(child.stdout);
 
 function finish(passed, reason) {
   try { child.kill('SIGKILL'); } catch {}
+  try { fs.rmSync(tmpUserData, { recursive: true, force: true }); } catch {}
   if (passed) {
     console.log(`[smoke-test] PASS — ${reason}`);
     process.exit(0);
