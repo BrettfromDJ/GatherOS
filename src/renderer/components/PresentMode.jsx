@@ -2,19 +2,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import styles from './PresentMode.module.css';
 import { resolveAsset } from '../lib/asset.js';
 
-// How many neighbours to render on each side of the active item. Kept
-// small — the rest are off-screen / fully faded anyway.
-const WINDOW = 4;
+// How many neighbours to render on each side of the active item.
+const WINDOW = 3;
 
 // Coverflow geometry (tunable). X in vw so it scales with the window; Z
-// in px; angle/scale linear in the offset. Side panels rotate to face the
-// centre, so they read as wrapping toward the viewer.
-const BASE_VW = 46;     // x of the first neighbour
-const STEP_VW = 18;     // additional x per further neighbour
-const DEPTH_PX = 180;   // z recession per step
-const ANGLE_DEG = 46;   // rotateY of side panels
-const SCALE_STEP = 0.09;
-const OPACITY_STEP = 0.2;
+// in px. Side panels keep a strong, constant tilt so they read as warped
+// flat panels wrapping toward the viewer (no fade — every image stays
+// fully opaque).
+const BASE_VW = 30;     // x of the first neighbour
+const STEP_VW = 21;     // additional x per further neighbour
+const DEPTH_PX = 150;   // z recession per step
+const ANGLE_DEG = 52;   // rotateY of side panels
+const SCALE_STEP = 0.05;
 
 function transformFor(k) {
   if (k === 0) return 'translateX(0) translateZ(0) rotateY(0deg) scale(1)';
@@ -23,7 +22,7 @@ function transformFor(k) {
   const xvw = sign * (BASE_VW + (ak - 1) * STEP_VW);
   const z = -ak * DEPTH_PX;
   const ry = -sign * ANGLE_DEG; // face the centre
-  const s = Math.max(0.5, 1 - ak * SCALE_STEP);
+  const s = Math.max(0.6, 1 - ak * SCALE_STEP);
   return `translateX(${xvw}vw) translateZ(${z}px) rotateY(${ry}deg) scale(${s})`;
 }
 
@@ -76,7 +75,6 @@ export default function PresentMode({ saves, name, startIndex = 0, onClose }) {
 
   return (
     <div className={styles.scene} role="dialog" aria-label={`Presenting ${name || 'collection'}`}>
-      <div className={styles.stage} aria-hidden="true" />
       <div className={styles.track}>
         {[...byIdx.entries()].map(([idx, k]) => (
           <div
@@ -84,7 +82,6 @@ export default function PresentMode({ saves, name, startIndex = 0, onClose }) {
             className={[styles.item, k === 0 && styles.itemActive].filter(Boolean).join(' ')}
             style={{
               transform: transformFor(k),
-              opacity: k === 0 ? 1 : Math.max(0, 1 - Math.abs(k) * OPACITY_STEP),
               zIndex: 100 - Math.abs(k),
             }}
             onClick={() => { if (k !== 0) setActive(idx); }}

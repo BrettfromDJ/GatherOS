@@ -15,22 +15,6 @@
   to   { opacity: 1; }
 }
 
-/* Glass plate behind the active image, slightly larger than it. */
-.stage {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 60vw;
-  height: 76vh;
-  transform: translate(-50%, -50%);
-  border-radius: 26px;
-  background: rgba(42, 42, 47, 0.5);
-  backdrop-filter: blur(34px) saturate(1.2);
-  -webkit-backdrop-filter: blur(34px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 50px 140px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
 .track {
   position: absolute;
   inset: 0;
@@ -43,35 +27,31 @@
 .item {
   position: absolute;
   left: 50%;
-  top: 46%;
-  width: 44vw;
-  height: 74vh;
-  margin-left: -22vw;
-  margin-top: -37vh;
+  top: 47%;
+  width: 36vw;
+  height: 82vh;
+  margin-left: -18vw;
+  margin-top: -41vh;
   display: flex;
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
-  will-change: transform, opacity;
-  transition:
-    transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 0.55s ease;
+  will-change: transform;
+  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
   cursor: pointer;
 }
 .item img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 10px;
-  background: #0c0c0d;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+  /* Flat panels — no card chrome — so the 3D tilt reads as warped edges
+     rather than floating cards. A faint contact shadow only. */
+  border-radius: 3px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
   -webkit-user-drag: none;
 }
 .itemActive {
   cursor: default;
-}
-.itemActive img {
-  box-shadow: 0 44px 110px rgba(0, 0, 0, 0.72), 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 /* Chrome — kept minimal and out of the way. */
@@ -161,5 +141,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scene { animation: none; }
-  .item { transition: opacity 0.2s ease; }
+  .item { transition: none; }
 }
