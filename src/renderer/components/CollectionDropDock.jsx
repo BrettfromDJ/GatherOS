@@ -28,6 +28,7 @@ export default function CollectionDropDock({
   onDropFilesToBucket,
   onExternalDropToBucket,
   onSetAppDragging,
+  onOpenCollection,
   onDismiss,
 }) {
   const [hoverExpand, setHoverExpand] = useState(false);
@@ -54,6 +55,14 @@ export default function CollectionDropDock({
   }
   function handleRowDragLeave(e) {
     if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetId(null);
+  }
+  // Open the collection in the grid. A row serves two purposes — drop
+  // target AND navigation — so a plain click (no drag) jumps to it and
+  // collapses the dock. Works even for collections the dragged save is
+  // already in; "already" only blocks the *drop*, not navigation.
+  function handleRowClick(id) {
+    onOpenCollection?.(id);
+    onDismiss?.();
   }
   async function handleRowDrop(e, id) {
     if (!isSaveDrag(e) && !isFileDrag(e) && !isUrlDrag(e)) return;
@@ -104,15 +113,24 @@ export default function CollectionDropDock({
             return (
               <div
                 key={c.id}
+                role="button"
+                tabIndex={0}
                 className={[
                   styles.row,
                   already && styles.rowIn,
                   isTarget && styles.rowTarget,
                 ].filter(Boolean).join(' ')}
+                onClick={() => handleRowClick(c.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleRowClick(c.id);
+                  }
+                }}
                 onDragOver={already ? undefined : (e) => handleRowDragOver(e, c.id)}
                 onDragLeave={already ? undefined : handleRowDragLeave}
                 onDrop={already ? undefined : (e) => handleRowDrop(e, c.id)}
-                title={already ? `${c.name} — already in this collection` : c.name}
+                title={already ? `${c.name} — already in this collection · click to open` : `${c.name} — click to open or drop here`}
               >
                 <span className={styles.fan} aria-hidden="true">
                   {thumbs.length > 0 ? (

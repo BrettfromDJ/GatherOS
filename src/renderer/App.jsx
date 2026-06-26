@@ -3502,6 +3502,7 @@ export default function App({ entitlement } = {}) {
                 onDropFilesToBucket={handleDropFilesToBucket}
                 onExternalDropToBucket={handleExternalDropToBucket}
                 onSetAppDragging={setDragging}
+                onOpenCollection={(id) => handleViewChange({ type: 'collection', id })}
                 onDismiss={() => setSaveDragActive(false)}
               />
               <div className="grid-scroll" ref={setGridScrollNode}>
