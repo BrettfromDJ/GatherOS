@@ -153,7 +153,11 @@ body[data-board-print="true"] .main-col {
    grid with a stronger shadow. */
 .mode-pill-float {
   position: fixed;
-  top: 14px;
+  /* Match the in-toolbar pill exactly so the tab bar doesn't shift
+     vertically between states: the toolbar's padding-top (28px) is where
+     the in-flow pill's top edge sits, and the toolbar starts at the top
+     of the content with no offset above it. */
+  top: 28px;
   left: 50%;
   z-index: 45;
   transform: translateX(-50%);
