@@ -428,7 +428,8 @@ body:has(.upgrade-banner):has(.selection-bar) .trash-toast {
   stroke: rgba(255, 255, 255, 0.18);
 }
 .trash-toast-ring-progress {
-  stroke: #ffffff;
+  /* Red — this is the irreversible-delete countdown. */
+  stroke: #ff453a;
   stroke-linecap: round;
   /* 2π·10 ≈ 62.83 — full circumference. Animate the offset from 0 (whole
      ring drawn) to full (erased) so it empties as the window runs out. */
