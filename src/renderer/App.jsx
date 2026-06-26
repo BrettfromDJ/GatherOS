@@ -23,6 +23,7 @@ import ConfirmHost from './components/ConfirmHost.jsx';
 import Toolbar from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
+import CollectionDropDock from './components/CollectionDropDock.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
 import SmartChipRail from './components/SmartChipRail.jsx';
@@ -518,6 +519,12 @@ export default function App({ entitlement } = {}) {
   const [morphId, setMorphId] = useState(null);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // True while an in-app save card is being dragged — arms the
+  // collection drop-dock so you can file without scrolling up.
+  const [saveDragActive, setSaveDragActive] = useState(false);
+  // True once the grid is scrolled past the featured-buckets row, so the
+  // dock only appears when the real cards are out of reach.
+  const [scrolledPastBuckets, setScrolledPastBuckets] = useState(false);
   // Sidebar removed in nav stage 4d. The legacy auto-collapse-on-
   // board-entry effect lived here; with no sidebar there's nothing
   // to collapse.
@@ -1445,6 +1452,12 @@ export default function App({ entitlement } = {}) {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/x-moodmark-save-ids', JSON.stringify(ids));
 
+    // Arm the collection drop-dock for the duration of this drag, so a
+    // scrolled-down grid still has collection targets. dragend (fires on
+    // the source for both drop + cancel) disarms it; once:true cleans up.
+    setSaveDragActive(true);
+    window.addEventListener('dragend', () => setSaveDragActive(false), { once: true });
+
     // Drag image: paint the card's already-loaded <img> into a small
     // canvas, then use that canvas as the drag image. Canvases have
     // their pixels available synchronously after drawImage, unlike a
@@ -2229,6 +2242,7 @@ export default function App({ entitlement } = {}) {
     if (!node) {
       setScrolledFar(false);
       setScrolledOff(false);
+      setScrolledPastBuckets(false);
       return;
     }
     let ticking = false;
@@ -2250,6 +2264,9 @@ export default function App({ entitlement } = {}) {
         }, 400);
         setScrolledFar(t > 720);
         setScrolledOff(t > 8);
+        // ~past the featured-buckets row (chip rail + cards): below this
+        // the real collection cards are gone, so the drop-dock takes over.
+        setScrolledPastBuckets(t > 150);
         ticking = false;
       });
     };
@@ -2270,6 +2287,7 @@ export default function App({ entitlement } = {}) {
     lastGridScrollRef.current = t0;
     setScrolledFar(t0 > 720);
     setScrolledOff(t0 > 8);
+    setScrolledPastBuckets(t0 > 150);
   }, []);
   const scrollGridToTop = useCallback(() => {
     gridScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3278,6 +3296,16 @@ export default function App({ entitlement } = {}) {
                   scrollRef={setGridScrollNode}
                 />
               ) : (
+              <div className="library-stage">
+              <CollectionDropDock
+                collections={collections}
+                visible={saveDragActive && scrolledPastBuckets && view.type === 'all'}
+                onAddSavesToBucket={handleAddSavesToBucket}
+                onDropFilesToBucket={handleDropFilesToBucket}
+                onExternalDropToBucket={handleExternalDropToBucket}
+                onSetAppDragging={setDragging}
+                onDismiss={() => setSaveDragActive(false)}
+              />
               <div className="grid-scroll" ref={setGridScrollNode}>
                 {(appMode === 'library'
                   || (appMode === 'folders' && view.type === 'collection')) && (
@@ -3349,6 +3377,7 @@ export default function App({ entitlement } = {}) {
                   sourceFilter={sourceFilter}
                   highlightId={highlightId}
                 />
+              </div>
               </div>
               )}
             </>

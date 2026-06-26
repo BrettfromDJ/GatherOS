@@ -1,0 +1,138 @@
+/* Slim drop-dock pinned at the top of the content area (just under the
+   toolbar). Hidden — slightly raised + transparent + click-through —
+   until a save drag arms it, when it eases down into place. */
+.dock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(112%);
+  -webkit-backdrop-filter: blur(14px) saturate(112%);
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+.dock.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.hint {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding-bottom: 1px;
+}
+.chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 13px 5px 7px;
+  border-radius: 999px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  cursor: default;
+  transition: background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.chip:hover {
+  background: var(--hover-bg-soft, rgba(127, 127, 127, 0.14));
+}
+
+.name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drop-target: accent ring + the cover fans a touch + "+1" pops. */
+.chipTarget {
+  background: var(--accent-bg-faint, rgba(120, 110, 255, 0.12));
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-bg-faint, rgba(120, 110, 255, 0.12));
+  transform: translateY(-1px);
+}
+
+.plus {
+  flex: 0 0 auto;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  animation: dockPlusPop 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes dockPlusPop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Mini fanned cover — same recipe as the featured cards, scaled down,
+   newest save on top. */
+.fan {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 30px;
+}
+.fan img,
+.fanEmpty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 74%;
+  height: 92%;
+  border-radius: 4px;
+  object-fit: cover;
+  background: rgba(127, 127, 127, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.fan img:nth-child(1) { transform: translate(-50%, -50%) rotate(-10deg) translate(-22%, 4%); z-index: 4; }
+.fan img:nth-child(2) { transform: translate(-50%, -50%) rotate(-3deg)  translate(-8%, 0);   z-index: 3; }
+.fan img:nth-child(3) { transform: translate(-50%, -50%) rotate(4deg)   translate(8%, 0);    z-index: 2; }
+.fan img:nth-child(4) { transform: translate(-50%, -50%) rotate(11deg)  translate(22%, 4%);  z-index: 1; }
+.fanEmpty { transform: translate(-50%, -50%); }
+
+/* The target's cover opens a hair wider, echoing the featured fan. */
+.chipTarget .fan img:nth-child(1) { transform: translate(-50%, -50%) rotate(-15deg) translate(-30%, 6%); }
+.chipTarget .fan img:nth-child(4) { transform: translate(-50%, -50%) rotate(16deg) translate(30%, 6%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dock { transition: opacity 0.18s ease; transform: none; }
+  .dock:not(.visible) { transform: none; }
+}

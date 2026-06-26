@@ -122,6 +122,17 @@ body[data-board-print="true"] .main-col {
   background: var(--content-bg);
 }
 
+/* Wraps the library scroller so the drag-activated collection drop-dock
+   can anchor to the top of the content area (just under the toolbar)
+   without scrolling away with the grid. */
+.library-stage {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .grid-scroll {
   flex: 1 1 auto;
   overflow-y: auto;
