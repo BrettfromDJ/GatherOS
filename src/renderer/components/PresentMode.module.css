@@ -1,0 +1,165 @@
+/* Full-screen 3D present mode — the active image sits on a frosted glass
+   stage while the rest of the collection wraps around it in depth. */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: #000;
+  overflow: hidden;
+  perspective: 1700px;
+  perspective-origin: 50% 46%;
+  animation: sceneIn 0.34s ease both;
+}
+@keyframes sceneIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Glass plate behind the active image, slightly larger than it. */
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 60vw;
+  height: 76vh;
+  transform: translate(-50%, -50%);
+  border-radius: 26px;
+  background: rgba(42, 42, 47, 0.5);
+  backdrop-filter: blur(34px) saturate(1.2);
+  -webkit-backdrop-filter: blur(34px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 50px 140px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.track {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+/* Each frame: a centered box; the per-item transform places it in the
+   coverflow. The box is centered via margins so transforms pivot about
+   its middle. */
+.item {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 44vw;
+  height: 74vh;
+  margin-left: -22vw;
+  margin-top: -37vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.55s ease;
+  cursor: pointer;
+}
+.item img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #0c0c0d;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+  -webkit-user-drag: none;
+}
+.itemActive {
+  cursor: default;
+}
+.itemActive img {
+  box-shadow: 0 44px 110px rgba(0, 0, 0, 0.72), 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Chrome — kept minimal and out of the way. */
+.title {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.counter {
+  position: absolute;
+  bottom: 30px;
+  right: 26px;
+  z-index: 10;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.exit {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  z-index: 10;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.exit:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(26, 26, 30, 0.6);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+.controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.controls button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene { animation: none; }
+  .item { transition: opacity 0.2s ease; }
+}

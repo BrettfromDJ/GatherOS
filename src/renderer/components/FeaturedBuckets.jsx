@@ -84,6 +84,7 @@ export default function FeaturedBuckets({
   onExternalDropToBucket,
   onSetAppDragging,
   onOpenCollectionAsSpace,
+  onPresentCollection,
   onCreateCollection,
 }) {
   // Right-click context menu anchor + the bucket it targets.
@@ -335,6 +336,16 @@ export default function FeaturedBuckets({
           x={ctxMenu.x}
           y={ctxMenu.y}
           items={[
+            ...(typeof onPresentCollection === 'function' ? [{
+              label: 'Present',
+              icon: (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="8.5" rx="1.2" />
+                  <path d="M6.5 14h3M8 11.5V14" />
+                </svg>
+              ),
+              onClick: () => onPresentCollection(ctxMenu.collection.id, ctxMenu.collection.name),
+            }] : []),
             ...(typeof onShuffleView === 'function' ? [{
               label: 'Shuffle',
               icon: (

@@ -219,6 +219,7 @@ export default function FolderGrid({
   onExternalDropToBucket,
   onSetAppDragging,
   onOpenCollectionAsSpace,
+  onPresentCollection,
   // Same hook BoardGrid uses — App attaches its scroll listener here
   // so the toolbar's drop-shadow engages once the collections grid is
   // scrolled past the top.
@@ -443,6 +444,16 @@ export default function FolderGrid({
           x={ctxMenu.x}
           y={ctxMenu.y}
           items={[
+            ...(typeof onPresentCollection === 'function' ? [{
+              label: 'Present',
+              icon: (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="8.5" rx="1.2" />
+                  <path d="M6.5 14h3M8 11.5V14" />
+                </svg>
+              ),
+              onClick: () => onPresentCollection(ctxMenu.folder.id, ctxMenu.folder.name),
+            }] : []),
             {
               label: 'Rename',
               icon: <PencilIcon />,

@@ -24,6 +24,7 @@ import Toolbar, { ModePill } from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
 import CollectionDropDock from './components/CollectionDropDock.jsx';
+import PresentMode from './components/PresentMode.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
 import SmartChipRail from './components/SmartChipRail.jsx';
@@ -236,6 +237,19 @@ export default function App({ entitlement } = {}) {
   // empty query returns them there with the grid scroll intact.
   // { mode, view, scrollTop }.
   const preSearchRef = useRef(null);
+
+  // Full-screen 3D present mode for a collection. { name, saves } | null.
+  const [present, setPresent] = useState(null);
+  const handlePresentCollection = useCallback(async (collectionId, collectionName) => {
+    try {
+      const rows = await window.moodmark.saves.getAll({ collectionId });
+      if (Array.isArray(rows) && rows.length > 0) {
+        setPresent({ collectionId, saves: rows, name: collectionName || 'Collection' });
+      }
+    } catch (err) {
+      console.error('[present] failed to load collection saves:', err);
+    }
+  }, []);
 
   // Strip the leftover focus ring after Escape closes a modal/popover.
   // Chromium promotes :focus-visible on Escape (keyboard event), so the
@@ -3471,6 +3485,7 @@ export default function App({ entitlement } = {}) {
                   onExternalDropToBucket={handleExternalDropToBucket}
                   onSetAppDragging={setDragging}
                   onOpenCollectionAsSpace={handleOpenCollectionAsSpace}
+                  onPresentCollection={handlePresentCollection}
                   scrollRef={setGridScrollNode}
                 />
               ) : appMode === 'boards' ? (
@@ -3549,6 +3564,7 @@ export default function App({ entitlement } = {}) {
                     onExternalDropToBucket={handleExternalDropToBucket}
                     onSetAppDragging={setDragging}
                     onOpenCollectionAsSpace={handleOpenCollectionAsSpace}
+                    onPresentCollection={handlePresentCollection}
                   />
                 )}
                 <Grid
@@ -3795,6 +3811,14 @@ export default function App({ entitlement } = {}) {
             <span className="library-switch-name">{librarySwitchOverlay.name}</span>
           </div>
         </div>
+      )}
+
+      {present && (
+        <PresentMode
+          saves={present.saves}
+          name={present.name}
+          onClose={() => setPresent(null)}
+        />
       )}
 
       {pendingUpdate && (
