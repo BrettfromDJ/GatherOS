@@ -20,6 +20,31 @@ import {
 
 export const RELEASE_NOTES = [
   {
+    version: '0.4.3',
+    items: [
+      {
+        Icon: WindowIcon,
+        title: 'The grid takes over on scroll',
+        description: 'Scroll into your library and the toolbar rolls away — the masonry goes edge-to-edge with just the tabs floating at the top, so your work fills the whole screen.',
+      },
+      {
+        Icon: CardsIcon,
+        title: 'File into collections from anywhere',
+        description: 'Pick up a card while scrolled and a slim collection tab slides out from the right edge to drop it into — no scrolling back up. Collections it already lives in are marked.',
+      },
+      {
+        Icon: GlassIcon,
+        title: 'Eyedropper loupe',
+        description: 'The colour picker is now a real magnifier — a zoomed loupe with the live hex follows your cursor; click to copy and the ring flashes the colour.',
+      },
+      {
+        Icon: PermissionIcon,
+        title: 'Search that teaches',
+        description: 'The search field rotates through real tags and the dominant colours from your own library (“Try ‘navy’”), so you learn what’s searchable. A near-duplicate tag now offers to merge instead of fragmenting.',
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     items: [
       {
