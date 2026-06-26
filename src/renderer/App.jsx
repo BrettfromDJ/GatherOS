@@ -1458,6 +1458,79 @@ export default function App({ entitlement } = {}) {
     setSaveDragActive(true);
     window.addEventListener('dragend', () => setSaveDragActive(false), { once: true });
 
+    // Tweet / text-post cards have no representative image — the only
+    // <img> is a tiny avatar, which the canvas path below would upscale
+    // into a blurry square. Build a crisp mini-tweet card (avatar +
+    // author + a couple lines) and use that DOM node as the drag image.
+    if (record.kind === 'tweet') {
+      let meta = null;
+      try { meta = record.tweet_meta ? JSON.parse(record.tweet_meta) : null; } catch { meta = null; }
+      const name = (meta?.authorName || meta?.authorHandle || 'Post').trim();
+      const handleRaw = (meta?.authorHandle || '').trim();
+      const handle = handleRaw ? (handleRaw.startsWith('@') ? handleRaw : `@${handleRaw}`) : '';
+      const caption = (meta?.caption || record.title || '').trim();
+      const avatarUrl = (typeof meta?.authorAvatarUrl === 'string' && /^https?:\/\//i.test(meta.authorAvatarUrl))
+        ? meta.authorAvatarUrl : '';
+      const initials = (name.replace(/^@/, '').slice(0, 1) || '#').toUpperCase();
+
+      const chip = document.createElement('div');
+      chip.style.cssText = 'position:fixed;top:0;left:-10000px;box-sizing:border-box;width:248px;'
+        + 'padding:12px 14px;border-radius:12px;display:flex;gap:10px;align-items:flex-start;'
+        + 'background:#1d1d20;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;'
+        + 'box-shadow:0 12px 30px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);pointer-events:none;';
+
+      const av = document.createElement('div');
+      av.style.cssText = 'flex:0 0 auto;width:34px;height:34px;border-radius:50%;overflow:hidden;'
+        + 'background:#3a3a40;display:flex;align-items:center;justify-content:center;'
+        + 'font-size:14px;font-weight:600;color:rgba(255,255,255,.85);';
+      if (avatarUrl) {
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        av.appendChild(img);
+      } else {
+        av.textContent = initials;
+      }
+      chip.appendChild(av);
+
+      const col = document.createElement('div');
+      col.style.cssText = 'min-width:0;flex:1 1 auto;';
+      const nameRow = document.createElement('div');
+      nameRow.style.cssText = 'font-size:13px;font-weight:600;line-height:1.2;'
+        + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      nameRow.textContent = name;
+      col.appendChild(nameRow);
+      if (handle) {
+        const h = document.createElement('div');
+        h.style.cssText = 'font-size:12px;color:rgba(255,255,255,.5);line-height:1.2;margin-top:1px;'
+          + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        h.textContent = handle;
+        col.appendChild(h);
+      }
+      if (caption) {
+        const body = document.createElement('div');
+        body.style.cssText = 'margin-top:5px;font-size:12.5px;line-height:1.35;color:rgba(255,255,255,.82);'
+          + 'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;';
+        body.textContent = caption;
+        col.appendChild(body);
+      }
+      chip.appendChild(col);
+
+      if (ids.length > 1) {
+        const badge = document.createElement('div');
+        badge.textContent = String(ids.length);
+        badge.style.cssText = 'position:absolute;top:-8px;right:-8px;min-width:20px;height:20px;padding:0 5px;'
+          + 'border-radius:10px;background:#ff3b30;color:#fff;font-size:11px;font-weight:700;'
+          + 'display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #1d1d20;';
+        chip.appendChild(badge);
+      }
+
+      document.body.appendChild(chip);
+      e.dataTransfer.setDragImage(chip, 22, 20);
+      setTimeout(() => chip.remove(), 0);
+      return;
+    }
+
     // Drag image: paint the card's already-loaded <img> into a small
     // canvas, then use that canvas as the drag image. Canvases have
     // their pixels available synchronously after drawImage, unlike a
