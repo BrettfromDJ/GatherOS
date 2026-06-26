@@ -3367,7 +3367,7 @@ export default function App({ entitlement } = {}) {
                 onBackToAll={null}
                 mode={appMode}
                 onModeChange={handleModeChange}
-                modePillCompact={scrolledOff}
+                modePillCompact={false}
                 onOpenSettings={() => setSettingsOpen(true)}
                 onOpenShortcuts={() => setShortcutsOpen(true)}
                 onOpenReleaseNotes={handleOpenReleaseNotes}
