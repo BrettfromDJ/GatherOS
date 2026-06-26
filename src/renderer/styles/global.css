@@ -463,7 +463,12 @@ body:has(.selection-bar) .trash-toast {
   width: 38px;
   height: 38px;
   padding: 0;
-  background: var(--surface-1);
+  /* Frosted glass — translucent fill + backdrop blur so it lifts off the
+     grid. Hover gets MORE opaque (not less), so it never reads as
+     transparent. */
+  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -475,7 +480,7 @@ body:has(.selection-bar) .trash-toast {
 
 .scroll-top-fab:hover {
   transform: translateY(-1px);
-  background: var(--hover-bg-soft);
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
 }
 
 .scroll-top-fab:active { transform: translateY(0); }

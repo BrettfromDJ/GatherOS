@@ -3378,7 +3378,7 @@ export default function App({ entitlement } = {}) {
           ) : (
             <>
               <div
-                className={`toolbar-shell${appMode === 'library' && scrolledHideBar ? ' toolbar-hidden' : ''}`}
+                className={`toolbar-shell${(appMode === 'library' || (appMode === 'folders' && view.type === 'collection')) && scrolledHideBar ? ' toolbar-hidden' : ''}`}
               >
                <div className="toolbar-shell-inner">
               <Toolbar
@@ -3427,7 +3427,7 @@ export default function App({ entitlement } = {}) {
               </div>
               {/* Floating centered mode tabs — shown when the toolbar is
                   hidden on scroll. Full size (not the compact pill). */}
-              {appMode === 'library' && scrolledHideBar && (
+              {(appMode === 'library' || (appMode === 'folders' && view.type === 'collection')) && scrolledHideBar && (
                 <div className="mode-pill-float">
                   <ModePill mode={appMode} onModeChange={handleModeChange} />
                 </div>
@@ -3509,8 +3509,8 @@ export default function App({ entitlement } = {}) {
               <div className="library-stage">
               <CollectionDropDock
                 collections={collections}
-                scrolled={appMode === 'library' && scrolledHideBar && view.type === 'all'}
-                dragging={saveDragActive && view.type === 'all'}
+                scrolled={(appMode === 'library' || (appMode === 'folders' && view.type === 'collection')) && scrolledHideBar}
+                dragging={saveDragActive}
                 inCollectionIds={dragInCollectionIds}
                 onAddSavesToBucket={handleAddSavesToBucket}
                 onDropFilesToBucket={handleDropFilesToBucket}

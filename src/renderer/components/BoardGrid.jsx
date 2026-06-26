@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  Frame, Pencil, Trash2, Plus,
+  Eclipse as LayersIcon, Pencil, Trash2, Plus,
   GripVertical, Clock, ArrowDownAZ, ArrowDownZA,
   ArrowDownWideNarrow, ArrowDownNarrowWide,
 } from 'lucide-react';
@@ -431,7 +431,7 @@ export default function BoardGrid({
   if (!boards || boards.length === 0) {
     return (
       <div className={styles.empty}>
-        <Frame size={36} strokeWidth={1.3} className={styles.emptyIcon} />
+        <LayersIcon size={36} strokeWidth={1.3} className={styles.emptyIcon} />
         <div className={styles.emptyTitle}>No spaces yet</div>
         <div className={styles.emptyHint}>
           Spaces are infinite canvases — drop images, sticky notes, and
