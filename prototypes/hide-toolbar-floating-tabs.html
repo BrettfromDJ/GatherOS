@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hide the toolbar on scroll — centered tabs, edge-to-edge grid, floating drop-dock</title>
+<style>
+  :root{
+    --bg:#0f0f11;--panel:#161618;--panel-2:#1c1c1f;
+    --line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.16);
+    --txt:rgba(255,255,255,.92);--txt-2:rgba(255,255,255,.6);--txt-3:rgba(255,255,255,.4);
+    --accent:#8b7bff;--accent-soft:rgba(139,123,255,.16);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--txt)}
+  body{padding-top:96px}
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(15,15,17,.86);
+    backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:14px 22px 12px}
+  .topbar h1{font-size:13.5px;font-weight:600;margin:0 0 10px;letter-spacing:-.01em}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);
+    color:var(--txt-2);border-radius:999px;padding:6px 13px 6px 8px;font-size:12.5px;cursor:pointer;transition:.15s}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+    background:var(--panel-2);color:var(--txt-3);font-size:11px;font-weight:600}
+  .tab:hover{border-color:var(--line-2);color:var(--txt)}
+  .tab.active{background:var(--accent-soft);border-color:var(--accent);color:#fff}
+  .tab.active .n{background:var(--accent);color:#fff}
+
+  .iter{display:none;max-width:1120px;margin:0 auto;padding:22px}
+  .iter.active{display:block}
+  .meta .name{font-size:20px;font-weight:650;letter-spacing:-.02em}
+  .meta .why{margin-top:5px;font-size:13.5px;color:var(--txt-2);max-width:780px;line-height:1.5}
+  .controls{display:flex;gap:6px;margin:13px 2px;align-items:center}
+  .controls .lbl{font-size:11px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.08em;margin-right:4px}
+  .sbtn{border:1px solid var(--line);background:var(--panel);color:var(--txt-2);border-radius:8px;
+    padding:6px 12px;font-size:12px;cursor:pointer;transition:.15s}
+  .sbtn:hover{border-color:var(--line-2);color:var(--txt)}
+  .sbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .frame{position:relative;height:520px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+
+  /* full toolbar — overlays the top; hides on scroll/drag */
+  .toolbar{position:absolute;top:0;left:0;right:0;height:54px;z-index:30;display:flex;align-items:center;
+    justify-content:space-between;padding:0 14px;background:rgba(22,22,24,.94);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+    transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .26s ease}
+  .frame[data-state="scroll"] .toolbar,.frame[data-state="drag"] .toolbar{transform:translateY(-100%);opacity:0;pointer-events:none}
+  .tl-left,.tl-right{display:flex;align-items:center;gap:10px}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--accent)}
+  .chip-lib{font-size:12px;color:var(--txt);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+  .tabs-inline{display:flex;gap:4px}
+  .tpill{font-size:11.5px;color:var(--txt-2);padding:5px 11px;border-radius:8px;background:var(--panel-2)}
+  .tpill.act{color:#fff;background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+  .search{width:150px;height:28px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);
+    font-size:11px;color:var(--txt-3);display:flex;align-items:center;padding:0 10px}
+  .icobtn{width:28px;height:28px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line)}
+
+  /* centered floating tabs pill — appears when scrolled */
+  .tabsFloat{position:absolute;top:12px;left:50%;z-index:34;display:flex;gap:3px;padding:4px;border-radius:999px;
+    background:rgba(26,26,30,.72);backdrop-filter:blur(20px) saturate(1.6);border:1px solid var(--line-2);
+    box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);
+    opacity:0;transform:translate(-50%,-10px);pointer-events:none;transition:.3s cubic-bezier(.2,.85,.25,1)}
+  .frame[data-state="scroll"] .tabsFloat,.frame[data-state="drag"] .tabsFloat{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .ftab{font-size:12px;color:var(--txt-2);padding:6px 14px;border-radius:999px;white-space:nowrap}
+  .ftab.act{color:#fff;background:var(--accent);box-shadow:0 2px 8px rgba(139,123,255,.4)}
+
+  .viewport{position:absolute;inset:0;overflow:hidden}
+  .scroller{position:absolute;inset:0;padding:0 14px;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  .spacer{height:60px}
+  .frame[data-state="scroll"] .scroller,.frame[data-state="drag"] .scroller{transform:translateY(-214px)}
+
+  .featured{display:flex;gap:12px;margin:2px 0 16px}
+  .grid{column-count:5;column-gap:10px}
+  .card{break-inside:avoid;width:100%;border-radius:9px;margin-bottom:10px;background-size:cover;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+  .card.dragged{outline:2px solid #fff;outline-offset:2px}
+
+  /* fanned cover */
+  .fan{position:relative;flex:0 0 auto}
+  .fan .t{position:absolute;left:50%;top:50%;width:78%;height:84%;border-radius:5px;background-size:cover;
+    box-shadow:0 1px 3px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.08);transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+  .fan .t:nth-child(1){transform:translate(-50%,-50%) rotate(-10deg) translate(-22%,4%);z-index:4}
+  .fan .t:nth-child(2){transform:translate(-50%,-50%) rotate(-3deg) translate(-7%,0);z-index:3}
+  .fan .t:nth-child(3){transform:translate(-50%,-50%) rotate(4deg) translate(7%,0);z-index:2}
+  .fan .t:nth-child(4){transform:translate(-50%,-50%) rotate(11deg) translate(22%,4%);z-index:1}
+
+  .col{position:relative;cursor:default;transition:background .16s ease}
+  .col-meta{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .col-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .col-count{font-size:11px;color:var(--txt-3)}
+
+  /* full featured card */
+  .col.full{width:120px;padding:9px;border-radius:11px;background:var(--panel-2);border:1px solid var(--line)}
+  .col.full .fan{width:98px;height:66px;margin:0 auto 7px}
+
+  /* small chip (horizontal) */
+  .col.chip{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:9px}
+  .col.chip .fan{width:30px;height:24px}
+  .col.chip .col-count{display:none}
+
+  /* row (vertical lists) */
+  .col.row{display:flex;align-items:center;gap:10px;padding:6px 9px;border-radius:8px}
+  .col.row .fan{width:30px;height:24px}
+
+  /* drop target — calm tint + cover fans open a touch (NO +1, NO ring) */
+  .frame[data-state="drag"] .col.target{background:var(--accent-soft)}
+  .frame[data-state="drag"] .col.target .fan .t:nth-child(1){transform:translate(-50%,-50%) rotate(-15deg) translate(-34%,6%)}
+  .frame[data-state="drag"] .col.target .fan .t:nth-child(4){transform:translate(-50%,-50%) rotate(16deg) translate(34%,6%)}
+
+  /* glass surface helper */
+  .glass{background:rgba(26,26,30,.72);backdrop-filter:blur(22px) saturate(1.7);
+    border:1px solid var(--line-2);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12)}
+
+  .ghost,.cursor{position:absolute;z-index:42;opacity:0;transition:opacity .2s;pointer-events:none}
+  .frame[data-state="drag"] .ghost,.frame[data-state="drag"] .cursor{opacity:1}
+  .ghost{width:64px;height:48px;border-radius:7px;background-size:cover;transform:rotate(-7deg);
+    box-shadow:0 10px 24px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12)}
+  .cursor{width:15px;height:15px}
+  .cursor svg{width:100%;height:100%;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+
+  .legend{margin:12px 2px 0;font-size:12px;color:var(--txt-3);line-height:1.6}
+  .legend b{color:var(--txt-2)}
+
+  /* ===== iter1 — centered pill cluster ===== */
+  #i1 .dropPill{position:absolute;top:58px;left:50%;transform:translate(-50%,-8px);z-index:33;display:flex;gap:6px;
+    align-items:center;padding:6px;border-radius:999px;opacity:0;pointer-events:none;transition:.28s cubic-bezier(.2,.85,.25,1)}
+  #i1 .frame[data-state="drag"] .dropPill{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  #i1 .dropPill .plbl{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.07em;padding-left:6px}
+  #i1 .ghost{top:150px;left:300px}#i1 .cursor{top:150px;left:356px}
+
+  /* ===== iter2 — tabs morph into collections ===== */
+  #i2 .tabsFloat{transition:.3s cubic-bezier(.2,.85,.25,1)}
+  #i2 .morphTabs,#i2 .morphCols{display:flex;gap:3px;align-items:center;transition:.26s ease}
+  #i2 .morphCols{position:absolute;left:4px;top:4px;opacity:0;transform:scale(.96);pointer-events:none;gap:5px}
+  #i2 .frame[data-state="drag"] .morphTabs{opacity:0;transform:scale(.96);pointer-events:none}
+  #i2 .frame[data-state="drag"] .morphCols{opacity:1;transform:scale(1);position:static;pointer-events:auto}
+  #i2 .morphCols .plbl{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.07em;padding-left:4px}
+  #i2 .ghost{top:150px;left:300px}#i2 .cursor{top:150px;left:356px}
+
+  /* ===== iter3 — compact centered drop-card ===== */
+  #i3 .dropCard{position:absolute;top:58px;left:50%;transform:translate(-50%,-8px);z-index:33;width:212px;
+    padding:7px;border-radius:14px;display:flex;flex-direction:column;gap:2px;opacity:0;pointer-events:none;
+    transition:.26s cubic-bezier(.2,.85,.25,1)}
+  #i3 .frame[data-state="drag"] .dropCard{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  #i3 .dropCard .dlbl{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.07em;padding:4px 7px 5px}
+  #i3 .col.row:hover{background:var(--panel-2)}
+  #i3 .ghost{top:150px;left:300px}#i3 .cursor{top:150px;left:356px}
+
+  /* ===== iter4 — cursor-anchored cluster ===== */
+  #i4 .cluster{position:absolute;top:176px;left:330px;z-index:33;display:flex;flex-direction:column;gap:5px;width:188px;
+    padding:7px;border-radius:14px;opacity:0;transform:scale(.92) translateY(6px);transform-origin:top left;
+    pointer-events:none;transition:.24s cubic-bezier(.2,.85,.25,1)}
+  #i4 .frame[data-state="drag"] .cluster{opacity:1;transform:none;pointer-events:auto}
+  #i4 .col.row:hover{background:var(--panel-2)}
+  #i4 .ghost{top:150px;left:300px}#i4 .cursor{top:150px;left:356px}
+
+  /* ===== iter5 — edge-tab reveal ===== */
+  #i5 .edgeHandle{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:33;width:30px;height:90px;
+    border-radius:12px 0 0 12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:.26s}
+  #i5 .frame[data-state="scroll"] .edgeHandle,#i5 .frame[data-state="drag"] .edgeHandle{opacity:1}
+  #i5 .edgeHandle .vstack{position:relative;width:18px;height:48px}
+  #i5 .edgeHandle .vstack i{position:absolute;left:0;width:18px;height:14px;border-radius:3px;background-size:cover;
+    box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  #i5 .edgeList{position:absolute;right:38px;top:50%;transform:translate(8px,-50%);z-index:33;width:194px;padding:7px;
+    border-radius:14px;display:flex;flex-direction:column;gap:2px;opacity:0;pointer-events:none;transition:.24s cubic-bezier(.2,.85,.25,1)}
+  #i5 .frame[data-state="drag"] .edgeList{opacity:1;transform:translate(0,-50%);pointer-events:auto}
+  #i5 .col.row:hover{background:var(--panel-2)}
+  #i5 .ghost{top:210px;left:360px}#i5 .cursor{top:208px;left:416px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Hide the toolbar on scroll — centered tabs, edge-to-edge grid, floating drop-dock</h1>
+    <div class="tabs">
+      <button class="tab" data-n="1"><span class="n">1</span> centered pill cluster</button>
+      <button class="tab" data-n="2"><span class="n">2</span> tabs morph into collections</button>
+      <button class="tab" data-n="3"><span class="n">3</span> compact drop-card</button>
+      <button class="tab" data-n="4"><span class="n">4</span> cursor-anchored cluster</button>
+      <button class="tab" data-n="5"><span class="n">5</span> edge-tab reveal</button>
+    </div>
+  </div>
+
+  <!-- iteration template generated per id below -->
+  <section class="iter" id="i1" data-n="1">
+    <div class="meta"><div class="name">1 · centered pill cluster</div>
+      <div class="why">On drag, a compact glass pill of collection chips fades in centered, just under the floating tabs — same centered-pill language as the tabs. Reads as "the tabs grew a tray". No strip, no full width.</div></div>
+    <div class="controls"><span class="lbl">state</span>
+      <button class="sbtn on" data-state="top">at top</button>
+      <button class="sbtn" data-state="scroll">scrolled</button>
+      <button class="sbtn" data-state="drag">scrolled + dragging</button></div>
+    <div class="frame" data-state="top"></div>
+    <div class="legend"><b>Best for:</b> consistency — it mirrors the tabs exactly. <b>Watch:</b> the tabs + pill stack vertically at top-center, so two centered things compete for the same zone.</div>
+  </section>
+  <section class="iter" id="i2" data-n="2">
+    <div class="meta"><div class="name">2 · tabs morph into collections</div>
+      <div class="why">The one centered pill does double duty: drag starts and the Library/Folders/Boards tabs slide out while collection drop-chips slide in, in place. Drop, and it morphs back. Zero new chrome — the same object transforms.</div></div>
+    <div class="controls"><span class="lbl">state</span>
+      <button class="sbtn on" data-state="top">at top</button>
+      <button class="sbtn" data-state="scroll">scrolled</button>
+      <button class="sbtn" data-state="drag">scrolled + dragging</button></div>
+    <div class="frame" data-state="top"></div>
+    <div class="legend"><b>Best for:</b> the most elegant — one floating object, two modes. <b>Watch:</b> you briefly lose the tab labels mid-drag (fine, since you're not switching tabs while dragging).</div>
+  </section>
+  <section class="iter" id="i3" data-n="3">
+    <div class="meta"><div class="name">3 · compact centered drop-card</div>
+      <div class="why">A small frosted card drops down centered, listing collections vertically (mini cover + name + count) like a little menu. Scales to many collections by scrolling inside the card.</div></div>
+    <div class="controls"><span class="lbl">state</span>
+      <button class="sbtn on" data-state="top">at top</button>
+      <button class="sbtn" data-state="scroll">scrolled</button>
+      <button class="sbtn" data-state="drag">scrolled + dragging</button></div>
+    <div class="frame" data-state="top"></div>
+    <div class="legend"><b>Best for:</b> libraries with many collections — vertical list + names are easy to aim at. <b>Watch:</b> covers more of the grid's top than a pill.</div>
+  </section>
+  <section class="iter" id="i4" data-n="4">
+    <div class="meta"><div class="name">4 · cursor-anchored cluster</div>
+      <div class="why">The collection list appears right next to the card you picked up and trails the cursor, so targets are always a short flick away — no traveling to the top of the screen.</div></div>
+    <div class="controls"><span class="lbl">state</span>
+      <button class="sbtn on" data-state="top">at top</button>
+      <button class="sbtn" data-state="scroll">scrolled</button>
+      <button class="sbtn" data-state="drag">scrolled + dragging</button></div>
+    <div class="frame" data-state="top"></div>
+    <div class="legend"><b>Best for:</b> least mouse travel — the targets come to you. <b>Watch:</b> it floats over grid content near the cursor and needs smart edge-flipping so it never clips off-screen.</div>
+  </section>
+  <section class="iter" id="i5" data-n="5">
+    <div class="meta"><div class="name">5 · edge-tab reveal</div>
+      <div class="why">Collections tuck into a slim handle on the right edge while scrolled; drag toward it (or hover) and a compact floating list springs out. Keeps the top totally clean for the tabs + grid.</div></div>
+    <div class="controls"><span class="lbl">state</span>
+      <button class="sbtn on" data-state="top">at top</button>
+      <button class="sbtn" data-state="scroll">scrolled</button>
+      <button class="sbtn" data-state="drag">scrolled + dragging</button></div>
+    <div class="frame" data-state="top"></div>
+    <div class="legend"><b>Best for:</b> keeping the top untouched. <b>Watch:</b> least discoverable, and a right-edge throw is a longer drag than a centered target.</div>
+  </section>
+
+<script>
+  const GRADS=['linear-gradient(135deg,#ff8fb1,#ff5f7e)','linear-gradient(135deg,#5ee7df,#3a8dde)',
+    'linear-gradient(135deg,#a8ff9e,#36c47a)','linear-gradient(135deg,#ffd76f,#fc6076)',
+    'linear-gradient(135deg,#b18cff,#7b5cff)','linear-gradient(135deg,#43e0a0,#2bb6d8)',
+    'linear-gradient(135deg,#fa9a8b,#fbd06b)','linear-gradient(135deg,#7cc6ff,#5a6cff)',
+    'linear-gradient(135deg,#f78fff,#9a6bff)','linear-gradient(135deg,#ffb86c,#ff6b6b)'];
+  const COLS=[{n:'Branding',c:128,s:0},{n:'Typography',c:412,s:2},{n:'UI patterns',c:89,s:4},
+    {n:'Color studies',c:233,s:6},{n:'Editorial',c:57,s:1},{n:'3D & render',c:140,s:3}];
+  const g=i=>GRADS[((i%GRADS.length)+GRADS.length)%GRADS.length];
+
+  function fan(seed){const f=document.createElement('span');f.className='fan';
+    for(let k=0;k<4;k++){const t=document.createElement('span');t.className='t';t.style.backgroundImage=g(seed+k);f.appendChild(t);}return f;}
+  function cols(variant,target,limit){const wrap=document.createElement('div');wrap.style.display='flex';
+    wrap.style.gap=variant==='chip'?'5px':'2px';wrap.style.alignItems='center';
+    if(variant==='row'){wrap.style.flexDirection='column';wrap.style.alignItems='stretch';wrap.style.gap='2px';}
+    (limit?COLS.slice(0,limit):COLS).forEach((c,idx)=>{
+      const el=document.createElement('div');el.className='col '+variant;if(idx===target)el.classList.add('target');
+      el.appendChild(fan(c.s));
+      const m=document.createElement('div');m.className='col-meta';
+      m.innerHTML='<span class="col-name">'+c.n+'</span><span class="col-count">'+c.c+' saves</span>';el.appendChild(m);
+      wrap.appendChild(el);
+    });return wrap;}
+  function grid(n){const gr=document.createElement('div');gr.className='grid';const h=[120,165,95,200,140,110,180,130,150,100];
+    for(let k=0;k<n;k++){const c=document.createElement('div');c.className='card';c.style.backgroundImage=g(k+3);
+      c.style.height=h[k%h.length]+'px';if(k===6)c.classList.add('dragged');gr.appendChild(c);}return gr;}
+
+  // shared scaffold inside each frame
+  function baseFrame(frame){
+    // toolbar
+    const tb=document.createElement('div');tb.className='toolbar';
+    tb.innerHTML='<div class="tl-left"><span class="dot"></span><span class="chip-lib">My library ▾</span>'+
+      '<div class="tabs-inline"><span class="tpill act">Library</span><span class="tpill">Folders</span><span class="tpill">Boards</span></div></div>'+
+      '<div class="tl-right"><span class="search">Try "blue gradient"</span><span class="icobtn"></span><span class="icobtn"></span></div>';
+    frame.appendChild(tb);
+    // floating tabs
+    const ft=document.createElement('div');ft.className='tabsFloat';
+    ft.innerHTML='<span class="ftab act">Library</span><span class="ftab">Folders</span><span class="ftab">Boards</span>';
+    frame.appendChild(ft);
+    // viewport + scroller
+    const vp=document.createElement('div');vp.className='viewport';
+    const sc=document.createElement('div');sc.className='scroller';
+    const sp=document.createElement('div');sp.className='spacer';sc.appendChild(sp);
+    const feat=document.createElement('div');feat.className='featured';feat.appendChild(cols('full',-1));sc.appendChild(feat);
+    sc.appendChild(grid(20));
+    vp.appendChild(sc);frame.appendChild(vp);
+    return {ft};
+  }
+  function ghost(frame){const gh=document.createElement('div');gh.className='ghost';gh.style.backgroundImage=g(7);frame.appendChild(gh);
+    const cu=document.createElement('div');cu.className='cursor';cu.innerHTML='<svg viewBox="0 0 24 24" fill="#fff"><path d="M4 2l16 9-7 1.5L9 22z"/></svg>';frame.appendChild(cu);}
+
+  // build each iteration's frame
+  const f1=document.querySelector('#i1 .frame');baseFrame(f1);
+  (function(){const p=document.createElement('div');p.className='dropPill glass';
+    const l=document.createElement('span');l.className='plbl';l.textContent='Drop into';p.appendChild(l);
+    p.appendChild(cols('chip',2,4));f1.appendChild(p);ghost(f1);})();
+
+  const f2=document.querySelector('#i2 .frame');{const {ft}=baseFrame(f2);
+    ft.innerHTML='';const tabs=document.createElement('div');tabs.className='morphTabs';
+    tabs.innerHTML='<span class="ftab act">Library</span><span class="ftab">Folders</span><span class="ftab">Boards</span>';
+    const cs=document.createElement('div');cs.className='morphCols';
+    const l=document.createElement('span');l.className='plbl';l.textContent='Drop into';cs.appendChild(l);cs.appendChild(cols('chip',2,4));
+    ft.appendChild(tabs);ft.appendChild(cs);ghost(f2);}
+
+  const f3=document.querySelector('#i3 .frame');baseFrame(f3);
+  (function(){const card=document.createElement('div');card.className='dropCard glass';
+    const l=document.createElement('div');l.className='dlbl';l.textContent='Drop into a collection';card.appendChild(l);
+    card.appendChild(cols('row',2,5));f3.appendChild(card);ghost(f3);})();
+
+  const f4=document.querySelector('#i4 .frame');baseFrame(f4);
+  (function(){const cl=document.createElement('div');cl.className='cluster glass';cl.appendChild(cols('row',1,4));f4.appendChild(cl);ghost(f4);})();
+
+  const f5=document.querySelector('#i5 .frame');baseFrame(f5);
+  (function(){const h=document.createElement('div');h.className='edgeHandle glass';
+    const vs=document.createElement('div');vs.className='vstack';
+    for(let k=0;k<3;k++){const i=document.createElement('i');i.style.backgroundImage=g(k);i.style.top=(k*16)+'px';i.style.transform='rotate('+((k-1)*6)+'deg)';vs.appendChild(i);}
+    h.appendChild(vs);f5.appendChild(h);
+    const list=document.createElement('div');list.className='edgeList glass';list.appendChild(cols('row',2,5));f5.appendChild(list);ghost(f5);})();
+
+  // tab switching
+  function show(n){document.querySelectorAll('.iter').forEach(s=>s.classList.toggle('active',s.dataset.n===String(n)));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.n===String(n)));}
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show(t.dataset.n)));
+  window.addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='5')show(e.key);});
+  // state toggles
+  document.querySelectorAll('.controls').forEach(ctl=>{const frame=ctl.parentElement.querySelector('.frame');
+    ctl.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{frame.dataset.state=b.dataset.state;
+      ctl.querySelectorAll('.sbtn').forEach(x=>x.classList.toggle('on',x===b));}));});
+  show(1);
+</script>
+</body>
+</html>
