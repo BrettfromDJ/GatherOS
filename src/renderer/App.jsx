@@ -232,6 +232,11 @@ export default function App({ entitlement } = {}) {
     try { localStorage.setItem('moodmark.appMode', appMode); } catch {}
   }, [appMode]);
 
+  // Where the user was before opening the Search tab — so Escape on an
+  // empty query returns them there with the grid scroll intact.
+  // { mode, view, scrollTop }.
+  const preSearchRef = useRef(null);
+
   // Strip the leftover focus ring after Escape closes a modal/popover.
   // Chromium promotes :focus-visible on Escape (keyboard event), so the
   // trigger button you clicked with the mouse ends up with the
@@ -263,6 +268,14 @@ export default function App({ entitlement } = {}) {
   // Folders while already drilled into a collection would render the
   // drilled-in masonry instead of the grid the user expected.
   const handleModeChange = useCallback((nextMode) => {
+    // Entering Search: remember where we came from (mode + view + the
+    // current grid scroll, read off the live node before it unmounts) so
+    // Escape can put us back exactly there.
+    if (nextMode === 'search' && appMode !== 'search') {
+      let scrollTop = 0;
+      try { scrollTop = document.querySelector('.grid-scroll')?.scrollTop || 0; } catch { /* ignore */ }
+      preSearchRef.current = { mode: appMode, view, scrollTop };
+    }
     setAppMode(nextMode);
     setView({ type: 'all' });
     // Switching tabs is a fresh start — drop any active query so e.g.
@@ -276,7 +289,7 @@ export default function App({ entitlement } = {}) {
         searchInputRef.current?.select?.();
       });
     }
-  }, [setView, setSearch]);
+  }, [appMode, view, setView, setSearch]);
 
   // Per-view shuffle seeds. Persisted to localStorage so a shuffle
   // sticks across navigation, search, sort, and full app restarts —
@@ -2441,6 +2454,33 @@ export default function App({ entitlement } = {}) {
     };
     requestAnimationFrame(() => { apply(); requestAnimationFrame(apply); });
   }, [view, visibleSaves.length, focusedId]);
+
+  // Escape on the Search tab (empty query) returns to wherever the user
+  // came from, scroll intact. SearchView clears a non-empty query on the
+  // first Escape (and stops propagation), so this only fires once the
+  // field is empty. We rewrite the shared `all:` scroll key (Search and
+  // Library both map to it) back to the pre-search offset, then let the
+  // generic per-view restore land it once the prior view's cards render.
+  const handleEscapeFromSearch = useCallback(() => {
+    const prev = preSearchRef.current;
+    if (!prev) { setAppMode('library'); return; }
+    preSearchRef.current = null;
+    viewScrollRef.current[viewKeyOf(prev.view)] = prev.scrollTop;
+    setAppMode(prev.mode);
+    setView(prev.view);
+  }, [setView]);
+  useEffect(() => {
+    if (appMode !== 'search') return undefined;
+    function onKey(e) {
+      if (e.key !== 'Escape') return;
+      if (focusedId) return; // focused view owns Escape
+      if ((search || '').trim()) return; // SearchView clears the query first
+      e.preventDefault();
+      handleEscapeFromSearch();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [appMode, search, focusedId, handleEscapeFromSearch]);
 
   const focusedSortAssign = useCallback(async (saveId, collectionId) => {
     await window.moodmark.collections.addSave({ collectionId, saveId });
