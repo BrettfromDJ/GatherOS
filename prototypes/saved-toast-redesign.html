@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>New "saved to library" toast</title>
+<style>
+  :root{
+    --sm:4px; --md:7px; --lg:10px; --xl:14px; --pill:999px;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    /* glass */
+    --glass-bg:rgba(20,20,22,0.46);
+    --glass-bd:0.5px solid rgba(255,255,255,0.13);
+    --glass-sh:
+      inset 0 0.5px 0 rgba(255,255,255,0.09),
+      0 1px 2px rgba(0,0,0,0.22),
+      0 16px 44px rgba(0,0,0,0.42);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:var(--ui);
+    color:#111;
+    background:#0d0d0f;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── top bar ─────────────────────────────────────────────── */
+  header{
+    position:fixed;inset:0 0 auto 0;z-index:50;
+    background:rgba(248,248,250,0.86);
+    backdrop-filter:blur(16px) saturate(1.4);
+    border-bottom:0.5px solid rgba(0,0,0,0.1);
+    padding:12px 20px;
+  }
+  header h1{
+    font-size:14px;font-weight:600;margin:0 0 9px;letter-spacing:-0.01em;color:#1a1a1c;
+  }
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 12px;border-radius:var(--pill);
+    border:0.5px solid rgba(0,0,0,0.12);
+    background:#fff;color:#444;
+    font-size:12.5px;font-weight:500;cursor:pointer;
+    transition:all .14s ease;
+  }
+  .tab .n{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:17px;height:17px;border-radius:var(--pill);
+    background:rgba(0,0,0,0.08);font-size:11px;font-weight:600;color:#666;
+    font-family:var(--mono);
+  }
+  .tab:hover{border-color:rgba(0,0,0,0.24)}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .tab.active .n{background:rgba(255,255,255,0.22);color:#fff}
+
+  /* ── stage ───────────────────────────────────────────────── */
+  main{padding:104px 20px 60px;min-height:100%}
+  .panel{display:none;max-width:1080px;margin:0 auto}
+  .panel.active{display:block;animation:fade .26s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .pmeta{margin:0 0 18px;color:#eaeaea}
+  .pmeta .pname{font-size:19px;font-weight:600;letter-spacing:-0.02em;color:#fff}
+  .pmeta .pname .idx{color:#7a7a7e;font-weight:500;margin-right:8px;font-family:var(--mono)}
+  .pmeta .prat{font-size:13.5px;line-height:1.5;color:#9a9a9e;margin-top:5px;max-width:620px}
+
+  .stages{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.stages{grid-template-columns:1fr}}
+  .stage{
+    position:relative;overflow:hidden;
+    border-radius:18px;
+    min-height:300px;
+    display:flex;align-items:center;justify-content:center;
+    padding:34px;
+    border:0.5px solid rgba(255,255,255,0.08);
+  }
+  /* blurred photo-grid backdrop */
+  .stage::before{
+    content:"";position:absolute;inset:-40px;z-index:0;
+    background:
+      conic-gradient(from 20deg at 18% 25%, #5b6cff, #9b5bff 40%, transparent 41%),
+      conic-gradient(from 200deg at 78% 18%, #ff7a59, #ffd166 38%, transparent 39%),
+      linear-gradient(120deg,#2a2f4a,#1a1d2e);
+    background-size:cover;
+    filter:blur(34px) saturate(1.25) brightness(0.9);
+    transform:scale(1.1);
+  }
+  .stage.warm::before{
+    background:
+      conic-gradient(from 40deg at 25% 70%, #ff5e87, #ff9e5e 42%, transparent 43%),
+      conic-gradient(from 160deg at 80% 30%, #6be0c4, #4f9dff 40%, transparent 41%),
+      linear-gradient(140deg,#3a2a3f,#231a2e);
+    filter:blur(34px) saturate(1.3) brightness(0.92);
+  }
+  /* faux photo tiles to make the blur read as a real grid */
+  .stage .grid{
+    position:absolute;inset:0;z-index:0;opacity:0.5;
+    display:grid;grid-template-columns:repeat(5,1fr);grid-auto-rows:1fr;
+    filter:blur(10px);
+  }
+  .stage .grid i{display:block;border:6px solid transparent}
+  .slabel{
+    position:absolute;left:14px;top:12px;z-index:3;
+    font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
+    color:rgba(255,255,255,0.62);
+  }
+
+  /* ── shared toast glass ──────────────────────────────────── */
+  .toast{
+    position:relative;z-index:2;
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(22px) saturate(1.5);
+    backdrop-filter:blur(22px) saturate(1.5);
+    border:var(--glass-bd);
+    box-shadow:var(--glass-sh);
+    color:#fff;
+    animation:rise .42s cubic-bezier(.2,.9,.25,1.08) both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  .toast .x{
+    flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border:none;background:transparent;border-radius:6px;
+    color:rgba(255,255,255,0.45);cursor:pointer;transition:.14s;
+  }
+  .toast .x:hover{background:rgba(255,255,255,0.12);color:#fff}
+  .toast .x svg{width:13px;height:13px}
+
+  /* thumbnail gradients (stand-ins for saved images) */
+  .th{border-radius:var(--sm);background-size:cover;flex-shrink:0}
+  .g1{background:linear-gradient(135deg,#7c5cff,#c45bff)}
+  .g2{background:linear-gradient(135deg,#ff8a5b,#ffd166)}
+  .g3{background:linear-gradient(135deg,#36d1c4,#4f9dff)}
+  .g4{background:linear-gradient(135deg,#ff5e87,#ff9e5e)}
+  .g5{background:linear-gradient(135deg,#4f9dff,#7c5cff)}
+  .g6{background:linear-gradient(135deg,#23c483,#36d1c4)}
+
+  .row2{display:flex;flex-direction:column;gap:20px;align-items:center}
+
+  /* ════════════════ 1 · FANNED DECK ════════════════ */
+  .d1{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:var(--xl)}
+  .d1 .lab{font-size:14px;font-weight:500;letter-spacing:-0.01em;white-space:nowrap}
+  .d1 .deck{position:relative;width:36px;height:36px;flex-shrink:0}
+  .d1 .deck .th{position:absolute;width:32px;height:32px;top:2px;left:2px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.35)}
+  .d1 .deck .b2{transform:translate(-4px,3px) rotate(-9deg);filter:brightness(.8)}
+  .d1 .deck .b1{transform:translate(3px,1px) rotate(7deg);filter:brightness(.9)}
+  .d1 .deck .b0{box-shadow:0 3px 9px rgba(0,0,0,0.45),0 0 0 0.5px rgba(255,255,255,0.14)}
+  .d1.single .deck{width:32px}
+  .d1 .ct{color:rgba(255,255,255,0.55);font-variant-numeric:tabular-nums}
+
+  /* ════════════════ 2 · FILMSTRIP ROW ════════════════ */
+  .d2{display:flex;align-items:center;gap:12px;padding:9px 10px 9px 11px;border-radius:var(--xl)}
+  .d2 .strip{display:flex;align-items:center}
+  .d2 .strip .th{width:30px;height:30px;border-radius:var(--sm);
+    box-shadow:0 0 0 1.5px rgba(20,20,22,0.85),0 2px 5px rgba(0,0,0,0.3);
+    margin-left:-9px}
+  .d2 .strip .th:first-child{margin-left:0}
+  .d2 .strip .more{
+    width:30px;height:30px;margin-left:-9px;border-radius:var(--sm);
+    background:rgba(255,255,255,0.16);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:600;color:#fff;
+    box-shadow:0 0 0 1.5px rgba(20,20,22,0.85);
+    font-variant-numeric:tabular-nums;backdrop-filter:blur(6px);
+  }
+  .d2 .lab{font-size:14px;font-weight:500;letter-spacing:-0.01em;white-space:nowrap}
+
+  /* ════════════════ 3 · NUMERAL-FORWARD ════════════════ */
+  .d3{display:flex;align-items:center;gap:11px;padding:8px 12px 8px 8px;border-radius:var(--pill)}
+  .d3 .hero{
+    width:34px;height:34px;border-radius:var(--pill);flex-shrink:0;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,0.95);color:#0c0c0e;
+    font-family:var(--mono);font-weight:600;font-size:15px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
+  .d3 .hero.check svg{width:17px;height:17px}
+  .d3 .txt{display:flex;flex-direction:column;line-height:1.2;padding-right:4px}
+  .d3 .txt .a{font-size:13.5px;font-weight:600;letter-spacing:-0.01em}
+  .d3 .txt .b{font-size:11.5px;color:rgba(255,255,255,0.55)}
+
+  /* ════════════════ 4 · CHECK-RING ════════════════ */
+  .d4{display:flex;align-items:center;gap:12px;padding:9px 12px 9px 10px;border-radius:var(--xl)}
+  .d4 .ring{position:relative;width:34px;height:34px;flex-shrink:0}
+  .d4 .ring svg{width:34px;height:34px;transform:rotate(-90deg)}
+  .d4 .ring .ck{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .d4 .ring .ck svg{width:15px;height:15px;transform:none;color:#5fe08e}
+  .d4 .ring circle.tr{stroke:rgba(255,255,255,0.16)}
+  .d4 .ring circle.pr{stroke:#5fe08e;stroke-linecap:round;
+    stroke-dasharray:91;stroke-dashoffset:91;animation:draw .7s .12s ease forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .d4 .lab{font-size:14px;font-weight:500;letter-spacing:-0.01em;white-space:nowrap}
+  .d4 .pill{
+    margin-left:2px;display:inline-flex;align-items:center;gap:5px;
+    padding:3px 8px 3px 4px;border-radius:var(--pill);
+    background:rgba(255,255,255,0.1);
+  }
+  .d4 .pill .th{width:18px;height:18px;border-radius:3px}
+  .d4 .pill .n{font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.85);font-variant-numeric:tabular-nums}
+
+  /* ════════════════ 5 · EDITORIAL CARD ════════════════ */
+  .d5{display:flex;align-items:center;gap:14px;padding:12px 14px 12px 12px;border-radius:16px;min-width:260px}
+  .d5 .cluster{position:relative;width:46px;height:42px;flex-shrink:0}
+  .d5 .cluster .th{position:absolute;width:38px;height:38px;border-radius:var(--md);
+    box-shadow:0 2px 7px rgba(0,0,0,0.4)}
+  .d5 .cluster .c2{top:0;left:0;transform:rotate(-6deg) translate(-3px,0);filter:brightness(.78)}
+  .d5 .cluster .c1{top:2px;left:4px;transform:rotate(5deg);filter:brightness(.88)}
+  .d5 .cluster .c0{top:4px;left:8px;box-shadow:0 3px 10px rgba(0,0,0,0.5),0 0 0 0.5px rgba(255,255,255,0.16)}
+  .d5.single .cluster{width:40px}
+  .d5 .body{display:flex;flex-direction:column;line-height:1.25;flex:1 1 auto}
+  .d5 .body .h{font-size:15px;font-weight:600;letter-spacing:-0.015em}
+  .d5 .body .s{font-size:12px;color:rgba(255,255,255,0.55);margin-top:2px}
+  .d5 .undo{
+    flex-shrink:0;padding:5px 12px;border-radius:var(--pill);border:none;
+    background:rgba(255,255,255,0.14);color:#fff;font-size:12px;font-weight:500;
+    font-family:var(--ui);cursor:pointer;transition:.14s;
+  }
+  .d5 .undo:hover{background:rgba(255,255,255,0.24)}
+</style>
+</head>
+<body>
+<header>
+  <h1>New "saved to library" toast</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<main id="main"></main>
+
+<script>
+const X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6"/></svg>';
+
+// gradient thumbnail helper
+const th = (g, cls='th') => `<span class="${cls} ${g}"></span>`;
+
+const DIRECTIONS = [
+  {
+    name:'Fanned deck',
+    rat:'The current pill, but the "+N" badge becomes the images themselves — extra saves fan out behind the lead thumbnail like a freshly dealt deck. Quietest, most native evolution; reads instantly as "a stack of things".',
+    warm:false,
+    single:`<div class="toast d1 single">
+        <span class="deck"><span class="th g1 b0"></span></span>
+        <span class="lab">Saved to library</span>
+        <button class="x">${X}</button>
+      </div>`,
+    multi:`<div class="toast d1">
+        <span class="deck">
+          <span class="th g3 b2"></span>
+          <span class="th g2 b1"></span>
+          <span class="th g1 b0"></span>
+        </span>
+        <span class="lab">Saved <span class="ct">4</span> to library</span>
+        <button class="x">${X}</button>
+      </div>`,
+  },
+  {
+    name:'Filmstrip row',
+    rat:'Show, don\'t count: a tight overlapping row of the actual thumbnails saved, with a "+N" tile absorbing the overflow. Best when the user wants to confirm exactly what landed — the images are the receipt.',
+    warm:true,
+    single:`<div class="toast d2">
+        <span class="strip">${th('g4')}</span>
+        <span class="lab">Saved to library</span>
+        <button class="x">${X}</button>
+      </div>`,
+    multi:`<div class="toast d2">
+        <span class="strip">
+          ${th('g4')}${th('g5')}${th('g6')}
+          <span class="more">+1</span>
+        </span>
+        <span class="lab">Saved 4 to library</span>
+        <button class="x">${X}</button>
+      </div>`,
+  },
+  {
+    name:'Numeral-forward',
+    rat:'Typographic and minimal — a mono numeral in a white chip is the hero, image steps back. Single save swaps the numeral for a checkmark. Calmest at a glance; scales cleanly to "Saved 40" without crowding.',
+    warm:false,
+    single:`<div class="toast d3">
+        <span class="hero check">${CK}</span>
+        <span class="txt"><span class="a">Saved to library</span><span class="b">1 image</span></span>
+        <button class="x">${X}</button>
+      </div>`,
+    multi:`<div class="toast d3">
+        <span class="hero">4</span>
+        <span class="txt"><span class="a">Saved to library</span><span class="b">4 images</span></span>
+        <button class="x">${X}</button>
+      </div>`,
+  },
+  {
+    name:'Check-ring confirmation',
+    rat:'Frames the save as a completed action — an animated check-ring draws on appear, very macOS "task done". The count rides in a subtle pill with a tiny thumbnail, so the photo still shows without competing with the confirmation.',
+    warm:true,
+    single:`<div class="toast d4">
+        <span class="ring">
+          <svg viewBox="0 0 34 34"><circle class="tr" cx="17" cy="17" r="14.5" fill="none" stroke-width="2.5"/><circle class="pr" cx="17" cy="17" r="14.5" fill="none" stroke-width="2.5"/></svg>
+          <span class="ck">${CK}</span>
+        </span>
+        <span class="lab">Saved to library</span>
+        <button class="x">${X}</button>
+      </div>`,
+    multi:`<div class="toast d4">
+        <span class="ring">
+          <svg viewBox="0 0 34 34"><circle class="tr" cx="17" cy="17" r="14.5" fill="none" stroke-width="2.5"/><circle class="pr" cx="17" cy="17" r="14.5" fill="none" stroke-width="2.5"/></svg>
+          <span class="ck">${CK}</span>
+        </span>
+        <span class="lab">Saved to library</span>
+        <span class="pill">${th('g1')}<span class="n">4 images</span></span>
+        <button class="x">${X}</button>
+      </div>`,
+  },
+  {
+    name:'Editorial card',
+    rat:'A touch larger and two-line, with a stacked thumbnail cluster and an inline undo. Reads as a small receipt rather than a flash — the most substantial, and the only one that offers a quick undo for an accidental bulk save.',
+    warm:false,
+    single:`<div class="toast d5 single">
+        <span class="cluster"><span class="th g5 c0"></span></span>
+        <span class="body"><span class="h">Saved to library</span><span class="s">1 image · just now</span></span>
+        <button class="undo">Undo</button>
+      </div>`,
+    multi:`<div class="toast d5">
+        <span class="cluster">
+          <span class="th g6 c2"></span>
+          <span class="th g3 c1"></span>
+          <span class="th g5 c0"></span>
+        </span>
+        <span class="body"><span class="h">Saved 4 to library</span><span class="s">4 images · just now</span></span>
+        <button class="undo">Undo</button>
+      </div>`,
+  },
+];
+
+const tabs = document.getElementById('tabs');
+const main = document.getElementById('main');
+
+DIRECTIONS.forEach((d,i)=>{
+  const tab = document.createElement('button');
+  tab.className = 'tab' + (i===0?' active':'');
+  tab.dataset.i = i;
+  tab.innerHTML = `<span class="n">${i+1}</span>${d.name}`;
+  tab.onclick = ()=>show(i);
+  tabs.appendChild(tab);
+
+  const p = document.createElement('section');
+  p.className = 'panel' + (i===0?' active':'');
+  p.dataset.i = i;
+  p.innerHTML = `
+    <div class="pmeta">
+      <div class="pname"><span class="idx">${i+1}</span>${d.name}</div>
+      <div class="prat">${d.rat}</div>
+    </div>
+    <div class="stages">
+      <div class="stage${d.warm?' warm':''}">
+        <span class="slabel">Single save</span>
+        ${d.single}
+      </div>
+      <div class="stage${d.warm?' warm':''}">
+        <span class="slabel">Multiple saves</span>
+        ${d.multi}
+      </div>
+    </div>`;
+  main.appendChild(p);
+});
+
+function show(i){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', +t.dataset.i===i));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', +p.dataset.i===i));
+  // re-trigger the toast entrance animations
+  document.querySelectorAll('.panel.active .toast').forEach(t=>{
+    t.style.animation='none'; void t.offsetWidth; t.style.animation='';
+  });
+}
+
+window.addEventListener('keydown', e=>{
+  const n = parseInt(e.key,10);
+  if(n>=1 && n<=DIRECTIONS.length) show(n-1);
+});
+</script>
+</body>
+</html>
