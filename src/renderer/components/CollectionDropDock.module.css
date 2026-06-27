@@ -20,6 +20,40 @@
   pointer-events: auto;
 }
 
+/* Flared corners — concave fillets at the top-right and bottom-right
+   where the drawer meets the screen edge, so it reads as "welded" to the
+   wall and flares outward into it rather than ending in a flat tab. The
+   drawer (.list) clips its own overflow, so the flares hang off the .edge
+   wrapper instead. Same glass material as the drawer; a radial-gradient
+   mask carves the concave quarter-circle. */
+.edge::before,
+.edge::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.edge.edgeVisible::before,
+.edge.edgeVisible::after { opacity: 1; }
+
+.edge::before {
+  top: -18px;
+  -webkit-mask: radial-gradient(circle at top left, transparent 18px, #000 18.5px);
+  mask: radial-gradient(circle at top left, transparent 18px, #000 18.5px);
+}
+.edge::after {
+  bottom: -18px;
+  -webkit-mask: radial-gradient(circle at bottom left, transparent 18px, #000 18.5px);
+  mask: radial-gradient(circle at bottom left, transparent 18px, #000 18.5px);
+}
+
 /* The drawer. Resting = narrow (just the stacked covers); expanded = the
    full list. The right edge stays flush against the screen and the drawer
    widens leftward as it fans open. */
