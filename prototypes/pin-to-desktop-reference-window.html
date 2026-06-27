@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pin to desktop — floating reference window</title>
+<style>
+  :root{
+    --sm:4px; --md:7px; --lg:10px; --xl:14px; --pill:999px;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    --glass:rgba(22,22,25,0.55);
+    --glass-bd:0.5px solid rgba(255,255,255,0.14);
+    --glass-sh:
+      inset 0 0.5px 0 rgba(255,255,255,0.10),
+      0 2px 6px rgba(0,0,0,0.28),
+      0 24px 60px rgba(0,0,0,0.55);
+    --fg:rgba(255,255,255,0.96);
+    --fg-dim:rgba(255,255,255,0.55);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--ui);background:#0c0c0e;color:#111;-webkit-font-smoothing:antialiased}
+
+  /* top bar */
+  header{
+    position:fixed;inset:0 0 auto 0;z-index:80;
+    background:rgba(248,248,250,0.86);backdrop-filter:blur(16px) saturate(1.4);
+    border-bottom:0.5px solid rgba(0,0,0,0.1);padding:12px 20px;
+  }
+  header h1{font-size:14px;font-weight:600;margin:0 0 9px;letter-spacing:-0.01em;color:#1a1a1c}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--pill);
+    border:0.5px solid rgba(0,0,0,0.12);background:#fff;color:#444;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .14s ease}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:var(--pill);
+    background:rgba(0,0,0,0.08);font-size:11px;font-weight:600;color:#666;font-family:var(--mono)}
+  .tab:hover{border-color:rgba(0,0,0,0.24)}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .tab.active .n{background:rgba(255,255,255,0.22);color:#fff}
+
+  main{padding:104px 20px 60px;min-height:100%}
+  .panel{display:none;max-width:1100px;margin:0 auto}
+  .panel.active{display:block;animation:fade .26s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .pmeta{margin:0 0 16px;color:#eaeaea}
+  .pname{font-size:19px;font-weight:600;letter-spacing:-0.02em;color:#fff}
+  .pname .idx{color:#7a7a7e;font-weight:500;margin-right:8px;font-family:var(--mono)}
+  .prat{font-size:13.5px;line-height:1.5;color:#9a9a9e;margin-top:5px;max-width:680px}
+  .hint{font-size:12px;color:#76767a;margin-top:8px}
+  .hint b{color:#bdbdc2;font-weight:600}
+
+  /* desktop stage with a fake editor behind the floating window */
+  .stage{
+    position:relative;overflow:hidden;border-radius:16px;height:560px;
+    border:0.5px solid rgba(255,255,255,0.08);
+    background:linear-gradient(135deg,#23252e,#15161c);
+  }
+  /* fake editor window */
+  .editor{position:absolute;inset:26px;border-radius:12px;overflow:hidden;
+    background:#fafafa;box-shadow:0 30px 80px rgba(0,0,0,0.5);filter:saturate(0.96)}
+  .editorBar{height:38px;background:#ececed;border-bottom:1px solid #e0e0e2;display:flex;align-items:center;padding:0 14px;gap:8px}
+  .tl{width:11px;height:11px;border-radius:50%}
+  .editorBody{display:flex;height:calc(100% - 38px)}
+  .edRail{width:54px;background:#f2f2f3;border-right:1px solid #e6e6e8;display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:16px}
+  .edRail i{width:20px;height:20px;border-radius:5px;background:#d8d8db}
+  .edCanvas{flex:1;position:relative;background:
+    linear-gradient(0deg,rgba(0,0,0,0.03),rgba(0,0,0,0.03)),
+    repeating-linear-gradient(0deg,transparent 0 23px,rgba(0,0,0,0.035) 23px 24px),
+    repeating-linear-gradient(90deg,transparent 0 23px,rgba(0,0,0,0.035) 23px 24px),#fbfbfc}
+  .frame{position:absolute;border-radius:10px;background:#fff;border:1px solid #e7e7ea;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
+  .frameLabel{position:absolute;font-size:10px;color:#9a9aa2;font-family:var(--mono)}
+  .edInsp{width:180px;background:#f7f7f8;border-left:1px solid #e6e6e8;padding:14px}
+  .edInsp .row{height:9px;border-radius:3px;background:#e2e2e5;margin-bottom:10px}
+  .edInsp .row.s{width:60%}
+  .stageTag{position:absolute;left:14px;top:12px;z-index:30;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:rgba(255,255,255,0.5)}
+
+  /* shared floating window chrome */
+  .win{position:absolute;z-index:40;background:var(--glass);
+    -webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);
+    border:var(--glass-bd);box-shadow:var(--glass-sh);color:var(--fg)}
+  .ref{background-size:cover;background-position:center}
+  .g1{background:linear-gradient(135deg,#6d63ff,#b65bff)}
+  .g2{background:linear-gradient(135deg,#ff8a5b,#ffd166)}
+  .g3{background:linear-gradient(135deg,#3ad1c4,#4f9dff)}
+  .g4{background:linear-gradient(135deg,#ff5e87,#ff9e5e)}
+  .g5{background:linear-gradient(135deg,#4f9dff,#7c5cff)}
+  .g6{background:linear-gradient(135deg,#23c483,#3ad1c4)}
+  .g7{background:linear-gradient(160deg,#2b2d3a,#444863)}
+  .g8{background:linear-gradient(135deg,#f857a6,#ff5858)}
+
+  /* control glyphs */
+  .ic{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center}
+  .ic svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .ctlBtn{width:24px;height:24px;border-radius:var(--md);border:none;background:rgba(255,255,255,0.0);
+    color:var(--fg);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s}
+  .ctlBtn:hover{background:rgba(255,255,255,0.16)}
+  .dots{display:flex;gap:4px;align-items:center}
+  .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.32)}
+  .dot.on{background:#fff;width:14px;border-radius:3px}
+
+  /* a reveal-on-hover bar pattern */
+  .bar{display:flex;align-items:center;gap:4px}
+  .reveal{opacity:0;transform:translateY(-3px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+  .win:hover .reveal{opacity:1;transform:none;pointer-events:auto}
+  .drag{cursor:grab}
+  .drag:active{cursor:grabbing}
+
+  /* ============ 1 · SINGLE PiP ============ */
+  .pip{top:60px;right:54px;width:300px;border-radius:var(--xl);overflow:hidden}
+  .pip .img{height:200px;position:relative}
+  .pip .topbar{position:absolute;top:0;left:0;right:0;height:38px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 6px 0 12px;background:linear-gradient(rgba(0,0,0,0.5),transparent)}
+  .pip .topbar .ttl{font-size:12px;font-weight:600;letter-spacing:-0.01em;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+  .pip .nav{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;
+    background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer}
+  .pip .nav.l{left:8px}.pip .nav.r{right:8px}
+  .pip .footer{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px}
+  .pip .meta{font-size:11px;color:var(--fg-dim);font-family:var(--mono)}
+
+  /* ============ 2 · CARD DECK ============ */
+  .deck{top:64px;right:80px;width:248px;height:300px}
+  .deckCard{position:absolute;border-radius:var(--lg);overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.45),0 0 0 0.5px rgba(255,255,255,0.12)}
+  .deckCard.c3{inset:30px 8px 40px 36px;transform:rotate(4deg) translateY(8px);filter:brightness(.7)}
+  .deckCard.c2{inset:24px 20px 46px 22px;transform:rotate(-3deg);filter:brightness(.85)}
+  .deckCard.c1{inset:18px 14px 52px 14px}
+  .deck .chrome{position:absolute;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+  .deck .count{font-size:11px;color:var(--fg-dim);font-family:var(--mono)}
+  .deck .swipe{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--fg-dim)}
+  .deck .topctl{position:absolute;top:6px;right:6px}
+
+  /* ============ 3 · FILMSTRIP ============ */
+  .strip{top:40px;right:40px;width:84px;border-radius:var(--lg);padding:8px;max-height:480px;display:flex;flex-direction:column;gap:8px}
+  .strip .head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 2px}
+  .strip .head .h{font-size:9.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-dim);writing-mode:horizontal-tb}
+  .strip .col{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .strip .th{height:64px;border-radius:var(--md);position:relative;cursor:pointer;box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.12)}
+  .strip .th.sel{box-shadow:0 0 0 2px #fff, inset 0 0 0 0.5px rgba(255,255,255,0.12)}
+  .strip .foot{display:flex;align-items:center;justify-content:center;gap:4px;padding-top:2px}
+
+  /* ============ 4 · MINI MOODBOARD ============ */
+  .board{top:54px;right:60px;width:330px;border-radius:var(--xl);overflow:hidden}
+  .board .head{display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 8px 0 14px;border-bottom:0.5px solid rgba(255,255,255,0.1)}
+  .board .head .h{font-size:12.5px;font-weight:600;letter-spacing:-0.01em}
+  .board .head .h small{color:var(--fg-dim);font-weight:500;margin-left:6px;font-family:var(--mono)}
+  .board .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px}
+  .board .cell{aspect-ratio:1/1;border-radius:var(--md);cursor:pointer;transition:transform .14s ease;box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.1)}
+  .board .cell:hover{transform:scale(1.04)}
+
+  /* ============ 5 · EDGE SHELF ============ */
+  .shelfWrap{position:absolute;top:0;right:0;bottom:0;display:flex;align-items:center}
+  .shelf{display:flex;align-items:center;background:var(--glass);
+    -webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);
+    border:var(--glass-bd);border-right:none;box-shadow:var(--glass-sh);color:var(--fg);
+    border-radius:var(--xl) 0 0 var(--xl);overflow:hidden;transition:width .28s cubic-bezier(.2,.85,.25,1);
+    width:34px}
+  .shelfWrap:hover .shelf{width:360px}
+  .shelf .sliver{flex:0 0 34px;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+  .shelf .sliver i{width:16px;height:16px;border-radius:4px}
+  .shelf .open{flex:1 1 auto;display:flex;align-items:center;gap:8px;padding:10px;opacity:0;transition:opacity .2s ease}
+  .shelfWrap:hover .open{opacity:1}
+  .shelf .open .th{width:74px;height:96px;border-radius:var(--md);flex:0 0 auto;box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.12)}
+  .shelf .open .sctl{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;margin-left:2px}
+
+  .legend{display:inline-flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#86868c}
+  .legend .k{font-family:var(--mono);font-size:10px;color:#c7c7cc;background:#26262a;border:0.5px solid #3a3a40;border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pin to desktop — floating reference window</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="main"></main>
+
+<script>
+const I = {
+  prev:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  next:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  up:'<svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>',
+  down:'<svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg>',
+  close:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  pin:'<svg viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6z"/><path d="M12 18v3"/></svg>',
+  grip:'<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="1.3"/><circle cx="15" cy="7" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="17" r="1.3"/><circle cx="15" cy="17" r="1.3"/></svg>',
+  fade:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>',
+  size:'<svg viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
+};
+function btn(g, cls=''){return `<button class="ctlBtn ${cls}" title=""><span class="ic">${I[g]}</span></button>`}
+
+// fake editor backdrop
+function editor(){
+  return `
+  <div class="editor">
+    <div class="editorBar"><span class="tl" style="background:#ff5f57"></span><span class="tl" style="background:#febc2e"></span><span class="tl" style="background:#28c840"></span></div>
+    <div class="editorBody">
+      <div class="edRail"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="edCanvas">
+        <div class="frame" style="left:60px;top:50px;width:200px;height:130px"></div>
+        <div class="frameLabel" style="left:60px;top:36px">Hero / desktop</div>
+        <div class="frame" style="left:300px;top:80px;width:150px;height:240px"></div>
+        <div class="frameLabel" style="left:300px;top:66px">Card</div>
+        <div class="frame" style="left:90px;top:230px;width:280px;height:90px"></div>
+        <div class="frameLabel" style="left:90px;top:216px">Footer</div>
+      </div>
+      <div class="edInsp"><div class="row"></div><div class="row s"></div><div class="row"></div><div class="row s"></div><div class="row"></div></div>
+    </div>
+  </div>`;
+}
+
+const DIRS = [
+  {
+    name:'Single PiP',
+    rat:'One reference at a time, shown big with minimal chrome — like a video picture-in-picture. Prev/next cycles the pinned set. Best when you want one thing in your eyeline while you replicate it.',
+    win:`
+      <div class="win pip drag">
+        <div class="img ref g1">
+          <div class="topbar reveal">
+            <span class="ttl">Pricing hero</span>
+            <div class="bar">${btn('fade')}${btn('size')}${btn('close')}</div>
+          </div>
+          <div class="nav l reveal"><span class="ic">${I.prev}</span></div>
+          <div class="nav r reveal"><span class="ic">${I.next}</span></div>
+        </div>
+        <div class="footer">
+          <div class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <span class="meta">2 of 12 · landing refs</span>
+        </div>
+      </div>`,
+    legend:[['drag','move'],['fade','opacity'],['size','small / large'],['prev / next','cycle']],
+  },
+  {
+    name:'Card deck',
+    rat:'A few pinned saves stacked like cards; flip or swipe through the top one with the next peeking behind. Feels tactile and tiny — good for a short, hand-picked set you flick between.',
+    win:`
+      <div class="win deck drag" style="background:transparent;border:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none">
+        <div class="deckCard c3 ref g4"></div>
+        <div class="deckCard c2 ref g3"></div>
+        <div class="deckCard c1 ref g2">
+          <div class="swipe reveal">swipe or ← →</div>
+          <div class="topctl reveal bar">${btn('fade')}${btn('close')}</div>
+          <div class="chrome">
+            <span class="count">3 of 5</span>
+            <div class="bar reveal">${btn('prev')}${btn('next')}</div>
+          </div>
+        </div>
+      </div>`,
+    legend:[['drag','move'],['swipe','next card'],['← →','flip'],['tap','enlarge']],
+  },
+  {
+    name:'Filmstrip',
+    rat:'A slim vertical contact strip that hugs a screen edge — scroll a column of thumbnails, the selected one is ringed. Densest option; keeps many refs reachable in a sliver of space.',
+    win:`
+      <div class="win strip drag">
+        <div class="head"><span class="h">Refs</span><span class="bar reveal">${btn('fade')}${btn('close')}</span></div>
+        <div class="foot reveal">${btn('up')}</div>
+        <div class="col">
+          <div class="th ref g1 sel"></div>
+          <div class="th ref g3"></div>
+          <div class="th ref g2"></div>
+          <div class="th ref g6"></div>
+          <div class="th ref g5"></div>
+        </div>
+        <div class="foot reveal">${btn('down')}</div>
+      </div>`,
+    legend:[['drag','move'],['scroll','browse'],['click','focus a ref'],['edge','snaps to side']],
+  },
+  {
+    name:'Mini moodboard',
+    rat:'Pin a whole collection and see it as a small 3-up grid at a glance; click a tile to pop it large. Best when the *set* is the reference — palettes of layout, a competitor’s whole flow.',
+    win:`
+      <div class="win board">
+        <div class="head drag">
+          <span class="h">Onboarding flows <small>9</small></span>
+          <span class="bar reveal">${btn('fade')}${btn('size')}${btn('pin')}${btn('close')}</span>
+        </div>
+        <div class="grid">
+          <div class="cell ref g1"></div><div class="cell ref g2"></div><div class="cell ref g3"></div>
+          <div class="cell ref g4"></div><div class="cell ref g5"></div><div class="cell ref g6"></div>
+        </div>
+      </div>`,
+    legend:[['drag header','move'],['click','enlarge tile'],['pin','pin a collection'],['size','rows']],
+  },
+  {
+    name:'Edge shelf',
+    rat:'At rest it’s a tiny sliver clinging to the screen edge (a stack hint); hover and it slides open into a row of references, then tucks away again. The most out-of-the-way — invisible until wanted.',
+    win:`
+      <div class="shelfWrap">
+        <div class="shelf">
+          <div class="sliver drag"><i class="ref g1"></i><i class="ref g3"></i><i class="ref g2"></i></div>
+          <div class="open">
+            <div class="th ref g1"></div>
+            <div class="th ref g3"></div>
+            <div class="th ref g2"></div>
+            <div class="sctl">${btn('fade')}${btn('pin')}${btn('close')}</div>
+          </div>
+        </div>
+      </div>`,
+    legend:[['hover','expand'],['leave','tuck away'],['drag','reposition'],['edge','docks to side']],
+  },
+];
+
+const tabs=document.getElementById('tabs');
+const main=document.getElementById('main');
+DIRS.forEach((d,i)=>{
+  const t=document.createElement('button');
+  t.className='tab'+(i===0?' active':'');t.dataset.i=i;
+  t.innerHTML=`<span class="n">${i+1}</span>${d.name}`;
+  t.onclick=()=>show(i);tabs.appendChild(t);
+
+  const p=document.createElement('section');
+  p.className='panel'+(i===0?' active':'');p.dataset.i=i;
+  p.innerHTML=`
+    <div class="pmeta">
+      <div class="pname"><span class="idx">${i+1}</span>${d.name}</div>
+      <div class="prat">${d.rat}</div>
+    </div>
+    <div class="stage">
+      <span class="stageTag">always on top · over your editor</span>
+      ${editor()}
+      ${d.win}
+    </div>
+    <div class="legend">${d.legend.map(([k,v])=>`<span><b class="k">${k}</b> ${v}</span>`).join('')}</div>
+    <div class="hint">At rest it’s quiet; <b>hover reveals the controls</b> (move, opacity, size, cycle, pin, close).</div>`;
+  main.appendChild(p);
+});
+function show(i){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',+t.dataset.i===i));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',+p.dataset.i===i));
+}
+window.addEventListener('keydown',e=>{const n=parseInt(e.key,10);if(n>=1&&n<=DIRS.length)show(n-1)});
+</script>
+</body>
+</html>
