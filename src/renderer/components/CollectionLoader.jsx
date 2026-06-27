@@ -5,18 +5,23 @@ import { fileUrl } from '../lib/fileUrl.js';
 // Brief opening flourish when you enter a collection: its images wrap into
 // a 3D ring that slowly rotates, then the overlay fades to reveal the grid.
 // Purely decorative — the grid is ready underneath the whole time.
-const MAX_CARDS = 16;
+//
+// The ring is always the same size (RING_SIZE cards) regardless of how many
+// images the collection has — small collections repeat their images in
+// order to fill the band; large ones just use the first RING_SIZE.
+const RING_SIZE = 12;
 
 export default function CollectionLoader({ thumbs = [], name, fading = false }) {
   const cards = useMemo(() => {
-    // Distinct images only — never pad/repeat, so no image shows twice in
-    // the ring. A small collection just makes a smaller ring.
+    // Distinct source images (so repeats are spaced evenly), then cycle to
+    // always fill a fixed-size ring.
     const seen = new Set();
     const src = [];
     for (const t of thumbs || []) {
       if (t && !seen.has(t)) { seen.add(t); src.push(t); }
     }
-    return src.slice(0, MAX_CARDS);
+    if (src.length === 0) return [];
+    return Array.from({ length: RING_SIZE }, (_, i) => src[i % src.length]);
   }, [thumbs]);
 
   if (cards.length === 0) return null;
@@ -24,10 +29,8 @@ export default function CollectionLoader({ thumbs = [], name, fading = false }) 
   const n = cards.length;
   const cardW = 78;
   // Radius that seats N cards of width cardW evenly around the ring with a
-  // little breathing room. Guard the trig for tiny rings (n < 3).
-  const radius = n >= 3
-    ? Math.round((cardW * 1.18) / (2 * Math.tan(Math.PI / n)))
-    : 130;
+  // little breathing room.
+  const radius = Math.round((cardW * 1.18) / (2 * Math.tan(Math.PI / n)));
 
   return (
     <div className={`${styles.overlay}${fading ? ` ${styles.out}` : ''}`} aria-hidden="true">

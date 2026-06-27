@@ -1829,8 +1829,7 @@ export default function App({ entitlement } = {}) {
     setCollectionIntro(null);
     if (newView.type === 'collection' && newView.id) {
       const col = collections.find((c) => c.id === newView.id);
-      // Only worth a ring when there are enough items to fill it.
-      if (col && (col.save_count ?? 0) >= 8) {
+      if (col && (col.save_count ?? 0) > 0) {
         setCollectionIntro({ id: newView.id, fading: false });
         introTimersRef.current.push(setTimeout(() => {
           setCollectionIntro((p) => (p && p.id === newView.id ? { ...p, fading: true } : p));
