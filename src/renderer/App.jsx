@@ -44,7 +44,6 @@ import FocusedView from './components/FocusedView.jsx';
 import SearchView from './components/SearchView.jsx';
 import BoardView from './components/BoardView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
-import CollectionLoader from './components/CollectionLoader.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
 import {
   LayoutDashboard,
@@ -1807,16 +1806,6 @@ export default function App({ entitlement } = {}) {
 
   // Sidebar nav also drops focus + selection so users land on the masonry grid
   // instead of staying inside the FocusedView.
-  // Collection "opening" flourish — a rotating 3D ring of the collection's
-  // covers shown every time you open a collection. { id, fading } | null.
-  const [collectionIntro, setCollectionIntro] = useState(null);
-  const introTimersRef = useRef([]);
-  const clearIntroTimers = useCallback(() => {
-    introTimersRef.current.forEach((t) => clearTimeout(t));
-    introTimersRef.current = [];
-  }, []);
-  useEffect(() => clearIntroTimers, [clearIntroTimers]);
-
   const handleViewChange = useCallback((newView) => {
     setView(newView);
     setFocusedId(null);
@@ -1824,22 +1813,7 @@ export default function App({ entitlement } = {}) {
     // A view change is a different intent than "more like this one",
     // so drop any active similar-to anchor when the user navigates.
     setSimilarTo(null);
-    // Trigger the ring intro every time a non-empty collection is opened.
-    clearIntroTimers();
-    setCollectionIntro(null);
-    if (newView.type === 'collection' && newView.id) {
-      const col = collections.find((c) => c.id === newView.id);
-      if (col && (col.save_count ?? 0) > 0) {
-        setCollectionIntro({ id: newView.id, fading: false });
-        introTimersRef.current.push(setTimeout(() => {
-          setCollectionIntro((p) => (p && p.id === newView.id ? { ...p, fading: true } : p));
-        }, 950));
-        introTimersRef.current.push(setTimeout(() => {
-          setCollectionIntro((p) => (p && p.id === newView.id ? null : p));
-        }, 1250));
-      }
-    }
-  }, [setView, setSimilarTo, collections, clearIntroTimers]);
+  }, [setView, setSimilarTo]);
 
   // Opening a collection card from the Search tab leaves search and
   // lands on that collection in Collections mode.
@@ -3425,20 +3399,6 @@ export default function App({ entitlement } = {}) {
                 />
               ) : (
               <div className="library-stage">
-              {collectionIntro && view.type === 'collection' && view.id === collectionIntro.id && (
-                <CollectionLoader
-                  thumbs={(
-                    // Prefer the collection's actual loaded saves so every
-                    // card in the ring is a distinct image; fall back to the
-                    // 4 cover thumbs only until the saves arrive.
-                    saves.length
-                      ? saves.slice(0, 14).map((s) => s.thumb_path)
-                      : collections.find((c) => c.id === collectionIntro.id)?.thumbs || []
-                  ).filter(Boolean)}
-                  name={collections.find((c) => c.id === collectionIntro.id)?.name}
-                  fading={collectionIntro.fading}
-                />
-              )}
               <CollectionDropDock
                 collections={collections}
                 scrolled={(appMode === 'library' || (appMode === 'folders' && view.type === 'collection')) && scrolledHideBar}
