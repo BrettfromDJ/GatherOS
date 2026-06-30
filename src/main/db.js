@@ -1232,11 +1232,20 @@ function createCollection({ name, color, parentId } = {}) {
 
 // ── Tags ───────────────────────────────────────────────────────────────────
 
+// Internal tags are namespaced with a leading "__" (e.g. "__starter__",
+// which the starter pack uses to find its images for "Start fresh"). They
+// drive behaviour, not user organization, so they're filtered out of every
+// tag query the UI reads — starter images then read as untagged. The
+// ESCAPE clause treats the underscores as literals (otherwise LIKE's "_"
+// wildcard would match anything).
+const NOT_INTERNAL_TAG = `t.name NOT LIKE '\\_\\_%' ESCAPE '\\'`;
+
 function getAllTags() {
   return getDatabase().prepare(`
     SELECT t.*, COUNT(st.save_id) AS save_count
     FROM tags t
     LEFT JOIN save_tags st ON st.tag_id = t.id
+    WHERE ${NOT_INTERNAL_TAG}
     GROUP BY t.id
     ORDER BY t.name ASC
   `).all();
@@ -1246,7 +1255,7 @@ function getTagsForSave(saveId) {
   return getDatabase().prepare(`
     SELECT t.* FROM tags t
     JOIN save_tags st ON st.tag_id = t.id
-    WHERE st.save_id = ?
+    WHERE st.save_id = ? AND ${NOT_INTERNAL_TAG}
     ORDER BY t.name ASC
   `).all(saveId);
 }
