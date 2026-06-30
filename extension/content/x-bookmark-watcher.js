@@ -33,6 +33,10 @@ const tweetQuotedCache = new Map();
 // with more than one video carry every video URL (the DOM only exposes
 // the first video's stream + the rest as poster stills).
 const tweetMediaCache = new Map();
+// tweetId -> { title, excerpt, coverUrl } for X long-form Articles, from the
+// interceptor. The DOM only exposes the article as a card image, so without
+// this a bookmarked article loses its title/body text.
+const tweetArticleCache = new Map();
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   const data = event.data;
@@ -57,6 +61,13 @@ window.addEventListener('message', (event) => {
   if (data.type === 'quoted-cache' && Array.isArray(data.quoted)) {
     for (const [id, quoted] of data.quoted) {
       if (id && quoted) tweetQuotedCache.set(id, quoted);
+    }
+  }
+  if (data.type === 'tweet-article' && Array.isArray(data.articles)) {
+    for (const [id, article] of data.articles) {
+      if (id && article && (article.title || article.excerpt)) {
+        tweetArticleCache.set(id, article);
+      }
     }
   }
   // Cross-device bookmark sync. The interceptor extracts every
@@ -626,6 +637,17 @@ document.addEventListener('click', async (e) => {
   const quoted = tweetQuotedCache.get(tweetIdFromUrl(tweetUrl));
   if (quoted) {
     payload.tweetMeta.quoted = quoted;
+  }
+  // Long-form Article: attach its title/excerpt/cover so the desktop can
+  // show the text instead of just the card image. If the DOM never gave us
+  // an image, fall back to the article cover so the save still has a thumb.
+  const articleMeta = tweetArticleCache.get(tweetIdFromUrl(tweetUrl));
+  if (articleMeta) {
+    payload.tweetMeta.article = articleMeta;
+    if (!payload.imageUrl && articleMeta.coverUrl) {
+      payload.imageUrl = twimgLarge(articleMeta.coverUrl);
+      payload.tweetMeta.imageUrls = [articleMeta.coverUrl];
+    }
   }
   if (tweetVideo && tweetVideo.videoUrl) {
     // Real playable MP4 — route through the video branch on the

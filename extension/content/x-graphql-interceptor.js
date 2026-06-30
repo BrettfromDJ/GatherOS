@@ -96,6 +96,59 @@
     );
   }
 
+  // ── X Articles (long-form posts) ────────────────────────────────────
+  // A bookmarked Article carries only its cover image through the normal
+  // media path, so its title/body would be lost. X exposes the long-form
+  // entity on the tweet as `article.article_results.result` with a title +
+  // preview text + cover. Pull what we can so the desktop can show (and
+  // search) the title instead of a bare image.
+  //
+  // NOTE: X's article schema is still evolving and undocumented — the field
+  // paths below are best-effort across the shapes seen in the wild. If a
+  // bookmarked article shows no title, this is the place to widen them.
+  function extractArticle(t) {
+    const result = t && t.article && t.article.article_results
+      && t.article.article_results.result;
+    if (!result) return null;
+    const title = (result.title || (result.metadata && result.metadata.title) || '').trim();
+    const excerpt = (result.preview_text || result.previewText || '').trim();
+    if (!title && !excerpt) return null;
+    let coverUrl = '';
+    const cm = (result.cover_media_results && result.cover_media_results.result)
+      || result.cover_media || null;
+    if (cm) {
+      coverUrl = cm.media_url_https
+        || (cm.media_info && (cm.media_info.original_img_url || cm.media_info.url))
+        || '';
+    }
+    return { title, excerpt, coverUrl };
+  }
+
+  // Cache article metadata by tweet id so the click-capture watcher (which
+  // reads the DOM, where the title is locked inside the card image) can
+  // attach it to a bookmark. Mirrors extractTweetMedia.
+  function extractTweetArticles(node, out) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { for (const c of node) extractTweetArticles(c, out); return; }
+    const legacy = node.legacy;
+    if (legacy && legacy.id_str && node.article && !out.has(legacy.id_str)) {
+      const art = extractArticle(node);
+      if (art) out.set(legacy.id_str, art);
+    }
+    for (const key of Object.keys(node)) {
+      if (key === '__typename') continue;
+      extractTweetArticles(node[key], out);
+    }
+  }
+
+  function postTweetArticles(map) {
+    if (map.size === 0) return;
+    window.postMessage(
+      { source: 'gatheros-interceptor', type: 'tweet-article', articles: Array.from(map.entries()) },
+      window.location.origin,
+    );
+  }
+
   // Recursively walk a GraphQL response looking for tweet objects
   // (anything with a legacy.id_str and a media array containing
   // video_info.variants). Returns a Map<tweetId, {videoUrl, posterUrl}>.
@@ -290,10 +343,19 @@
       }
     }
 
-    // Allow text-only tweets through (caption but no media) — the
-    // desktop renders the tweet card to an image. Only bail when
-    // there's nothing at all: no media and no text.
-    if (imageUrls.length === 0 && !videoUrl && !(legacy.full_text || '').trim()) return null;
+    // Long-form Article entity (title + preview + cover), if any.
+    const article = extractArticle(t);
+    // A bare article cover may carry no caption; surface it via imageUrls
+    // so the save still has a thumbnail.
+    if (article && article.coverUrl && imageUrls.length === 0) {
+      imageUrls.push(article.coverUrl);
+    }
+
+    // Allow text-only tweets and articles through. Only bail when there's
+    // nothing at all: no media, no text, and no article.
+    if (imageUrls.length === 0 && !videoUrl && !(legacy.full_text || '').trim() && !article) {
+      return null;
+    }
 
     return {
       tweetId,
@@ -309,6 +371,7 @@
       // video. The desktop's primary download follows media[0].
       media: buildMediaList(legacy),
       quoted: quotedFromTweet(t),
+      ...(article ? { article } : {}),
     };
   }
 
@@ -510,6 +573,9 @@
         const mediaMap = new Map();
         extractTweetMedia(json, mediaMap);
         postTweetMedia(mediaMap);
+        const articleMap = new Map();
+        extractTweetArticles(json, articleMap);
+        postTweetArticles(articleMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
         // Normally only the TOP-of-list bookmarks request drives
@@ -568,6 +634,9 @@
         const mediaMap = new Map();
         extractTweetMedia(json, mediaMap);
         postTweetMedia(mediaMap);
+        const articleMap = new Map();
+        extractTweetArticles(json, articleMap);
+        postTweetArticles(articleMap);
         postThreads(extractThreads(json));
         postQuoted(extractQuotedMap(json));
         // Same gate as the fetch path: top-of-list always, every page

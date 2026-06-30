@@ -16,6 +16,14 @@ function VideoIcon() {
   );
 }
 
+function XGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
 function CheckIcon() {
   return (
     <svg viewBox="0 0 14 14" width="11" height="11" aria-hidden="true">
@@ -103,6 +111,12 @@ function ImageCard({
     catch { return null; }
   })();
   const isTweet = record.kind === 'tweet' && !!tweetMeta;
+  // X long-form Article saved as its cover image: overlay the title (the
+  // thing the bare image loses) so it reads — and is searchable — as an
+  // article, not an untitled picture.
+  const articleMeta = (!isTweet && tweetMeta?.article?.title)
+    ? tweetMeta.article
+    : null;
 
   // Inline media paging on the grid card. The badge's arrows cycle
   // through a tweet's media without opening the focused view. The list
@@ -436,6 +450,20 @@ function ImageCard({
             style={morphSource ? { viewTransitionName: 'morph-image' } : undefined}
           />
         ))}
+        {articleMeta && (
+          // Title (+ short excerpt) banded over the cover, with an X glyph
+          // so it reads as an article card rather than a plain image.
+          <div className={styles.articleOverlay}>
+            <span className={styles.articleBadge}>
+              <XGlyph />
+              Article
+            </span>
+            <span className={styles.articleTitle}>{articleMeta.title}</span>
+            {articleMeta.excerpt && (
+              <span className={styles.articleExcerpt}>{articleMeta.excerpt}</span>
+            )}
+          </div>
+        )}
         {inView && showVideo && !canPageImages && !videoHover && (
           // Top-right "this is a video" badge, shown at rest. Hidden once
           // you hover (the clip plays). Suppressed for multi-media cards
