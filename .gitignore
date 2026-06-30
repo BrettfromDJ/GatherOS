@@ -11,3 +11,6 @@ yarn-error.log*
 .vscode/
 .idea/
 *.log
+
+# Throwaway userData dir for `npm run dev:fresh` (simulates a first install)
+.dev-fresh-userdata/

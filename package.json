@@ -13,6 +13,7 @@
     "dev": "concurrently -k -n vite,electron -c cyan,magenta \"npm:dev:vite\" \"npm:dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "dev:fresh": "rm -rf .dev-fresh-userdata && concurrently -k -n vite,electron -c cyan,magenta \"npm:dev:vite\" \"wait-on http://localhost:5173 && electron . --user-data-dir=.dev-fresh-userdata\"",
     "build": "vite build && electron-builder",
     "build:renderer": "vite build",
     "build:mac:arm": "vite build && electron-builder --mac --arm64",
