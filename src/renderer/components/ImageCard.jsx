@@ -331,9 +331,11 @@ function ImageCard({
         // the card — detected by pointer movement, not by selection
         // state, so a leftover highlight never blocks a fresh click.
         if (isTweet && movedSincePress(e)) return;
+        // Shift (or ⌘/Ctrl) tap toggles this card in/out of the
+        // selection — tap-to-multi-select. A bare tap still opens the
+        // focused view.
         onSelect(record.id, {
-          toggle: e.metaKey || e.ctrlKey,
-          range: e.shiftKey,
+          toggle: e.metaKey || e.ctrlKey || e.shiftKey,
         });
       }}
       onDoubleClick={() => onOpen(record)}
