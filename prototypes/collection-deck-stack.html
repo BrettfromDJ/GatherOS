@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Collection deck — stacked cover treatments</title>
+<style>
+  :root{
+    --sm:4px; --md:7px; --lg:10px; --xl:14px; --pill:999px;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    --drawer:rgba(24,24,27,0.92);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--ui);background:#0c0c0e;color:#111;-webkit-font-smoothing:antialiased}
+
+  header{position:fixed;inset:0 0 auto 0;z-index:80;background:rgba(248,248,250,0.86);
+    backdrop-filter:blur(16px) saturate(1.4);border-bottom:0.5px solid rgba(0,0,0,0.1);padding:12px 20px}
+  header h1{font-size:14px;font-weight:600;margin:0 0 9px;letter-spacing:-0.01em;color:#1a1a1c}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--pill);
+    border:0.5px solid rgba(0,0,0,0.12);background:#fff;color:#444;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .14s ease}
+  .tab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:var(--pill);
+    background:rgba(0,0,0,0.08);font-size:11px;font-weight:600;color:#666;font-family:var(--mono)}
+  .tab:hover{border-color:rgba(0,0,0,0.24)}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .tab.active .n{background:rgba(255,255,255,0.22);color:#fff}
+
+  main{padding:104px 20px 60px;min-height:100%}
+  .panel{display:none;max-width:1080px;margin:0 auto}
+  .panel.active{display:block;animation:fade .26s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .pmeta{margin:0 0 16px;color:#eaeaea}
+  .pname{font-size:19px;font-weight:600;letter-spacing:-0.02em;color:#fff}
+  .pname .idx{color:#7a7a7e;font-weight:500;margin-right:8px;font-family:var(--mono)}
+  .prat{font-size:13.5px;line-height:1.5;color:#9a9a9e;margin-top:5px;max-width:640px}
+
+  /* desktop edge stage */
+  .stage{position:relative;overflow:hidden;border-radius:16px;height:540px;
+    border:0.5px solid rgba(255,255,255,0.08);
+    background:
+      radial-gradient(120% 80% at 20% 10%, #2b2f3d, transparent 60%),
+      repeating-linear-gradient(0deg,#1a1b22 0 27px,#191a20 27px 28px),
+      repeating-linear-gradient(90deg,transparent 0 27px,rgba(255,255,255,0.02) 27px 28px),#15161c}
+  .stage::after{content:"the dock tucked against the right edge";
+    position:absolute;left:18px;top:14px;font-size:11px;letter-spacing:0.04em;color:rgba(255,255,255,0.4)}
+  /* a few faux grid thumbnails behind, so the drawer reads as floating over content */
+  .bg{position:absolute;inset:40px 120px 40px 40px;display:grid;grid-template-columns:repeat(4,1fr);
+    grid-auto-rows:96px;gap:12px;opacity:0.32;filter:blur(1px)}
+  .bg i{border-radius:8px}
+
+  /* the drawer, tucked to the right edge */
+  .drawer{position:absolute;right:0;top:50%;transform:translateY(-50%);
+    background:var(--drawer);
+    -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);
+    border:0.5px solid rgba(255,255,255,0.12);border-right:none;
+    border-radius:var(--xl) 0 0 var(--xl);
+    box-shadow:-10px 0 30px rgba(0,0,0,0.4);}
+
+  /* cover gradients */
+  .g1{background:linear-gradient(135deg,#7c5cff,#c45bff)}
+  .g2{background:linear-gradient(135deg,#ff8a5b,#ffd166)}
+  .g3{background:linear-gradient(135deg,#36d1c4,#4f9dff)}
+  .g4{background:linear-gradient(135deg,#ff5e87,#ff9e5e)}
+  .g5{background:linear-gradient(135deg,#4f9dff,#7c5cff)}
+  .g6{background:linear-gradient(135deg,#23c483,#36d1c4)}
+  .g7{background:linear-gradient(135deg,#f857a6,#ff5858)}
+
+  .cap{margin-top:16px;font-size:12px;color:#76767a}
+  .cap b{color:#bdbdc2;font-weight:600}
+
+  /* ════════ shared card base ════════ */
+  .card{border-radius:var(--md);background-size:cover;
+    box-shadow:0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 0.5px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.14)}
+
+  /* ════════ 1 · RECEDING DECK ════════ */
+  .d1{width:72px;padding:12px 0}
+  .d1 .deck{position:relative;height:300px;margin:0 auto;width:52px}
+  .d1 .card{position:absolute;left:50%;width:52px;height:42px;transform-origin:center bottom}
+  /* front (last) is largest+crisp; back shrinks + dims + tightens */
+
+  /* ════════ 2 · CLEAN PILE ════════ */
+  .d2{width:74px;padding:14px 0}
+  .d2 .deck{display:flex;flex-direction:column;align-items:center}
+  .d2 .card{width:54px;height:44px;margin-top:-30px;
+    box-shadow:0 -1px 0 rgba(255,255,255,0.18), 0 6px 14px rgba(0,0,0,0.5), inset 0 0 0 0.5px rgba(0,0,0,0.4)}
+  .d2 .card:first-child{margin-top:0}
+
+  /* ════════ 3 · HAND FAN ════════ */
+  .d3{width:84px;padding:16px 0}
+  .d3 .deck{position:relative;height:300px;width:60px;margin:0 auto}
+  .d3 .card{position:absolute;left:50%;top:50%;width:50px;height:40px;transform-origin:center center}
+
+  /* ════════ 4 · TOP-FADE PILE ════════ */
+  .d4{width:74px;padding:14px 0 16px}
+  .d4 .deck{display:flex;flex-direction:column;align-items:center;
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.25) 14%, #000 42%);
+    mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.25) 14%, #000 42%)}
+  .d4 .card{width:54px;height:44px;margin-top:-28px}
+  .d4 .card:first-child{margin-top:0}
+
+  /* ════════ 5 · COVERFLOW LEAN ════════ */
+  .d5{width:80px;padding:18px 0}
+  .d5 .scene{perspective:520px;width:60px;margin:0 auto}
+  .d5 .deck{position:relative;height:300px;transform-style:preserve-3d;transform:rotateX(8deg)}
+  .d5 .card{position:absolute;left:50%;width:54px;height:44px;transform-origin:center top}
+</style>
+</head>
+<body>
+<header>
+  <h1>Collection deck — stacked cover treatments</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="main"></main>
+
+<script>
+const COVERS = ['g3','g7','g6','g2','g5','g1']; // top(back) → bottom(front)
+
+// builders return the drawer innerHTML for N covers
+function recedingDeck(){
+  // back (index 0) smallest/dimmest/highest; front (last) largest/crisp/lowest
+  const n = COVERS.length, step = 30, baseY = 8;
+  return COVERS.map((g,i)=>{
+    const depth = (n-1-i);                 // 0 = front
+    const scale = 1 - depth*0.07;
+    const y = baseY + i*step;
+    const dim = 1 - depth*0.13;
+    return `<span class="card ${g}" style="
+      top:${y}px; transform:translateX(-50%) scale(${scale.toFixed(3)});
+      filter:brightness(${dim.toFixed(2)}); z-index:${i}"></span>`;
+  }).join('');
+}
+function handFan(){
+  const n=COVERS.length, step=30;
+  return COVERS.map((g,i)=>{
+    const rot = (i%2===0? -7 : 7) + (i-n/2)*1.2;
+    const dx = (i%2===0? -7 : 7);
+    const y = (i-(n-1)/2)*step;
+    return `<span class="card ${g}" style="
+      transform:translate(calc(-50% + ${dx}px), calc(-50% + ${y}px)) rotate(${rot.toFixed(1)}deg);
+      z-index:${i}"></span>`;
+  }).join('');
+}
+function coverflow(){
+  const n=COVERS.length, step=30, baseY=6;
+  return COVERS.map((g,i)=>{
+    const depth=(n-1-i);
+    const y=baseY+i*step;
+    const tz = -depth*16;
+    const ry = 0;
+    const dim = 1-depth*0.1;
+    return `<span class="card ${g}" style="
+      top:${y}px; transform:translateX(-50%) translateZ(${tz}px) rotateY(${ry}deg);
+      filter:brightness(${dim.toFixed(2)}); z-index:${i}"></span>`;
+  }).join('');
+}
+
+const DIRS = [
+  {
+    name:'Receding deck',
+    rat:'Real depth — the front (lowest) cover is full size and crisp; each card behind it shrinks, dims and tucks tighter, so the stack reads as a deck receding into the panel rather than a flat pile.',
+    cls:'d1',
+    inner:()=>`<div class="deck">${recedingDeck()}</div>`,
+  },
+  {
+    name:'Clean pile',
+    rat:'No tricks — uniform rounded cards in a tight, even pile, each with a thin top highlight + soft drop shadow so the layers separate crisply. The calmest, most "Mac-native" option.',
+    cls:'d2',
+    inner:()=>`<div class="deck">${COVERS.map(g=>`<span class="card ${g}"></span>`).join('')}</div>`,
+  },
+  {
+    name:'Hand fan',
+    rat:'Each card rotates and offsets a touch, alternating side to side like a fanned hand of cards — playful and tactile, gives the dock personality.',
+    cls:'d3',
+    inner:()=>`<div class="deck">${handFan()}</div>`,
+  },
+  {
+    name:'Top-fade pile',
+    rat:'A neat overlapping pile, but the topmost (back) cards dissolve into the panel via a soft gradient mask instead of hard-cutting — elegant and quiet, hides the messy back edge.',
+    cls:'d4',
+    inner:()=>`<div class="deck">${COVERS.map(g=>`<span class="card ${g}"></span>`).join('')}</div>`,
+  },
+  {
+    name:'Coverflow lean',
+    rat:'A subtle 3D tilt pushes the back cards away in Z, so the deck leans like coverflow — the most dimensional, with the front cover popping toward you.',
+    cls:'d5',
+    inner:()=>`<div class="scene"><div class="deck">${coverflow()}</div></div>`,
+  },
+];
+
+const tabs=document.getElementById('tabs');
+const main=document.getElementById('main');
+DIRS.forEach((d,i)=>{
+  const t=document.createElement('button');
+  t.className='tab'+(i===0?' active':'');t.dataset.i=i;
+  t.innerHTML=`<span class="n">${i+1}</span>${d.name}`;
+  t.onclick=()=>show(i);tabs.appendChild(t);
+
+  const p=document.createElement('section');
+  p.className='panel'+(i===0?' active':'');p.dataset.i=i;
+  p.innerHTML=`
+    <div class="pmeta">
+      <div class="pname"><span class="idx">${i+1}</span>${d.name}</div>
+      <div class="prat">${d.rat}</div>
+    </div>
+    <div class="stage">
+      <div class="bg">
+        <i class="g2"></i><i class="g5"></i><i class="g6"></i><i class="g1"></i>
+        <i class="g3"></i><i class="g7"></i><i class="g4"></i><i class="g2"></i>
+        <i class="g6"></i><i class="g1"></i><i class="g5"></i><i class="g3"></i>
+      </div>
+      <div class="drawer ${d.cls}">${d.inner()}</div>
+    </div>
+    <div class="cap">Shown at rest (tucked to the edge). On hover the deck fans open into the full list — <b>these treat the resting stack only</b>.</div>`;
+  main.appendChild(p);
+});
+function show(i){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',+t.dataset.i===i));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',+p.dataset.i===i));
+}
+window.addEventListener('keydown',e=>{const n=parseInt(e.key,10);if(n>=1&&n<=DIRS.length)show(n-1)});
+</script>
+</body>
+</html>
