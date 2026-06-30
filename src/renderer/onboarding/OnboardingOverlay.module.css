@@ -127,6 +127,30 @@
   margin-bottom: 12px;
 }
 
+/* Subtle install affordance, left-aligned directly under the body copy
+   and separate from the Previous/Next navigation. A quiet glass chip with
+   the Chrome glyph — present but not competing with the primary CTA. */
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 12px;
+  padding: 5px 11px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-ui, inherit);
+  font-size: var(--text-sm, 12px);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 120ms ease, transform var(--dur-instant, 80ms) ease;
+}
+
+.ctaBtn:hover { background: rgba(255, 255, 255, 0.14); }
+.ctaBtn:active { transform: scale(0.98); }
+
 /* Footer holds Previous / Next / choice buttons. All right-aligned
    like the reference layout, with a small gap between them. */
 .footer {

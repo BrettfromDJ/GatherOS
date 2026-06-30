@@ -120,7 +120,7 @@ export const STEPS = [
     onEnter: '[data-onboarding="mode-library"]',
     title: 'Sync your X & Instagram saves',
     body: 'Add the Chrome extension and everything you bookmark on X or save on Instagram flows straight into your library — no copy-paste.',
-    advance: { type: 'next', label: 'Maybe later' },
+    advance: { type: 'next', label: 'Next' },
     cta: {
       label: 'Install extension',
       url: 'https://chromewebstore.google.com/detail/gatheros/jflmnonpoapjncoeankehcmenldecojk',

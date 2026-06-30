@@ -188,6 +188,22 @@ export default function OnboardingOverlay() {
           </div>
         )}
         {step.body && <div className={styles.body}>{step.body}</div>}
+        {step.cta && (
+          // Subtle, left-aligned install affordance directly under the
+          // copy — separate from the Previous/Next navigation. Opens the
+          // store listing without advancing the tour.
+          <button
+            type="button"
+            className={styles.ctaBtn}
+            onClick={() => {
+              try { window.moodmark?.shell?.openUrl?.(step.cta.url); }
+              catch { /* opening the store link is best-effort */ }
+            }}
+          >
+            <ChromeIcon size={13} strokeWidth={2} aria-hidden="true" />
+            {step.cta.label}
+          </button>
+        )}
         <div className={styles.footer}>
           {stepIndex > 0 && !step.noBack && (
             <button
@@ -201,9 +217,7 @@ export default function OnboardingOverlay() {
           {step.advance?.type === 'next' && (
             <button
               type="button"
-              // When the step carries an install CTA, the Next button
-              // becomes the quiet "skip" option and the CTA is primary.
-              className={step.cta ? styles.ghostBtn : styles.primaryBtn}
+              className={styles.primaryBtn}
               onClick={() => {
                 // Some steps need to nudge the app state before
                 // advancing (e.g. opening a save's detail panel or
@@ -225,19 +239,6 @@ export default function OnboardingOverlay() {
               }}
             >
               {step.advance.label || 'Next'}
-            </button>
-          )}
-          {step.cta && (
-            <button
-              type="button"
-              className={styles.primaryBtn}
-              onClick={() => {
-                try { window.moodmark?.shell?.openUrl?.(step.cta.url); }
-                catch { /* opening the store link is best-effort */ }
-                advance();
-              }}
-            >
-              {step.cta.label}
             </button>
           )}
           {step.advance?.type === 'choice' && step.advance.options.map((opt, i, arr) => (
