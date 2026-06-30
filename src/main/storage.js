@@ -417,32 +417,28 @@ async function composeMoodBoardGif(saves, outputPath, opts = {}) {
   const sharp = require('sharp');
   const { GIFEncoder, quantize, applyPalette } = require('gifenc');
 
-  // Portrait poster frame (4:5). Kept modest so the GIF stays a sane size.
+  // Square frame (1:1). Kept modest so the GIF stays a sane size.
   const W = opts.width || 1080;
-  const H = opts.height || 1350;
+  const H = opts.height || 1080;
   const holdMs = opts.holdMs || 1500;          // time each image is on screen
-  const MATTE = opts.matte || { r: 235, g: 235, b: 235 }; // #EBEBEB
-  const MARGIN = opts.margin ?? 0.085;          // border around the image
-  const SHADOW_BLUR = 26;
-  const SHADOW_PAD = 40;
-
-  const contentW = Math.round(W * (1 - 2 * MARGIN));
-  const contentH = Math.round(H * (1 - 2 * MARGIN));
+  const MATTE = opts.matte || { r: 235, g: 235, b: 235 }; // #EBEBEB (letterbox fill)
 
   const enc = GIFEncoder();
   let frames = 0;
 
   for (const save of saves) {
-    // Video saves can't be decoded by sharp — use the poster still.
-    const src = save?.kind === 'video' && save?.thumb_path ? save.thumb_path : save?.file_path;
+    // Skip video saves entirely — even if selected, they don't belong in
+    // the still-image GIF.
+    if (save?.kind === 'video') continue;
+    const src = save?.file_path;
     if (!src || !fs.existsSync(src)) continue;
 
     let placed;
     try {
-      // Contain within the content box (never enlarge past the frame, but
-      // do upscale small images so they fill it).
+      // Contain to the full frame — no margin, no border. The matte only
+      // ever shows in the letterbox gaps left by an image's own aspect.
       placed = await sharp(src)
-        .resize({ width: contentW, height: contentH, fit: 'inside', withoutEnlargement: false })
+        .resize({ width: W, height: H, fit: 'inside', withoutEnlargement: false })
         .flatten({ background: { r: 255, g: 255, b: 255 } }) // drop alpha onto white
         .png()
         .toBuffer({ resolveWithObject: true });
@@ -456,23 +452,10 @@ async function composeMoodBoardGif(saves, outputPath, opts = {}) {
     const left = Math.round((W - iw) / 2);
     const top = Math.round((H - ih) / 2);
 
-    // Soft drop shadow: a black slab the size of the image, padded + blurred.
-    const shadow = await sharp({
-      create: { width: iw, height: ih, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0.26 } },
-    })
-      .extend({ top: SHADOW_PAD, bottom: SHADOW_PAD, left: SHADOW_PAD, right: SHADOW_PAD,
-        background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .blur(SHADOW_BLUR)
-      .png()
-      .toBuffer();
-
     const frame = await sharp({
       create: { width: W, height: H, channels: 4, background: { ...MATTE, alpha: 1 } },
     })
-      .composite([
-        { input: shadow, left: left - SHADOW_PAD, top: top - SHADOW_PAD + 14 },
-        { input: placed.data, left, top },
-      ])
+      .composite([{ input: placed.data, left, top }])
       .raw()
       .toBuffer();
 
