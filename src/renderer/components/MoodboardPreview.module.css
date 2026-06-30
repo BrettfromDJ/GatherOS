@@ -1,0 +1,81 @@
+/* Hover preview that floats directly above the "make moodboard" button.
+   pointer-events: none so it never eats the hover that keeps it open
+   (the wrapper owns the enter/leave). */
+.pop {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+  z-index: 60;
+  animation: moodboardPopIn var(--dur-quick, 160ms) var(--ease-pop, cubic-bezier(0.2, 0.9, 0.3, 1.2)) both;
+}
+
+@keyframes moodboardPopIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
+}
+
+/* Square frame — same 1:1 aspect, #E2E2E0 matte and even padding as the
+   exported GIF, just scaled down. */
+.frame {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  box-sizing: border-box;
+  padding: 11px; /* ~ the GIF's 96/1600 padding ratio */
+  background: #e2e2e0;
+  border-radius: var(--radius-lg, 10px);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.26),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.img {
+  position: absolute;
+  inset: 11px;
+  width: calc(100% - 22px);
+  height: calc(100% - 22px);
+  object-fit: contain; /* contained, never cropped — matches the export */
+  /* No transition: hard cut between frames, like the GIF. */
+}
+
+/* Tiny progress dots along the bottom of the frame. */
+.dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dot,
+.dotOn {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.dotOn {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.caption {
+  font-size: var(--text-sm, 12px);
+  color: var(--text-primary, #1d1d1f);
+  background: var(--surface-1, #fff);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill, 999px);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.16),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}

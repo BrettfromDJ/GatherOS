@@ -8,6 +8,7 @@ import { CollectionIcon } from './components/Sidebar.jsx';
 import QuickSwitcher from './components/QuickSwitcher.jsx';
 import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import BulkTagPicker from './components/BulkTagPicker.jsx';
+import MoodboardPreview from './components/MoodboardPreview.jsx';
 import RediscoverMode from './components/RediscoverMode.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
@@ -2107,6 +2108,16 @@ export default function App({ entitlement } = {}) {
   const visibleSavesRef = useRef(visibleSaves);
   useEffect(() => { visibleSavesRef.current = visibleSaves; }, [visibleSaves]);
 
+  // The exact frames the moodboard GIF would render — selected saves in
+  // grid order, minus videos (which the export skips). Drives the hover
+  // preview above the "make moodboard" button.
+  const moodboardFrames = useMemo(
+    () => visibleSaves.filter((s) => selected.has(s.id) && s.kind !== 'video'),
+    [visibleSaves, selected],
+  );
+  // Whether the hover preview above the moodboard button is showing.
+  const [moodboardPreviewOpen, setMoodboardPreviewOpen] = useState(false);
+
   // Live per-type counts for the Bookmarks filter pills — a breakdown
   // of whatever's currently loaded in the Bookmarks view (so they
   // honour an active search). null outside the Bookmarks view, where
@@ -3633,15 +3644,24 @@ export default function App({ entitlement } = {}) {
             </span>
           </button>
           {selected.size >= 2 && (
-            <button
-              type="button"
-              className="selection-btn selection-btn-compact"
-              onClick={handleBulkExportBoard}
-              data-tooltip="Make moodboard"
-              aria-label="Make an animated moodboard GIF that cycles through the selection"
+            <span
+              className="selection-btn-wrap"
+              style={{ position: 'relative', display: 'inline-flex' }}
+              onMouseEnter={() => setMoodboardPreviewOpen(true)}
+              onMouseLeave={() => setMoodboardPreviewOpen(false)}
             >
-              <span className="selection-btn-icon"><BoardExportIcon /></span>
-            </button>
+              {moodboardPreviewOpen && moodboardFrames.length > 0 && (
+                <MoodboardPreview saves={moodboardFrames} />
+              )}
+              <button
+                type="button"
+                className="selection-btn selection-btn-compact"
+                onClick={handleBulkExportBoard}
+                aria-label="Make an animated moodboard GIF that cycles through the selection"
+              >
+                <span className="selection-btn-icon"><BoardExportIcon /></span>
+              </button>
+            </span>
           )}
           <button
             type="button"
