@@ -420,8 +420,13 @@ async function composeMoodBoardGif(saves, outputPath, opts = {}) {
   // Square frame (1:1). Kept modest so the GIF stays a sane size.
   const W = opts.width || 1080;
   const H = opts.height || 1080;
-  const holdMs = opts.holdMs || 1500;          // time each image is on screen
+  const holdMs = opts.holdMs || 600;           // time each image is on screen
+  const PADDING = opts.padding != null ? opts.padding : 64; // breathing room around each image
   const MATTE = opts.matte || { r: 235, g: 235, b: 235 }; // #EBEBEB (letterbox fill)
+
+  // The area an image is allowed to occupy, inset by the padding on all sides.
+  const contentW = Math.max(1, W - PADDING * 2);
+  const contentH = Math.max(1, H - PADDING * 2);
 
   const enc = GIFEncoder();
   let frames = 0;
@@ -435,10 +440,11 @@ async function composeMoodBoardGif(saves, outputPath, opts = {}) {
 
     let placed;
     try {
-      // Contain to the full frame — no margin, no border. The matte only
-      // ever shows in the letterbox gaps left by an image's own aspect.
+      // Contain to the padded content area so there's even breathing room
+      // around every image. The matte shows as the surrounding padding plus
+      // any letterbox gaps left by the image's own aspect.
       placed = await sharp(src)
-        .resize({ width: W, height: H, fit: 'inside', withoutEnlargement: false })
+        .resize({ width: contentW, height: contentH, fit: 'inside', withoutEnlargement: false })
         .flatten({ background: { r: 255, g: 255, b: 255 } }) // drop alpha onto white
         .png()
         .toBuffer({ resolveWithObject: true });
