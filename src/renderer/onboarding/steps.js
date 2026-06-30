@@ -106,7 +106,7 @@ export const STEPS = [
     icon: 'spaces',
     onEnter: '[data-onboarding="mode-boards"]',
     title: 'Spaces',
-    body: 'Infinite canvases for moodboards or explorations. Drag images in, arrange them, add notes, and present full-screen.',
+    body: 'Infinite canvases for moodboards or explorations. Drag images in, arrange them, and add notes.',
     advance: { type: 'next', label: 'Next' },
   },
   // 5. Chrome extension — prompt to install it so X bookmarks and
@@ -119,7 +119,7 @@ export const STEPS = [
     icon: 'extension',
     onEnter: '[data-onboarding="mode-library"]',
     title: 'Sync your X & Instagram saves',
-    body: 'Add the Chrome extension and everything you bookmark on X or save on Instagram flows straight into your library — no copy-paste.',
+    body: 'Add the Chrome extension and everything you bookmark on X or save on Instagram flows straight into your library.',
     advance: { type: 'next', label: 'Next' },
     cta: {
       label: 'Install extension',
