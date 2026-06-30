@@ -121,7 +121,13 @@ function appBundleFor(binaryPath) {
 // like a background daemon — no Dock icon, no window, no localhost
 // server bound. `open -a` goes through LaunchServices, which is the
 // supported path for launching a GUI app programmatically.
-async function ensureAppRunning() {
+//
+// `background: true` (the save path) adds `open -g` so the launch
+// doesn't pull GatherOS in front of the user's browser, and tags the
+// launch with a --gatheros-bg sentinel the app reads to stay out of
+// the foreground (see index.js). Saving a bookmark must never steal
+// focus; only the explicit "Open GatherOS" action foregrounds.
+async function ensureAppRunning({ background = false } = {}) {
   if (await ping()) {
     debug('ensureAppRunning: ping ok, app already running');
     return true;
@@ -143,20 +149,27 @@ async function ensureAppRunning() {
       // project root via --args so Electron knows which app to load.
       // In a packaged build the bundle is the app's own .app and
       // --args is just unused (harmless).
-      // -g: launch the app in the BACKGROUND. A save from the browser
-      // extension should never steal focus or pop the app to the
-      // foreground — the user is mid-browse. The save still lands and
-      // surfaces via the in-app toast.
-      const args = ['-g', '-a', bundle];
+      // -g launches without bringing the app to the foreground, so a
+      // save-triggered cold launch doesn't pop over the browser. Only
+      // the save path passes background:true; the explicit "Open
+      // GatherOS" action still foregrounds as the user expects.
+      const args = background ? ['-g', '-a', bundle] : ['-a', bundle];
+      const passthrough = [];
       const appPath = process.env.GATHEROS_APP_PATH;
-      if (appPath) args.push('--args', appPath);
+      if (appPath) passthrough.push(appPath);
+      // Sentinel the app checks to suppress its initial window + the
+      // second-instance focus when it was woken solely to save.
+      if (background) passthrough.push('--gatheros-bg');
+      if (passthrough.length) args.push('--args', ...passthrough);
       debug('ensureAppRunning: open', args.join(' '));
       spawn('/usr/bin/open', args, { detached: true, stdio: 'ignore', env }).unref();
     } else {
       // Fallback: direct spawn. Should never trigger in practice
       // since the installer always derives the binary from an .app.
       const appPath = process.env.GATHEROS_APP_PATH;
-      const args = appPath ? [appPath] : [];
+      const args = [];
+      if (appPath) args.push(appPath);
+      if (background) args.push('--gatheros-bg');
       debug('ensureAppRunning: fallback spawn', bin, args.join(' '));
       spawn(bin, args, { detached: true, stdio: 'ignore', env }).unref();
     }
@@ -245,7 +258,10 @@ async function handleMessage(msg) {
     return;
   }
   if (msg.type === 'save') {
-    const ready = await ensureAppRunning();
+    // Background launch: a bookmark save must never pull GatherOS in
+    // front of the browser. If the app is already up this is a no-op
+    // ping; if it's down it cold-launches hidden via `open -g`.
+    const ready = await ensureAppRunning({ background: true });
     if (!ready) {
       writeMessage({ ok: false, error: 'Could not launch GatherOS. Try opening it manually.' });
       return;

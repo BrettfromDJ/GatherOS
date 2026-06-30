@@ -36,7 +36,17 @@ require('./logger').setup();
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
-app.on('second-instance', () => {
+// The native messaging host wakes us with a --gatheros-bg sentinel
+// when it's launching us solely to persist a bookmark save. In that
+// case we must NOT pull the app in front of the user's browser — both
+// the initial window show (below) and the second-instance focus are
+// suppressed. Saving a bookmark is a background sync, never a foreground
+// interruption.
+const LAUNCHED_FOR_BG_SAVE = process.argv.includes('--gatheros-bg');
+app.on('second-instance', (_event, argv) => {
+  // A relaunch carrying the sentinel is the host nudging an already-
+  // running app for a save — leave focus where it is.
+  if (Array.isArray(argv) && argv.includes('--gatheros-bg')) return;
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     if (!mainWindow.isVisible()) mainWindow.show();
@@ -612,7 +622,13 @@ function createMainWindow() {
 
   trackWindowState(mainWindow);
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  // Cold-launched just to save a bookmark? Stay in the background —
+  // the window opens later when the user actually reaches for the app
+  // (Dock click → app.on('activate'), or the tray menu). Showing it
+  // here would defeat the whole point of the background save launch.
+  mainWindow.once('ready-to-show', () => {
+    if (!LAUNCHED_FOR_BG_SAVE) mainWindow.show();
+  });
 
   // Renderer is ready to receive IPC events. Drain any queued
   // licensing deep-links that arrived before this point.
