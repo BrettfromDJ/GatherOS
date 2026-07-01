@@ -45,14 +45,3 @@
   /* No transition: hard cut between frames, like the GIF. */
 }
 
-.caption {
-  font-size: var(--text-sm, 12px);
-  color: var(--text-primary, #1d1d1f);
-  background: var(--surface-1, #fff);
-  padding: 3px 9px;
-  border-radius: var(--radius-pill, 999px);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.16),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  white-space: nowrap;
-}

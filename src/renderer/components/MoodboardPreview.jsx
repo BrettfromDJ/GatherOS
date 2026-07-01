@@ -37,7 +37,6 @@ export default function MoodboardPreview({ saves }) {
           />
         ))}
       </div>
-      <div className={styles.caption}>{saves.length} frames · 0.6s each</div>
     </div>
   );
 }
