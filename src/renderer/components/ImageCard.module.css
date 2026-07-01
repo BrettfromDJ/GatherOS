@@ -65,9 +65,20 @@
     inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-.selected .frame {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+/* Selection ring drawn as an inset bordered pseudo-element rather than an
+   `outline`. An offset outline renders square corners in Chromium — a
+   white nub poked out past each rounded corner of the frame. This ring
+   inherits the frame's border-radius so it hugs the rounded corners
+   exactly; overflow:hidden on .frame keeps it clipped to that shape, and
+   being a pseudo-element it's independent of the frame's box-shadow so it
+   survives the hover state. */
+.selected .frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 /* Tweet text cards adopt the collection-card recipe (FolderGrid tiles):
