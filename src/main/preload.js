@@ -146,6 +146,7 @@ contextBridge.exposeInMainWorld('moodmark', {
   },
   capture: {
     screenshot: () => ipcRenderer.invoke('capture:screenshot'),
+    permissionStatus: () => ipcRenderer.invoke('capture:permission-status'),
   },
   image: {
     openInPreview: (filePath) => ipcRenderer.invoke('image:open-in-preview', filePath),

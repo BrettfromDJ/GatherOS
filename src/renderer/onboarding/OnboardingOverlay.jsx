@@ -8,8 +8,11 @@ import {
   PanelRight as DetailIcon,
   Gift as GiftIcon,
   Chrome as ChromeIcon,
+  Camera as CameraIcon,
+  Check as CheckIcon,
 } from 'lucide-react';
 import { useOnboarding } from './OnboardingContext.jsx';
+import { resolveAsset } from '../lib/asset.js';
 import styles from './OnboardingOverlay.module.css';
 
 // Map the step's `icon` string to a lucide glyph. The first three
@@ -24,6 +27,7 @@ const STEP_ICONS = {
   detail: DetailIcon,
   starter: GiftIcon,
   extension: ChromeIcon,
+  capture: CameraIcon,
 };
 
 // Visual padding around the spotlight ring, in CSS px.
@@ -34,6 +38,32 @@ export default function OnboardingOverlay() {
     active, step, stepIndex, totalSteps, advance, back, exit,
   } = useOnboarding();
   const [targetRect, setTargetRect] = useState(null);
+
+  // Live-capture step state. While the step is active we listen for
+  // save:created — the moment the user's screenshot lands, the step
+  // flips to a success state showing THEIR pixel. permStatus lets us
+  // frame the macOS Screen Recording ask before the shortcut is
+  // pressed instead of the dialog ambushing the first capture.
+  const isCaptureStep = active && step?.advance?.type === 'capture';
+  const [capturedSave, setCapturedSave] = useState(null);
+  const [permStatus, setPermStatus] = useState(null);
+  useEffect(() => {
+    if (!isCaptureStep) {
+      setCapturedSave(null);
+      return undefined;
+    }
+    let cancelled = false;
+    window.moodmark?.capture?.permissionStatus?.()
+      .then((s) => { if (!cancelled) setPermStatus(s); })
+      .catch(() => { /* hint is best-effort */ });
+    const off = window.moodmark?.on?.('save:created', (record) => {
+      if (!cancelled && record) setCapturedSave(record);
+    });
+    return () => {
+      cancelled = true;
+      off?.();
+    };
+  }, [isCaptureStep, step?.id]);
 
   // Resolve + watch the target's bbox. If the target isn't in the
   // DOM yet (e.g. we're waiting for a route transition to finish),
@@ -188,6 +218,55 @@ export default function OnboardingOverlay() {
           </div>
         )}
         {step.body && <div className={styles.body}>{step.body}</div>}
+        {isCaptureStep && !capturedSave && (
+          <div className={styles.captureBlock}>
+            {/* aria-hidden scopes to the decorative keycaps only — the
+                row also holds a real button that must stay reachable. */}
+            <div className={styles.kbdRow}>
+              <span className={styles.kbdGroup} aria-hidden="true">
+                <kbd className={styles.kbd}>⌘</kbd>
+                <kbd className={styles.kbd}>⇧</kbd>
+                <kbd className={styles.kbd}>S</kbd>
+              </span>
+              <span className={styles.kbdOr} aria-hidden="true">or</span>
+              <button
+                type="button"
+                className={styles.ctaBtn}
+                style={{ margin: 0 }}
+                onClick={() => {
+                  try { window.moodmark?.capture?.screenshot?.(); }
+                  catch { /* capture is best-effort */ }
+                }}
+              >
+                <CameraIcon size={13} strokeWidth={2} aria-hidden="true" />
+                Capture now
+              </button>
+            </div>
+            {permStatus && permStatus !== 'granted' && (
+              <div className={styles.permHint}>
+                macOS will ask for Screen Recording first — that's GatherOS
+                doing the capturing. If it needs a relaunch, this tour will
+                be here when you're back.
+              </div>
+            )}
+          </div>
+        )}
+        {isCaptureStep && capturedSave && (
+          <div className={styles.captureDone}>
+            {resolveAsset(capturedSave, 'thumb') && (
+              <img
+                className={styles.captureDoneImg}
+                src={resolveAsset(capturedSave, 'thumb')}
+                alt=""
+                draggable={false}
+              />
+            )}
+            <span className={styles.captureDoneText}>
+              <CheckIcon size={13} strokeWidth={2.4} aria-hidden="true" />
+              Saved — that one's yours.
+            </span>
+          </div>
+        )}
         {step.cta && (
           // Subtle, left-aligned install affordance directly under the
           // copy — separate from the Previous/Next navigation. Opens the
@@ -240,6 +319,17 @@ export default function OnboardingOverlay() {
             >
               {step.advance.label || 'Next'}
             </button>
+          )}
+          {step.advance?.type === 'capture' && (
+            capturedSave ? (
+              <button type="button" className={styles.primaryBtn} onClick={advance}>
+                Next
+              </button>
+            ) : (
+              <button type="button" className={styles.ghostBtn} onClick={advance}>
+                {step.advance.skipLabel || 'Skip for now'}
+              </button>
+            )
           )}
           {step.advance?.type === 'choice' && step.advance.options.map((opt, i, arr) => (
             <button

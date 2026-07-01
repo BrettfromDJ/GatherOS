@@ -110,6 +110,17 @@ function writeToDropFolder(buffer) {
   }
 }
 
+// Dialog-free probe for the onboarding capture step — lets the
+// renderer frame the macOS Screen Recording ask BEFORE the user hits
+// the shortcut, instead of the permission dialog ambushing the first
+// real capture. Returns 'granted' | 'denied' | 'not-determined' |
+// 'restricted' | 'unknown' ('granted' on non-macOS).
+function getScreenPermissionStatus() {
+  if (process.platform !== 'darwin') return 'granted';
+  try { return systemPreferences.getMediaAccessStatus('screen'); }
+  catch { return 'unknown'; }
+}
+
 async function ensureScreenRecordingPermission() {
   if (process.platform !== 'darwin') return true;
 
@@ -348,4 +359,5 @@ module.exports = {
   startScreenshotCapture,
   captureFullscreen,
   captureWindow,
+  getScreenPermissionStatus,
 };

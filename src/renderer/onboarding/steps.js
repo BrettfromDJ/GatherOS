@@ -88,7 +88,22 @@ export const STEPS = [
       clickBefore: '[data-onboarding="detail-close"]',
     },
   },
-  // 3. Collections — the overlay switches to the Collections tab
+  // 3. LIVE first capture — the aha moment happens, not gets
+  // described. The overlay renders ⌘⇧S keycaps + a click-to-capture
+  // CTA, frames the macOS Screen Recording ask up front (status via
+  // capture:permission-status), and listens for save:created: the
+  // moment the user's own screenshot lands, the step flips to a
+  // success state showing THEIR pixel. Skippable — never a wall.
+  {
+    id: 'first-capture',
+    target: null,
+    icon: 'capture',
+    onEnter: '[data-onboarding="mode-library"]',
+    title: 'Grab your first screenshot',
+    body: 'Drag over anything on your screen — a color, a font, a layout you like. It lands in your library instantly.',
+    advance: { type: 'capture', skipLabel: 'Skip for now' },
+  },
+  // 4. Collections — the overlay switches to the Collections tab
   // on entry, then explains it.
   {
     id: 'collections',
@@ -99,7 +114,7 @@ export const STEPS = [
     body: 'Group saves by project, mood or anything else. A save can live in many collections at once.',
     advance: { type: 'next', label: 'Next' },
   },
-  // 4. Spaces — same pattern. Next advances to the final choice.
+  // 5. Spaces — same pattern. Next advances to the final choice.
   {
     id: 'spaces',
     target: null,
@@ -109,7 +124,7 @@ export const STEPS = [
     body: 'Infinite canvases for moodboards or explorations. Drag images in, arrange them, and add notes.',
     advance: { type: 'next', label: 'Next' },
   },
-  // 5. Chrome extension — prompt to install it so X bookmarks and
+  // 6. Chrome extension — prompt to install it so X bookmarks and
   // Instagram saves sync into the library automatically. The `cta`
   // opens the Chrome Web Store listing in the browser; the regular
   // Next ('Maybe later') lets them skip without installing.
@@ -126,7 +141,7 @@ export const STEPS = [
       url: 'https://chromewebstore.google.com/detail/gatheros/jflmnonpoapjncoeankehcmenldecojk',
     },
   },
-  // 6. Keep / start-fresh. The chosen option's `action` fires
+  // 7. Keep / start-fresh. The chosen option's `action` fires
   // before the overlay closes — 'fresh' removes the starter pack
   // (saves + collections + boards) on the main process. Both
   // branches flip back to the Library tab so the user lands

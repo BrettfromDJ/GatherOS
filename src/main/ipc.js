@@ -565,6 +565,13 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
+  // Dialog-free Screen Recording status for the onboarding capture
+  // step — lets the renderer frame the macOS permission ask up front.
+  ipcMain.handle('capture:permission-status', () => {
+    const { getScreenPermissionStatus } = require('./capture');
+    return getScreenPermissionStatus();
+  });
+
   ipcMain.handle('capture:fullscreen', () => {
     captureFullscreen();
     return { ok: true };
