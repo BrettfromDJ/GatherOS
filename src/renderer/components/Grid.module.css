@@ -3,6 +3,13 @@
   gap: 10px;
   padding: 20px;
   align-items: start;
+  /* Grow to fill the scroll viewport even when the library is short, so
+     the empty area below the last row belongs to .grid (not the parent
+     scroll container) and therefore starts a lasso drag-select. Rows stay
+     packed at the top (align-content) so cards never spread to fill the
+     extra height. */
+  flex: 1 0 auto;
+  align-content: start;
   /* No own background — the parent .grid-scroll already paints
      var(--content-bg). A solid background here was covering the
      bottom of FeaturedBuckets in the negative-margin overlap zone,
