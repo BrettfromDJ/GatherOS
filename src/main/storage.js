@@ -432,10 +432,11 @@ async function composeMoodBoardGif(saves, outputPath, opts = {}) {
   let frames = 0;
 
   for (const save of saves) {
-    // Skip video saves entirely — even if selected, they don't belong in
-    // the still-image GIF.
-    if (save?.kind === 'video') continue;
-    const src = save?.file_path;
+    // Video saves store an MP4 at file_path that sharp can't decode, so
+    // use the poster still (thumb_path) — the video lands in the GIF as
+    // its first frame instead of being dropped.
+    const src =
+      save?.kind === 'video' && save?.thumb_path ? save.thumb_path : save?.file_path;
     if (!src || !fs.existsSync(src)) continue;
 
     let placed;

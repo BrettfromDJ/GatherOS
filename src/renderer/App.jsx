@@ -2109,10 +2109,11 @@ export default function App({ entitlement } = {}) {
   useEffect(() => { visibleSavesRef.current = visibleSaves; }, [visibleSaves]);
 
   // The exact frames the moodboard GIF would render — selected saves in
-  // grid order, minus videos (which the export skips). Drives the hover
+  // grid order. Videos are included as their poster still (resolveAsset's
+  // 'thumb' returns the poster), matching the export. Drives the hover
   // preview above the "make moodboard" button.
   const moodboardFrames = useMemo(
-    () => visibleSaves.filter((s) => selected.has(s.id) && s.kind !== 'video'),
+    () => visibleSaves.filter((s) => selected.has(s.id)),
     [visibleSaves, selected],
   );
   // Whether the hover preview above the moodboard button is showing.

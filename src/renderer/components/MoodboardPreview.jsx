@@ -5,8 +5,9 @@ import { resolveAsset } from '../lib/asset.js';
 // Live, hover-only preview of the moodboard GIF. It mirrors the exported
 // file exactly: a square #E2E2E0 frame, every image contained with even
 // padding, and a hard cut to the next image every 0.6s (no transition —
-// same as gifenc's per-frame delay). Videos are already filtered out by
-// the caller, matching the export.
+// same as gifenc's per-frame delay). Videos are represented by their
+// poster still (resolveAsset 'thumb'), matching the export's first-frame
+// behaviour.
 export default function MoodboardPreview({ saves }) {
   const [idx, setIdx] = useState(0);
 
