@@ -11,6 +11,15 @@
   font: inherit;
   animation: cardIn var(--dur-medium) var(--ease-out) both;
   animation-delay: var(--card-stagger, 0ms);
+  /* Browser-native virtualization: skip layout + paint for cards that
+     are scrolled off-screen. This is what finally makes bookmark-heavy
+     views smooth — tweet cards stay mounted (so columns never collapse),
+     but the browser no longer paints the thousands of off-screen ones.
+     `contain-intrinsic-size: auto` remembers each card's real rendered
+     height after its first paint, so the scrollbar stays stable; the
+     360px fallback only reserves space for cards never yet seen. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
 }
 
 @keyframes cardIn {
@@ -141,8 +150,10 @@
   -webkit-backdrop-filter: none;
   border-color: rgba(255, 255, 255, 0.25);
   color: var(--text-on-accent);
+  /* Selected: a crisp, fully-opaque white ring so the circle reads
+     sharp (a translucent ring looked soft/blurry on the solid pill). */
   box-shadow:
-    0 0 0 1.5px rgba(255, 255, 255, 0.55),
+    0 0 0 1.5px rgba(255, 255, 255, 1),
     0 1px 2px rgba(0, 0, 0, 0.28),
     inset 0 0.5px 0 0 rgba(255, 255, 255, 0.25);
 }
