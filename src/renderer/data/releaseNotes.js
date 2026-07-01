@@ -32,6 +32,11 @@ export const RELEASE_NOTES = [
         title: 'Smoother with big libraries',
         description: 'Scrolling stays fluid through thousands of bookmarks — off-screen cards no longer do rendering work they don’t need to.',
       },
+      {
+        Icon: WindowIcon,
+        title: 'Fixes and polish',
+        description: 'A round of small fixes across the app — steadier drag-and-drop, cleaner toasts, and a handful of rough edges smoothed out.',
+      },
     ],
   },
   {

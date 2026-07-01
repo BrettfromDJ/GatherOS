@@ -62,11 +62,12 @@ export default function WhatsNewModal({ open, onClose, notes }) {
         <div className={styles.footer}>
           <button
             type="button"
-            className={styles.gotItBtn}
+            className={styles.closeLink}
             onClick={onClose}
             autoFocus
           >
-            Got it
+            <span className={styles.closeX} aria-hidden="true">✕</span>
+            Close
           </button>
         </div>
       </div>
