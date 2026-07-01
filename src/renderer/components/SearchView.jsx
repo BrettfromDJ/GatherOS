@@ -600,8 +600,22 @@ export default function SearchView({
                   className={`${styles.popRow}${i === activeIdx ? ` ${styles.popRowActive}` : ''}`}
                   role="option"
                   aria-selected={i === activeIdx}
+                  /* Commit on pointerdown, not click: the app has several
+                     document-level mousedown listeners (context menu,
+                     switcher, dropdowns) that can blur the input and
+                     unmount this popover between mousedown and mouseup —
+                     which silently eats the click. pointerdown fires
+                     before any of that can happen; preventDefault keeps
+                     focus in the input. */
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    applySuggestion(row);
+                  }}
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => setActiveIdx(i)}
+                  /* Fallback for synthetic clicks (assistive tech) that
+                     skip pointer events; applySuggestion's !frag guard
+                     makes a double fire a no-op. */
                   onClick={() => applySuggestion(row)}
                 >
                   <span className={styles.popIcon}>
