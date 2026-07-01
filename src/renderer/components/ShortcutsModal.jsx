@@ -6,7 +6,7 @@ const SECTIONS = [
   {
     title: 'Search',
     items: [
-      { keys: ['⌘', 'K'], label: 'Open quick switcher' },
+      { keys: ['⌘', 'K'], label: 'Open command palette' },
     ],
   },
   {

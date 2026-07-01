@@ -199,3 +199,28 @@
   font-size: var(--text-md);
   color: var(--text-tertiary);
 }
+
+/* Keyboard hint on command rows (⌘N etc.) — same chip as the esc kbd. */
+.rowHint {
+  padding: 2px 6px;
+  background: var(--hover-bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 0.5px solid var(--border-hairline);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  user-select: none;
+}
+.footer .kbd { margin-right: 4px; }

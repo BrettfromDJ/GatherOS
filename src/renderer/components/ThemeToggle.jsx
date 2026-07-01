@@ -10,6 +10,11 @@ let colorwayIndex = 0;
 
 // Sweep duration — keep in sync with .glimm-band--sweep in global.css.
 const SWEEP_MS = 2000;
+
+// Only one mounted toggle answers the global toggle event (the command
+// palette dispatches it) — if two instances both flipped, the theme
+// would land back where it started.
+let toggleEventClaimed = false;
 // Theme crossfade duration — keep in sync with the html.theme-morph
 // transition in global.css.
 const MORPH_MS = 820;
@@ -117,6 +122,22 @@ export default function ThemeToggle({ className, tooltipPos }) {
     // than it snapping up front.
     window.setTimeout(applyTheme, SWAP_AT);
   }
+
+  // Let the command palette trigger the exact same flip (shimmer sweep
+  // included) via a window event. flip closes over `theme`, so route
+  // through a ref to always call the latest version.
+  const flipRef = React.useRef(flip);
+  flipRef.current = flip;
+  React.useEffect(() => {
+    if (toggleEventClaimed) return undefined;
+    toggleEventClaimed = true;
+    const onToggle = () => flipRef.current();
+    window.addEventListener('moodmark:toggle-theme', onToggle);
+    return () => {
+      toggleEventClaimed = false;
+      window.removeEventListener('moodmark:toggle-theme', onToggle);
+    };
+  }, []);
 
   const isDark = theme === 'dark';
   return (

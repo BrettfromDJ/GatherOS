@@ -5,7 +5,7 @@ import { morphFocus } from './lib/morphFocus.js';
 // itself is no longer rendered (removed in nav stage 4d) but lives
 // on as the home of these shared icon helpers until Stage 6 cleanup.
 import { CollectionIcon } from './components/Sidebar.jsx';
-import QuickSwitcher from './components/QuickSwitcher.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
 import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import BulkTagPicker from './components/BulkTagPicker.jsx';
 import MoodboardPreview from './components/MoodboardPreview.jsx';
@@ -3216,6 +3216,51 @@ export default function App({ entitlement } = {}) {
     await handleAddSavesToBucket(bucketId, newIds);
   }, [handleAddSavesToBucket]);
 
+  // ⌘K palette command registry. Every row reuses the exact handler the
+  // menu / keyboard path already calls, so the palette can never drift
+  // from the real behavior. Order matters: the first nine double as the
+  // palette's empty-state menu.
+  const paletteCommands = useMemo(() => {
+    const settingsPage = (drawer, label, keywords) => ({
+      id: `settings-${drawer}`,
+      label,
+      keywords: `settings ${keywords || ''}`,
+      run: () => {
+        setSettingsDrawerHint({ drawer, key: Date.now() });
+        setSettingsOpen(true);
+      },
+    });
+    return [
+      { id: 'new-collection', label: 'New collection', hint: '⌘N', keywords: 'create folder bucket', run: () => handleCreateAndOpenCollection() },
+      { id: 'new-space', label: 'New space', hint: '⌘⇧N', keywords: 'create board canvas moodboard', run: () => { handleCreateBoard?.().then((b) => { if (b?.id) setView({ type: 'board', id: b.id }); }); } },
+      { id: 'capture-screenshot', label: 'Capture screenshot', hint: '⌘⇧S', keywords: 'screen shot grab region', run: () => window.moodmark.capture?.screenshot?.() },
+      { id: 'rediscover', label: 'Rediscover', hint: '⌘⇧R', keywords: 'review shuffle triage deck', run: () => setRediscoverOpen(true) },
+      { id: 'go-search', label: 'Go to search', keywords: 'find query', run: () => handleModeChange('search') },
+      { id: 'go-library', label: 'Go to library', hint: '⌘1', keywords: 'home all saves grid', run: () => handleModeChange('library') },
+      { id: 'go-collections', label: 'Go to collections', hint: '⌘2', keywords: 'folders buckets', run: () => handleModeChange('folders') },
+      { id: 'go-spaces', label: 'Go to spaces', hint: '⌘3', keywords: 'boards canvas', run: () => handleModeChange('boards') },
+      { id: 'toggle-theme', label: 'Toggle dark mode', keywords: 'theme light appearance', run: () => window.dispatchEvent(new CustomEvent('moodmark:toggle-theme')) },
+      { id: 'open-unsorted', label: 'Open unsorted', keywords: 'inbox triage', run: () => { handleModeChange('library'); handleViewChange({ type: 'unsorted' }); } },
+      { id: 'open-trash', label: 'Open trash', keywords: 'deleted bin', run: () => { handleModeChange('library'); handleViewChange({ type: 'trash' }); } },
+      { id: 'shortcuts', label: 'Keyboard shortcuts', hint: '⌘/', keywords: 'keys help hotkeys', run: () => setShortcutsOpen(true) },
+      { id: 'whats-new', label: "What's new", keywords: 'release notes changelog version', run: () => handleOpenReleaseNotes() },
+      { id: 'export-library', label: 'Export library as zip', keywords: 'backup download archive', run: () => window.moodmark.library?.exportZip?.() },
+      { id: 'snapshot-library', label: 'Back up library now', keywords: 'snapshot data safety', run: () => window.moodmark.backup?.snapshot?.() },
+      { id: 'settings', label: 'Open settings', hint: '⌘,', keywords: 'preferences options', run: () => setSettingsOpen(true) },
+      settingsPage('appearance', 'Settings · Appearance', 'theme dark light'),
+      settingsPage('libraries', 'Settings · Libraries', 'switch create library'),
+      settingsPage('ai', 'Settings · AI usage', 'openai key semantic tokens'),
+      settingsPage('tags', 'Settings · Tags', 'manage rename merge'),
+      settingsPage('capture', 'Settings · Capture', 'hotkey shortcut screenshot drop folder'),
+      settingsPage('syncing', 'Settings · Syncing', 'x instagram bookmarks extension'),
+      settingsPage('sound', 'Settings · Sound', 'effects volume'),
+      settingsPage('updates', 'Settings · Updates', 'version beta check'),
+      settingsPage('storage', 'Settings · Storage', 'space optimize reclaim size'),
+      settingsPage('data', 'Settings · Data', 'backup snapshot restore wipe export'),
+      settingsPage('about', 'Settings · About', 'acknowledgments version privacy'),
+    ];
+  }, [handleCreateAndOpenCollection, handleCreateBoard, handleModeChange, handleViewChange, handleOpenReleaseNotes, setView]);
+
   return (
    <EntitlementProvider value={ent}>
     <div
@@ -3790,20 +3835,28 @@ export default function App({ entitlement } = {}) {
         onDismiss={() => setPeekedSaveId(null)}
       />
 
-      <QuickSwitcher
+      <CommandPalette
         open={quickSwitcherOpen}
         onClose={() => setQuickSwitcherOpen(false)}
         collections={collections}
         allTags={allTags}
+        boards={boards}
+        commands={paletteCommands}
         onPickBucket={(id) => {
           setFocusedId(null);
           setView({ type: 'collection', id });
         }}
         onPickTag={(name) => {
           setFocusedId(null);
-          if (view.type !== 'all') setView({ type: 'all' });
-          setSearch(name);
+          // Land in the search tab as a real tag: filter chip, not a
+          // substring query in the library view.
+          handleModeChange('search');
+          setSearch(`tag:${/\s/.test(name) ? `"${name}"` : name}`);
           requestAnimationFrame(() => searchInputRef.current?.focus());
+        }}
+        onPickBoard={(id) => {
+          setFocusedId(null);
+          setView({ type: 'board', id });
         }}
         onPickSave={(id) => {
           setFocusedId(id);

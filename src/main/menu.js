@@ -102,7 +102,7 @@ function buildAppMenu({ getMainWindow }) {
       label: 'View',
       submenu: [
         {
-          label: 'Quick Switcher',
+          label: 'Command palette',
           accelerator: 'CmdOrCtrl+K',
           click: () => send('quick-switcher'),
         },
