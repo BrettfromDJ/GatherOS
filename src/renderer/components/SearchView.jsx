@@ -2,6 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Grid from './Grid.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 import { buildSearchPlaceholders } from '../lib/searchPlaceholders.js';
+import { COLOR_SUGGESTIONS, parseHexColor, resolveColor } from '../lib/searchColors.js';
+import {
+  composeQuery,
+  explodeQuery,
+  isValidChip,
+  quoteValue,
+  trailingFragment,
+} from '../lib/searchTokens.js';
 import styles from './SearchView.module.css';
 
 // How long each rotating placeholder term lingers before the next.
@@ -35,11 +43,96 @@ function FolderGlyph() {
   );
 }
 
+function CalendarGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+      <path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5" />
+    </svg>
+  );
+}
+
+function UntaggedGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+      <line x1="3" y1="6" x2="13.5" y2="6" />
+      <line x1="2.5" y1="10" x2="13" y2="10" />
+      <line x1="6.5" y1="2.5" x2="5" y2="13.5" />
+      <line x1="11" y1="2.5" x2="9.5" y2="13.5" />
+      <line x1="2" y1="14" x2="14" y2="2" />
+    </svg>
+  );
+}
+
+// Sliders — the "add a filter" affordance.
+function FilterGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+      <line x1="2" y1="4.5" x2="14" y2="4.5" />
+      <line x1="2" y1="11.5" x2="14" y2="11.5" />
+      <circle cx="6" cy="4.5" r="1.8" fill="var(--surface-1)" />
+      <circle cx="10.5" cy="11.5" r="1.8" fill="var(--surface-1)" />
+    </svg>
+  );
+}
+
 function Chevron({ dir }) {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {dir === 'left' ? <path d="m15 18-6-6 6-6" /> : <path d="m9 18 6-6-6-6" />}
     </svg>
+  );
+}
+
+const DATE_PRESETS = [
+  { label: 'A week ago', days: 7 },
+  { label: 'A month ago', days: 30 },
+  { label: 'Three months ago', days: 90 },
+  { label: 'A year ago', days: 365 },
+];
+
+function isoDaysAgo(days) {
+  const d = new Date(Date.now() - days * 86400000);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+const FILTER_MENU = [
+  { key: 'tag', label: 'Tag', Glyph: HashGlyph },
+  { key: 'collection', label: 'Collection', Glyph: FolderGlyph },
+  { key: 'color', label: 'Color', Glyph: null }, // swatch trio drawn inline
+  { key: 'before', label: 'Saved before', Glyph: CalendarGlyph },
+  { key: 'after', label: 'Saved after', Glyph: CalendarGlyph },
+  { key: 'is', label: 'Untagged only', Glyph: UntaggedGlyph },
+];
+
+function TokenChip({ chip, onRemove }) {
+  const { key, value } = chip;
+  return (
+    <span className={styles.token}>
+      {key === 'tag' && <span className={styles.tokenIcon}><HashGlyph /></span>}
+      {key === 'collection' && <span className={styles.tokenIcon}><FolderGlyph /></span>}
+      {key === 'color' && (
+        <span className={styles.tokenSwatch} style={{ background: resolveColor(value) }} aria-hidden="true" />
+      )}
+      {(key === 'before' || key === 'after') && <span className={styles.tokenIcon}><CalendarGlyph /></span>}
+      {key === 'is' && <span className={styles.tokenIcon}><UntaggedGlyph /></span>}
+      <span className={styles.tokenLabel}>
+        {(key === 'before' || key === 'after') && (
+          <span className={styles.tokenKey}>{key} </span>
+        )}
+        {key === 'is' ? 'untagged' : value}
+      </span>
+      <button
+        type="button"
+        className={styles.tokenX}
+        onClick={onRemove}
+        aria-label={`Remove ${key === 'is' ? 'untagged' : `${key} ${value}`} filter`}
+      >
+        ×
+      </button>
+    </span>
   );
 }
 
@@ -56,6 +149,7 @@ export default function SearchView({
   onClearRecentSearches,
   recentSearches = [],
   suggestedTags = [],
+  allTags = [],
   collections = [],
   onOpenCollection,
   searchInputRef,
@@ -86,6 +180,231 @@ export default function SearchView({
   const inputRef = searchInputRef || localRef;
   const hasQuery = !!(search || '').trim();
   const resultCount = saves.length;
+
+  /* ── Token state ─────────────────────────────────────────────────── */
+  // Local chips+text mirror of the `search` prop. We re-derive whenever
+  // the prop changes to something we didn't compose ourselves (recents
+  // click, Escape clear, programmatic set) — otherwise the local shape
+  // is authoritative so typing never reflows mid-keystroke.
+  const [tok, setTok] = useState(() => explodeQuery(search));
+  const lastComposedRef = useRef(search);
+  useEffect(() => {
+    if (search !== lastComposedRef.current) {
+      setTok(explodeQuery(search));
+      lastComposedRef.current = search;
+    }
+  }, [search]);
+  const { chips, text } = tok;
+
+  const commit = (next) => {
+    setTok(next);
+    const composed = composeQuery(next.chips, next.text);
+    lastComposedRef.current = composed;
+    onSearchChange(composed);
+  };
+
+  // Trailing in-progress token in the input, e.g. `tag:ser`. Anchored to
+  // the end of the text so it tracks what the user is typing right now.
+  const frag = useMemo(() => trailingFragment(text), [text]);
+
+  const [focused, setFocused] = useState(false);
+  const [popDismissed, setPopDismissed] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const fragSignature = frag ? `${frag.key}:${frag.value}` : '';
+  useEffect(() => {
+    setActiveIdx(0);
+    setPopDismissed(false);
+  }, [fragSignature]);
+
+  const suggestions = useMemo(() => {
+    if (!frag) return [];
+    const q = frag.value.toLowerCase();
+    if (frag.key === 'tag') {
+      const used = new Set(chips.filter((c) => c.key === 'tag').map((c) => c.value));
+      return [...allTags]
+        .filter((t) => !used.has(t.name.toLowerCase()) && t.name.toLowerCase().includes(q))
+        .sort((a, b) => {
+          const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+          const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+          if (aStarts !== bStarts) return aStarts - bStarts;
+          return (b.save_count || 0) - (a.save_count || 0);
+        })
+        .slice(0, 8)
+        .map((t) => ({
+          key: 'tag',
+          value: t.name.toLowerCase(),
+          label: t.name,
+          meta: t.save_count != null ? String(t.save_count) : null,
+          Icon: HashGlyph,
+        }));
+    }
+    if (frag.key === 'collection') {
+      const used = new Set(chips.filter((c) => c.key === 'collection').map((c) => c.value.toLowerCase()));
+      return collections
+        .filter((c) => !used.has(c.name.toLowerCase()) && c.name.toLowerCase().includes(q))
+        .slice(0, 8)
+        .map((c) => ({
+          key: 'collection',
+          value: c.name,
+          label: c.name,
+          meta: c.save_count != null ? String(c.save_count) : null,
+          Icon: FolderGlyph,
+        }));
+    }
+    if (frag.key === 'color') {
+      const rows = COLOR_SUGGESTIONS
+        .filter((c) => (q ? c.name.startsWith(q) : true))
+        .slice(0, 8)
+        .map((c) => ({ key: 'color', value: c.name, label: c.name, meta: c.hex, swatch: c.hex }));
+      const hex = parseHexColor(frag.value);
+      if (hex) rows.unshift({ key: 'color', value: hex, label: `Use ${hex}`, swatch: hex });
+      return rows;
+    }
+    if (frag.key === 'is') {
+      return 'untagged'.startsWith(q)
+        ? [{ key: 'is', value: 'untagged', label: 'Untagged', meta: 'saves with no tags', Icon: UntaggedGlyph }]
+        : [];
+    }
+    if (frag.key === 'before' || frag.key === 'after') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(frag.value)) {
+        return [{ key: frag.key, value: frag.value, label: `Use ${frag.value}`, Icon: CalendarGlyph }];
+      }
+      return DATE_PRESETS.map((p) => ({
+        key: frag.key,
+        value: isoDaysAgo(p.days),
+        label: p.label,
+        meta: isoDaysAgo(p.days),
+        Icon: CalendarGlyph,
+      }));
+    }
+    return [];
+  }, [frag, chips, allTags, collections]);
+
+  const popOpen = focused && !!frag && !popDismissed && suggestions.length > 0;
+  const showDateHint = popOpen && (frag.key === 'before' || frag.key === 'after')
+    && !/^\d{4}-\d{2}-\d{2}$/.test(frag.value);
+
+  const applySuggestion = (row) => {
+    if (!row || !frag) return;
+    const base = text.slice(0, text.length - frag.len);
+    commit({ chips: [...chips, { key: row.key, value: row.value }], text: base });
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const removeChip = (idx) => {
+    commit({ chips: chips.filter((_, i) => i !== idx), text });
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const handleInputChange = (val) => {
+    // A space right after a complete valid token commits it as a chip,
+    // so plain typed syntax chips exactly like picking a suggestion.
+    if (/\s$/.test(val)) {
+      const parsed = explodeQuery(val);
+      if (parsed.chips.length) {
+        commit({
+          chips: [...chips, ...parsed.chips],
+          text: parsed.text ? `${parsed.text} ` : '',
+        });
+        return;
+      }
+    }
+    commit({ chips, text: val });
+  };
+
+  const handleKeyDown = (e) => {
+    if (popOpen) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIdx((i) => (i + 1) % suggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIdx((i) => (i - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        applySuggestion(suggestions[activeIdx]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        // First Esc only closes the popover; a second falls through to
+        // the clear-query behavior below.
+        e.preventDefault();
+        e.stopPropagation();
+        setPopDismissed(true);
+        return;
+      }
+    }
+    if (e.key === 'Enter') {
+      // Commit a complete typed token even without touching the popover.
+      if (frag && isValidChip(frag.key, frag.value)) {
+        e.preventDefault();
+        const base = text.slice(0, text.length - frag.len);
+        const nextChips = [...chips, { key: frag.key, value: frag.key === 'tag' ? frag.value.toLowerCase().replace(/^#+/, '') : frag.value }];
+        commit({ chips: nextChips, text: base });
+        onRecordSearch?.(composeQuery(nextChips, base).trim());
+        return;
+      }
+      if (search.trim()) onRecordSearch?.(search.trim());
+      return;
+    }
+    if (e.key === 'Backspace' && text === '' && chips.length > 0) {
+      e.preventDefault();
+      removeChip(chips.length - 1);
+      return;
+    }
+    if (e.key === 'Escape' && search) {
+      // Clear the query but stay in the search tab; swallow so the
+      // global Esc handler doesn't also fire.
+      e.preventDefault();
+      e.stopPropagation();
+      onSearchChange('');
+    }
+  };
+
+  /* ── Filter menu (the no-syntax path) ────────────────────────────── */
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const filterWrapRef = useRef(null);
+  useEffect(() => {
+    if (!filterMenuOpen) return undefined;
+    const onDown = (e) => {
+      if (filterWrapRef.current && !filterWrapRef.current.contains(e.target)) {
+        setFilterMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setFilterMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [filterMenuOpen]);
+
+  const pickFilter = (key) => {
+    setFilterMenuOpen(false);
+    if (key === 'is') {
+      if (!chips.some((c) => c.key === 'is')) {
+        commit({ chips: [...chips, { key: 'is', value: 'untagged' }], text });
+      }
+      requestAnimationFrame(() => inputRef.current?.focus());
+      return;
+    }
+    // Seed the token prefix into the input; the suggestion popover opens
+    // off the trailing fragment as soon as the field refocuses.
+    const sep = text && !/\s$/.test(text) ? ' ' : '';
+    commit({ chips, text: `${text}${sep}${key}:` });
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   // Focus the hero field whenever the search tab mounts.
   useEffect(() => {
@@ -160,55 +479,123 @@ export default function SearchView({
   return (
     <div className={`grid-scroll ${styles.scroll}`} ref={scrollRef}>
       <div className={styles.hero}>
-        <div className={styles.field}>
-          <span className={styles.fieldIcon}><SearchGlyph /></span>
-          <div className={styles.inputWrap}>
-            <input
-              ref={inputRef}
-              className={styles.input}
-              type="text"
-              value={search}
-              /* Native placeholder is empty — the rotating ghost below
-                 stands in for it so it can cross-fade. aria-label keeps a
-                 stable name for screen readers while the visual rotates. */
-              placeholder=""
-              aria-label="Search your library by title, tag, source or colour"
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && search.trim()) onRecordSearch?.(search.trim());
-                if (e.key === 'Escape' && search) {
-                  // Clear the query but stay in the search tab; swallow so
-                  // the global Esc handler doesn't also fire.
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onSearchChange('');
-                }
-              }}
-            />
-            {!hasQuery && (
-              ghostTerm ? (
-                // key on the term so each rotation remounts → fade-in.
-                <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
-                  Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
-                </span>
-              ) : (
-                <span className={styles.ghost} aria-hidden="true">
-                  Search titles, tags and sources…
-                </span>
-              )
+        <div className={styles.fieldWrap}>
+          <div className={styles.field}>
+            <span className={styles.fieldIcon}><SearchGlyph /></span>
+            {chips.map((chip, i) => (
+              <TokenChip
+                key={`${chip.key}-${chip.value}-${i}`}
+                chip={chip}
+                onRemove={() => removeChip(i)}
+              />
+            ))}
+            <div className={styles.inputWrap}>
+              <input
+                ref={inputRef}
+                className={styles.input}
+                type="text"
+                value={text}
+                /* Native placeholder is empty — the rotating ghost below
+                   stands in for it so it can cross-fade. aria-label keeps a
+                   stable name for screen readers while the visual rotates. */
+                placeholder=""
+                aria-label="Search your library by title, tag, source or colour"
+                role="combobox"
+                aria-expanded={popOpen}
+                aria-autocomplete="list"
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onKeyDown={handleKeyDown}
+              />
+              {!hasQuery && (
+                ghostTerm ? (
+                  // key on the term so each rotation remounts → fade-in.
+                  <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
+                    Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
+                  </span>
+                ) : (
+                  <span className={styles.ghost} aria-hidden="true">
+                    Search titles, tags and sources…
+                  </span>
+                )
+              )}
+            </div>
+            <span className={styles.filterWrap} ref={filterWrapRef}>
+              <button
+                type="button"
+                className={`${styles.filterBtn}${filterMenuOpen ? ` ${styles.filterBtnActive}` : ''}`}
+                onClick={() => setFilterMenuOpen((v) => !v)}
+                aria-label="Add a filter"
+                aria-expanded={filterMenuOpen}
+                data-tooltip={filterMenuOpen ? undefined : 'Add a filter'}
+              >
+                <FilterGlyph />
+              </button>
+              {filterMenuOpen && (
+                <div className={styles.filterMenu} role="menu">
+                  {FILTER_MENU.map(({ key, label, Glyph }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={styles.popRow}
+                      role="menuitem"
+                      onClick={() => pickFilter(key)}
+                    >
+                      <span className={styles.popIcon}>
+                        {Glyph ? <Glyph /> : (
+                          <span className={styles.swatchTrio} aria-hidden="true">
+                            <i style={{ background: '#ff6347' }} />
+                            <i style={{ background: '#2e8b57' }} />
+                            <i style={{ background: '#1e88e5' }} />
+                          </span>
+                        )}
+                      </span>
+                      <span className={styles.popLabel}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </span>
+            {hasQuery && (
+              <button
+                type="button"
+                className={styles.clear}
+                onClick={() => { onSearchChange(''); inputRef.current?.focus(); }}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
             )}
           </div>
-          {hasQuery && (
-            <button
-              type="button"
-              className={styles.clear}
-              onClick={() => { onSearchChange(''); inputRef.current?.focus(); }}
-              aria-label="Clear search"
-            >
-              ×
-            </button>
+          {popOpen && (
+            <div className={styles.pop} role="listbox" aria-label="Filter suggestions">
+              {showDateHint && (
+                <div className={styles.popHint}>Pick a preset or type a date — YYYY-MM-DD</div>
+              )}
+              {suggestions.map((row, i) => (
+                <button
+                  key={`${row.key}-${row.value}-${row.label}`}
+                  type="button"
+                  className={`${styles.popRow}${i === activeIdx ? ` ${styles.popRowActive}` : ''}`}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  onClick={() => applySuggestion(row)}
+                >
+                  <span className={styles.popIcon}>
+                    {row.swatch
+                      ? <span className={styles.popSwatch} style={{ background: row.swatch }} />
+                      : row.Icon && <row.Icon />}
+                  </span>
+                  <span className={styles.popLabel}>{row.label}</span>
+                  {row.meta && <span className={styles.popMeta}>{row.meta}</span>}
+                </button>
+              ))}
+            </div>
           )}
         </div>
         {hasQuery ? (
@@ -340,7 +727,7 @@ export default function SearchView({
                     key={tag.id ?? tag.name}
                     type="button"
                     className={styles.chip}
-                    onClick={() => submitTerm(tag.name)}
+                    onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
                   >
                     <span className={styles.chipHash}><HashGlyph /></span>
                     {tag.name}

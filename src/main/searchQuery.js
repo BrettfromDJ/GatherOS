@@ -15,26 +15,11 @@
 // unrecognised key) is left in `text` so the regular substring +
 // embedding paths still see the user's free typing.
 
-const COLOR_NAME_HEX = {
-  red: '#ff3b30',
-  orange: '#ff9500',
-  yellow: '#ffcc00',
-  green: '#34c759',
-  teal: '#5ac8fa',
-  cyan: '#32ade6',
-  blue: '#007aff',
-  indigo: '#5856d6',
-  purple: '#af52de',
-  violet: '#af52de',
-  magenta: '#ff2d55',
-  pink: '#ff2d55',
-  brown: '#a2845e',
-  beige: '#e8d8b8',
-  black: '#000000',
-  white: '#ffffff',
-  gray: '#8e8e93',
-  grey: '#8e8e93',
-};
+// Same palette the free-text color detector uses (~45 designer names:
+// navy, sage, rust, blush…), so `color:navy` and a bare "navy" resolve
+// identically. Previously this used a separate 18-name map, which made
+// `color:navy` silently drop the filter.
+const { COLOR_NAMES } = require('./colorNames.js');
 
 function parseColor(value) {
   const v = value.trim().toLowerCase();
@@ -44,7 +29,7 @@ function parseColor(value) {
     const s = v.replace('#', '');
     return `#${s[0]}${s[0]}${s[1]}${s[1]}${s[2]}${s[2]}`;
   }
-  return COLOR_NAME_HEX[v] || null;
+  return COLOR_NAMES[v] || null;
 }
 
 function parseDate(value) {

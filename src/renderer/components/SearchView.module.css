@@ -13,10 +13,18 @@
   margin: 0 auto;
 }
 
+/* Anchors the suggestion popover to the field's bottom edge. */
+.fieldWrap {
+  position: relative;
+}
+
 .field {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* Wraps so committed filter chips can flow onto extra rows while the
+     input keeps at least a readable slice of the last row. */
+  flex-wrap: wrap;
+  gap: 0 10px;
   padding: 0 18px;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -56,10 +64,12 @@
 .input::placeholder { color: var(--text-tertiary); }
 
 /* Wraps the input so the rotating placeholder ghost can overlay it
-   exactly. Takes the flex slot the input used to occupy. */
+   exactly. Takes the flex slot the input used to occupy; the 180px
+   basis makes it wrap to its own row rather than squish once chips
+   crowd the line. */
 .inputWrap {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 180px;
   min-width: 0;
 }
 .inputWrap .input {
@@ -118,6 +128,198 @@
   justify-content: center;
 }
 .clear:hover { background: var(--accent-bg-soft); color: var(--text-primary); }
+
+/* ── Filter token chips (committed filters inside the field) ────────── */
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 0 3px 0 9px;
+  height: 30px;
+  max-width: 240px;
+  background: var(--accent-bg-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  animation: tokenIn 160ms var(--ease-out) both;
+}
+
+@keyframes tokenIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .token { animation: none; }
+}
+
+.tokenIcon { display: inline-flex; color: var(--text-tertiary); flex: 0 0 auto; }
+.tokenIcon svg { width: 12px; height: 12px; display: block; }
+
+.tokenSwatch {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--radius-circle);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.tokenLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tokenKey { color: var(--text-tertiary); font-weight: 400; }
+
+.tokenX {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tokenX:hover { background: var(--hover-bg); color: var(--text-primary); }
+
+/* ── Filter affordance + menu ───────────────────────────────────────── */
+.filterWrap { position: relative; flex: 0 0 auto; display: inline-flex; }
+
+.filterBtn {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
+}
+.filterBtn:hover,
+.filterBtnActive { background: var(--hover-bg); color: var(--text-primary); }
+.filterBtn svg { width: 16px; height: 16px; display: block; }
+
+.filterMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  min-width: 190px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 5px;
+  animation: popIn 140ms var(--ease-out) both;
+}
+
+/* Trio of overlapping dots standing in for a "color" glyph. */
+.swatchTrio { display: inline-flex; }
+.swatchTrio i {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-circle);
+  box-shadow: 0 0 0 1.5px var(--surface-1);
+}
+.swatchTrio i + i { margin-left: -4px; }
+
+/* ── Suggestion popover (inline autocomplete under the field) ───────── */
+.pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 5px;
+  max-height: 322px;
+  overflow-y: auto;
+  animation: popIn 140ms var(--ease-out) both;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop, .filterMenu { animation: none; }
+}
+
+.popRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+/* Hover feedback on menu rows; suggestion rows drive highlight via
+   .popRowActive so mouse and keyboard share one active state. */
+.filterMenu .popRow:hover { background: var(--hover-bg); }
+.popRowActive { background: var(--hover-bg); }
+
+.popIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--text-tertiary);
+  flex: 0 0 auto;
+}
+.popIcon svg { width: 14px; height: 14px; display: block; }
+
+.popSwatch {
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-circle);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.popLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popMeta {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.popHint {
+  padding: 7px 10px 5px;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
 
 .meta {
   margin-top: 12px;

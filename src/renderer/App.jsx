@@ -3343,6 +3343,7 @@ export default function App({ entitlement } = {}) {
                   onClearRecentSearches={recentSearches.clearAll}
                   recentSearches={recentSearches.items}
                   suggestedTags={suggestedTags}
+                  allTags={allTags}
                   collections={collections}
                   onOpenCollection={handleOpenCollectionFromSearch}
                   searchInputRef={searchInputRef}
