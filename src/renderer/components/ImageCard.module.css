@@ -22,6 +22,16 @@
   contain-intrinsic-size: auto 360px;
 }
 
+/* content-visibility: auto applies paint containment, which clips anything
+   drawn outside the card's box — the selected-state offset outline (→ square
+   corners) and the 1px hover lift (→ clipped top edge). Hovered and selected
+   cards are always on-screen, so they don't need the off-screen skip; drop
+   containment for just those states so the ring and lift paint in full. */
+.card:hover,
+.selected {
+  content-visibility: visible;
+}
+
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(8px) scale(0.985); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -65,20 +75,9 @@
     inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-/* Selection ring drawn as an inset bordered pseudo-element rather than an
-   `outline`. An offset outline renders square corners in Chromium — a
-   white nub poked out past each rounded corner of the frame. This ring
-   inherits the frame's border-radius so it hugs the rounded corners
-   exactly; overflow:hidden on .frame keeps it clipped to that shape, and
-   being a pseudo-element it's independent of the frame's box-shadow so it
-   survives the hover state. */
-.selected .frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid var(--accent);
-  border-radius: inherit;
-  pointer-events: none;
+.selected .frame {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Tweet text cards adopt the collection-card recipe (FolderGrid tiles):
