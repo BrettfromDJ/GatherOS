@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2,
-  Clock, History,
+  Clock, History, Eye,
   Type, Image as ImageIcon, Film, Bookmark,
 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
@@ -33,8 +33,9 @@ const CHIPS = [
 ];
 
 export const SORT_OPTIONS = [
-  { value: 'recent',    label: 'Most recent', Icon: Clock },
-  { value: 'oldest',    label: 'Oldest first', Icon: History },
+  { value: 'recent',      label: 'Most recent', Icon: Clock },
+  { value: 'oldest',      label: 'Oldest first', Icon: History },
+  { value: 'most-viewed', label: 'Most viewed', Icon: Eye },
 ];
 
 // Bookmarks tweet-type filter — surfaced as a dropdown beside sort,

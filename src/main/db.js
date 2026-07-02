@@ -301,6 +301,11 @@ const MIGRATIONS = [
   (database) => {
     addColumnIfMissing(database, 'saves', 'preview_path', 'TEXT');
   },
+  // Per-save view counter — bumped when a save opens in the focused
+  // view. Powers the grid's "Most viewed" sort.
+  (database) => {
+    addColumnIfMissing(database, 'saves', 'view_count', 'INTEGER NOT NULL DEFAULT 0');
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {
@@ -805,6 +810,14 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
   // palette in LAB space. Done in JS because SQLite doesn't have the
   // math we need; tractable up to a few thousand saves.
   return effectiveColorHex ? filterByColor(rows, effectiveColorHex) : rows;
+}
+
+// Fire-and-forget view bump. Deliberately does NOT emit save:updated —
+// a view count changing shouldn't reflow the grid mid-session; the new
+// order applies on the next reload.
+function markSaveViewed(id) {
+  if (!id) return;
+  db.prepare('UPDATE saves SET view_count = COALESCE(view_count, 0) + 1 WHERE id = ?').run(id);
 }
 
 function getSave(id) {
@@ -1673,6 +1686,7 @@ function deleteBoardItems({ boardId, itemIds } = {}) {
 
 module.exports = {
   initDatabase,
+  markSaveViewed,
   getDatabase,
   closeDatabase,
   reopenDatabase,

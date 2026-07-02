@@ -454,7 +454,7 @@ export default function App({ entitlement } = {}) {
       const raw = localStorage.getItem('moodmark.sortMode');
       // name_asc/name_desc were removed; any persisted value falls through
       // to 'recent'.
-      if (raw === 'oldest' || raw === 'recent') return raw;
+      if (raw === 'oldest' || raw === 'recent' || raw === 'most-viewed') return raw;
     } catch {}
     // First launch fallback — read the Settings → Defaults pref.
     const def = window.moodmark?.app?.defaults?.defaultSort;
@@ -616,6 +616,14 @@ export default function App({ entitlement } = {}) {
       setFocusedId(null);
     }
   }, [loading, saves, focusedId]);
+
+  // Count a view whenever a save opens in the focused view — powers the
+  // "Most viewed" sort. Fire-and-forget; deliberately no reload, so the
+  // grid doesn't reorder under the user mid-session.
+  useEffect(() => {
+    if (!focusedId) return;
+    try { window.moodmark?.saves?.markViewed?.(focusedId); } catch { /* best-effort */ }
+  }, [focusedId]);
 
   // Native menu commands. The menu lives in main and routes user
   // intent through this single channel so we don't have to thread
@@ -2141,6 +2149,11 @@ export default function App({ entitlement } = {}) {
     const sorted = saves.slice();
     if (sortMode === 'oldest') {
       sorted.sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+    } else if (sortMode === 'most-viewed') {
+      // view_count bumps as saves open in the focused view; ties fall
+      // back to recency so unviewed libraries still have a stable order.
+      sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0)
+        || (b.created_at || 0) - (a.created_at || 0));
     }
     return sorted;
   }, [saves, shuffleSeed, shuffleAt, sortMode]);

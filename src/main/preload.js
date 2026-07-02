@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     update: (payload) => ipcRenderer.invoke('saves:update', payload),
     delete: (id) => ipcRenderer.invoke('saves:delete', id),
     restore: (id) => ipcRenderer.invoke('saves:restore', id),
+    markViewed: (id) => ipcRenderer.invoke('saves:mark-viewed', id),
     permanentDelete: (id) => ipcRenderer.invoke('saves:permanent-delete', id),
     emptyTrash: () => ipcRenderer.invoke('saves:empty-trash'),
     counts: () => ipcRenderer.invoke('saves:counts'),

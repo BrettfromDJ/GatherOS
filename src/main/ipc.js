@@ -276,6 +276,14 @@ function registerIpcHandlers() {
     return r;
   });
 
+  // View bump for the "Most viewed" sort. Fire-and-forget; no event
+  // emitted (see db.markSaveViewed).
+  ipcMain.handle('saves:mark-viewed', (_e, id) => {
+    const { markSaveViewed } = require('./db');
+    markSaveViewed(id);
+    return { ok: true };
+  });
+
   // Hard delete from Trash: also removes the underlying image + thumb.
   ipcMain.handle('saves:permanent-delete', (_e, id) => {
     const result = permanentlyDeleteSave(id);
