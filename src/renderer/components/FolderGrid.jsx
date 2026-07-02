@@ -58,6 +58,7 @@ function sortFolders(folders, mode) {
 
 function PencilIcon() { return <Pencil size={14} strokeWidth={1.6} aria-hidden="true" />; }
 function TrashIcon()  { return <Trash2 size={14} strokeWidth={1.6} aria-hidden="true" />; }
+function PlusIcon()   { return <Plus size={14} strokeWidth={1.6} aria-hidden="true" />; }
 
 // One tile per folder. Promotes the bucketStackDeal hover-fan from
 // an Easter egg in the sidebar into the primary navigation artwork.
@@ -82,6 +83,7 @@ function FolderTile({
   reorderHint,
   isReorderDragging,
   draggable = true,
+  childCount = 0,
 }) {
   const thumbs = Array.isArray(folder.thumbs) ? folder.thumbs.slice(0, 4) : [];
   const count = folder.save_count || 0;
@@ -169,6 +171,9 @@ function FolderTile({
         <span className={styles.tileCount}>
           <span className={styles.tileCountNum}>{count}</span>
           <span className={styles.tileCountLabel}> {count === 1 ? 'save' : 'saves'}</span>
+          {childCount > 0 && (
+            <span className={styles.tileCountLabel}> · {childCount} inside</span>
+          )}
           {isDropTarget && (
             <span className={styles.tileCountAdd} aria-hidden="true">+1</span>
           )}
@@ -219,6 +224,8 @@ export default function FolderGrid({
   onExternalDropToBucket,
   onSetAppDragging,
   onOpenCollectionAsSpace,
+  // Drill-in nesting: creates a child inside the right-clicked folder.
+  onCreateChildFolder,
   // Same hook BoardGrid uses — App attaches its scroll listener here
   // so the toolbar's drop-shadow engages once the collections grid is
   // scrolled past the top.
@@ -227,6 +234,12 @@ export default function FolderGrid({
   const visible = (folders || []).filter(
     (f) => (f.parent_id || null) === parentId,
   );
+  // Children per parent, for the "· N inside" tile meta. Computed off
+  // the FULL list — `visible` has already filtered children out.
+  const childCounts = new Map();
+  for (const f of folders || []) {
+    if (f.parent_id) childCounts.set(f.parent_id, (childCounts.get(f.parent_id) || 0) + 1);
+  }
 
   const [ctxMenu, setCtxMenu] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
@@ -435,6 +448,7 @@ export default function FolderGrid({
             onDragLeave={handleTileDragLeave}
             onDrop={(e) => handleTileDrop(e, folder.id)}
             onDragEnd={handleTileDragEnd}
+            childCount={childCounts.get(folder.id) || 0}
           />
         ))}
       </div>
@@ -448,6 +462,13 @@ export default function FolderGrid({
               icon: <PencilIcon />,
               onClick: () => startRename(ctxMenu.folder),
             },
+            // One level of nesting only — children can't have children,
+            // so the entry hides on child folders (parent_id set).
+            ...(onCreateChildFolder && !ctxMenu.folder.parent_id ? [{
+              label: 'New child collection',
+              icon: <PlusIcon />,
+              onClick: () => onCreateChildFolder(ctxMenu.folder.id),
+            }] : []),
             {
               label: 'Delete collection',
               icon: <TrashIcon />,

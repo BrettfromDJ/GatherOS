@@ -24,6 +24,7 @@ import ConfirmHost from './components/ConfirmHost.jsx';
 import Toolbar, { ModePill } from './components/Toolbar.jsx';
 import Grid from './components/Grid.jsx';
 import FeaturedBuckets from './components/FeaturedBuckets.jsx';
+import ChildCollectionsRail from './components/ChildCollectionsRail.jsx';
 import CollectionDropDock from './components/CollectionDropDock.jsx';
 import FolderGrid from './components/FolderGrid.jsx';
 import BoardGrid from './components/BoardGrid.jsx';
@@ -1917,6 +1918,38 @@ export default function App({ entitlement } = {}) {
     return created;
   }, [loadCollections, undoStack, handleViewChange]);
 
+  // Drill-in nesting (one level, enforced by the DB). Children are
+  // hidden from every top-level surface and only appear inside their
+  // parent, as a rail above its saves.
+  const childrenByParent = useMemo(() => {
+    const m = new Map();
+    for (const c of collections) {
+      if (!c.parent_id) continue;
+      if (!m.has(c.parent_id)) m.set(c.parent_id, []);
+      m.get(c.parent_id).push(c);
+    }
+    return m;
+  }, [collections]);
+  const topLevelCollections = useMemo(
+    () => collections.filter((c) => !c.parent_id),
+    [collections],
+  );
+
+  const handleCreateChildCollection = useCallback(async (parentId) => {
+    if (!parentId) return null;
+    const created = await window.moodmark.collections.create({ name: 'New collection', parentId });
+    await loadCollections();
+    if (!created?.id) return created;
+    undoStack.push('new collection', async () => {
+      await window.moodmark.collections.delete(created.id);
+      loadCollections();
+    });
+    setAppMode((m) => (m === 'boards' ? 'folders' : m));
+    handleViewChange({ type: 'collection', id: created.id });
+    setRenameViewSignal((s) => s + 1);
+    return created;
+  }, [loadCollections, undoStack, handleViewChange]);
+
   // Tray-menu "Recent saves" entry click. Main fires 'focus:save'
   // with the id; mirror the duplicate-toast flow — switch to All so
   // the record is in displaySaves, then open it in the focused view.
@@ -3465,7 +3498,7 @@ export default function App({ entitlement } = {}) {
                   suggestedTags={suggestedTags}
                   allTags={allTags}
                   onOpenCommandPalette={() => setQuickSwitcherOpen(true)}
-                  collections={collections}
+                  collections={topLevelCollections}
                   onOpenCollection={handleOpenCollectionFromSearch}
                   searchInputRef={searchInputRef}
                   scrollRef={setGridScrollNode}
@@ -3497,6 +3530,7 @@ export default function App({ entitlement } = {}) {
                 <FolderGrid
                   folders={collections}
                   parentId={null}
+                  onCreateChildFolder={handleCreateChildCollection}
                   onPickFolder={(id) => handleViewChange({ type: 'collection', id })}
                   onCreateFolder={handleCreateAndOpenCollection}
                   onRenameFolder={handleRenameCollection}
@@ -3565,7 +3599,16 @@ export default function App({ entitlement } = {}) {
                       ? collections.find((c) => c.id === view.id)?.name ?? null
                       : null}
                     onBack={view.type === 'collection'
-                      ? () => handleViewChange({ type: 'all' })
+                      ? () => {
+                        // A child collection backs out to its parent;
+                        // top-level collections back out to All.
+                        const cur = collections.find((c) => c.id === view.id);
+                        if (cur?.parent_id) {
+                          handleViewChange({ type: 'collection', id: cur.parent_id });
+                        } else {
+                          handleViewChange({ type: 'all' });
+                        }
+                      }
                       : null}
                     onRenameViewTitle={view.type === 'collection'
                       ? (name) => handleRenameCollection({ id: view.id, name })
@@ -3575,7 +3618,7 @@ export default function App({ entitlement } = {}) {
                 )}
                 {view.type === 'all' && collections.length > 0 && !search && (
                   <FeaturedBuckets
-                    collections={collections}
+                    collections={topLevelCollections}
                     onCreateCollection={handleCreateAndOpenCollection}
                     onPickBucket={(id) => handleViewChange({ type: 'collection', id })}
                     onRenameCollection={handleRenameCollection}
@@ -3586,6 +3629,13 @@ export default function App({ entitlement } = {}) {
                     onExternalDropToBucket={handleExternalDropToBucket}
                     onSetAppDragging={setDragging}
                     onOpenCollectionAsSpace={handleOpenCollectionAsSpace}
+                  />
+                )}
+                {view.type === 'collection' && (
+                  <ChildCollectionsRail
+                    childCollections={childrenByParent.get(view.id) || []}
+                    onPick={(id) => handleViewChange({ type: 'collection', id })}
+                    onCreateChild={() => handleCreateChildCollection(view.id)}
                   />
                 )}
                 <Grid
