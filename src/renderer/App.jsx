@@ -970,9 +970,13 @@ export default function App({ entitlement } = {}) {
   useEffect(() => { loadAllTags(); }, [loadAllTags]);
 
   // Most-used tags, surfaced as quick-jump chips on the Search tab's
-  // landing state. Sorted by usage so the densest tags lead.
+  // landing state. Sorted by usage so the densest tags lead. Filters:
+  //   - zero-count tags (nothing to jump to),
+  //   - 'bookmark' — the extension auto-tags every X save with it, so
+  //     it dwarfs real tags and only duplicates the Saved view.
   const suggestedTags = useMemo(
-    () => [...allTags]
+    () => allTags
+      .filter((t) => (t.save_count || 0) > 0 && t.name !== 'bookmark')
       .sort((a, b) => (b.save_count || 0) - (a.save_count || 0))
       .slice(0, 12),
     [allTags],

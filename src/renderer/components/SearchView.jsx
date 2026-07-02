@@ -777,11 +777,10 @@ export default function SearchView({
                     className={styles.chip}
                     onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
                   >
+                    {/* No per-chip counts — a wall of "1"s read as a junk
+                        drawer, and the chips are already ordered by count. */}
                     <span className={styles.chipHash}><HashGlyph /></span>
                     {tag.name}
-                    {tag.save_count != null && (
-                      <span className={styles.chipCount}>{tag.save_count}</span>
-                    )}
                   </button>
                 ))}
               </div>

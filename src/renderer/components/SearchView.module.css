@@ -421,10 +421,16 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
   transition: transform var(--dur-pronounced) var(--ease-out);
 }
-.collFan img:nth-child(1) { transform: rotate(-7deg) translate(-9px, 3px); z-index: 1; }
-.collFan img:nth-child(2) { transform: rotate(-2deg) translate(-3px, 0px); z-index: 2; }
-.collFan img:nth-child(3) { transform: rotate(3deg)  translate(4px, 0px);  z-index: 3; }
-.collFan img:nth-child(4) { transform: rotate(8deg)  translate(11px, 3px); z-index: 4; }
+/* Resting state is a CALM deck — cards aligned at 0°, each layer
+   peeking a clear ~6px above the one in front (the translateY values
+   compensate the scale inset, (1-s)·74/2, so the step stays visible).
+   The old splayed-fan resting pose (four rotations per stack × five
+   stacks) made the whole landing read scattered; the playful fan now
+   only appears on hover. */
+.collFan img:nth-child(1) { transform: translateY(-18px) scale(0.78); z-index: 1; }
+.collFan img:nth-child(2) { transform: translateY(-9px)  scale(0.86); z-index: 2; }
+.collFan img:nth-child(3) { transform: translateY(-1px)  scale(0.93); z-index: 3; }
+.collFan img:nth-child(4) { transform: translateY(8px); z-index: 4; }
 .collCard:hover .collFan img:nth-child(1) { transform: rotate(-15deg) translate(-26px, 6px); }
 .collCard:hover .collFan img:nth-child(2) { transform: rotate(-5deg)  translate(-10px, -2px); }
 .collCard:hover .collFan img:nth-child(3) { transform: rotate(6deg)   translate(12px, -2px); }
@@ -461,13 +467,18 @@
   border: none;
   background: transparent;
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
   cursor: pointer;
+  /* Quiet until hovered — a permanently-underlined link next to a
+     section label pulled the eye for no reason. */
+  text-decoration: none;
+}
+.link:hover {
+  color: var(--text-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.link:hover { color: var(--text-primary); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
