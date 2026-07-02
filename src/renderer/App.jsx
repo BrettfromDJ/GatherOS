@@ -3574,6 +3574,13 @@ export default function App({ entitlement } = {}) {
                   tweetTypeFilter={tweetTypeFilter}
                   sourceFilter={sourceFilter}
                   highlightId={highlightId}
+                  onAddImages={handleUploadClick}
+                  onClearColorFilter={() => setColorFilter(null)}
+                  onClearSearch={() => setSearch('')}
+                  onShowAllBookmarks={() => {
+                    setTweetTypeFilter('all');
+                    setSourceFilter('all');
+                  }}
                 />
               </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SquareLibrary, Bookmark, Chrome, Folder, Download, RotateCw } from 'lucide-react';
+import { SquareLibrary, Bookmark, Chrome, Folder, Download, RotateCw, Plus } from 'lucide-react';
 import ImageCard from './ImageCard.jsx';
 import styles from './Grid.module.css';
 import { resolveAsset } from '../lib/asset.js';
@@ -67,6 +67,13 @@ export default function Grid({
   columns, loading, view, search, semanticSearchActive, colorFilter,
   freshIds, layout = 'masonry', morphId = null, tweetTypeFilter = 'all', sourceFilter = 'all',
   highlightId = null,
+  // Empty-state actions — each state's hint gets a button that DOES the
+  // thing instead of describing where to do it. All optional; the
+  // button only renders when the handler is wired.
+  onAddImages = null,
+  onClearColorFilter = null,
+  onClearSearch = null,
+  onShowAllBookmarks = null,
 }) {
   const marqueeRef = useRef(null);
   const [marqueeRect, setMarqueeRect] = useState(null);
@@ -298,14 +305,42 @@ export default function Grid({
       hint = semanticSearchActive
         ? 'Try a different description.'
         : 'Try a different keyword.';
+      if (onClearSearch) {
+        emptyAction = (
+          <button type="button" className={styles.emptyAction} onClick={onClearSearch}>
+            Clear search
+          </button>
+        );
+      }
     } else if (colorFilter) {
       title = 'No saves match that color';
-      hint = 'Click the chip in the toolbar to clear the filter.';
+      hint = 'Nothing in your library carries that color.';
+      if (onClearColorFilter) {
+        emptyAction = (
+          <button type="button" className={styles.emptyAction} onClick={onClearColorFilter}>
+            Clear color filter
+          </button>
+        );
+      } else {
+        // No handler wired (shouldn't happen) — fall back to pointing
+        // at the toolbar chip.
+        hint = 'Click the chip in the toolbar to clear the filter.';
+      }
     } else if (isCollection) {
       title = 'Collection is empty';
       hint = 'Drop an image, paste a URL, or ⌘⇧S to capture.';
       EmptyIcon = Folder;
       emptyIconColor = 'var(--icon-muted)';
+      if (onAddImages) {
+        // Picked files route through the same pipeline as the + FAB,
+        // which already files new saves into the open collection.
+        emptyAction = (
+          <button type="button" className={styles.emptyAction} onClick={onAddImages}>
+            <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+            Add images
+          </button>
+        );
+      }
     } else if (isUnsorted) {
       title = 'Nothing unsorted';
       hint = 'Every save belongs to at least one collection.';
@@ -316,21 +351,38 @@ export default function Grid({
       // "no bookmarks yet" onboarding CTA here.
       const label = { text: 'text', image: 'image', video: 'video' }[tweetTypeFilter] || tweetTypeFilter;
       title = `No ${label} bookmarks`;
-      hint = 'No bookmarks of this type. Pick a different type, or switch back to All.';
+      hint = 'No bookmarks of this type yet.';
       EmptyIcon = Bookmark;
       emptyIconColor = 'var(--icon-muted)';
+      if (onShowAllBookmarks) {
+        emptyAction = (
+          <button type="button" className={styles.emptyAction} onClick={onShowAllBookmarks}>
+            Show all bookmarks
+          </button>
+        );
+      }
       // The genuinely-empty bookmarks view is handled by the two-method
       // onboarding early-return above.
     } else if (isBookmarks && sourceFilter && sourceFilter !== 'all') {
       // Saves exist, just none from the selected source.
       const label = sourceFilter === 'instagram' ? 'Instagram' : 'X';
       title = `No ${label} saves yet`;
-      hint = `Nothing from ${label} here. Pick a different source, or switch back to all saves.`;
+      hint = `Nothing from ${label} here yet.`;
       EmptyIcon = Bookmark;
       emptyIconColor = 'var(--icon-muted)';
+      if (onShowAllBookmarks) {
+        emptyAction = (
+          <button type="button" className={styles.emptyAction} onClick={onShowAllBookmarks}>
+            Show all saves
+          </button>
+        );
+      }
     } else if (isTrash) {
       title = 'Trash is empty';
-      hint = 'Deleted saves land here. Empty Trash to remove for good.';
+      // No action to point at — an empty trash has nothing to empty.
+      // (The old copy referenced "Empty Trash", an action that only
+      // exists when the trash has items.)
+      hint = 'Deleted saves land here.';
       EmptyIcon = TrashIcon;
       emptyIconColor = 'var(--icon-muted)';
     }

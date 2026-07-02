@@ -681,6 +681,7 @@ export default function SearchView({
           tweetTypeFilter={tweetTypeFilter}
           sourceFilter={sourceFilter}
           highlightId={highlightId}
+          onClearSearch={() => onSearchChange('')}
         />
       ) : (
         <div className={styles.landing}>
