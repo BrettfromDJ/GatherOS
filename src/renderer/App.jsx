@@ -47,7 +47,6 @@ import BoardView from './components/BoardView.jsx';
 import ContextMenu from './components/ContextMenu.jsx';
 import FocusedSortMode from './components/FocusedSortMode.jsx';
 import {
-  Film,
   Download,
   X,
   Inbox,
@@ -83,9 +82,29 @@ import UpgradeBanner from './components/UpgradeBanner.jsx';
 // click menus, selection bar, focused-view toolbar, etc.) keeps
 // working without a sweep.
 const ICON = { strokeWidth: 1.6, 'aria-hidden': true };
-// Filmstrip — the moodboard output is an animated GIF that cuts through
-// the selected frames, so a film reel reads truer than a static board.
-const BoardExportIcon = () => <Film {...ICON} />;
+// "Board that animates" — a 2×2 collage whose last cell is a play
+// triangle. The moodboard output is a square animated GIF cutting
+// through the selection, so board + motion is the literal product.
+// Custom 24-grid glyph at lucide stroke weight; Film read as a waffle
+// at 16px and Clapperboard said "cinema", not "moodboard".
+const BoardExportIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="8" height="8" rx="1.6" />
+    <rect x="13" y="3" width="8" height="8" rx="1.6" />
+    <rect x="3" y="13" width="8" height="8" rx="1.6" />
+    <path d="M14.8 13.6v6.8l5.6-3.4z" />
+  </svg>
+);
 const DownloadIcon = () => <Download {...ICON} />;
 const ClearIcon = () => <X {...ICON} strokeWidth={2} />;
 const TrashIcon = () => <Trash2 {...ICON} />;
