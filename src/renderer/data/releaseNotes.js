@@ -20,6 +20,31 @@ import {
 
 export const RELEASE_NOTES = [
   {
+    version: '0.6.0',
+    items: [
+      {
+        Icon: GlassIcon,
+        title: 'Filter search with chips',
+        description: 'Type tag:, collection:, color: or before: in search and pick from live suggestions — each filter becomes a removable chip. Or press the new filter button and never type syntax at all.',
+      },
+      {
+        Icon: WindowIcon,
+        title: 'One ⌘K for everything',
+        description: 'The command palette searches your whole library — saves, collections, tags, spaces — and runs commands, from new collection to any settings page. Type > to see commands only.',
+      },
+      {
+        Icon: CardsIcon,
+        title: 'Sort by most viewed',
+        description: 'The grid can now order by the saves you open most, alongside newest and oldest first.',
+      },
+      {
+        Icon: PermissionIcon,
+        title: 'Faster, and nothing fails silently',
+        description: 'Search is indexed and stays instant in big libraries, moodboard exports no longer freeze the app, and anything that fails now says so instead of vanishing.',
+      },
+    ],
+  },
+  {
     version: '0.5.0',
     items: [
       {
