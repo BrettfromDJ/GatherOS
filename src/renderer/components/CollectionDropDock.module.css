@@ -127,40 +127,6 @@
 .edge.edgeExpanded .row { margin-top: 2px; padding: 6px 8px; }
 .edge.edgeExpanded .row:first-child { margin-top: 0; }
 
-/* Revealed child row — indented under its parent with a short
-   connector, so nesting reads as a hierarchy. Only appears when the
-   deck is fanned open, so the indent lives on the expanded row. */
-.edge.edgeExpanded .row.rowChild {
-  margin-left: 18px;
-  position: relative;
-}
-.edge.edgeExpanded .row.rowChild::before {
-  content: "";
-  position: absolute;
-  left: -9px;
-  top: 50%;
-  width: 7px;
-  height: 0.5px;
-  background: color-mix(in srgb, var(--text-primary) 22%, transparent);
-  pointer-events: none;
-}
-/* Slightly smaller cover for children so the parent still leads the eye. */
-.edge.edgeExpanded .row.rowChild .fan { width: 26px; }
-
-/* Parent-with-children affordance: child count + a caret hinting the
-   row expands on hover. */
-.rowChevron {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-.rowChevron svg { width: 9px; height: 9px; opacity: 0.8; }
-
 .row:hover { background: var(--hover-bg-soft, rgba(127, 127, 127, 0.12)); }
 .row:focus-visible {
   outline: none;

@@ -19,14 +19,6 @@ function CheckGlyph() {
   );
 }
 
-function ChevronGlyph() {
-  return (
-    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3.5 2l4 3-4 3" />
-    </svg>
-  );
-}
-
 export default function CollectionDropDock({
   collections,
   scrolled,
@@ -41,33 +33,15 @@ export default function CollectionDropDock({
 }) {
   const [hoverExpand, setHoverExpand] = useState(false);
   const [dropTargetId, setDropTargetId] = useState(null);
-  // Which parent's children are currently revealed beneath it. Set when
-  // the pointer (or a drag) enters a parent row that has children; kept
-  // open while over that parent or any of its children.
-  const [expandedParentId, setExpandedParentId] = useState(null);
   if (!collections || collections.length === 0) return null;
 
-  // Group into top-level rows + their children. The deck only shows
-  // top-level collections; a parent's children fan out indented below
-  // it on hover, so nesting reads as a hierarchy, not a flat list.
-  const childrenByParent = new Map();
-  for (const c of collections) {
-    if (!c.parent_id) continue;
-    if (!childrenByParent.has(c.parent_id)) childrenByParent.set(c.parent_id, []);
-    childrenByParent.get(c.parent_id).push(c);
-  }
+  // Top-level collections only — child collections aren't offered here.
+  // Filing into a nested collection is done from its own grid or the
+  // card menu; the edge dock stays a flat list of the top level.
   const topLevel = collections.filter((c) => !c.parent_id);
 
   const visible = scrolled || dragging;
   const expanded = dragging || hoverExpand;
-
-  // Reveal (or keep revealed) the right parent group as the pointer or a
-  // drag moves across rows. Hovering a child keeps its parent open;
-  // hovering a childless top-level collapses any open group.
-  function revealFor(c) {
-    if (c.parent_id) setExpandedParentId(c.parent_id);
-    else setExpandedParentId(childrenByParent.has(c.id) ? c.id : null);
-  }
 
   const isSaveDrag = (e) => e.dataTransfer.types.includes(SAVE_DROP_MIME);
   const isFileDrag = (e) => e.dataTransfer.types.includes('Files');
@@ -76,13 +50,12 @@ export default function CollectionDropDock({
     return t.includes('text/uri-list') || t.includes('text/html');
   };
 
-  function handleRowDragOver(e, c) {
+  function handleRowDragOver(e, id) {
     if (!isSaveDrag(e) && !isFileDrag(e) && !isUrlDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
-    if (dropTargetId !== c.id) setDropTargetId(c.id);
-    revealFor(c);
+    if (dropTargetId !== id) setDropTargetId(id);
     onSetAppDragging?.(false);
   }
   function handleRowDragLeave(e) {
@@ -116,7 +89,7 @@ export default function CollectionDropDock({
     onDismiss?.();
   }
 
-  function renderRow(c, isChild, hasKids) {
+  function renderRow(c) {
     const thumbs = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
     // Already contains every dragged save → not a valid drop; mark it
     // and refuse the drop instead of silently adding a dupe.
@@ -129,11 +102,9 @@ export default function CollectionDropDock({
         tabIndex={0}
         className={[
           styles.row,
-          isChild && styles.rowChild,
           already && styles.rowIn,
           isTarget && styles.rowTarget,
         ].filter(Boolean).join(' ')}
-        onMouseEnter={() => revealFor(c)}
         onClick={() => handleRowClick(c.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -141,7 +112,7 @@ export default function CollectionDropDock({
             handleRowClick(c.id);
           }
         }}
-        onDragOver={already ? undefined : (e) => handleRowDragOver(e, c)}
+        onDragOver={already ? undefined : (e) => handleRowDragOver(e, c.id)}
         onDragLeave={already ? undefined : handleRowDragLeave}
         onDrop={already ? undefined : (e) => handleRowDrop(e, c.id)}
         title={already ? `${c.name} — already in this collection · click to open` : `${c.name} — click to open or drop here`}
@@ -165,13 +136,6 @@ export default function CollectionDropDock({
             // Drag-over only (isTarget is set by dragOver, never by
             // passive mouse hover) — previews the result of the drop.
             <span className={styles.rowAdd} aria-hidden="true">+1</span>
-          ) : hasKids ? (
-            // Parent with children: a caret cues that hovering reveals
-            // the nested collections rather than showing a raw count.
-            <span className={styles.rowChevron} aria-hidden="true">
-              {(childrenByParent.get(c.id) || []).length}
-              <ChevronGlyph />
-            </span>
           ) : (
             <span className={styles.rowCount}>{(c.save_count ?? 0).toLocaleString()}</span>
           )}
@@ -188,7 +152,7 @@ export default function CollectionDropDock({
         expanded && styles.edgeExpanded,
       ].filter(Boolean).join(' ')}
       onMouseEnter={() => { if (!dragging) setHoverExpand(true); }}
-      onMouseLeave={() => { setHoverExpand(false); setExpandedParentId(null); }}
+      onMouseLeave={() => setHoverExpand(false)}
     >
       {/* The drawer's glass shell + flared corners, drawn as one shape
           behind the content so its outline strokes the whole silhouette
@@ -199,16 +163,7 @@ export default function CollectionDropDock({
             of space above the deck and throw off the vertical balance. */}
         {expanded && <span className={styles.listLabel}>Collections</span>}
         <div className={styles.rows}>
-          {topLevel.map((c) => {
-            const kids = childrenByParent.get(c.id) || [];
-            const showKids = expanded && expandedParentId === c.id && kids.length > 0;
-            return (
-              <React.Fragment key={c.id}>
-                {renderRow(c, false, kids.length > 0)}
-                {showKids && kids.map((k) => renderRow(k, true, false))}
-              </React.Fragment>
-            );
-          })}
+          {topLevel.map((c) => renderRow(c))}
         </div>
       </div>
     </div>
