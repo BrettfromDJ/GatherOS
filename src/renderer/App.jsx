@@ -1321,28 +1321,29 @@ export default function App({ entitlement } = {}) {
     // dups it for the saves that weren't yet members). memberIds is
     // resolved at menu-open time accordingly.
     const memberSet = memberIds instanceof Set ? memberIds : new Set(memberIds || []);
-    const others = (view.type === 'collection'
-      ? collections.filter((c) => c.id !== view.id)
-      : collections
-    ).filter((c) => !memberSet.has(c.id));
-    if (others.length > 0) {
+    // A collection is an available add target unless the save(s)
+    // already live in it or it's the collection being viewed.
+    const available = (c) => !memberSet.has(c.id)
+      && !(view.type === 'collection' && view.id === c.id);
+    // Group children under their top-level parent, keeping the
+    // hierarchy intact even when the parent itself isn't available
+    // (it's the current view, or already holds the save): the parent
+    // row stays in the submenu as the hover anchor for its
+    // third-level children, instead of the children being promoted
+    // to a flat list where the cascade disappears. The anchor's own
+    // add action stays wired — the insert dedups, so a click on an
+    // already-member parent is harmless.
+    const childrenByParent = new Map();
+    const tops = [];
+    for (const c of collections) {
+      if (c.parent_id) continue;
+      const kids = collections.filter((k) => k.parent_id === c.id && available(k));
+      if (!available(c) && kids.length === 0) continue;
+      tops.push(c);
+      childrenByParent.set(c.id, kids);
+    }
+    if (tops.length > 0) {
       if (items.length > 0) items.push({ type: 'separator' });
-      // Group children under their top-level parent. Children whose
-      // parent is missing from `others` (e.g. the save is already in
-      // the parent, so the parent was filtered out) are promoted to
-      // top-level so they don't disappear from the picker.
-      const otherIds = new Set(others.map((c) => c.id));
-      const childrenByParent = new Map();
-      const tops = [];
-      for (const c of others) {
-        if (c.parent_id && otherIds.has(c.parent_id)) {
-          const arr = childrenByParent.get(c.parent_id) || [];
-          arr.push(c);
-          childrenByParent.set(c.parent_id, arr);
-        } else {
-          tops.push(c);
-        }
-      }
       const buildAddItem = (col) => ({
         label: col.name,
         icon: (
