@@ -384,6 +384,43 @@ const MIGRATIONS = [
       FROM saves;
     `);
   },
+  // FTS repair: the triggers/backfill above call json_extract on
+  // tweet_meta directly, and json_extract THROWS on any malformed-JSON
+  // value. A single legacy/corrupt tweet_meta row therefore aborted the
+  // one-time backfill, leaving every pre-existing save unindexed (and so
+  // unsearchable — a save's own title/caption wouldn't match). Guard
+  // every extraction with json_valid so a bad row yields '' instead of
+  // throwing, recreate the triggers, and rebuild the index so already-
+  // broken libraries recover on this launch.
+  (database) => {
+    const safe = (col) => `(CASE WHEN json_valid(${col}) THEN ${col} END)`;
+    const tweetText = (col) => `
+      COALESCE(json_extract(${safe(col)},'$.caption'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.authorName'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.authorHandle'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.thread'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.quoted.caption'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.quoted.authorName'),'') || ' ' ||
+      COALESCE(json_extract(${safe(col)},'$.quoted.authorHandle'),'')`;
+    database.exec(`
+      DROP TRIGGER IF EXISTS saves_fts_ai;
+      DROP TRIGGER IF EXISTS saves_fts_au;
+      CREATE TRIGGER saves_fts_ai AFTER INSERT ON saves BEGIN
+        INSERT INTO saves_fts (save_id, title, ocr_text, tweet_text)
+        VALUES (new.id, COALESCE(new.title,''), COALESCE(new.ocr_text,''), ${tweetText('new.tweet_meta')});
+      END;
+      CREATE TRIGGER saves_fts_au
+      AFTER UPDATE OF title, ocr_text, tweet_meta ON saves BEGIN
+        DELETE FROM saves_fts WHERE save_id = new.id;
+        INSERT INTO saves_fts (save_id, title, ocr_text, tweet_text)
+        VALUES (new.id, COALESCE(new.title,''), COALESCE(new.ocr_text,''), ${tweetText('new.tweet_meta')});
+      END;
+      DELETE FROM saves_fts;
+      INSERT INTO saves_fts (save_id, title, ocr_text, tweet_text)
+      SELECT id, COALESCE(title,''), COALESCE(ocr_text,''), ${tweetText('saves.tweet_meta')}
+      FROM saves;
+    `);
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {
