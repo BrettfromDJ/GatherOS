@@ -43,9 +43,6 @@ function SpaceIcon() {
 
 const SEARCH_DEBOUNCE = 80;
 const PER_GROUP = 6;
-// The empty state doubles as a command menu; cap so the panel opens
-// compact and typing narrows from there.
-const EMPTY_STATE_COMMANDS = 9;
 
 function matchScore(label, keywords, q) {
   const l = String(label).toLowerCase();
@@ -113,8 +110,10 @@ export default function CommandPalette({
 
   const commandResults = useMemo(() => {
     if (!q) {
-      // Empty query: the palette opens as a command menu.
-      return commands.slice(0, commandsOnly ? commands.length : EMPTY_STATE_COMMANDS);
+      // Empty query: the palette opens as a full command menu. The
+      // results area is height-capped in CSS, so the whole list is
+      // present but scrolls within the default panel height.
+      return commands;
     }
     return commands
       .map((c) => ({ c, score: matchScore(c.label, c.keywords, q) }))

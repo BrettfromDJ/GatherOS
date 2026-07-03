@@ -88,6 +88,11 @@
 
 .results {
   flex: 1 1 auto;
+  /* Pin to roughly the height of the default (~9-row) command list so
+     the panel stays a consistent, compact size whether the empty
+     command menu or a full set of search results is showing — the
+     list scrolls within this box rather than growing the panel. */
+  max-height: 332px;
   overflow-y: auto;
   padding: 6px;
 }
