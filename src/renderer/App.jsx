@@ -70,7 +70,7 @@ import {
   Search,
   Images,
   Folder,
-  Frame,
+  Eclipse,
   Moon,
   Keyboard,
   Sparkles,
@@ -3452,7 +3452,7 @@ export default function App({ entitlement } = {}) {
       { id: 'go-search', label: 'Go to search', keywords: 'find query', Icon: () => <Search {...ICON} />, run: () => handleModeChange('search') },
       { id: 'go-library', label: 'Go to library', hint: '⌘1', keywords: 'home all saves grid', Icon: () => <Images {...ICON} />, run: () => handleModeChange('library') },
       { id: 'go-collections', label: 'Go to collections', hint: '⌘2', keywords: 'folders buckets', Icon: () => <Folder {...ICON} />, run: () => handleModeChange('folders') },
-      { id: 'go-spaces', label: 'Go to spaces', hint: '⌘3', keywords: 'boards canvas', Icon: () => <Frame {...ICON} />, run: () => handleModeChange('boards') },
+      { id: 'go-spaces', label: 'Go to spaces', hint: '⌘3', keywords: 'boards canvas', Icon: () => <Eclipse {...ICON} />, run: () => handleModeChange('boards') },
       { id: 'toggle-theme', label: 'Toggle dark mode', keywords: 'theme light appearance', Icon: () => <Moon {...ICON} />, run: () => window.dispatchEvent(new CustomEvent('moodmark:toggle-theme')) },
       { id: 'open-unsorted', label: 'Open unsorted', keywords: 'inbox triage', Icon: () => <Inbox {...ICON} />, run: () => { handleModeChange('library'); handleViewChange({ type: 'unsorted' }); } },
       { id: 'open-trash', label: 'Open trash', keywords: 'deleted bin', Icon: () => <Trash2 {...ICON} />, run: () => { handleModeChange('library'); handleViewChange({ type: 'trash' }); } },
@@ -3764,6 +3764,8 @@ export default function App({ entitlement } = {}) {
                   <ChildCollectionsRail
                     childCollections={childrenByParent.get(view.id) || []}
                     onPick={(id) => handleViewChange({ type: 'collection', id })}
+                    onRenameCollection={handleRenameCollection}
+                    onDeleteCollection={handleDeleteCollection}
                     // One level of nesting only — no create card inside
                     // a child (the rail hides itself when both are empty).
                     onCreateChild={collections.find((c) => c.id === view.id)?.parent_id

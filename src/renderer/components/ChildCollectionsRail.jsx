@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { FolderClosed, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { FolderClosed, Plus, Pencil, Trash2 } from 'lucide-react';
 import { fileUrl } from '../lib/fileUrl.js';
 import { extractDropImageUrls } from '../lib/dropUrls.js';
+import ContextMenu from './ContextMenu.jsx';
 import styles from './ChildCollectionsRail.module.css';
 
 // MIME the masonry cards use to advertise "I'm a drag of save ids".
@@ -21,16 +22,52 @@ export default function ChildCollectionsRail({
   childCollections = [],
   onPick,
   onCreateChild,
+  onRenameCollection,
+  onDeleteCollection,
   onAddSavesToBucket,
   onDropFilesToBucket,
   onExternalDropToBucket,
   onSetAppDragging,
 }) {
   const [dropTargetId, setDropTargetId] = useState(null);
+  const [ctxMenu, setCtxMenu] = useState(null); // { x, y, collection } | null
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const renameInputRef = useRef(null);
+  useEffect(() => {
+    if (renamingId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingId]);
   // Render even with zero children so the create card is always
   // discoverable — this rail is the natural place to start nesting.
   // Without a create handler there'd be nothing to show, so bail.
   if (!childCollections.length && !onCreateChild) return null;
+
+  function startRename(c) {
+    setRenameDraft(c.name);
+    setRenamingId(c.id);
+  }
+  async function commitRename() {
+    const id = renamingId;
+    const next = renameDraft.trim();
+    const original = childCollections.find((c) => c.id === id)?.name;
+    setRenamingId(null);
+    setRenameDraft('');
+    if (!id || !next || next === original) return;
+    await onRenameCollection?.({ id, name: next });
+  }
+  function cancelRename() {
+    setRenamingId(null);
+    setRenameDraft('');
+  }
+  function handleCardContextMenu(e, c) {
+    if (!onRenameCollection && !onDeleteCollection) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, collection: c });
+  }
 
   const isSaveDrag = (e) => e.dataTransfer.types.includes(SAVE_DROP_MIME);
   const isFileDrag = (e) => e.dataTransfer.types.includes('Files');
@@ -86,6 +123,36 @@ export default function ChildCollectionsRail({
         {childCollections.map((c) => {
           const cover = Array.isArray(c.thumbs) && c.thumbs.length > 0 ? c.thumbs[0] : null;
           const count = c.save_count || 0;
+          const coverEl = cover ? (
+            <img className={styles.cover} src={fileUrl(cover)} alt="" draggable={false} loading="lazy" />
+          ) : (
+            <span className={`${styles.cover} ${styles.coverEmpty}`} aria-hidden="true">
+              <FolderClosed size={18} strokeWidth={1.5} />
+            </span>
+          );
+          // Rename mode swaps the button for a non-button card so the
+          // text input isn't nested inside a <button> (invalid + eats
+          // focus). Same visual shell.
+          if (renamingId === c.id) {
+            return (
+              <div key={c.id} className={styles.card}>
+                {coverEl}
+                <span className={styles.meta}>
+                  <input
+                    ref={renameInputRef}
+                    className={styles.renameInput}
+                    value={renameDraft}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                      else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+                    }}
+                  />
+                </span>
+              </div>
+            );
+          }
           return (
             <button
               key={c.id}
@@ -93,17 +160,12 @@ export default function ChildCollectionsRail({
               className={[styles.card, dropTargetId === c.id && styles.cardDropTarget]
                 .filter(Boolean).join(' ')}
               onClick={() => onPick?.(c.id)}
+              onContextMenu={(e) => handleCardContextMenu(e, c)}
               onDragOver={(e) => handleDragOver(e, c.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, c.id)}
             >
-              {cover ? (
-                <img className={styles.cover} src={fileUrl(cover)} alt="" draggable={false} loading="lazy" />
-              ) : (
-                <span className={`${styles.cover} ${styles.coverEmpty}`} aria-hidden="true">
-                  <FolderClosed size={18} strokeWidth={1.5} />
-                </span>
-              )}
+              {coverEl}
               <span className={styles.meta}>
                 <span className={styles.name}>{c.name}</span>
                 <span className={styles.count}>
@@ -131,6 +193,27 @@ export default function ChildCollectionsRail({
           </button>
         )}
       </div>
+
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={[
+            ...(onRenameCollection ? [{
+              label: 'Rename',
+              icon: <Pencil size={14} strokeWidth={1.6} aria-hidden="true" />,
+              onClick: () => startRename(ctxMenu.collection),
+            }] : []),
+            ...(onDeleteCollection ? [{
+              label: 'Delete collection',
+              icon: <Trash2 size={14} strokeWidth={1.6} aria-hidden="true" />,
+              danger: true,
+              onClick: () => onDeleteCollection(ctxMenu.collection.id),
+            }] : []),
+          ]}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </section>
   );
 }

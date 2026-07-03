@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { Eclipse } from 'lucide-react';
 import styles from './CommandPalette.module.css';
 import { CollectionIcon } from './Sidebar.jsx';
 import { resolveAsset } from '../lib/asset.js';
@@ -34,15 +35,10 @@ function CommandIcon() {
   );
 }
 
-// Infinite-canvas glyph for spaces/boards.
+// Spaces glyph — the same Eclipse mark the Spaces tab uses, so the
+// two surfaces read as the same thing.
 function SpaceIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="2" width="12" height="12" rx="2" />
-      <rect x="5" y="5" width="3.5" height="3.5" rx="0.8" />
-      <path d="M10.5 10.5h.01" />
-    </svg>
-  );
+  return <Eclipse size={14} strokeWidth={1.6} aria-hidden="true" />;
 }
 
 const SEARCH_DEBOUNCE = 80;
