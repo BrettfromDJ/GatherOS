@@ -3686,6 +3686,19 @@ export default function App({ entitlement } = {}) {
                     viewTitle={view.type === 'collection'
                       ? collections.find((c) => c.id === view.id)?.name ?? null
                       : null}
+                    parentCrumb={(() => {
+                      if (view.type !== 'collection') return null;
+                      const cur = collections.find((c) => c.id === view.id);
+                      const parent = cur?.parent_id
+                        ? collections.find((c) => c.id === cur.parent_id)
+                        : null;
+                      return parent
+                        ? {
+                          name: parent.name,
+                          onClick: () => handleViewChange({ type: 'collection', id: parent.id }),
+                        }
+                        : null;
+                    })()}
                     onBack={view.type === 'collection'
                       ? () => {
                         // A child collection backs out to its parent;

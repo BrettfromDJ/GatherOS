@@ -100,6 +100,10 @@ export default function SmartChipRail({
   // title. Sort + zoom on the right stay regardless.
   viewTitle = null,
   onBack = null,
+  // Child-collection breadcrumb: { name, onClick } for the parent.
+  // Renders as "Parent / Child" with the parent clickable; null on
+  // top-level collections.
+  parentCrumb = null,
   // Optional inline-rename callback. When provided, clicking the
   // viewTitle swaps it for an editable input. Only wired in for
   // collection views — there's no rename for All/Unsorted/Trash.
@@ -179,6 +183,19 @@ export default function SmartChipRail({
               >
                 <ChevronLeft size={18} strokeWidth={1.6} aria-hidden="true" />
               </button>
+            )}
+            {parentCrumb && (
+              <span className={styles.crumb}>
+                <button
+                  type="button"
+                  className={styles.crumbBtn}
+                  onClick={parentCrumb.onClick}
+                  title={`Go to ${parentCrumb.name}`}
+                >
+                  {parentCrumb.name}
+                </button>
+                <span className={styles.crumbSep} aria-hidden="true">/</span>
+              </span>
             )}
             {/* Always render an input — toggling readOnly + value
                 source instead of swapping element types means the

@@ -76,6 +76,45 @@
   align-self: center;
 }
 
+/* Breadcrumb for child collections — "Parent / Child". The parent
+   crumb is a quiet clickable step back up; crumb and separator share
+   the title's type scale so the row reads as one line. */
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.crumbBtn {
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--dur-instant, 80ms) ease;
+}
+
+.crumbBtn:hover {
+  color: var(--text-primary);
+}
+
+.crumbSep {
+  font-size: var(--text-lg);
+  font-weight: 400;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
 /* The title is always rendered as an input — read-only when
    displaying, editable when the user clicks. Keeping the same
    element across modes means the browser never relayouts, so the
