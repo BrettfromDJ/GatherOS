@@ -19,7 +19,12 @@
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  /* overflow-x: auto forces vertical clipping too (overflow-y computes
+     to auto), which sheared the cards' hover lift and drop ring at the
+     container's top edge. Pad the clip box on all sides and pull it
+     back with negative margins so the layout doesn't shift. */
+  padding: 4px 4px 6px;
+  margin: -4px -4px 0;
   scrollbar-width: none;
 }
 .row::-webkit-scrollbar { display: none; }
