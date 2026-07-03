@@ -1362,8 +1362,12 @@ function getAllCollectionsWithThumbs() {
       WHERE s.deleted_at IS NULL
     ),
     top_thumbs AS (
+      -- Concatenate in rn order (newest drop first) via the aggregate
+      -- ORDER BY — plain group_concat leaves the order undefined, so
+      -- the cover thumb (thumbs[0]) could otherwise be an older save
+      -- instead of the most recently added one.
       SELECT collection_id,
-             group_concat(thumb_or_file, x'01') AS thumbs
+             group_concat(thumb_or_file, x'01' ORDER BY rn) AS thumbs
       FROM ranked
       WHERE rn <= 4
       GROUP BY collection_id
