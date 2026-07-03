@@ -121,35 +121,3 @@
   color: var(--accent);
   font-weight: 600;
 }
-
-/* One-time "New" pill on the create card, shown until dismissed
-   (its ✕, or creating a first child). Deliberately NOT the app
-   accent — that's monochrome ink and reads as a gray blob here.
-   The system blue (--icon-blue) is the palette's one signal color,
-   so the pill actually announces itself. */
-.newBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 3px 6px 3px 8px;
-  border-radius: var(--radius-circle, 999px);
-  background: var(--icon-blue, #007aff);
-  color: #ffffff;
-  flex: 0 0 auto;
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--icon-blue, #007aff) 40%, transparent);
-}
-
-.newBadgeClose {
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.75);
-  padding: 0 1px;
-}
-
-.newBadgeClose:hover {
-  color: #ffffff;
-}

@@ -2024,20 +2024,8 @@ export default function App({ entitlement } = {}) {
     [collections],
   );
 
-  // One-time "New" pill on the child rail's create card — shown to
-  // everyone until dismissed, via its ✕ or by creating a first child.
-  const [childBadgeDismissed, setChildBadgeDismissed] = useState(() => {
-    try { return localStorage.getItem('moodmark.childRailBadgeDismissed') === '1'; }
-    catch { return true; }
-  });
-  const dismissChildBadge = useCallback(() => {
-    setChildBadgeDismissed(true);
-    try { localStorage.setItem('moodmark.childRailBadgeDismissed', '1'); } catch { /* empty */ }
-  }, []);
-
   const handleCreateChildCollection = useCallback(async (parentId) => {
     if (!parentId) return null;
-    dismissChildBadge();
     const created = await window.moodmark.collections.create({ name: 'New collection', parentId });
     await loadCollections();
     if (!created?.id) return created;
@@ -2049,7 +2037,7 @@ export default function App({ entitlement } = {}) {
     handleViewChange({ type: 'collection', id: created.id });
     setRenameViewSignal((s) => s + 1);
     return created;
-  }, [loadCollections, undoStack, handleViewChange, dismissChildBadge]);
+  }, [loadCollections, undoStack, handleViewChange]);
 
   // Tray-menu "Recent saves" entry click. Main fires 'focus:save'
   // with the id; mirror the duplicate-toast flow — switch to All so
@@ -3754,8 +3742,6 @@ export default function App({ entitlement } = {}) {
                     onCreateChild={collections.find((c) => c.id === view.id)?.parent_id
                       ? null
                       : () => handleCreateChildCollection(view.id)}
-                    showNewBadge={!childBadgeDismissed}
-                    onDismissNewBadge={dismissChildBadge}
                     onAddSavesToBucket={handleAddSavesToBucket}
                     onDropFilesToBucket={handleDropFilesToBucket}
                     onExternalDropToBucket={handleExternalDropToBucket}
