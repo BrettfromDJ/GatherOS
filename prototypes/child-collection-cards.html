@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Child collection card designs</title>
+<style>
+  /* ── Real GatherOS tokens (light) ─────────────────────────────── */
+  :root {
+    --content-bg: #FAFAF9;
+    --surface-1: #FAFAF9;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-strong: rgba(0, 0, 0, 0.12);
+    --border-subtle: rgba(0, 0, 0, 0.05);
+    --border-hairline: rgba(0, 0, 0, 0.06);
+    --text-primary: #000000;
+    --text-secondary: rgba(0, 0, 0, 0.55);
+    --text-tertiary: rgba(0, 0, 0, 0.4);
+    --icon-muted: #c7c7c7;
+    --hover-bg-soft: rgba(0, 0, 0, 0.04);
+    --font-ui: 'Geist Variable', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+    --text-xs: 11px;
+    --text-sm: 12px;
+    --text-md: 13px;
+    --text-lg: 18px;
+    --radius-sm: 4px;
+    --radius-md: 7px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-pill: 999px;
+    --dur-quick: 160ms;
+    /* the real featured-collection card shadow */
+    --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+    --card-shadow-hover: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-ui);
+    background: #ECECEA;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Chrome ───────────────────────────────────────────────────── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 24px;
+    background: rgba(250, 250, 249, 0.86);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em; margin: 0;
+    white-space: nowrap;
+  }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border: 1px solid var(--border);
+    background: var(--surface-1); border-radius: var(--radius-pill);
+    font-size: var(--text-sm); font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; box-shadow: var(--card-shadow);
+    transition: color var(--dur-quick) ease, border-color var(--dur-quick) ease;
+  }
+  .tab .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 5px;
+    background: rgba(0,0,0,0.06); font-size: 10px; font-weight: 600;
+    color: var(--text-tertiary);
+  }
+  .tab:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .tab.active { color: #fff; background: #000; border-color: #000; }
+  .tab.active .n { background: rgba(255,255,255,0.22); color: #fff; }
+
+  /* ── Stage ────────────────────────────────────────────────────── */
+  main { padding: 92px 0 80px; }
+  .iteration { display: none; }
+  .iteration.active { display: block; animation: fade var(--dur-quick) ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .meta { max-width: 900px; margin: 0 auto 4px; padding: 0 40px; }
+  .meta .name { font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.02em; }
+  .meta .rationale {
+    font-size: var(--text-md); color: var(--text-secondary);
+    line-height: 1.5; margin-top: 6px; max-width: 640px;
+  }
+  .meta .tradeoff { color: var(--text-tertiary); }
+
+  /* The app content canvas the rail actually sits on. */
+  .canvas {
+    max-width: 900px; margin: 22px auto 0;
+    background: var(--content-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .rail-label {
+    font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 600; color: var(--text-tertiary);
+    padding: 18px 22px 0;
+  }
+  .rail { padding: 12px 22px 18px; }
+  .rail-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 8px 2px 4px; }
+  .rail-scroll::-webkit-scrollbar { height: 0; }
+
+  /* faux masonry underneath so the rail reads in context */
+  .grid-peek {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    padding: 4px 22px 22px;
+  }
+  .grid-peek span { border-radius: var(--radius-md); }
+  .ph { border-radius: var(--radius-sm); }
+
+  /* ── shared cover gradients (stand-ins for real thumbnails) ────── */
+  .g1 { background: linear-gradient(135deg, #c65d3b, #e8a06a); }
+  .g2 { background: linear-gradient(135deg, #2e3a2f, #6b7f5e); }
+  .g3 { background: linear-gradient(135deg, #1c1c1e, #4a4a52); }
+  .g4 { background: linear-gradient(135deg, #b8c0c8, #e6e9ec); }
+  .g5 { background: linear-gradient(135deg, #7a3b52, #c98aa0); }
+  .g6 { background: linear-gradient(135deg, #d9b44a, #f0dd9a); }
+  .g7 { background: linear-gradient(135deg, #3a5a78, #86a7c4); }
+  .g8 { background: linear-gradient(135deg, #52493a, #9a8c72); }
+
+  .folder-glyph { color: var(--icon-muted); display: inline-flex; }
+
+  /* ═══════════════ 1 · Cover tile ═══════════════ */
+  .d1-scroll { align-items: stretch; }
+  .d1-card {
+    flex: 0 0 auto; width: 132px;
+    display: flex; flex-direction: column; gap: 9px;
+    padding: 10px; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow); cursor: pointer;
+    transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+  }
+  .d1-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .d1-cover {
+    width: 100%; aspect-ratio: 4/3; border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+  }
+  .d1-name { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.01em; }
+  .d1-count { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 1px; }
+  .d1-new {
+    border-style: dashed; background: transparent; box-shadow: none;
+    align-items: center; justify-content: center;
+  }
+  .d1-new:hover { box-shadow: none; transform: none; border-color: var(--border-strong); }
+  .d1-new .d1-cover {
+    background: transparent; box-shadow: none;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px dashed var(--border-strong);
+  }
+
+  /* ═══════════════ 2 · Fanned deck ═══════════════ */
+  .d2-card {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 9px 16px 9px 12px; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow); cursor: pointer;
+    transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+  }
+  .d2-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .d2-fan { position: relative; width: 46px; height: 38px; flex: 0 0 auto; }
+  .d2-fan i {
+    position: absolute; left: 50%; top: 50%; width: 30px; height: 34px;
+    border-radius: 5px; transform: translate(-50%,-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.14);
+    transition: transform var(--dur-quick) ease;
+  }
+  .d2-fan i:nth-child(1) { transform: translate(-50%,-50%) rotate(-9deg) translateX(-9px); z-index: 1; }
+  .d2-fan i:nth-child(2) { transform: translate(-50%,-50%) rotate(-2deg); z-index: 2; }
+  .d2-fan i:nth-child(3) { transform: translate(-50%,-50%) rotate(8deg) translateX(9px); z-index: 3; }
+  .d2-card:hover .d2-fan i:nth-child(1) { transform: translate(-50%,-50%) rotate(-15deg) translateX(-15px); }
+  .d2-card:hover .d2-fan i:nth-child(3) { transform: translate(-50%,-50%) rotate(15deg) translateX(15px); }
+  .d2-meta { display: flex; flex-direction: column; gap: 2px; }
+  .d2-name { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.01em; }
+  .d2-count { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .d2-new { border-style: dashed; background: transparent; box-shadow: none; }
+  .d2-new:hover { box-shadow: none; transform: none; border-color: var(--border-strong); }
+  .d2-new .d2-fan {
+    width: 34px; display: flex; align-items: center; justify-content: center;
+  }
+  .d2-new .d2-name { color: var(--text-tertiary); font-weight: 500; }
+
+  /* ═══════════════ 3 · Quiet pill ═══════════════ */
+  .d3-scroll { padding-top: 4px; }
+  .d3-pill {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 7px 13px 7px 9px; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: var(--radius-pill);
+    cursor: pointer; box-shadow: 0 1px 3px -1px rgba(16,16,19,0.05);
+    transition: border-color var(--dur-quick) ease, background var(--dur-quick) ease;
+  }
+  .d3-pill:hover { background: var(--hover-bg-soft); border-color: var(--border-strong); }
+  .d3-dot {
+    width: 22px; height: 22px; border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); flex: 0 0 auto;
+  }
+  .d3-name { font-size: var(--text-md); font-weight: 550; letter-spacing: -0.01em; }
+  .d3-count {
+    font-size: var(--text-xs); color: var(--text-tertiary);
+    padding-left: 8px; margin-left: 2px; border-left: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .d3-new { border-style: dashed; box-shadow: none; background: transparent; color: var(--text-tertiary); }
+  .d3-new .d3-dot {
+    background: transparent; box-shadow: none;
+    display: flex; align-items: center; justify-content: center; color: var(--icon-muted);
+  }
+
+  /* ═══════════════ 4 · Inset list ═══════════════ */
+  .d4-wrap {
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--surface-1); overflow: hidden; box-shadow: var(--card-shadow);
+    max-width: 420px;
+  }
+  .d4-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; cursor: pointer;
+    border-bottom: 1px solid var(--border-hairline);
+    transition: background var(--dur-quick) ease;
+  }
+  .d4-row:last-child { border-bottom: 0; }
+  .d4-row:hover { background: var(--hover-bg-soft); }
+  .d4-cover {
+    width: 30px; height: 30px; border-radius: var(--radius-md); flex: 0 0 auto;
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+  }
+  .d4-name { font-size: var(--text-md); font-weight: 550; flex: 1 1 auto; letter-spacing: -0.01em; }
+  .d4-count { font-size: var(--text-xs); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .d4-chev { color: var(--text-tertiary); display: inline-flex; }
+  .d4-new { color: var(--text-tertiary); }
+  .d4-new .d4-cover {
+    background: transparent; border: 1px dashed var(--border-strong); box-shadow: none;
+    display: flex; align-items: center; justify-content: center; color: var(--icon-muted);
+  }
+  .d4-new .d4-name { color: var(--text-tertiary); font-weight: 500; }
+
+  /* ═══════════════ 5 · Mosaic tile ═══════════════ */
+  .d5-card {
+    flex: 0 0 auto; width: 150px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--card-shadow); cursor: pointer;
+    transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+  }
+  .d5-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .d5-mosaic {
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    gap: 2px; aspect-ratio: 3/2; background: var(--border-hairline);
+  }
+  .d5-mosaic i { display: block; }
+  .d5-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 9px 11px; }
+  .d5-name { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .d5-count { font-size: var(--text-xs); color: var(--text-tertiary); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .d5-new { border-style: dashed; background: transparent; box-shadow: none; }
+  .d5-new:hover { box-shadow: none; transform: none; border-color: var(--border-strong); }
+  .d5-new .d5-mosaic {
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    color: var(--icon-muted);
+  }
+  .d5-new .d5-name { color: var(--text-tertiary); font-weight: 500; }
+
+  .hint { text-align: center; color: var(--text-tertiary); font-size: var(--text-sm); margin: 34px 0 0; }
+  kbd {
+    font-family: var(--font-ui); font-size: 11px; background: var(--surface-1);
+    border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px;
+    padding: 1px 5px; color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Child collection card designs</h1>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-i="1"><span class="n">1</span> Cover tile</button>
+      <button class="tab" data-i="2"><span class="n">2</span> Fanned deck</button>
+      <button class="tab" data-i="3"><span class="n">3</span> Quiet pill</button>
+      <button class="tab" data-i="4"><span class="n">4</span> Inset list</button>
+      <button class="tab" data-i="5"><span class="n">5</span> Mosaic tile</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <script>
+    // Placeholder covers — gradient stand-ins for real thumbnails.
+    const G = ['g1','g2','g3','g4','g5','g6','g7','g8'];
+    const children = [
+      { name: 'Logos', count: 24, covers: ['g1','g6','g8','g2'] },
+      { name: 'Type lockups', count: 12, covers: ['g3','g4','g7','g5'] },
+      { name: 'Wordmarks', count: 8, covers: ['g5','g1','g6','g3'] },
+      { name: 'Monograms', count: 41, covers: ['g7','g2','g4','g8'] },
+      { name: 'Icons', count: 5, covers: ['g4','g6','g1','g7'] },
+    ];
+
+    const folderSVG = (s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+    const plusSVG = (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    const chevSVG = () => `<svg width="7" height="11" viewBox="0 0 7 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1l4 4.5-4 4.5"/></svg>`;
+    const sv = (c) => c === 1 ? '1 save' : c + ' saves';
+
+    const gridPeek = () => {
+      const heights = [120, 90, 150, 100, 130, 110, 95, 140, 105, 125];
+      let cells = '';
+      for (let col = 0; col < 5; col++) {
+        cells += `<span style="display:flex;flex-direction:column;gap:10px">`;
+        for (let r = 0; r < 2; r++) {
+          const h = heights[(col * 2 + r) % heights.length];
+          cells += `<span class="ph ${G[(col + r) % G.length]}" style="height:${h}px;opacity:.9"></span>`;
+        }
+        cells += `</span>`;
+      }
+      return `<div class="grid-peek">${cells}</div>`;
+    };
+
+    const shell = (name, rationale, tradeoff, railInner) => `
+      <div class="meta">
+        <div class="name">${name}</div>
+        <div class="rationale">${rationale} <span class="tradeoff">${tradeoff}</span></div>
+      </div>
+      <div class="canvas">
+        <div class="rail-label">Inside this collection</div>
+        <div class="rail">${railInner}</div>
+        ${gridPeek()}
+      </div>`;
+
+    // 1 · Cover tile
+    const d1 = () => {
+      const cards = children.map(c => `
+        <button class="d1-card">
+          <span class="d1-cover ${c.covers[0]}"></span>
+          <span>
+            <span class="d1-name">${c.name}</span>
+            <div class="d1-count">${sv(c.count)}</div>
+          </span>
+        </button>`).join('');
+      const nw = `<button class="d1-card d1-new">
+          <span class="d1-cover folder-glyph">${plusSVG(18)}</span>
+          <span><span class="d1-name" style="color:var(--text-tertiary);font-weight:500">New collection</span></span>
+        </button>`;
+      return shell('Cover tile',
+        'A small cover-forward tile — thumbnail on top, name and count beneath — a miniature of the space / featured-collection cards.',
+        'Best when children are visual. Trade-off: the tallest rail, so fewer show before scrolling.',
+        `<div class="rail-scroll d1-scroll">${cards}${nw}</div>`);
+    };
+
+    // 2 · Fanned deck
+    const d2 = () => {
+      const cards = children.map(c => `
+        <button class="d2-card">
+          <span class="d2-fan">
+            <i class="${c.covers[0]}"></i><i class="${c.covers[1]}"></i><i class="${c.covers[2]}"></i>
+          </span>
+          <span class="d2-meta">
+            <span class="d2-name">${c.name}</span>
+            <span class="d2-count">${sv(c.count)}</span>
+          </span>
+        </button>`).join('');
+      const nw = `<button class="d2-card d2-new">
+          <span class="d2-fan folder-glyph">${plusSVG(16)}</span>
+          <span class="d2-meta"><span class="d2-name">New collection</span></span>
+        </button>`;
+      return shell('Fanned deck',
+        'Borrows the featured-collection fan — a little stack of covers as the avatar with the name beside it — so children read as first-class collections, just smaller.',
+        'Ties the whole collection system together. Trade-off: busier, and needs a few thumbnails to look right.',
+        `<div class="rail-scroll">${cards}${nw}</div>`);
+    };
+
+    // 3 · Quiet pill
+    const d3 = () => {
+      const cards = children.map(c => `
+        <button class="d3-pill">
+          <span class="d3-dot ${c.covers[0]}"></span>
+          <span class="d3-name">${c.name}</span>
+          <span class="d3-count">${c.count}</span>
+        </button>`).join('');
+      const nw = `<button class="d3-pill d3-new">
+          <span class="d3-dot">${plusSVG(14)}</span>
+          <span class="d3-name">New collection</span>
+        </button>`;
+      return shell('Quiet pill',
+        'Text-first capsules — a tiny cover chip, the name, a hairline-divided count. Calm furniture that sits above the grid and never competes with the saves.',
+        'The most restrained and space-efficient. Trade-off: little visual pull; image-heavy children lose their preview.',
+        `<div class="rail-scroll d3-scroll">${cards}${nw}</div>`);
+    };
+
+    // 4 · Inset list
+    const d4 = () => {
+      const rows = children.map(c => `
+        <div class="d4-row">
+          <span class="d4-cover ${c.covers[0]}"></span>
+          <span class="d4-name">${c.name}</span>
+          <span class="d4-count">${sv(c.count)}</span>
+          <span class="d4-chev">${chevSVG()}</span>
+        </div>`).join('');
+      const nw = `<div class="d4-row d4-new">
+          <span class="d4-cover">${plusSVG(15)}</span>
+          <span class="d4-name">New collection</span>
+        </div>`;
+      return shell('Inset list',
+        'A bordered sub-panel of full-width rows — cover, name, count, chevron — reading like a nested file list inside the parent.',
+        'Clearest hierarchy and scales to many children. Trade-off: a heavier block that breaks the horizontal-scroll rhythm.',
+        `<div class="d4-wrap">${rows}${nw}</div>`);
+    };
+
+    // 5 · Mosaic tile
+    const d5 = () => {
+      const cards = children.map(c => `
+        <button class="d5-card">
+          <span class="d5-mosaic">
+            <i class="${c.covers[0]}"></i><i class="${c.covers[1]}"></i>
+            <i class="${c.covers[2]}"></i><i class="${c.covers[3]}"></i>
+          </span>
+          <span class="d5-foot">
+            <span class="d5-name">${c.name}</span>
+            <span class="d5-count">${c.count}</span>
+          </span>
+        </button>`).join('');
+      const nw = `<button class="d5-card d5-new">
+          <span class="d5-mosaic" style="aspect-ratio:3/2">${plusSVG(20)}</span>
+          <span class="d5-foot"><span class="d5-name">New collection</span></span>
+        </button>`;
+      return shell('Mosaic tile',
+        'The cover is a 2×2 mosaic of the child’s first four saves — the classic folder-preview metaphor — with the name and count on a footer row.',
+        'The richest preview of what’s inside. Trade-off: the largest footprint; sparse children show empty cells.',
+        `<div class="rail-scroll">${cards}${nw}</div>`);
+    };
+
+    const builders = { 1: d1, 2: d2, 3: d3, 4: d4, 5: d5 };
+    const main = document.getElementById('main');
+    Object.keys(builders).forEach(i => {
+      const sec = document.createElement('section');
+      sec.className = 'iteration' + (i === '1' ? ' active' : '');
+      sec.dataset.i = i;
+      sec.innerHTML = builders[i]() +
+        (i === '5' ? '<p class="hint">Switch directions with the tabs or press <kbd>1</kbd>–<kbd>5</kbd></p>' : '');
+      main.appendChild(sec);
+    });
+
+    function show(i) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.i === i));
+      document.querySelectorAll('.iteration').forEach(s => s.classList.toggle('active', s.dataset.i === i));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.getElementById('tabs').addEventListener('click', e => {
+      const t = e.target.closest('.tab'); if (t) show(t.dataset.i);
+    });
+    window.addEventListener('keydown', e => {
+      if (e.key >= '1' && e.key <= '5') show(e.key);
+    });
+  </script>
+</body>
+</html>
