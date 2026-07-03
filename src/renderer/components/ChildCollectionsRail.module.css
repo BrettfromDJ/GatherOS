@@ -122,15 +122,31 @@
   font-weight: 600;
 }
 
-/* First-run "New" pill on the create card — quiet accent chip that
-   flags the nesting feature until the user makes their first child. */
+/* One-time "New" pill on the create card — quiet accent chip that
+   flags the nesting feature until dismissed (its ✕, or creating a
+   first child). */
 .newBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 2px 7px;
+  padding: 2px 5px 2px 7px;
   border-radius: var(--radius-circle, 999px);
   background: var(--accent-bg-soft);
   color: var(--accent);
   flex: 0 0 auto;
+}
+
+.newBadgeClose {
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+  padding: 0 1px;
+}
+
+.newBadgeClose:hover {
+  opacity: 1;
 }

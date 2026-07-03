@@ -25,10 +25,11 @@ export default function ChildCollectionsRail({
   onDropFilesToBucket,
   onExternalDropToBucket,
   onSetAppDragging,
-  // First-run affordance: a small "New" pill on the create card for
-  // users who haven't nested anything yet. App owns the dismissal
-  // (first child created anywhere, ever).
+  // One-time affordance: a small "New" pill on the create card that
+  // flags the nesting feature. Shown to everyone until dismissed —
+  // via its ✕ or by creating a first child. App owns the persistence.
   showNewBadge = false,
+  onDismissNewBadge,
 }) {
   const [dropTargetId, setDropTargetId] = useState(null);
   // Render even with zero children so the create card is always
@@ -133,7 +134,28 @@ export default function ChildCollectionsRail({
               <span className={`${styles.name} ${styles.nameMuted}`}>New collection</span>
             </span>
             {showNewBadge && (
-              <span className={styles.newBadge}>New</span>
+              <span className={styles.newBadge}>
+                New
+                {/* Not a <button> — we're inside the create-card
+                    button and buttons can't nest. */}
+                <span
+                  className={styles.newBadgeClose}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Dismiss"
+                  title="Dismiss"
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDismissNewBadge?.(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onDismissNewBadge?.();
+                    }
+                  }}
+                >
+                  ×
+                </span>
+              </span>
             )}
           </button>
         )}
