@@ -46,13 +46,25 @@
   font: inherit;
   color: inherit;
   text-align: left;
-  transition: box-shadow var(--dur-instant) ease, transform var(--dur-instant) ease, border-color var(--dur-instant) ease;
+  /* Same card recipe as the featured collection cards — a soft
+     ambient shadow at rest that lifts gently on hover, no heavy
+     drop or border-colour flash. */
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--dur-quick) ease, box-shadow var(--dur-quick) ease;
+}
+
+:root[data-theme="dark"] .card {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
 }
 
 .card:hover {
-  transform: translateY(-1px);
-  border-color: var(--border-strong);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+  transform: translate3d(0, -2px, 0);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] .card:hover {
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.55);
 }
 
 .cardNew {
