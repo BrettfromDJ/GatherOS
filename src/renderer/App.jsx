@@ -1212,30 +1212,75 @@ export default function App({ entitlement } = {}) {
       return items;
     }
     if (view.type === 'collection') {
-      items.push({
-        label: `Remove from collection${suffix}`,
+      // Membership-aware removal. The menu already knows which
+      // collections hold the save(s) (memberIds resolved at open), so
+      // when the membership within this view's subtree is known, offer
+      // precise "Remove from ⟨name⟩" entries — e.g. a save living in
+      // the Logos child, right-clicked from the Branding parent view,
+      // removes from Logos specifically. Falls back to a subtree-wide
+      // sweep for scattered multi-selections with no common membership.
+      const treeNodes = [
+        collections.find((c) => c.id === view.id),
+        ...collections.filter((c) => c.parent_id === view.id),
+      ].filter(Boolean);
+      const held = treeNodes.filter((n) => (memberIds || []).includes(n.id));
+      const pushRemoveOne = (node) => items.push({
+        label: `Remove from ${node.name}${suffix}`,
         icon: <MinusCircleIcon />,
         danger: true,
         onClick: async () => {
-          // Roll-up semantics: this view shows the parent's own saves
-          // plus its children's, so "remove" strips membership across
-          // the whole shown subtree — otherwise a child-member save
-          // would silently stay in the grid. removeSave no-ops for
-          // collections the save isn't actually in.
-          const treeIds = [
-            view.id,
-            ...collections.filter((c) => c.parent_id === view.id).map((c) => c.id),
-          ];
           for (const id of targetIds) {
-            for (const cid of treeIds) {
-              await window.moodmark.collections.removeSave({ collectionId: cid, saveId: id });
-            }
+            await window.moodmark.collections.removeSave({ collectionId: node.id, saveId: id });
           }
+          undoStack.push(`remove from ${node.name}`, async () => {
+            for (const id of targetIds) {
+              await window.moodmark.collections.addSave({ collectionId: node.id, saveId: id });
+            }
+            loadCollections();
+            reload();
+          });
           if (isMulti) setSelected(new Set());
           reload();
           loadCollections();
         },
       });
+      if (held.length > 0) {
+        held.forEach(pushRemoveOne);
+      } else {
+        items.push({
+          label: `Remove from collection${suffix}`,
+          icon: <MinusCircleIcon />,
+          danger: true,
+          onClick: async () => {
+            // Capture what actually gets removed so undo restores
+            // exactly those memberships, nothing more.
+            const treeIds = treeNodes.map((n) => n.id);
+            const removed = [];
+            for (const id of targetIds) {
+              let mem = [];
+              try { mem = (await window.moodmark.collections.getForSave(id)) || []; } catch { /* empty */ }
+              for (const m of mem) {
+                if (treeIds.includes(m.id)) removed.push({ cid: m.id, saveId: id });
+              }
+            }
+            for (const r of removed) {
+              await window.moodmark.collections.removeSave({ collectionId: r.cid, saveId: r.saveId });
+            }
+            if (removed.length > 0) {
+              undoStack.push('remove from collection', async () => {
+                for (const r of removed) {
+                  await window.moodmark.collections.addSave({ collectionId: r.cid, saveId: r.saveId });
+                }
+                loadCollections();
+                reload();
+              });
+            }
+            if (isMulti) setSelected(new Set());
+            reload();
+            loadCollections();
+          },
+        });
+      }
     }
     // Hide buckets the saves are already in — for single, that's
     // every bucket the one save belongs to; for multi, only buckets

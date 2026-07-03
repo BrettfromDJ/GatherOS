@@ -31,30 +31,6 @@
   padding: 6px 10px 6px 8px;
 }
 
-/* Nested submenu item (e.g. a child bucket under its parent in the
-   "Add to Bucket" menu). Reserves space on the left for an indent
-   marker that visually locates the row as a child of the row above. */
-.itemIndent {
-  padding-left: 30px;
-  position: relative;
-}
-
-.menuWithIcons .item.itemIndent {
-  padding-left: 28px;
-  position: relative;
-}
-
-.itemIndent::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  width: 6px;
-  height: 0.5px;
-  background: color-mix(in srgb, var(--text-primary) 35%, transparent);
-  pointer-events: none;
-}
-
 .itemIcon {
   display: inline-flex;
   align-items: center;
