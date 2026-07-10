@@ -1,5 +1,4 @@
 import {
-  claimImportItem,
   importLimitReached,
   importProcessedCount,
   rememberImportEntries,
@@ -11,9 +10,12 @@ import {
 import {
   catchUpPreflightResult,
   catchUpSummary,
-  importSaveOptions,
-  processCatchUpEntries,
 } from './catch-up-import.mjs';
+import {
+  launchScrollFallback,
+  runCatchUpTransportBatch,
+  runFixedTransportBatch,
+} from './x-import-transport.mjs';
 
 // Service worker for the GatherOS browser extension.
 //
@@ -554,7 +556,7 @@ async function runXApiImport(limit, mode = 'fixed') {
   // the visible bookmarks tab, which captures a fresh template so the
   // quiet path works next time.
   if (!template || !template.url || !template.authorization || !csrf) {
-    return runXScrollImport(limit, mode);
+    return launchScrollFallback(runXScrollImport, limit, mode);
   }
 
   const headers = {
@@ -572,13 +574,13 @@ async function runXApiImport(limit, mode = 'fixed') {
   let json;
   try {
     const res = await fetch(template.url, { method: 'GET', credentials: 'include', headers });
-    if (!res.ok) return runXScrollImport(limit, mode);
+    if (!res.ok) return launchScrollFallback(runXScrollImport, limit, mode);
     json = await res.json();
   } catch {
-    return runXScrollImport(limit, mode);
+    return launchScrollFallback(runXScrollImport, limit, mode);
   }
   let entries = pollExtractBookmarkEntries(json);
-  if (entries.length === 0) return runXScrollImport(limit, mode);
+  if (entries.length === 0) return launchScrollFallback(runXScrollImport, limit, mode);
 
   const state = {
     active: true,
@@ -603,38 +605,39 @@ async function runXApiImport(limit, mode = 'fixed') {
   try {
     while (state.active && !importLimitReached(state) && pages < MAX_PAGES) {
       if (mode !== 'catch-up') rememberImportEntries(state, entries);
-      const statuses = mode === 'catch-up'
-        ? (await requestXBookmarkStatus(entries.map((b) => b && b.tweetUrl || ''))).statuses
-        : null;
       if (mode === 'catch-up') {
         try {
-          const result = await processCatchUpEntries({
-            state, entries, statuses,
-            save: async (b) => {
-              const resp = await syncBookmarkToGather(b, importSaveOptions(mode));
-              if (!isAcceptedSaveResponse(resp)) throw new Error(resp?.error || 'save rejected');
-              if (isNewImportedSaveResponse(resp)) state.imported += 1;
-              state.seenIds.add(b.tweetId);
-            },
+          const result = await runCatchUpTransportBatch({
+            state,
+            entries,
+            classify: async (pageEntries) => (
+              await requestXBookmarkStatus(pageEntries.map((b) => b?.tweetUrl || ''))
+            ).statuses,
+            save: syncBookmarkToGather,
+            isAccepted: isAcceptedSaveResponse,
+            isNew: isNewImportedSaveResponse,
           });
           state.boundaryReached = result.boundaryReached;
+          for (const id of result.acceptedIds) state.seenIds.add(id);
         } catch (err) {
           state.error = err;
           console.warn('[gatheros] X catch-up save failed:', err?.message || err);
         }
-      } else for (const b of entries) {
-        if (!claimImportItem(state, b && b.tweetId)) {
-          if (importLimitReached(state)) break;
-          continue;
-        }
-        try {
-          const resp = await syncBookmarkToGather(b, importSaveOptions(mode));
-          if (isNewImportedSaveResponse(resp)) state.imported += 1;
-          if (isAcceptedSaveResponse(resp)) state.seenIds.add(b.tweetId);
-          else state.seenIds.delete(b.tweetId);
-        } catch (err) {
+      } else {
+        const result = await runFixedTransportBatch({
+          state,
+          entries,
+          save: syncBookmarkToGather,
+          isAccepted: isAcceptedSaveResponse,
+          isNew: isNewImportedSaveResponse,
+          onError: (err, b) => {
           console.warn('[gatheros] X import save failed:', err?.message || err);
           state.seenIds.delete(b.tweetId);
+          },
+        });
+        for (const id of result.acceptedIds) state.seenIds.add(id);
+        for (const id of result.attemptedIds) {
+          if (!result.acceptedIds.includes(id)) state.seenIds.delete(id);
         }
       }
       if (state.error || state.boundaryReached) break;
@@ -723,30 +726,21 @@ async function handleImportBatch(bookmarks) {
   if (!state || !state.active || state.apiMode) return;
   let foundNew = false;
   let reachedLimit = false;
-  const toSave = [];
   const resolvedIds = [];
-  let statuses = null;
   if (state.mode === 'catch-up') {
     try {
-      statuses = (await requestXBookmarkStatus(bookmarks.map((b) => b && b.tweetUrl || ''))).statuses;
-    } catch (err) {
-      state.error = err;
-      await endImport('error');
-      return;
-    }
-  }
-  if (state.mode === 'catch-up') {
-    try {
-      const result = await processCatchUpEntries({
-        state, entries: bookmarks, statuses,
-        save: async (b) => {
-          const resp = await syncBookmarkToGather(b, importSaveOptions(state.mode));
-          if (!isAcceptedSaveResponse(resp)) throw new Error(resp?.error || 'save rejected');
-          if (isNewImportedSaveResponse(resp)) state.imported += 1;
-          resolvedIds.push(b.tweetId);
-          foundNew = true;
-        },
+      const result = await runCatchUpTransportBatch({
+        state,
+        entries: bookmarks,
+        classify: async (batch) => (
+          await requestXBookmarkStatus(batch.map((b) => b?.tweetUrl || ''))
+        ).statuses,
+        save: syncBookmarkToGather,
+        isAccepted: isAcceptedSaveResponse,
+        isNew: isNewImportedSaveResponse,
       });
+      resolvedIds.push(...result.acceptedIds);
+      foundNew = result.acceptedIds.length > 0;
       if (result.boundaryReached) {
         state.boundaryReached = true;
         reachedLimit = true;
@@ -756,35 +750,19 @@ async function handleImportBatch(bookmarks) {
       state.error = err;
       console.warn('[gatheros] backfill import failed:', err?.message || err);
     }
-  } else for (const b of bookmarks) {
-    if (!b || !b.tweetId) continue;
-    if (!claimImportItem(state, b.tweetId)) {
-      if (importLimitReached(state)) {
-        reachedLimit = true;
-        pauseImportScroll(state);
-        break;
-      }
-      continue;
-    }
-    if (importLimitReached(state)) {
-      reachedLimit = true;
-      pauseImportScroll(state);
-    }
-    foundNew = true;
-    toSave.push(b);
-    if (reachedLimit) break;
-  }
-  for (const b of toSave) {
-    try {
-      // Fixed/all backfill overrides tombstones. Count only genuinely new
-      // saves so the summary stays honest.
-      const resp = await syncBookmarkToGather(b, importSaveOptions(state.mode));
-      if (!state.active) return;
-      if (isNewImportedSaveResponse(resp)) state.imported += 1;
-      if (isAcceptedSaveResponse(resp)) resolvedIds.push(b.tweetId);
-    } catch (err) {
-      console.warn('[gatheros] backfill import failed:', err?.message || err);
-    }
+  } else {
+    const result = await runFixedTransportBatch({
+      state,
+      entries: bookmarks,
+      save: syncBookmarkToGather,
+      isAccepted: isAcceptedSaveResponse,
+      isNew: isNewImportedSaveResponse,
+      onError: (err) => console.warn('[gatheros] backfill import failed:', err?.message || err),
+    });
+    resolvedIds.push(...result.acceptedIds);
+    foundNew = result.attemptedIds.length > 0;
+    reachedLimit = result.reachedLimit;
+    if (reachedLimit) pauseImportScroll(state);
   }
   // Keep the seen-set current so the normal incremental poll doesn't
   // re-handle these later.
