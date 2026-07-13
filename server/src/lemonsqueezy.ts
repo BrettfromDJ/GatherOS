@@ -136,11 +136,36 @@ export interface LSSubscriptionAttributes {
   test_mode?: boolean;
 }
 
+// LS events whose `data` is a subscription object (data.type ===
+// 'subscriptions') and therefore carries subscription-shaped
+// attributes we can upsert. Everything else — crucially the
+// subscription_payment_* events — must NOT be fed to upsertSubscription.
+const SUBSCRIPTION_EVENTS = new Set<string>([
+  'subscription_created',
+  'subscription_updated',
+  'subscription_cancelled',
+  'subscription_resumed',
+  'subscription_expired',
+  'subscription_paused',
+  'subscription_unpaused',
+]);
+
+// True only for events we should upsert a subscription row from.
+// Exported for the truth-table test. The `subscription-invoices` type
+// guard is belt-and-braces: the payment events already fall outside
+// SUBSCRIPTION_EVENTS, but if LS ever routes an invoice payload under a
+// name we do handle, we still refuse to key a row off an invoice id.
+export function isSubscriptionUpsertEvent(eventName: string, dataType?: string): boolean {
+  return SUBSCRIPTION_EVENTS.has(eventName) && dataType !== 'subscription-invoices';
+}
+
 async function handleEvent(env: Env, eventName: string, evt: LSEvent): Promise<void> {
   // Opportunistically link the LS customer to our user row using
   // meta.custom_data.user_id when present. LS strips custom_data on
   // some webhooks (we've seen it empty on subscription_* events) —
-  // upsertSubscription has a user_email fallback for that case.
+  // upsertSubscription has a user_email fallback for that case. This
+  // runs for EVERY event (payment events included), since it's the one
+  // useful signal a payment event carries.
   const userId = evt.meta?.custom_data?.user_id;
   const customerId = evt.data?.attributes?.customer_id
     ? String(evt.data.attributes.customer_id)
@@ -149,24 +174,21 @@ async function handleEvent(env: Env, eventName: string, evt: LSEvent): Promise<v
     await linkCustomerToUser(env, userId, customerId);
   }
 
-  if (
-    eventName === 'subscription_created' ||
-    eventName === 'subscription_updated' ||
-    eventName === 'subscription_cancelled' ||
-    eventName === 'subscription_resumed' ||
-    eventName === 'subscription_expired' ||
-    eventName === 'subscription_paused' ||
-    eventName === 'subscription_unpaused' ||
-    eventName === 'subscription_payment_success' ||
-    eventName === 'subscription_payment_failed' ||
-    eventName === 'subscription_payment_recovered'
-  ) {
-    if (evt.data?.id && evt.data.attributes) {
-      await upsertSubscription(env, evt.data.id, evt.data.attributes);
-    }
-    return;
+  // Only genuine subscription events get upserted. The payment events
+  // (subscription_payment_success / _failed / _recovered) are
+  // 'subscription-invoices': their data.id is an INVOICE id and their
+  // attributes are invoice-shaped — no variant_id / renews_at, and
+  // `status` is the invoice status ("paid"), not a subscription status.
+  // Passing those to upsertSubscription minted a bogus subscription row
+  // keyed by the invoice id, which then poisoned the "latest row"
+  // /license/verify trusts and could downgrade a paying user to free.
+  // Renewals are already reflected by the accompanying
+  // subscription_updated event, so skipping payment events loses nothing.
+  if (isSubscriptionUpsertEvent(eventName, evt.data?.type) && evt.data?.id && evt.data.attributes) {
+    await upsertSubscription(env, evt.data.id, evt.data.attributes);
   }
-  // Other events (order_created, etc.) are fine to ignore for now.
+  // Other events (order_created, subscription_payment_*, etc.) are
+  // intentionally ignored for subscription state.
 }
 
 export async function linkCustomerToUser(
