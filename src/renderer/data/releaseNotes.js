@@ -20,6 +20,31 @@ import {
 
 export const RELEASE_NOTES = [
   {
+    version: '0.7.0',
+    items: [
+      {
+        Icon: CardsIcon,
+        title: 'Collections inside collections',
+        description: 'Nest a collection inside another and drill in to see what’s there. A parent now shows everything from the collections nested in it, and you can rename, delete, or file straight into a nested one from any menu.',
+      },
+      {
+        Icon: GlassIcon,
+        title: 'Search that finds everything',
+        description: 'Search now reliably turns up saves by their name, caption, and on-image text — and a save you’ve named yourself jumps to the top of the results.',
+      },
+      {
+        Icon: WindowIcon,
+        title: 'A sharper ⌘K',
+        description: 'The command palette opens with your recently viewed images, gives every command its own icon, tells captured posts apart from saves, and scrolls through the full list.',
+      },
+      {
+        Icon: PermissionIcon,
+        title: 'Shortcuts and polish',
+        description: 'The keyboard shortcuts sheet now lists screen capture and tab navigation, alongside a round of visual fixes across collections and menus.',
+      },
+    ],
+  },
+  {
     version: '0.6.0',
     items: [
       {
