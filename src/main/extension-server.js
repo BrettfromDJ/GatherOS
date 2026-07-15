@@ -12,6 +12,7 @@
 
 const http = require('node:http');
 const crypto = require('node:crypto');
+const { deriveXTweetCreatedAt } = require('./x-tweet-date');
 
 const PORT = 53247;
 const HOST = '127.0.0.1';
@@ -22,7 +23,9 @@ const HOST = '127.0.0.1';
 const MAX_BODY = 2 * 1024 * 1024;
 
 let server = null;
+let socialImportStatusHandler = null;
 let cachedToken = null;
+const socialSaveLocks = new Map();
 
 // --- Sync ordering ------------------------------------------------------
 // The extension streams a social sync (X bookmarks / IG saved) newest-
@@ -76,6 +79,17 @@ function sendJson(res, status, body) {
     'Content-Length': Buffer.byteLength(json),
   });
   res.end(json);
+}
+
+async function completeSavedResponse({ res, record, notify, duplicate = false } = {}) {
+  if (!record?.id) throw new Error('saved record id required');
+  if (typeof notify === 'function') {
+    try { notify(record); } catch { /* saved response is authoritative */ }
+  }
+  const body = { ok: true, id: record.id };
+  if (duplicate) body.duplicate = true;
+  sendJson(res, 200, body);
+  return body;
 }
 
 function readJsonBody(req) {
@@ -195,6 +209,13 @@ async function handleSave(req, res) {
   // by tag. Anything unrecognised falls back to 'x' so a malformed
   // value can't orphan a row out of the existing views.
   const source = body?.source === 'instagram' ? 'instagram' : 'x';
+  if (source === 'x' && tweetMeta) {
+    const suppliedTweetCreatedAt = Number(tweetMeta.tweetCreatedAt);
+    if (!Number.isFinite(suppliedTweetCreatedAt) || suppliedTweetCreatedAt <= 0) {
+      const derivedTweetCreatedAt = deriveXTweetCreatedAt(pageUrl);
+      if (derivedTweetCreatedAt !== null) tweetMeta.tweetCreatedAt = derivedTweetCreatedAt;
+    }
+  }
   // Need at least one of: an image, a video, or a page URL. The X-
   // bookmark capture sends videoUrl for video-only tweets; right-click
   // sends an http(s) imageUrl; the extension's "capture page / area"
@@ -215,9 +236,12 @@ async function handleSave(req, res) {
     return;
   }
 
+  let releaseSocialSave = null;
   try {
     const { saveImageFromUrl, saveVideoFromUrl } = require('./storage');
-    const { insertSave, isTweetDismissed, sourceKeyFromUrl } = require('./db');
+    const {
+      insertSave, isTweetDismissed, sourceKeyFromUrl, findActiveSaveBySourceKey,
+    } = require('./db');
     const { notifySaved, notifyDuplicate, notifyBookmarkSaved } = require('./notify');
 
     // X bookmark / IG saved-post syncs (tweetMeta present) get the
@@ -226,6 +250,26 @@ async function handleSave(req, res) {
     // entirely — the tombstone makes deletions stick across re-scrolls.
     // sourceKeyFromUrl resolves either an X status or an IG permalink.
     const isBookmark = !!tweetMeta;
+    const tweetKey = sourceKeyFromUrl(pageUrl);
+
+    // Same social post can arrive from catch-up, passive watcher, or a
+    // retried native message at once. Serialize by stable post identity,
+    // then return the canonical active save before doing media work.
+    if (isBookmark && tweetKey) {
+      while (socialSaveLocks.has(tweetKey)) await socialSaveLocks.get(tweetKey);
+      const existing = findActiveSaveBySourceKey(tweetKey);
+      if (existing) {
+        await completeSavedResponse({ res, record: existing, notify: notifyDuplicate, duplicate: true });
+        return;
+      }
+      let unlock;
+      const pending = new Promise((resolve) => { unlock = resolve; });
+      socialSaveLocks.set(tweetKey, pending);
+      releaseSocialSave = () => {
+        if (socialSaveLocks.get(tweetKey) === pending) socialSaveLocks.delete(tweetKey);
+        unlock();
+      };
+    }
 
     // Master sync switches (Settings → Capture → Syncing). When a source
     // is turned off, drop its social captures here so they never enter the
@@ -242,7 +286,6 @@ async function handleSave(req, res) {
       }
     }
 
-    const tweetKey = sourceKeyFromUrl(pageUrl);
     // Explicit "Import bookmarks" backfill sends forceImport: the user is
     // deliberately pulling their X bookmarks, so honor it even for ones
     // they previously removed — lift the tombstone and save. Passive sync
@@ -396,6 +439,8 @@ async function handleSave(req, res) {
       else notifyError('Couldn\u2019t save from the extension \u2014 try again');
     } catch { /* toast is best-effort */ }
     sendJson(res, 500, { ok: false, error: err?.message || 'save failed' });
+  } finally {
+    releaseSocialSave?.();
   }
 }
 
@@ -413,7 +458,39 @@ async function handleXBookmarkStatus(req, res) {
   }
 }
 
-function start() {
+async function handleSocialImportStatus(req, res, handler = socialImportStatusHandler) {
+  if (!validateExtensionRequest(req, res)) return;
+  const parsed = await readPostBody(req, res);
+  if (!parsed) return;
+  const { body } = parsed;
+  const allowed = new Set(['runId', 'platform', 'mode', 'stage', 'scanned', 'saved', 'known', 'failed', 'target', 'startedAt', 'message']);
+  const keys = Object.keys(body || {});
+  if (keys.some((key) => !allowed.has(key)) || keys.length !== allowed.size) {
+    sendJson(res, 400, { ok: false, error: 'invalid social import payload' });
+    return;
+  }
+  try {
+    const { validateSnapshot } = require('./social-import-state');
+    const error = validateSnapshot(body);
+    if (error) {
+      sendJson(res, 400, { ok: false, error });
+      return;
+    }
+    const result = typeof handler === 'function'
+      ? await handler(body)
+      : { ok: true, cancelRequested: false };
+    if (result?.ok === false) {
+      sendJson(res, 400, { ok: false, error: result.error || 'social import status rejected', cancelRequested: !!result.cancelRequested });
+      return;
+    }
+    sendJson(res, 200, { ok: true, cancelRequested: !!result?.cancelRequested });
+  } catch (err) {
+    sendJson(res, 400, { ok: false, error: err?.message || 'invalid social import payload' });
+  }
+}
+
+function start({ onSocialImportStatus } = {}) {
+  socialImportStatusHandler = typeof onSocialImportStatus === 'function' ? onSocialImportStatus : null;
   if (server) return;
   // Trigger the token init now so the renderer's first prefs read
   // already sees it.
@@ -444,6 +521,10 @@ function start() {
       handleXBookmarkStatus(req, res);
       return;
     }
+    if (req.method === 'POST' && req.url === '/social-import-status') {
+      handleSocialImportStatus(req, res);
+      return;
+    }
     sendJson(res, 404, { ok: false, error: 'not found' });
   });
 
@@ -457,9 +538,19 @@ function start() {
 }
 
 function stop() {
+  socialImportStatusHandler = null;
   if (!server) return;
   server.close();
   server = null;
 }
 
-module.exports = { start, stop, getOrCreateToken, PORT, handleXBookmarkStatus };
+module.exports = {
+  start,
+  stop,
+  getOrCreateToken,
+  completeSavedResponse,
+  deriveXTweetCreatedAt,
+  PORT,
+  handleXBookmarkStatus,
+  handleSocialImportStatus,
+};

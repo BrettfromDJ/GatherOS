@@ -104,6 +104,8 @@ import { useOnboarding, ONBOARDING_DONE_PREF } from './onboarding/OnboardingCont
 import { EntitlementProvider, requestUpgrade, PENDING_UPGRADE_KEY } from './context/entitlement.jsx';
 import UpgradeModal from './components/UpgradeModal.jsx';
 import UpgradeBanner from './components/UpgradeBanner.jsx';
+import SocialImportActivity from './components/SocialImportActivity.jsx';
+import { isTerminalStage } from './lib/socialImportView.mjs';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -231,6 +233,60 @@ export default function App({ entitlement } = {}) {
     updateSaveMeta,
     freshIds,
   } = useLibrary();
+
+  // Explicit X / Instagram imports are owned by main process state. Keep a
+  // local snapshot for immediate UI updates, then rehydrate on app launch.
+  const [socialImportSnapshot, setSocialImportSnapshot] = useState(null);
+  const [socialImportNow, setSocialImportNow] = useState(() => Date.now());
+  const socialImportReloadedRef = useRef(new Set());
+
+  useEffect(() => {
+    let mounted = true;
+    const unwrap = (value) => value?.snapshot || value?.status || value?.data || value;
+    const accept = (value) => {
+      if (!mounted) return;
+      const next = unwrap(value);
+      if (!next?.runId || !next?.platform) return;
+      setSocialImportSnapshot(next);
+      setSocialImportNow(Date.now());
+    };
+    try {
+      const off = window.moodmark?.on?.('social-import:status', accept);
+      Promise.resolve(window.moodmark?.socialImport?.get?.()).then(accept).catch(() => {});
+      return () => {
+        mounted = false;
+        try { off?.(); } catch { /* ignore */ }
+      };
+    } catch {
+      mounted = false;
+      return undefined;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!socialImportSnapshot) return undefined;
+    const timer = setInterval(() => setSocialImportNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [socialImportSnapshot?.runId, socialImportSnapshot?.stage]);
+
+  useEffect(() => {
+    const snapshot = socialImportSnapshot;
+    if (!snapshot || !isTerminalStage(snapshot.stage)) return undefined;
+    if (snapshot.saved > 0 && !socialImportReloadedRef.current.has(snapshot.runId)) {
+      socialImportReloadedRef.current.add(snapshot.runId);
+      reload();
+    }
+    return undefined;
+  }, [socialImportSnapshot, reload]);
+
+  const cancelSocialImport = useCallback((runId) => {
+    return window.moodmark?.socialImport?.cancel?.(runId);
+  }, []);
+
+  const dismissSocialImport = useCallback((runId) => {
+    Promise.resolve(window.moodmark?.socialImport?.dismiss?.(runId)).catch(() => {});
+    setSocialImportSnapshot((current) => current?.runId === runId ? null : current);
+  }, []);
 
   // Cmd+Z undo stack. Mutations push a label + reversal closure; the
   // global keydown handler at the end of this component pops & runs.
@@ -4110,6 +4166,12 @@ export default function App({ entitlement } = {}) {
         />
       )}
 
+      <SocialImportActivity
+        snapshot={socialImportSnapshot}
+        now={socialImportNow}
+        onCancel={cancelSocialImport}
+        onDismiss={dismissSocialImport}
+      />
       <QuickLookOverlay
         save={peekedSaveId ? saves.find((s) => s.id === peekedSaveId) || null : null}
         onDismiss={() => setPeekedSaveId(null)}

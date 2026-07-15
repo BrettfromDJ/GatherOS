@@ -79,10 +79,82 @@ test('fixed/all transport keeps force and limit behavior', async () => {
   }
 });
 
+test('transport reports known and failed counters after each item and stops on cancellation', async () => {
+  const { runCatchUpTransportBatch, runFixedTransportBatch } = await transport();
+  const knownState = { ...catchUpState(), known: 0, failed: 0 };
+  const updates = [];
+  const progress = { beforeNext: () => true, update: async (patch) => updates.push(patch) };
+  await runCatchUpTransportBatch({
+    state: knownState,
+    entries: [{ tweetId: 'known' }, { tweetId: 'new' }],
+    classify: async () => ['known-active', 'new'],
+    save: async () => ({ ok: true, id: 'new' }),
+    isAccepted: (response) => response.ok,
+    isNew: (response) => !!response.id,
+    progress,
+  });
+  assert.equal(knownState.known, 1);
+  assert.ok(updates.some((u) => u.known === 1));
+
+  let calls = 0;
+  const fixedState = { active: true, mode: 'fixed', limit: 5, processed: new Set(), imported: 0, known: 0, failed: 0 };
+  await runFixedTransportBatch({
+    state: fixedState,
+    entries: [{ tweetId: 'a' }, { tweetId: 'b' }],
+    save: async () => { calls += 1; return { ok: true, duplicate: true }; },
+    isAccepted: (response) => response.ok,
+    isNew: () => false,
+    progress: { beforeNext: () => calls < 1, update: async () => {} },
+  });
+  assert.equal(fixedState.known, 1);
+  assert.equal(calls, 1);
+
+  const failedState = { active: true, mode: 'fixed', limit: 2, processed: new Set(), imported: 0, known: 0, failed: 0 };
+  await runFixedTransportBatch({
+    state: failedState,
+    entries: [{ tweetId: 'failed' }, { tweetId: 'later' }],
+    save: async () => ({ ok: false, error: 'rejected' }),
+    isAccepted: (response) => response.ok,
+    isNew: () => false,
+    onError: () => {},
+  });
+  assert.equal(failedState.failed, 2);
+});
+
+test('fixed transport observes cancellation returned by per-item progress update', async () => {
+  const { runFixedTransportBatch } = await transport();
+  const state = { active: true, mode: 'fixed', limit: 5, processed: new Set(), imported: 0 };
+  let cancelled = false;
+  let saves = 0;
+  await runFixedTransportBatch({
+    state,
+    entries: [{ tweetId: 'a' }, { tweetId: 'b' }],
+    save: async () => { saves += 1; return { ok: true, id: `id-${saves}` }; },
+    isAccepted: (response) => response.ok,
+    isNew: () => true,
+    progress: {
+      beforeNext: () => !cancelled,
+      update: async () => { cancelled = true; },
+    },
+  });
+  assert.equal(saves, 1);
+});
+
 test('background wires catch-up adapter into API and scroll and preserves fallback mode', () => {
   const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-  const fallbackCalls = source.match(/runXScrollImport\(limit(?:, mode)?\)/g) || [];
+  const fallbackCalls = source.match(/runXScrollImport\(limit, mode, progress, reservation\)/g) || [];
   assert.equal(fallbackCalls.length, 4);
-  assert.deepEqual(new Set(fallbackCalls), new Set(['runXScrollImport(limit, mode)']));
+  assert.deepEqual(new Set(fallbackCalls), new Set(['runXScrollImport(limit, mode, progress, reservation)']));
   assert.equal((source.match(/runCatchUpTransportBatch\(\{/g) || []).length, 2);
+});
+
+test('explicit X and Instagram imports reserve before their first await', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
+  for (const name of ['handleImportBookmarks', 'handleImportSaved']) {
+    const start = source.indexOf(`async function ${name}`);
+    const end = source.indexOf('\n}', start);
+    const body = source.slice(start, end);
+    assert.ok(body.indexOf('reserveSocialImport(') >= 0);
+    assert.ok(body.indexOf('reserveSocialImport(') < body.indexOf('await '));
+  }
 });

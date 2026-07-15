@@ -11,7 +11,7 @@ export function applyCatchUpStatus(state, status) {
   throw new Error(`unknown catch-up status: ${status}`);
 }
 
-export async function processCatchUpEntries({ state, entries, statuses, save }) {
+export async function processCatchUpEntries({ state, entries, statuses, save, shouldContinue = () => true, onItem = async () => {} }) {
   if (!state || !(state.processed instanceof Set)) throw new TypeError('processed state required');
   if (!Array.isArray(entries) || !Array.isArray(statuses) || entries.length !== statuses.length) {
     throw new TypeError('entries and statuses must have equal lengths');
@@ -19,6 +19,7 @@ export async function processCatchUpEntries({ state, entries, statuses, save }) 
   if (typeof save !== 'function') throw new TypeError('save callback required');
   let processedCount = 0;
   for (let index = 0; index < entries.length; index += 1) {
+    if (!shouldContinue()) { state.active = false; break; }
     const entry = entries[index];
     if (!entry || !entry.tweetId || state.processed.has(entry.tweetId)) continue;
     state.processed.add(entry.tweetId);
@@ -26,6 +27,7 @@ export async function processCatchUpEntries({ state, entries, statuses, save }) 
     const status = statuses[index];
     if (status === 'new') await save(entry);
     const decision = applyCatchUpStatus(state, status);
+    await onItem({ entry, status });
     if (decision.shouldStop) return { boundaryReached: true, processedCount };
   }
   return { boundaryReached: false, processedCount };

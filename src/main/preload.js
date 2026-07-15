@@ -241,6 +241,11 @@ contextBridge.exposeInMainWorld('moodmark', {
   entitlement: {
     get: () => ipcRenderer.invoke('entitlement:get'),
   },
+  socialImport: {
+    get: () => ipcRenderer.invoke('social-import:get'),
+    cancel: (runId) => ipcRenderer.invoke('social-import:cancel', runId),
+    dismiss: (runId) => ipcRenderer.invoke('social-import:dismiss', runId),
+  },
   on: (channel, listener) => {
     const allowed = new Set([
       'save:created',
@@ -260,6 +265,7 @@ contextBridge.exposeInMainWorld('moodmark', {
       'library:switched',
       'licensing:auth-result',
       'menu:command',
+      'social-import:status',
     ]);
     if (!allowed.has(channel)) return () => {};
     const wrapped = (_event, ...args) => listener(...args);

@@ -312,6 +312,23 @@ async function handleMessage(msg) {
     writeMessage(result.body);
     return;
   }
+  if (msg.type === 'social-import-status') {
+    const ready = await ensureAppRunning({ background: true });
+    if (!ready) {
+      writeMessage({ ok: false, error: 'app not running', cancelRequested: false });
+      return;
+    }
+    const token = readToken();
+    if (!token) {
+      writeMessage({ ok: false, error: 'GatherLocal is not installed or has never been launched.', cancelRequested: false });
+      return;
+    }
+    const { type: _type, ...payload } = msg;
+    const result = await postToApp(payload, token, '/social-import-status');
+    debug('handleMessage: social-import-status result', JSON.stringify(result.body).slice(0, 200));
+    writeMessage(result.body);
+    return;
+  }
   writeMessage({ ok: false, error: `unknown message type: ${msg.type}` });
 }
 

@@ -61,6 +61,7 @@ const { getPref } = require('./settings');
 const { hasSession: hasAiSession, analyzeImage, embedText } = require('./openai');
 const licensing = require('./licensing');
 const { URL_SCHEME: LICENSE_URL_SCHEME } = require('../shared/licensing-config');
+const { createSocialImportState } = require('./social-import-state');
 
 // Register the custom URL scheme so the OS knows magic-link emails
 // (gatheros://auth/verify?token=…) should open this app. macOS
@@ -142,6 +143,13 @@ const isDev = !app.isPackaged;
 const DEV_URL = 'http://localhost:5173';
 
 let mainWindow = null;
+const socialImportState = createSocialImportState({
+  onChange: (snapshot) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      try { win.webContents.send('social-import:status', snapshot); } catch { /* renderer may be closing */ }
+    }
+  },
+});
 let tray = null;
 
 // macOS Dock-drop queue. The 'open-file' event can fire BEFORE app
@@ -1048,7 +1056,9 @@ app.whenReady().then(() => {
   // as a fresh install and wrongly handed a 14-day trial.
   try { require('./entitlement').ensureTrialDecided(); }
   catch (err) { console.warn('[gatheros] trial init failed:', err?.message || err); }
-  registerIpcHandlers();
+  registerIpcHandlers({
+    socialImportState,
+  });
   createMainWindow();
   // Apply the macOS application menu now that mainWindow exists so
   // the menu can target webContents.send() at the right window.
@@ -1056,7 +1066,9 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(buildAppMenu({ getMainWindow: () => mainWindow }));
   createTray();
   registerCaptureHotkey();
-  extensionServer.start();
+  extensionServer.start({
+    onSocialImportStatus: (payload) => socialImportState.update(payload),
+  });
   // Drop the native-messaging host manifest into every Chromium-
   // family browser's user dir so the extension can connect without
   // the user ever touching the filesystem.
