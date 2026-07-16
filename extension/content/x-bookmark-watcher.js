@@ -366,6 +366,13 @@ function findCaption(article) {
   return captionEl ? captionEl.innerText.trim() : '';
 }
 
+function findTweetCreatedAt(article) {
+  const timeEl = article.querySelector('time[datetime]');
+  if (!timeEl) return null;
+  const ms = Date.parse(timeEl.getAttribute('datetime') || '');
+  return Number.isFinite(ms) ? ms : null;
+}
+
 // Tweet video extraction. X embeds video as a <video> element with
 // one or more <source> children — usually a single MP4 source with
 // the highest available bitrate already pre-selected. Returns the
@@ -565,6 +572,7 @@ document.addEventListener('click', async (e) => {
   const author = findAuthorInfo(article);
   const avatarUrl = findAvatarUrl(article);
   const caption = findCaption(article);
+  const tweetCreatedAt = findTweetCreatedAt(article);
 
   // Skip only when there's genuinely nothing to save — no images, no
   // usable video/poster, AND no text. Text-only tweets (caption but no
@@ -622,6 +630,7 @@ document.addEventListener('click', async (e) => {
       imageUrls,
       videoUrl: tweetVideo?.videoUrl || null,
       posterUrl: tweetVideo?.posterUrl || null,
+      tweetCreatedAt,
     },
   };
   // If we've seen this tweet's conversation, save it as a thread (root +

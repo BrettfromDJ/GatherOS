@@ -97,7 +97,14 @@ async function embedQueryCached(queryText) {
   return vec;
 }
 
-function registerIpcHandlers() {
+function registerIpcHandlers({ socialImportState = null } = {}) {
+  ipcMain.handle('social-import:get', () => socialImportState?.get?.() || null);
+  ipcMain.handle('social-import:cancel', (_event, runId) => (
+    socialImportState?.cancel?.(runId) || { ok: false, error: 'social import unavailable' }
+  ));
+  ipcMain.handle('social-import:dismiss', (_event, runId) => (
+    socialImportState?.dismiss?.(runId) || { ok: false, error: 'social import unavailable' }
+  ));
   // Merges saves whose extracted palette is perceptually similar to a
   // named color in the query (e.g. "orange", "navy") into the existing
   // result set. Same view filters (collection/explicit colorHex) get

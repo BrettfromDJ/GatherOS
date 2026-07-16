@@ -12,6 +12,7 @@
 
 const http = require('node:http');
 const crypto = require('node:crypto');
+const { deriveXTweetCreatedAt } = require('./x-tweet-date');
 
 const PORT = 53247;
 const HOST = '127.0.0.1';
@@ -22,7 +23,9 @@ const HOST = '127.0.0.1';
 const MAX_BODY = 2 * 1024 * 1024;
 
 let server = null;
+let socialImportStatusHandler = null;
 let cachedToken = null;
+const socialSaveLocks = new Map();
 
 // --- Sync ordering ------------------------------------------------------
 // The extension streams a social sync (X bookmarks / IG saved) newest-
@@ -78,6 +81,17 @@ function sendJson(res, status, body) {
   res.end(json);
 }
 
+async function completeSavedResponse({ res, record, notify, duplicate = false } = {}) {
+  if (!record?.id) throw new Error('saved record id required');
+  if (typeof notify === 'function') {
+    try { notify(record); } catch { /* saved response is authoritative */ }
+  }
+  const body = { ok: true, id: record.id };
+  if (duplicate) body.duplicate = true;
+  sendJson(res, 200, body);
+  return body;
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let bytes = 0;
@@ -101,6 +115,29 @@ function readJsonBody(req) {
     });
     req.on('error', reject);
   });
+}
+
+function validateExtensionRequest(req, res) {
+  const origin = req.headers.origin || '';
+  if (origin && !origin.startsWith('chrome-extension://') && !origin.startsWith('moz-extension://')) {
+    sendJson(res, 403, { ok: false, error: 'forbidden origin' });
+    return false;
+  }
+  const token = req.headers['x-gatheros-token'];
+  if (!token || token !== getOrCreateToken()) {
+    sendJson(res, 401, { ok: false, error: 'invalid token' });
+    return false;
+  }
+  return true;
+}
+
+async function readPostBody(req, res) {
+  try {
+    return { body: await readJsonBody(req) };
+  } catch {
+    sendJson(res, 400, { ok: false, error: 'invalid body' });
+    return null;
+  }
 }
 
 // A custom-protocol URL the renderer resolves to a local file — same
@@ -138,17 +175,7 @@ async function handleSave(req, res) {
   // Defense in depth: the token is the real check, but rejecting
   // anything that isn't a browser-extension origin keeps stray
   // web-page fetches from even reaching the auth path.
-  const origin = req.headers.origin || '';
-  if (origin && !origin.startsWith('chrome-extension://') && !origin.startsWith('moz-extension://')) {
-    sendJson(res, 403, { ok: false, error: 'forbidden origin' });
-    return;
-  }
-
-  const token = req.headers['x-gatheros-token'];
-  if (!token || token !== getOrCreateToken()) {
-    sendJson(res, 401, { ok: false, error: 'invalid token' });
-    return;
-  }
+  if (!validateExtensionRequest(req, res)) return;
 
   // Free tier: new saves require an upgrade. Surface the prompt in the
   // app window and tell the extension so it can show its own notice.
@@ -162,13 +189,9 @@ async function handleSave(req, res) {
     }
   } catch { /* fail open */ }
 
-  let body;
-  try {
-    body = await readJsonBody(req);
-  } catch {
-    sendJson(res, 400, { ok: false, error: 'invalid body' });
-    return;
-  }
+  const parsed = await readPostBody(req, res);
+  if (!parsed) return;
+  const { body } = parsed;
 
   const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl.trim() : '';
   const videoUrl = typeof body?.videoUrl === 'string' ? body.videoUrl.trim() : '';
@@ -186,6 +209,13 @@ async function handleSave(req, res) {
   // by tag. Anything unrecognised falls back to 'x' so a malformed
   // value can't orphan a row out of the existing views.
   const source = body?.source === 'instagram' ? 'instagram' : 'x';
+  if (source === 'x' && tweetMeta) {
+    const suppliedTweetCreatedAt = Number(tweetMeta.tweetCreatedAt);
+    if (!Number.isFinite(suppliedTweetCreatedAt) || suppliedTweetCreatedAt <= 0) {
+      const derivedTweetCreatedAt = deriveXTweetCreatedAt(pageUrl);
+      if (derivedTweetCreatedAt !== null) tweetMeta.tweetCreatedAt = derivedTweetCreatedAt;
+    }
+  }
   // Need at least one of: an image, a video, or a page URL. The X-
   // bookmark capture sends videoUrl for video-only tweets; right-click
   // sends an http(s) imageUrl; the extension's "capture page / area"
@@ -206,9 +236,12 @@ async function handleSave(req, res) {
     return;
   }
 
+  let releaseSocialSave = null;
   try {
     const { saveImageFromUrl, saveVideoFromUrl } = require('./storage');
-    const { insertSave, isTweetDismissed, sourceKeyFromUrl } = require('./db');
+    const {
+      insertSave, isTweetDismissed, sourceKeyFromUrl, findActiveSaveBySourceKey,
+    } = require('./db');
     const { notifySaved, notifyDuplicate, notifyBookmarkSaved } = require('./notify');
 
     // X bookmark / IG saved-post syncs (tweetMeta present) get the
@@ -217,6 +250,26 @@ async function handleSave(req, res) {
     // entirely — the tombstone makes deletions stick across re-scrolls.
     // sourceKeyFromUrl resolves either an X status or an IG permalink.
     const isBookmark = !!tweetMeta;
+    const tweetKey = sourceKeyFromUrl(pageUrl);
+
+    // Same social post can arrive from catch-up, passive watcher, or a
+    // retried native message at once. Serialize by stable post identity,
+    // then return the canonical active save before doing media work.
+    if (isBookmark && tweetKey) {
+      while (socialSaveLocks.has(tweetKey)) await socialSaveLocks.get(tweetKey);
+      const existing = findActiveSaveBySourceKey(tweetKey);
+      if (existing) {
+        await completeSavedResponse({ res, record: existing, notify: notifyDuplicate, duplicate: true });
+        return;
+      }
+      let unlock;
+      const pending = new Promise((resolve) => { unlock = resolve; });
+      socialSaveLocks.set(tweetKey, pending);
+      releaseSocialSave = () => {
+        if (socialSaveLocks.get(tweetKey) === pending) socialSaveLocks.delete(tweetKey);
+        unlock();
+      };
+    }
 
     // Master sync switches (Settings → Capture → Syncing). When a source
     // is turned off, drop its social captures here so they never enter the
@@ -233,7 +286,6 @@ async function handleSave(req, res) {
       }
     }
 
-    const tweetKey = sourceKeyFromUrl(pageUrl);
     // Explicit "Import bookmarks" backfill sends forceImport: the user is
     // deliberately pulling their X bookmarks, so honor it even for ones
     // they previously removed — lift the tombstone and save. Passive sync
@@ -387,10 +439,58 @@ async function handleSave(req, res) {
       else notifyError('Couldn\u2019t save from the extension \u2014 try again');
     } catch { /* toast is best-effort */ }
     sendJson(res, 500, { ok: false, error: err?.message || 'save failed' });
+  } finally {
+    releaseSocialSave?.();
   }
 }
 
-function start() {
+async function handleXBookmarkStatus(req, res) {
+  if (!validateExtensionRequest(req, res)) return;
+  const parsed = await readPostBody(req, res);
+  if (!parsed) return;
+  const { body } = parsed;
+  try {
+    const { classifyXBookmarkUrls } = require('./db');
+    const result = classifyXBookmarkUrls(body?.tweetUrls);
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (err) {
+    sendJson(res, 400, { ok: false, error: err?.message || 'invalid tweetUrls' });
+  }
+}
+
+async function handleSocialImportStatus(req, res, handler = socialImportStatusHandler) {
+  if (!validateExtensionRequest(req, res)) return;
+  const parsed = await readPostBody(req, res);
+  if (!parsed) return;
+  const { body } = parsed;
+  const allowed = new Set(['runId', 'platform', 'mode', 'stage', 'scanned', 'saved', 'known', 'failed', 'target', 'startedAt', 'message']);
+  const keys = Object.keys(body || {});
+  if (keys.some((key) => !allowed.has(key)) || keys.length !== allowed.size) {
+    sendJson(res, 400, { ok: false, error: 'invalid social import payload' });
+    return;
+  }
+  try {
+    const { validateSnapshot } = require('./social-import-state');
+    const error = validateSnapshot(body);
+    if (error) {
+      sendJson(res, 400, { ok: false, error });
+      return;
+    }
+    const result = typeof handler === 'function'
+      ? await handler(body)
+      : { ok: true, cancelRequested: false };
+    if (result?.ok === false) {
+      sendJson(res, 400, { ok: false, error: result.error || 'social import status rejected', cancelRequested: !!result.cancelRequested });
+      return;
+    }
+    sendJson(res, 200, { ok: true, cancelRequested: !!result?.cancelRequested });
+  } catch (err) {
+    sendJson(res, 400, { ok: false, error: err?.message || 'invalid social import payload' });
+  }
+}
+
+function start({ onSocialImportStatus } = {}) {
+  socialImportStatusHandler = typeof onSocialImportStatus === 'function' ? onSocialImportStatus : null;
   if (server) return;
   // Trigger the token init now so the renderer's first prefs read
   // already sees it.
@@ -417,6 +517,14 @@ function start() {
       handleSave(req, res);
       return;
     }
+    if (req.method === 'POST' && req.url === '/x-bookmark-status') {
+      handleXBookmarkStatus(req, res);
+      return;
+    }
+    if (req.method === 'POST' && req.url === '/social-import-status') {
+      handleSocialImportStatus(req, res);
+      return;
+    }
     sendJson(res, 404, { ok: false, error: 'not found' });
   });
 
@@ -430,9 +538,19 @@ function start() {
 }
 
 function stop() {
+  socialImportStatusHandler = null;
   if (!server) return;
   server.close();
   server = null;
 }
 
-module.exports = { start, stop, getOrCreateToken, PORT };
+module.exports = {
+  start,
+  stop,
+  getOrCreateToken,
+  completeSavedResponse,
+  deriveXTweetCreatedAt,
+  PORT,
+  handleXBookmarkStatus,
+  handleSocialImportStatus,
+};

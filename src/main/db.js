@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { app } = require('electron');
 const Database = require('better-sqlite3');
+const { deriveXTweetCreatedAt } = require('./x-tweet-date');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS saves (
@@ -426,7 +427,62 @@ const MIGRATIONS = [
   (database) => {
     addColumnIfMissing(database, 'saves', 'viewed_at', 'INTEGER');
   },
+  // Repair older X saves whose extension payload predated tweetCreatedAt.
+  (database) => {
+    repairMissingXTweetCreatedAt(database);
+  },
+  // Stable social-post identity. Keep every existing row; assign only the
+  // oldest active copy so future active duplicates can be rejected safely.
+  (database) => {
+    addColumnIfMissing(database, 'saves', 'source_key', 'TEXT');
+    const rows = database.prepare(`
+      SELECT id, source_url
+        FROM saves
+       WHERE deleted_at IS NULL AND source_url IS NOT NULL AND tweet_meta IS NOT NULL
+       ORDER BY created_at ASC, id ASC
+    `).all();
+    const claimed = new Set();
+    const assign = database.prepare('UPDATE saves SET source_key = ? WHERE id = ?');
+    for (const row of rows) {
+      const key = sourceKeyFromUrl(row.source_url);
+      if (!key || claimed.has(key)) continue;
+      claimed.add(key);
+      assign.run(key, row.id);
+    }
+    database.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_saves_active_source_key
+        ON saves(source_key)
+       WHERE deleted_at IS NULL AND source_key IS NOT NULL;
+    `);
+  },
 ];
+
+function repairMissingXTweetCreatedAt(database) {
+  const rows = database.prepare(`
+    SELECT id, source_url, tweet_meta
+      FROM saves
+     WHERE source != 'instagram'
+       AND source_url LIKE '%/status/%'
+  `).all();
+  const update = database.prepare('UPDATE saves SET tweet_meta = ? WHERE id = ?');
+  let repaired = 0;
+  for (const row of rows) {
+    let meta;
+    try {
+      meta = row.tweet_meta ? JSON.parse(row.tweet_meta) : {};
+    } catch {
+      continue;
+    }
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) continue;
+    const existing = Number(meta.tweetCreatedAt);
+    if (Number.isFinite(existing) && existing > 0) continue;
+    const derived = deriveXTweetCreatedAt(row.source_url);
+    if (derived === null) continue;
+    update.run(JSON.stringify({ ...meta, tweetCreatedAt: derived }), row.id);
+    repaired += 1;
+  }
+  return repaired;
+}
 
 function addColumnIfMissing(database, table, name, type) {
   const cols = database.prepare(`PRAGMA table_info(${table})`).all();
@@ -527,6 +583,7 @@ function insertSave({
   height,
   fileSize,
   sourceUrl,
+  sourceKey,
   title,
   // Optional pre-populated notes — currently set by the X-bookmark
   // capture path with the tweet's caption text so the user sees the
@@ -565,6 +622,7 @@ function insertSave({
     title: title || null,
     notes: notes || null,
     source_url: sourceUrl || null,
+    source_key: tweetMeta ? (sourceKey || sourceKeyFromUrl(sourceUrl) || null) : null,
     width: width || null,
     height: height || null,
     file_size: fileSize || null,
@@ -580,9 +638,9 @@ function insertSave({
   };
   db.prepare(`
     INSERT INTO saves
-      (id, file_path, thumb_path, title, notes, source_url, width, height, file_size, palette, palette_lab, content_hash, kind, tweet_meta, source, created_at)
+      (id, file_path, thumb_path, title, notes, source_url, source_key, width, height, file_size, palette, palette_lab, content_hash, kind, tweet_meta, source, created_at)
     VALUES
-      (@id, @file_path, @thumb_path, @title, @notes, @source_url, @width, @height, @file_size, @palette, @palette_lab, @content_hash, @kind, @tweet_meta, @source, @created_at)
+      (@id, @file_path, @thumb_path, @title, @notes, @source_url, @source_key, @width, @height, @file_size, @palette, @palette_lab, @content_hash, @kind, @tweet_meta, @source, @created_at)
   `).run(record);
   return record;
 }
@@ -1066,6 +1124,59 @@ function igKeyFromUrl(url) {
 // for either source.
 function sourceKeyFromUrl(url) {
   return tweetKeyFromUrl(url) || igKeyFromUrl(url);
+}
+
+function findActiveSaveBySourceKey(key) {
+  if (!key) return undefined;
+  return getDatabase().prepare(
+    'SELECT * FROM saves WHERE source_key = ? AND deleted_at IS NULL LIMIT 1',
+  ).get(key);
+}
+
+// Classify ordered X bookmark URLs against desktop save/tombstone history.
+// Desktop DB remains boundary source; extension seen-set is intentionally
+// excluded because baseline IDs may never have been saved.
+function classifyXBookmarkUrls(tweetUrls) {
+  if (!Array.isArray(tweetUrls)) throw new TypeError('tweetUrls must be an array');
+  if (tweetUrls.length > 100) throw new RangeError('tweetUrls batch too large');
+  if (tweetUrls.some((url) => typeof url !== 'string')) throw new TypeError('tweetUrls entries must be strings');
+
+  const database = getDatabase();
+  const keys = tweetUrls.map((url) => {
+    const key = sourceKeyFromUrl(url);
+    return key && key.startsWith('tw:') ? key : null;
+  });
+  const requestedKeys = [...new Set(keys.filter(Boolean))];
+  const active = new Set();
+  const dismissed = new Set();
+  if (requestedKeys.length > 0) {
+    const placeholders = requestedKeys.map(() => '?').join(', ');
+    for (const row of database.prepare(`
+      SELECT source_key FROM saves
+       WHERE deleted_at IS NULL AND source_key IN (${placeholders})
+    `).all(...requestedKeys)) active.add(row.source_key);
+    for (const row of database.prepare(`
+      SELECT tweet_key FROM dismissed_tweets
+       WHERE tweet_key IN (${placeholders})
+    `).all(...requestedKeys)) dismissed.add(row.tweet_key);
+  }
+
+  const hasKnownHistory = !!database.prepare(`
+    SELECT 1 FROM saves
+     WHERE deleted_at IS NULL AND source_key LIKE 'tw:%'
+     LIMIT 1
+  `).get() || !!database.prepare(`
+    SELECT 1 FROM dismissed_tweets
+     WHERE tweet_key LIKE 'tw:%'
+     LIMIT 1
+  `).get();
+  const statuses = keys.map((key) => {
+    if (!key) return 'new';
+    if (dismissed.has(key)) return 'known-dismissed';
+    if (active.has(key)) return 'known-active';
+    return 'new';
+  });
+  return { hasKnownHistory, statuses };
 }
 
 function isTweetDismissed(key) {
@@ -1971,6 +2082,8 @@ module.exports = {
   tweetKeyFromUrl,
   igKeyFromUrl,
   sourceKeyFromUrl,
+  findActiveSaveBySourceKey,
+  classifyXBookmarkUrls,
   isTweetDismissed,
   dismissTweet,
   undismissTweet,
@@ -2012,6 +2125,7 @@ module.exports = {
   deleteTag,
   deleteUnusedTags,
   getIntegrityResult,
+  repairMissingXTweetCreatedAt,
   // Boards
   listBoards,
   listBoardsWithThumbs,

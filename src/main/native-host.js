@@ -190,14 +190,14 @@ async function ensureAppRunning({ background = false } = {}) {
   return false;
 }
 
-function postToApp(body, token) {
+function postToApp(body, token, path = '/save') {
   return new Promise((resolve) => {
     const payload = Buffer.from(JSON.stringify(body), 'utf8');
     const req = http.request(
       {
         host: SERVER_HOST,
         port: SERVER_PORT,
-        path: '/save',
+        path,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,6 +293,39 @@ async function handleMessage(msg) {
       token,
     );
     debug('handleMessage: save result', JSON.stringify(result.body).slice(0, 200));
+    writeMessage(result.body);
+    return;
+  }
+  if (msg.type === 'x-bookmark-status') {
+    const ready = await ensureAppRunning({ background: true });
+    if (!ready) {
+      writeMessage({ ok: false, error: 'app not running' });
+      return;
+    }
+    const token = readToken();
+    if (!token) {
+      writeMessage({ ok: false, error: 'GatherLocal is not installed or has never been launched.' });
+      return;
+    }
+    const result = await postToApp({ tweetUrls: msg.tweetUrls }, token, '/x-bookmark-status');
+    debug('handleMessage: x-bookmark-status result', JSON.stringify(result.body).slice(0, 200));
+    writeMessage(result.body);
+    return;
+  }
+  if (msg.type === 'social-import-status') {
+    const ready = await ensureAppRunning({ background: true });
+    if (!ready) {
+      writeMessage({ ok: false, error: 'app not running', cancelRequested: false });
+      return;
+    }
+    const token = readToken();
+    if (!token) {
+      writeMessage({ ok: false, error: 'GatherLocal is not installed or has never been launched.', cancelRequested: false });
+      return;
+    }
+    const { type: _type, ...payload } = msg;
+    const result = await postToApp(payload, token, '/social-import-status');
+    debug('handleMessage: social-import-status result', JSON.stringify(result.body).slice(0, 200));
     writeMessage(result.body);
     return;
   }

@@ -96,6 +96,7 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
+import { getSaveSortDate } from './lib/saveSortDate.mjs';
 import { tweetTypeOf } from './lib/tweetType.js';
 import { configureSaveSound, DEFAULT_SAVE_SOUND, playEmptyTrashSound } from './lib/sounds.js';
 import OnboardingOverlay from './onboarding/OnboardingOverlay.jsx';
@@ -103,6 +104,8 @@ import { useOnboarding, ONBOARDING_DONE_PREF } from './onboarding/OnboardingCont
 import { EntitlementProvider, requestUpgrade, PENDING_UPGRADE_KEY } from './context/entitlement.jsx';
 import UpgradeModal from './components/UpgradeModal.jsx';
 import UpgradeBanner from './components/UpgradeBanner.jsx';
+import SocialImportActivity from './components/SocialImportActivity.jsx';
+import { isTerminalStage } from './lib/socialImportView.mjs';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -230,6 +233,60 @@ export default function App({ entitlement } = {}) {
     updateSaveMeta,
     freshIds,
   } = useLibrary();
+
+  // Explicit X / Instagram imports are owned by main process state. Keep a
+  // local snapshot for immediate UI updates, then rehydrate on app launch.
+  const [socialImportSnapshot, setSocialImportSnapshot] = useState(null);
+  const [socialImportNow, setSocialImportNow] = useState(() => Date.now());
+  const socialImportReloadedRef = useRef(new Set());
+
+  useEffect(() => {
+    let mounted = true;
+    const unwrap = (value) => value?.snapshot || value?.status || value?.data || value;
+    const accept = (value) => {
+      if (!mounted) return;
+      const next = unwrap(value);
+      if (!next?.runId || !next?.platform) return;
+      setSocialImportSnapshot(next);
+      setSocialImportNow(Date.now());
+    };
+    try {
+      const off = window.moodmark?.on?.('social-import:status', accept);
+      Promise.resolve(window.moodmark?.socialImport?.get?.()).then(accept).catch(() => {});
+      return () => {
+        mounted = false;
+        try { off?.(); } catch { /* ignore */ }
+      };
+    } catch {
+      mounted = false;
+      return undefined;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!socialImportSnapshot) return undefined;
+    const timer = setInterval(() => setSocialImportNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [socialImportSnapshot?.runId, socialImportSnapshot?.stage]);
+
+  useEffect(() => {
+    const snapshot = socialImportSnapshot;
+    if (!snapshot || !isTerminalStage(snapshot.stage)) return undefined;
+    if (snapshot.saved > 0 && !socialImportReloadedRef.current.has(snapshot.runId)) {
+      socialImportReloadedRef.current.add(snapshot.runId);
+      reload();
+    }
+    return undefined;
+  }, [socialImportSnapshot, reload]);
+
+  const cancelSocialImport = useCallback((runId) => {
+    return window.moodmark?.socialImport?.cancel?.(runId);
+  }, []);
+
+  const dismissSocialImport = useCallback((runId) => {
+    Promise.resolve(window.moodmark?.socialImport?.dismiss?.(runId)).catch(() => {});
+    setSocialImportSnapshot((current) => current?.runId === runId ? null : current);
+  }, []);
 
   // Cmd+Z undo stack. Mutations push a label + reversal closure; the
   // global keydown handler at the end of this component pops & runs.
@@ -2258,6 +2315,8 @@ export default function App({ entitlement } = {}) {
   // seed is null this is a no-op; the same seed always produces the
   // same permutation so the order stays stable across re-renders.
   const displaySaves = useMemo(() => {
+    const useTweetDateForXBookmarks = prefs.sortXBookmarksByTweetDate === true
+      && (view.type === 'all' || view.type === 'bookmarks');
     if (shuffleSeed) {
       // Pull saves added AFTER the shuffle to the top in newest-first
       // order so freshly-dropped images always show at position #1.
@@ -2272,12 +2331,16 @@ export default function App({ entitlement } = {}) {
       fresh.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
       return [...fresh, ...seededShuffle(settled, shuffleSeed)];
     }
-    if (sortMode === 'recent') return saves;
+    if (sortMode === 'recent' && !useTweetDateForXBookmarks) return saves;
     // Clone before sorting so the underlying saves array (memoized
     // higher up) isn't mutated.
     const sorted = saves.slice();
-    if (sortMode === 'oldest') {
-      sorted.sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+    if (sortMode === 'recent' || sortMode === 'oldest') {
+      const dir = sortMode === 'oldest' ? 1 : -1;
+      sorted.sort((a, b) => (
+        getSaveSortDate(a, useTweetDateForXBookmarks)
+        - getSaveSortDate(b, useTweetDateForXBookmarks)
+      ) * dir);
     } else if (sortMode === 'most-viewed') {
       // view_count bumps as saves open in the focused view; ties fall
       // back to recency so unviewed libraries still have a stable order.
@@ -2285,7 +2348,7 @@ export default function App({ entitlement } = {}) {
         || (b.created_at || 0) - (a.created_at || 0));
     }
     return sorted;
-  }, [saves, shuffleSeed, shuffleAt, sortMode]);
+  }, [saves, shuffleSeed, shuffleAt, sortMode, prefs.sortXBookmarksByTweetDate, view.type]);
 
   const visibleSaves = useMemo(() => {
     let base = displaySaves;
@@ -4103,6 +4166,12 @@ export default function App({ entitlement } = {}) {
         />
       )}
 
+      <SocialImportActivity
+        snapshot={socialImportSnapshot}
+        now={socialImportNow}
+        onCancel={cancelSocialImport}
+        onDismiss={dismissSocialImport}
+      />
       <QuickLookOverlay
         save={peekedSaveId ? saves.find((s) => s.id === peekedSaveId) || null : null}
         onDismiss={() => setPeekedSaveId(null)}

@@ -1508,6 +1508,13 @@ export default function SettingsModal({
                   />
                 </div>
                 <div className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>Use tweet date for X bookmarks</span>
+                  <ToggleSwitch
+                    on={prefs.sortXBookmarksByTweetDate === true}
+                    onChange={(v) => updatePref('sortXBookmarksByTweetDate', v)}
+                  />
+                </div>
+                <div className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>Sync Instagram saves</span>
                   <ToggleSwitch
                     on={prefs.syncInstagramEnabled !== false}
@@ -1515,9 +1522,10 @@ export default function SettingsModal({
                   />
                 </div>
                 <span className={styles.fieldHint}>
-                  When off, posts you bookmark on X or save on Instagram
-                  stop flowing into your library. Saving images and pages
-                  from the browser extension still works.
+                  When sorting by date, X bookmarks can use the tweet's
+                  publish date instead of the date they were saved to
+                  GatherLocal. Other items keep using their GatherLocal
+                  save date.
                 </span>
               </div>
             </div>

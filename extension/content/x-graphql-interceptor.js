@@ -266,6 +266,9 @@
       authorAvatarUrl: avatarUrl,
       caption: legacy.full_text || '',
       imageUrls,
+      tweetCreatedAt: Number.isFinite(Date.parse(legacy.created_at || ''))
+        ? Date.parse(legacy.created_at)
+        : null,
     };
   }
 
@@ -367,6 +370,9 @@
       imageUrls,
       videoUrl,
       posterUrl,
+      tweetCreatedAt: Number.isFinite(Date.parse(legacy.created_at || ''))
+        ? Date.parse(legacy.created_at)
+        : null,
       // Ordered media list — lets a multi-video tweet bring in every
       // video. The desktop's primary download follows media[0].
       media: buildMediaList(legacy),

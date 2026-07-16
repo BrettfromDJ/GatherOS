@@ -49,6 +49,7 @@ const DEFAULT_PREFS = {
   // image/page saves from the extension are unaffected. Default on.
   syncXEnabled: true,
   syncInstagramEnabled: true,
+  sortXBookmarksByTweetDate: false,
 
   // ── Trial / free tier ────────────────────────────────────────
   // Timestamp (ms) of when the local no-account trial started, set on

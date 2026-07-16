@@ -157,6 +157,7 @@
             <option value="100">Most recent 100</option>
             <option value="200">Most recent 200</option>
             <option value="500">Most recent 500</option>
+            <option value="catch-up">Catch up to latest saved</option>
             <option value="0">All bookmarks</option>
           </select>
           <button class="import-go" id="importGo" disabled>Import</button>
@@ -228,6 +229,7 @@
     if (chrome.runtime.lastError) { showText(msgEl, 'Could not reach the extension. Reload it and try again.'); return; }
     if (!resp || resp.ok) { close(); return; } // success — import runs in the background
     if (resp.needsSignIn) { showSignIn(msgEl, label, url); return; }
+    if (resp.noBoundary) { showText(msgEl, 'No previous X bookmark found. Choose a fixed amount instead.'); return; }
     if (resp.appClosed) { showText(msgEl, 'Open GatherOS first, then import.'); return; }
     if (resp.disabled) { showText(msgEl, 'Import is temporarily unavailable.'); return; }
     if (resp.busy) { showText(msgEl, 'An import is already running.'); return; }
@@ -254,7 +256,7 @@
 
   const count = root.getElementById('count');
   const syncCount = () => {
-    selectedLimit = count.value === '' ? null : Number(count.value); // 0 = all
+    selectedLimit = count.value === '' ? null : (count.value === 'catch-up' ? 'catch-up' : Number(count.value)); // 0 = all
     importGo.disabled = selectedLimit === null;
   };
   count.addEventListener('change', syncCount);
@@ -265,7 +267,10 @@
     if (selectedLimit === null) return; // nothing picked yet
     clearMsg(msg);
     importGo.disabled = true;
-    chrome.runtime.sendMessage({ type: 'gatheros:import-bookmarks', limit: selectedLimit }, (resp) => {
+    const request = { type: 'gatheros:import-bookmarks' };
+    if (selectedLimit === 'catch-up') request.mode = 'catch-up';
+    else request.limit = selectedLimit;
+    chrome.runtime.sendMessage(request, (resp) => {
       handleImportResult(resp, { goBtn: importGo, msgEl: msg, label: 'X', url: 'https://x.com/i/bookmarks' });
     });
   });
