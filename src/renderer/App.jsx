@@ -88,6 +88,8 @@ import {
   HardDrive,
   Database,
   Info,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useUndoStack } from './hooks/useUndoStack.js';
@@ -113,6 +115,8 @@ const ICON = { strokeWidth: 1.6, 'aria-hidden': true };
 // selection, so a simple play triangle reads as "press to see it move".
 // Solid fill in the current icon colour, no outline stroke.
 const BoardExportIcon = () => <Play fill="currentColor" stroke="none" aria-hidden="true" />;
+const EyeIcon = () => <Eye {...ICON} />;
+const EyeOffIcon = () => <EyeOff {...ICON} />;
 const DownloadIcon = () => <Download {...ICON} />;
 const ClearIcon = () => <X {...ICON} strokeWidth={2} />;
 const TrashIcon = () => <Trash2 {...ICON} />;
@@ -1388,6 +1392,34 @@ export default function App({ entitlement } = {}) {
         label: `Add to collection${suffix}`,
         icon: <CollectionIcon />,
         submenu,
+      });
+    }
+
+    // Hide from / show in the main library grid. A hidden save drops
+    // out of the plain All grid but stays in collections, Unsorted,
+    // Saved, and search — "hide from the feed, keep everywhere else".
+    // Available in every non-trash view; the label reflects state.
+    {
+      const targets = targetIds.map((id) => saves.find((s) => s.id === id)).filter(Boolean);
+      const allHidden = targets.length > 0 && targets.every((s) => s.hidden_at);
+      if (items.length > 0) items.push({ type: 'separator' });
+      items.push({
+        label: allHidden ? `Show in library${suffix}` : `Hide from library${suffix}`,
+        icon: allHidden ? <EyeIcon /> : <EyeOffIcon />,
+        onClick: async () => {
+          const next = !allHidden;
+          for (const id of targetIds) {
+            await window.moodmark.saves.setHidden(id, next);
+          }
+          if (isMulti) setSelected(new Set());
+          reload();
+          undoStack.push(next ? 'hide from library' : 'show in library', async () => {
+            for (const id of targetIds) {
+              await window.moodmark.saves.setHidden(id, !next);
+            }
+            reload();
+          });
+        },
       });
     }
 

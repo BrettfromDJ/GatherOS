@@ -426,6 +426,11 @@ const MIGRATIONS = [
   (database) => {
     addColumnIfMissing(database, 'saves', 'viewed_at', 'INTEGER');
   },
+  // "Hide from library" flag — a save with hidden_at set is dropped
+  // from the plain All grid but stays in collections, search, etc.
+  (database) => {
+    addColumnIfMissing(database, 'saves', 'hidden_at', 'INTEGER');
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {
@@ -822,7 +827,7 @@ const SAVE_LIST_COLUMNS = [
   'id', 'file_path', 'thumb_path', 'title', 'source_url', 'width',
   'height', 'file_size', 'palette', 'palette_lab', 'created_at',
   'ai_prompt', 'deleted_at', 'meta', 'notes', 'content_hash', 'kind',
-  'tweet_meta', 'source', 'preview_path', 'view_count',
+  'tweet_meta', 'source', 'preview_path', 'view_count', 'hidden_at',
 ].join(', ');
 
 // Sanitize free text into an FTS5 phrase-prefix query: each whitespace
@@ -937,6 +942,27 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
     params.push(parsed.after);
   }
 
+  // Hidden saves. `is:hidden` surfaces ONLY hidden saves (the review
+  // view). Otherwise hidden saves are dropped from the plain,
+  // unfiltered "All" library grid — but stay fully visible in
+  // collections, Unsorted, Saved, search, and every other view. So a
+  // save can be hidden from the main feed while still living
+  // everywhere else. Any active filter (text, tag, bucket, color,
+  // date, untagged) or a specific view re-includes them, since the
+  // user is then looking for something specific.
+  if (parsed.hidden) {
+    conditions.push('hidden_at IS NOT NULL');
+  } else {
+    const activeFilter = !!(
+      text || collectionId || effectiveColorHex
+      || parsed.tagNames.length || parsed.bucketNames.length
+      || parsed.untagged || parsed.before != null || parsed.after != null
+    );
+    if (view === 'all' && !activeFilter) {
+      conditions.push('hidden_at IS NULL');
+    }
+  }
+
   if (text) {
     // Indexed FTS5 match over title / ocr_text / tweet text (the old
     // LIKE pass full-scanned the table and json_extract-parsed
@@ -1033,6 +1059,17 @@ function getRecentlyViewed(limit = 12) {
        WHERE deleted_at IS NULL AND viewed_at IS NOT NULL
        ORDER BY viewed_at DESC LIMIT ?`)
     .all(n);
+}
+
+// Toggle the "hide from the main library grid" flag. hidden = true
+// stamps hidden_at; false clears it. Doesn't touch FTS (hidden_at
+// isn't an indexed column) so search still finds the save.
+function setSaveHidden(id, hidden) {
+  if (!id) return { ok: false };
+  getDatabase()
+    .prepare('UPDATE saves SET hidden_at = ? WHERE id = ?')
+    .run(hidden ? Date.now() : null, id);
+  return { ok: true };
 }
 
 function getSave(id) {
@@ -1958,6 +1995,7 @@ module.exports = {
   initDatabase,
   markSaveViewed,
   getRecentlyViewed,
+  setSaveHidden,
   getSaveEmbeddingsCached,
   invalidateEmbeddingCache,
   getDatabase,

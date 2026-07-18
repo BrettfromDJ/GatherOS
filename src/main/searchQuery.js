@@ -47,6 +47,7 @@ function parseSearchQuery(input) {
     bucketNames: [],
     colorHex: null,
     untagged: false,
+    hidden: false,
     before: null,
     after: null,
   };
@@ -92,6 +93,7 @@ function parseSearchQuery(input) {
       case 'is': {
         const cleaned = value.toLowerCase().trim();
         if (cleaned === 'untagged') filters.untagged = true;
+        else if (cleaned === 'hidden') filters.hidden = true;
         else remaining.push(raw);
         break;
       }
