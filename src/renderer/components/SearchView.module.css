@@ -476,7 +476,8 @@
 }
 
 .link {
-  margin-left: auto;
+  /* Sits right next to the section title (via the sectionHead gap) rather
+     than floating out at the far right edge. */
   border: none;
   background: transparent;
   font-family: var(--font-ui);
