@@ -22,19 +22,31 @@
     0 12px 32px rgba(0, 0, 0, 0.32);
 }
 
+/* The click target that opens the most recent save: the thumbnail
+   cluster + the text body together, i.e. the whole pill minus Undo. */
+.openArea {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 /* Stacked thumbnail cluster — the most recent save sits front-most, and
    up to two earlier saves fan out behind it (the "+N" badge becomes the
-   images themselves). The whole cluster is a button: click it to open
-   the most recent save. */
+   images themselves). */
 .cluster {
   position: relative;
   width: 46px;
   height: 42px;
   flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
 }
 
 .clusterSingle {
@@ -67,7 +79,7 @@
 
 .clusterSingle .c0 { top: 2px; left: 1px; }
 
-.cluster:hover .c0 { transform: translateY(-1px); }
+.openArea:hover .c0 { transform: translateY(-1px); }
 
 @keyframes coverIn {
   from { opacity: 0; }

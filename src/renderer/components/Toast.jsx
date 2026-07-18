@@ -29,26 +29,30 @@ export default function Toast({ records = [], count = 1, onUndo, onOpen }) {
 
   return (
     <div className={styles.toast} role="status">
+      {/* The whole pill opens the most recent save — cluster + text are
+          one big click target. Undo stays a separate button beside it. */}
       <button
         type="button"
-        className={`${styles.cluster}${multi ? '' : ` ${styles.clusterSingle}`}`}
+        className={styles.openArea}
         onClick={() => onOpen?.(lead)}
         aria-label="Open most recent save"
       >
-        {covers.map(({ r, i }) => (
-          <img
-            key={r.id}
-            src={fileUrl(r.thumb_path)}
-            className={`${styles.cover} ${styles[`c${i}`]}`}
-            alt=""
-          />
-        ))}
-      </button>
+        <span className={`${styles.cluster}${multi ? '' : ` ${styles.clusterSingle}`}`}>
+          {covers.map(({ r, i }) => (
+            <img
+              key={r.id}
+              src={fileUrl(r.thumb_path)}
+              className={`${styles.cover} ${styles[`c${i}`]}`}
+              alt=""
+            />
+          ))}
+        </span>
 
-      <div className={styles.body}>
-        <span className={styles.h}>{title}</span>
-        <span className={styles.s}>{sub}</span>
-      </div>
+        <span className={styles.body}>
+          <span className={styles.h}>{title}</span>
+          <span className={styles.s}>{sub}</span>
+        </span>
+      </button>
 
       <button type="button" className={styles.undo} onClick={() => onUndo?.()}>
         Undo
