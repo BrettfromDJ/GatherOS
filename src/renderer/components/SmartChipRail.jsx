@@ -226,45 +226,30 @@ export default function SmartChipRail({
             />
           </>
         ) : (
-          <>
-            {CHIPS.map(({ id, label, Icon }) => {
-              const isActive = activeViewType === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
-                  onClick={() => onPick({ type: id })}
-                >
-                  <span className={styles.chipIcon} aria-hidden="true">
-                    <Icon size={17} strokeWidth={1.8} />
-                  </span>
-                  <span className={styles.chipLabel}>{label}</span>
-                </button>
-              );
-            })}
-            {/* "Hidden" chip — only appears once something's actually
-                hidden, styled muted so it reads as an aside, not a peer
-                of the main views. It's the one calm door back. */}
-            {counts.hidden > 0 && (
+          // "Hidden" is just another smart-view tab — same look and
+          // behaviour (icon reveals only when active) — that only joins
+          // the row once something is actually hidden.
+          (counts.hidden > 0
+            ? [...CHIPS, { id: 'hidden', label: 'Hidden', Icon: EyeOff }]
+            : CHIPS
+          ).map(({ id, label, Icon }) => {
+            const isActive = activeViewType === id;
+            return (
               <button
+                key={id}
                 type="button"
                 role="tab"
-                aria-selected={activeViewType === 'hidden'}
-                className={`${styles.chip} ${styles.chipHidden} ${activeViewType === 'hidden' ? styles.chipActive : ''}`}
-                onClick={() => onPick({ type: 'hidden' })}
-                title="Saves hidden from the library grid"
+                aria-selected={isActive}
+                className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
+                onClick={() => onPick({ type: id })}
               >
                 <span className={styles.chipIcon} aria-hidden="true">
-                  <EyeOff size={16} strokeWidth={1.8} />
+                  <Icon size={17} strokeWidth={1.8} />
                 </span>
-                <span className={styles.chipLabel}>Hidden</span>
-                <span className={styles.chipCount}>{counts.hidden}</span>
+                <span className={styles.chipLabel}>{label}</span>
               </button>
-            )}
-          </>
+            );
+          })
         )}
       </div>
       <div className={styles.right}>

@@ -257,40 +257,6 @@
   white-space: nowrap;
 }
 
-/* "Hidden" chip — a quiet aside after the main views. Smaller than the
-   primary tabs, always shows its eye-off glyph and a count bubble, and
-   only mounts when there's something hidden (see the JSX guard). */
-.chipHidden {
-  /* Same font size + baseline layout as the primary tabs so it sits on
-     the same line; it stays an "aside" through the muted colour, the
-     always-visible eye-off glyph, and the count bubble — not a smaller
-     size (which broke the baseline). */
-  gap: 7px;
-  margin-left: 6px;
-}
-.chipHidden .chipIcon {
-  width: auto;
-  opacity: 0.85;
-  margin-right: 0;
-  align-self: center;
-  color: var(--text-tertiary);
-}
-.chipHidden.chipActive .chipIcon {
-  width: auto;
-  opacity: 1;
-}
-.chipCount {
-  align-self: center;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
-  background: var(--hover-bg-soft, rgba(0, 0, 0, 0.05));
-  border-radius: var(--radius-pill);
-  padding: 2px 7px;
-  line-height: 1;
-}
-
 /* "Show all in library" — the bulk-restore button, shown in the right
    cluster only while the Hidden view is open. */
 .showAllBtn {
