@@ -68,9 +68,9 @@ function ToastStack() {
     setCurrent(null);
   }
 
-  // Open the most recent save in Preview, then dismiss.
+  // Open the most recent save inside Gather (focused view), then dismiss.
   function handleOpen(record) {
-    if (record?.file_path) window.toast.openImage(record.file_path);
+    if (record?.id) window.toast.openInApp(record.id);
     clear();
   }
 

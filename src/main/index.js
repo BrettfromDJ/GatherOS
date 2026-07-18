@@ -132,7 +132,7 @@ const {
 } = require('./capture');
 const extensionServer = require('./extension-server');
 const { showToast, destroyToastWindow } = require('./toast-window');
-const { setSaveNotifier, setDuplicateNotifier, setNeedsUpgradeNotifier, setBookmarkNotifier, setBookmarkFailedNotifier, setErrorNotifier, setTrayRefresher, notifyError } = require('./notify');
+const { setSaveNotifier, setDuplicateNotifier, setNeedsUpgradeNotifier, setBookmarkNotifier, setBookmarkFailedNotifier, setErrorNotifier, setTrayRefresher, setSaveOpener, notifyError } = require('./notify');
 const { initUpdater } = require('./updater');
 const { getInitialOptions: getWindowInitialOptions, track: trackWindowState } = require('./window-state');
 const libraryRegistry = require('./library-registry');
@@ -1020,6 +1020,9 @@ app.whenReady().then(() => {
     }
   }
   setSaveNotifier(notifySaved);
+  // Clicking the save toast opens the asset inside Gather — reuse the
+  // tray's "bring the app forward and open this save" flow.
+  setSaveOpener(openSaveFromTray);
   setDuplicateNotifier(notifyDuplicateInRenderer);
   setNeedsUpgradeNotifier(notifyNeedsUpgrade);
   setBookmarkNotifier(notifyBookmarkSaved);

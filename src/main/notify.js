@@ -60,6 +60,22 @@ function notifySaved(record) {
   savedNotifier(record);
 }
 
+// Opens a save inside Gather (focuses the main window + opens the
+// focused view on it). Wired to index.js's openSaveFromTray so the
+// save toast can reuse the exact same "bring the app forward and show
+// this asset" flow as the tray's recent-saves menu.
+let saveOpener = () => {};
+
+function setSaveOpener(fn) {
+  saveOpener = typeof fn === 'function' ? fn : () => {};
+}
+
+function openSaveInApp(saveId) {
+  try { saveOpener(saveId); } catch (err) {
+    console.error('[gatheros] openSaveInApp failed:', err);
+  }
+}
+
 function notifyDuplicate(existing) {
   duplicateNotifier(existing);
 }
@@ -90,6 +106,8 @@ module.exports = {
   setBookmarkFailedNotifier,
   setErrorNotifier,
   setTrayRefresher,
+  setSaveOpener,
+  openSaveInApp,
   notifySaved,
   notifyDuplicate,
   notifyNeedsUpgrade,
