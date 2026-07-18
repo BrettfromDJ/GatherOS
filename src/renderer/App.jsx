@@ -884,7 +884,7 @@ export default function App({ entitlement } = {}) {
   const [collections, setCollections] = useState([]);
   // Counts that drive the sidebar's smart-view badges (All / Unsorted /
   // Trash). Refreshed alongside collections.
-  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0 });
+  const [smartCounts, setSmartCounts] = useState({ all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0, hidden: 0 });
 
   const loadCollections = useCallback(async () => {
     const [cols, counts] = await Promise.all([
@@ -896,7 +896,7 @@ export default function App({ entitlement } = {}) {
     setCollections(cols);
     setSmartCounts(counts && typeof counts === 'object'
       ? counts
-      : { all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0 });
+      : { all: 0, unsorted: 0, trash: 0, bookmarks: 0, onThisDay: 0, hidden: 0 });
   }, []);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
@@ -1413,11 +1413,13 @@ export default function App({ entitlement } = {}) {
           }
           if (isMulti) setSelected(new Set());
           reload();
+          loadCollections(); // refresh the Hidden chip's count
           undoStack.push(next ? 'hide from library' : 'show in library', async () => {
             for (const id of targetIds) {
               await window.moodmark.saves.setHidden(id, !next);
             }
             reload();
+            loadCollections();
           });
         },
       });
@@ -2017,6 +2019,25 @@ export default function App({ entitlement } = {}) {
     // so drop any active similar-to anchor when the user navigates.
     setSimilarTo(null);
   }, [setView, setSimilarTo]);
+
+  // "Show all in library" from the Hidden view — un-hide everything,
+  // drop back to All, and offer a precise undo restoring exactly the
+  // saves that were hidden.
+  const handleShowAllHidden = useCallback(async () => {
+    const restored = await window.moodmark.saves.showAllHidden();
+    handleViewChange({ type: 'all' });
+    reload();
+    loadCollections();
+    if (Array.isArray(restored) && restored.length > 0) {
+      undoStack.push('show all in library', async () => {
+        for (const id of restored) {
+          await window.moodmark.saves.setHidden(id, true);
+        }
+        reload();
+        loadCollections();
+      });
+    }
+  }, [handleViewChange, reload, loadCollections, undoStack]);
 
   // Opening a collection card from the Search tab leaves search and
   // lands on that collection in Collections mode.
@@ -3728,12 +3749,13 @@ export default function App({ entitlement } = {}) {
                   || (appMode === 'folders' && view.type === 'collection')) && (
                   <SmartChipRail
                     activeViewType={
-                      ['all', 'unsorted', 'bookmarks', 'trash'].includes(view.type)
+                      ['all', 'unsorted', 'bookmarks', 'trash', 'hidden'].includes(view.type)
                         ? view.type
                         : 'all'
                     }
                     counts={smartCounts}
                     onPick={(v) => handleViewChange(v)}
+                    onShowAllHidden={handleShowAllHidden}
                     tweetTypeFilter={tweetTypeFilter}
                     tweetTypeCounts={tweetTypeCounts}
                     onTweetTypeChange={setTweetTypeFilter}

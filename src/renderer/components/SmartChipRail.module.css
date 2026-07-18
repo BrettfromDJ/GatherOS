@@ -257,6 +257,61 @@
   white-space: nowrap;
 }
 
+/* "Hidden" chip — a quiet aside after the main views. Smaller than the
+   primary tabs, always shows its eye-off glyph and a count bubble, and
+   only mounts when there's something hidden (see the JSX guard). */
+.chipHidden {
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: var(--text-md);
+}
+.chipHidden .chipIcon {
+  width: auto;
+  opacity: 0.85;
+  margin-right: 0;
+  color: var(--text-tertiary);
+}
+.chipHidden.chipActive .chipIcon {
+  width: auto;
+  opacity: 1;
+}
+.chipCount {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  background: var(--hover-bg-soft, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  line-height: 1.5;
+}
+
+/* "Show all in library" — the bulk-restore button, shown in the right
+   cluster only while the Hidden view is open. */
+.showAllBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 3px -1px rgba(16, 16, 19, 0.05);
+  transition: color var(--dur-instant) ease, border-color var(--dur-instant) ease;
+}
+.showAllBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
 .chipBadge {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

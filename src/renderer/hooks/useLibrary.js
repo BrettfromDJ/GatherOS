@@ -57,8 +57,11 @@ export function useLibrary() {
         const backendView = ['unsorted', 'trash', 'bookmarks'].includes(view.type)
           ? view.type
           : 'all';
+        // The 'hidden' smart view is a review surface for saves hidden
+        // from the main grid — driven by the is:hidden token.
+        const effectiveSearch = view.type === 'hidden' ? 'is:hidden' : debouncedSearch;
         data = await window.moodmark.saves.getAll({
-          search: debouncedSearch,
+          search: effectiveSearch,
           sort: 'newest',
           view: backendView,
           collectionId: view.type === 'collection' ? view.id : undefined,

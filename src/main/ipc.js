@@ -281,6 +281,10 @@ function registerIpcHandlers() {
     const { setSaveHidden } = require('./db');
     return setSaveHidden(id, !!hidden);
   });
+  ipcMain.handle('saves:show-all-hidden', () => {
+    const { showAllHidden } = require('./db');
+    return showAllHidden();
+  });
 
   // Hard delete from Trash: also removes the underlying image + thumb.
   ipcMain.handle('saves:permanent-delete', (_e, id) => {

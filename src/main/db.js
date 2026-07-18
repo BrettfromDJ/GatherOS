@@ -1315,6 +1315,9 @@ function getSmartViewCounts() {
       AND id NOT IN (SELECT save_id FROM collection_items)
   `).get();
   const trash = db.prepare('SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NOT NULL').get();
+  const hidden = db.prepare(
+    'SELECT COUNT(*) AS n FROM saves WHERE deleted_at IS NULL AND hidden_at IS NOT NULL',
+  ).get();
   const bookmarks = db.prepare(`
     SELECT COUNT(*) AS n FROM saves
     WHERE deleted_at IS NULL
@@ -1340,7 +1343,20 @@ function getSmartViewCounts() {
     trash: trash?.n ?? 0,
     bookmarks: bookmarks?.n ?? 0,
     onThisDay: onThisDay?.n ?? 0,
+    hidden: hidden?.n ?? 0,
   };
+}
+
+// Clear the hidden flag on every hidden save — powers the "Show all in
+// library" bulk action. Returns the ids that were un-hidden so the
+// caller can offer a precise undo.
+function showAllHidden() {
+  const db = getDatabase();
+  const rows = db
+    .prepare('SELECT id FROM saves WHERE deleted_at IS NULL AND hidden_at IS NOT NULL')
+    .all();
+  db.prepare('UPDATE saves SET hidden_at = NULL WHERE deleted_at IS NULL AND hidden_at IS NOT NULL').run();
+  return rows.map((r) => r.id);
 }
 
 function getSaveEmbeddings() {
@@ -1996,6 +2012,7 @@ module.exports = {
   markSaveViewed,
   getRecentlyViewed,
   setSaveHidden,
+  showAllHidden,
   getSaveEmbeddingsCached,
   invalidateEmbeddingCache,
   getDatabase,

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ChevronLeft, Grid2x2, Square, Images, Inbox, Trash2,
-  Clock, History, Eye,
+  Clock, History, Eye, EyeOff,
   Type, Image as ImageIcon, Film, Bookmark,
 } from 'lucide-react';
 import styles from './SmartChipRail.module.css';
@@ -95,6 +95,9 @@ export default function SmartChipRail({
   onSortChange,
   columns,
   onColumnsChange,
+  // "Show all in library" — restores every hidden save at once. Only
+  // rendered while the Hidden review view is active.
+  onShowAllHidden = null,
   // When the user drills into a folder, the rail's left cluster
   // swaps the All/Unsorted/Trash chips for a back button + folder
   // title. Sort + zoom on the right stay regardless.
@@ -223,27 +226,54 @@ export default function SmartChipRail({
             />
           </>
         ) : (
-          CHIPS.map(({ id, label, Icon }) => {
-            const isActive = activeViewType === id;
-            return (
+          <>
+            {CHIPS.map(({ id, label, Icon }) => {
+              const isActive = activeViewType === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
+                  onClick={() => onPick({ type: id })}
+                >
+                  <span className={styles.chipIcon} aria-hidden="true">
+                    <Icon size={17} strokeWidth={1.8} />
+                  </span>
+                  <span className={styles.chipLabel}>{label}</span>
+                </button>
+              );
+            })}
+            {/* "Hidden" chip — only appears once something's actually
+                hidden, styled muted so it reads as an aside, not a peer
+                of the main views. It's the one calm door back. */}
+            {counts.hidden > 0 && (
               <button
-                key={id}
                 type="button"
                 role="tab"
-                aria-selected={isActive}
-                className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
-                onClick={() => onPick({ type: id })}
+                aria-selected={activeViewType === 'hidden'}
+                className={`${styles.chip} ${styles.chipHidden} ${activeViewType === 'hidden' ? styles.chipActive : ''}`}
+                onClick={() => onPick({ type: 'hidden' })}
+                title="Saves hidden from the library grid"
               >
                 <span className={styles.chipIcon} aria-hidden="true">
-                  <Icon size={17} strokeWidth={1.8} />
+                  <EyeOff size={16} strokeWidth={1.8} />
                 </span>
-                <span className={styles.chipLabel}>{label}</span>
+                <span className={styles.chipLabel}>Hidden</span>
+                <span className={styles.chipCount}>{counts.hidden}</span>
               </button>
-            );
-          })
+            )}
+          </>
         )}
       </div>
       <div className={styles.right}>
+        {activeViewType === 'hidden' && onShowAllHidden && (
+          <button type="button" className={styles.showAllBtn} onClick={onShowAllHidden}>
+            <Eye size={14} strokeWidth={1.8} aria-hidden="true" />
+            Show all in library
+          </button>
+        )}
         {onColumnsChange && (
           <div className={styles.zoom} title="Card size">
             <Grid2x2 className={styles.zoomGlyph} size={13} strokeWidth={1.8} aria-hidden="true" />

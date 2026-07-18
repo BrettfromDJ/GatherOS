@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     markViewed: (id) => ipcRenderer.invoke('saves:mark-viewed', id),
     recentlyViewed: (limit) => ipcRenderer.invoke('saves:recently-viewed', limit),
     setHidden: (id, hidden) => ipcRenderer.invoke('saves:set-hidden', { id, hidden }),
+    showAllHidden: () => ipcRenderer.invoke('saves:show-all-hidden'),
     permanentDelete: (id) => ipcRenderer.invoke('saves:permanent-delete', id),
     emptyTrash: () => ipcRenderer.invoke('saves:empty-trash'),
     counts: () => ipcRenderer.invoke('saves:counts'),
