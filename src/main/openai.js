@@ -17,21 +17,47 @@ function hasSession() {
   return !!getSessionToken();
 }
 
-async function postProxy(path, body) {
+// Vision + embedding calls are individually bounded so one stuck request
+// can't hang forever. Without this a single save whose request never
+// resolves would freeze the whole reindex loop — and since the loop
+// always re-hits the same save first, indexing stays wedged across
+// restarts. 60s is generous for a low-detail vision call.
+const PROXY_TIMEOUT_MS = 60_000;
+
+async function postProxy(path, body, { timeoutMs = PROXY_TIMEOUT_MS } = {}) {
   const token = getSessionToken();
   if (!token) {
     const err = new Error('Not signed in');
     err.code = 'unauthenticated';
     throw err;
   }
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    // Normalize abort / network failures into coded errors the reindex
+    // loop can recognize (and skip past) instead of an opaque throw.
+    if (err.name === 'AbortError') {
+      const e = new Error(`AI proxy timed out after ${Math.round(timeoutMs / 1000)}s`);
+      e.code = 'timeout';
+      throw e;
+    }
+    const e = new Error(`AI proxy network error: ${err.message}`);
+    e.code = 'network';
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.ok) {
     const reason = data.error || `http_${res.status}`;
@@ -214,9 +240,12 @@ async function embedText(text) {
 async function getUsage() {
   const token = getSessionToken();
   if (!token) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
   try {
     const res = await fetch(`${API_BASE_URL}/ai/usage`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) return null;
@@ -224,6 +253,8 @@ async function getUsage() {
   } catch (err) {
     console.error('[ai] getUsage failed:', err);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

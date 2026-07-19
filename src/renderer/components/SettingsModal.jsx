@@ -87,6 +87,12 @@ function reindexErrorMessage(result) {
   if (reason === 'not-entitled' || reason === 'not_entitled') {
     return 'Indexing needs an active subscription.';
   }
+  if (reason === 'cap-reached' || reason === 'monthly_cap_reached') {
+    return "You've hit this month's AI limit. It resets next month.";
+  }
+  if (reason === 'many-failures' || reason === 'timeout' || reason === 'network') {
+    return 'Indexing keeps failing — check your connection and try again.';
+  }
   return "Indexing couldn't finish. Please try again.";
 }
 
@@ -1020,11 +1026,33 @@ export default function SettingsModal({
     return () => { cancelled = true; };
   }, [open]);
 
-  // Progress stream from main while ai:reindex-library runs.
+  // Progress stream from main while ai:reindex-library runs. The `done`
+  // event is terminal — it lets a Settings window that was reopened
+  // mid-run (or that didn't start the run) clear its "indexing…" state and
+  // refresh the count, rather than sitting on a stale "paused" number.
   useEffect(() => {
     if (!open) return;
-    return window.moodmark.on('ai:reindex-progress', ({ processed, total }) => {
-      setReindexState((s) => ({ ...s, processed, total }));
+    return window.moodmark.on('ai:reindex-progress', (p) => {
+      if (p?.done) {
+        const failedEverything = p.ok === false
+          || ((p.processed || 0) === 0 && (p.failed || 0) > 0);
+        setReindexState({
+          running: false,
+          processed: p.processed || 0,
+          total: p.total || 0,
+          error: failedEverything ? reindexErrorMessage(p) : null,
+        });
+        window.moodmark.ai.unindexedCount().then((c) => setUnindexed(c || 0));
+        return;
+      }
+      // A live progress tick means a run is active — adopt it so a
+      // reopened window reflects real progress even if it didn't kick it off.
+      setReindexState((s) => ({
+        ...s,
+        running: true,
+        processed: p.processed,
+        total: p.total,
+      }));
     });
   }, [open]);
 
@@ -1032,6 +1060,10 @@ export default function SettingsModal({
     if (reindexState.running || unindexed === 0) return;
     setReindexState({ running: true, processed: 0, total: unindexed, error: null });
     const result = await window.moodmark.ai.reindexLibrary();
+    // A run is already going (e.g. started before this modal reopened) —
+    // leave the running UI to the progress + done events rather than
+    // clobbering it with this call's early return.
+    if (result?.reason === 'already-running') return;
     // Don't report a hollow success: if the run couldn't index anything
     // because the session/entitlement lapsed (or every save errored),
     // say so instead of quietly finishing at "0 of N".

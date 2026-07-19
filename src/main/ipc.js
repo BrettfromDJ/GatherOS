@@ -1095,75 +1095,104 @@ function registerIpcHandlers() {
     }),
   );
 
+  // One reindex at a time. The Settings modal unmounts on close, so a
+  // close → reopen → re-click could otherwise spawn overlapping loops that
+  // double-process and scramble the progress readout. Reset in a finally so
+  // a crash can never leave indexing permanently "busy".
+  let reindexInFlight = false;
   ipcMain.handle('ai:reindex-library', async (event) => {
     if (!hasAiSession()) return { ok: false, reason: 'no-session' };
-    const targets = getUnindexedSaves();
-    const total = targets.length;
+    if (reindexInFlight) return { ok: false, reason: 'already-running' };
+    reindexInFlight = true;
+    try {
+      const targets = getUnindexedSaves();
+      const total = targets.length;
 
-    // Codes that mean "no point continuing" — an entitlement/auth lapse
-    // or a hit monthly cap fails identically for every remaining save.
-    // Bailing keeps us from firing N doomed proxy calls and lets the
-    // renderer show why nothing indexed instead of a hollow "0 of N".
-    const FATAL_CODES = new Set([
-      'not_entitled', 'unauthenticated',
-      'http_401', 'http_402', 'monthly_cap_reached',
-    ]);
-    const fatalReason = {
-      not_entitled: 'not-entitled',
-      http_402: 'not-entitled',
-      unauthenticated: 'no-session',
-      http_401: 'no-session',
-      monthly_cap_reached: 'cap-reached',
-    };
+      // Codes that mean "no point continuing" — an entitlement/auth lapse
+      // or a hit monthly cap fails identically for every remaining save.
+      // Bailing keeps us from firing N doomed proxy calls and lets the
+      // renderer show why nothing indexed instead of a hollow "0 of N".
+      const FATAL_CODES = new Set([
+        'not_entitled', 'unauthenticated',
+        'http_401', 'http_402', 'monthly_cap_reached',
+      ]);
+      const fatalReason = {
+        not_entitled: 'not-entitled',
+        http_402: 'not-entitled',
+        unauthenticated: 'no-session',
+        http_401: 'no-session',
+        monthly_cap_reached: 'cap-reached',
+      };
+      // A run of back-to-back failures means something systemic (server
+      // down, offline, timeouts) rather than a few bad images — stop
+      // instead of grinding through every remaining save at 60s each.
+      const MAX_CONSECUTIVE_FAILURES = 8;
 
-    let processed = 0;
-    let failed = 0;
-    let aborted = null;
-    for (let i = 0; i < targets.length; i += 1) {
-      const row = targets[i];
-      event.sender.send('save:indexing-start', row.id);
-      try {
-        const { title, description, text } = await analyzeImage(row.file_path);
-        const updates = { id: row.id };
-        if (description) updates.aiDescription = description;
-        // Always set ocr_text (empty string for no text) so the
-        // unindexed sweep stops picking the row up.
-        updates.ocrText = text || '';
-        // Don't overwrite a title the user already supplied.
-        if (title && !row.title) updates.title = title;
+      let processed = 0;
+      let failed = 0;
+      let consecutiveFailures = 0;
+      let aborted = null;
+      for (let i = 0; i < targets.length; i += 1) {
+        const row = targets[i];
+        event.sender.send('save:indexing-start', row.id);
+        try {
+          const { title, description, text } = await analyzeImage(row.file_path);
+          const updates = { id: row.id };
+          if (description) updates.aiDescription = description;
+          // Always set ocr_text (empty string for no text) so the
+          // unindexed sweep stops picking the row up.
+          updates.ocrText = text || '';
+          // Don't overwrite a title the user already supplied.
+          if (title && !row.title) updates.title = title;
 
-        const tags = getTagsForSave(row.id).map((t) => t.name).join(', ');
-        const ocrSnippet = text ? text.slice(0, 300) : '';
-        const embedSource = [title, description, ocrSnippet, tags].filter(Boolean).join('. ');
-        if (embedSource) {
-          const vec = await embedText(embedSource);
-          updates.embedding = Buffer.from(new Float32Array(vec).buffer);
+          const tags = getTagsForSave(row.id).map((t) => t.name).join(', ');
+          const ocrSnippet = text ? text.slice(0, 300) : '';
+          const embedSource = [title, description, ocrSnippet, tags].filter(Boolean).join('. ');
+          if (embedSource) {
+            const vec = await embedText(embedSource);
+            updates.embedding = Buffer.from(new Float32Array(vec).buffer);
+          }
+
+          if (Object.keys(updates).length > 1) {
+            updateSave(updates);
+            const updated = getSave(row.id);
+            event.sender.send('save:updated', updated);
+          }
+          processed += 1;
+          consecutiveFailures = 0;
+        } catch (err) {
+          console.error('Reindex failed for save', row.id, '-', err.message);
+          failed += 1;
+          consecutiveFailures += 1;
+          if (FATAL_CODES.has(err.code)) {
+            aborted = fatalReason[err.code] || 'error';
+          } else if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            aborted = 'many-failures';
+          }
+        } finally {
+          event.sender.send('save:indexing-end', row.id);
         }
-
-        if (Object.keys(updates).length > 1) {
-          updateSave(updates);
-          const updated = getSave(row.id);
-          event.sender.send('save:updated', updated);
-        }
-        processed += 1;
-      } catch (err) {
-        console.error('Reindex failed for save', row.id, '-', err.message);
-        failed += 1;
-        if (FATAL_CODES.has(err.code)) {
-          aborted = fatalReason[err.code] || 'error';
-        }
-      } finally {
-        event.sender.send('save:indexing-end', row.id);
+        event.sender.send('ai:reindex-progress', {
+          processed: i + 1,
+          total,
+          failed,
+        });
+        if (aborted) break;
       }
-      event.sender.send('ai:reindex-progress', {
-        processed: i + 1,
-        total,
-        failed,
-      });
-      if (aborted) break;
+      const result = aborted
+        ? { ok: false, reason: aborted, processed, failed, total }
+        : { ok: true, processed, failed, total };
+      // Broadcast a terminal event so any Settings window — including one
+      // reopened after being closed mid-run — can clear its "indexing…"
+      // state instead of sitting on a stale count. Guarded: the window may
+      // be gone by the time we finish.
+      try {
+        event.sender.send('ai:reindex-progress', { ...result, done: true });
+      } catch { /* window closed */ }
+      return result;
+    } finally {
+      reindexInFlight = false;
     }
-    if (aborted) return { ok: false, reason: aborted, processed, failed, total };
-    return { ok: true, processed, failed, total };
   });
 
   // Generate an image-generation prompt (Midjourney / DALL-E / SD)
