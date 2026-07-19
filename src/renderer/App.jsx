@@ -66,6 +66,7 @@ import { extractDropImageUrls } from './lib/dropUrls.js';
 import { fileUrl } from './lib/fileUrl.js';
 import { flyToCollection } from './lib/flyToCollection.js';
 import { seededShuffle } from './lib/shuffle.js';
+import { aiErrorMessage } from './lib/aiError.js';
 
 // Lucide-backed icon shims. Component names are kept identical to
 // the previous inline SVG defs so every existing call site (right-
@@ -887,7 +888,10 @@ export default function App() {
       });
     } else {
       showActionToast({
-        message: result?.detail || 'Could not generate variation',
+        message: aiErrorMessage(result?.reason, {
+          fallback: 'Could not generate variation',
+          detail: result?.detail,
+        }),
         durationMs: 2400,
       });
     }
