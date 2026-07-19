@@ -6,6 +6,7 @@ import { fileUrl } from '../lib/fileUrl.js';
 import ContextMenu from './ContextMenu.jsx';
 import TagSuggestions from './TagSuggestions.jsx';
 import { fuzzyMatch } from '../lib/fuzzy.js';
+import { aiErrorMessage } from '../lib/aiError.js';
 import { findNearDuplicateTag } from '../lib/tagSimilarity.js';
 import { CollectionIcon } from './Sidebar.jsx';
 import { useEntitlementValue, isLocked, requestUpgrade } from '../context/entitlement.jsx';
@@ -400,7 +401,10 @@ export default function DetailPanel({
         refreshTags();
         onTagsChanged?.();
       } else {
-        setAutoTagError(result?.detail || 'Could not generate tags');
+        setAutoTagError(aiErrorMessage(result?.reason, {
+          fallback: 'Could not generate tags',
+          detail: result?.detail,
+        }));
         // Auto-clear error after a few seconds
         setTimeout(() => setAutoTagError(''), 3500);
       }
@@ -424,7 +428,10 @@ export default function DetailPanel({
     try {
       const result = await window.moodmark.ai.generatePrompt(record.id);
       if (!result?.ok) {
-        setPromptError(result?.detail || 'Could not generate prompt');
+        setPromptError(aiErrorMessage(result?.reason, {
+          fallback: 'Could not generate prompt',
+          detail: result?.detail,
+        }));
         setTimeout(() => setPromptError(''), 3500);
       }
       // Successful path: save:updated event already patches record.ai_prompt.
