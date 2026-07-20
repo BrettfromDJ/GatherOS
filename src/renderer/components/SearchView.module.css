@@ -394,47 +394,39 @@
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  background: transparent;
-  border: none;
+  padding: 12px;
+  /* Bordered, contained card — --border-strong is the design system's
+     canonical card stroke. */
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font: inherit;
   color: inherit;
   text-align: left;
+  transition: background var(--dur-instant) ease, box-shadow var(--dur-instant) ease;
 }
+.collCard:hover {
+  background: var(--hover-bg-soft);
+  box-shadow: var(--shadow-control);
+}
+
+/* Cover art — a single collection thumbnail, centered within the card. */
 .collFan {
-  position: relative;
-  height: 94px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 600px;
   margin-bottom: 10px;
 }
 .collFan img {
-  position: absolute;
-  width: 74px;
-  height: 74px;
+  width: 72px;
+  height: 72px;
   border-radius: var(--radius-md);
   object-fit: cover;
   background: rgba(0, 0, 0, 0.04);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
-  transition: transform var(--dur-pronounced) var(--ease-out);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(255, 255, 255, 0.55) inset;
 }
-/* Resting state is a CALM deck — cards aligned at 0°, each layer
-   peeking a clear ~6px above the one in front (the translateY values
-   compensate the scale inset, (1-s)·74/2, so the step stays visible).
-   The old splayed-fan resting pose (four rotations per stack × five
-   stacks) made the whole landing read scattered; the playful fan now
-   only appears on hover. */
-.collFan img:nth-child(1) { transform: translateY(-18px) scale(0.78); z-index: 1; }
-.collFan img:nth-child(2) { transform: translateY(-9px)  scale(0.86); z-index: 2; }
-.collFan img:nth-child(3) { transform: translateY(-1px)  scale(0.93); z-index: 3; }
-.collFan img:nth-child(4) { transform: translateY(8px); z-index: 4; }
-.collCard:hover .collFan img:nth-child(1) { transform: rotate(-15deg) translate(-26px, 6px); }
-.collCard:hover .collFan img:nth-child(2) { transform: rotate(-5deg)  translate(-10px, -2px); }
-.collCard:hover .collFan img:nth-child(3) { transform: rotate(6deg)   translate(12px, -2px); }
-.collCard:hover .collFan img:nth-child(4) { transform: rotate(16deg)  translate(28px, 6px); }
 .collFanEmpty { color: var(--icon-muted); }
 .collFanEmpty svg { width: 30px; height: 30px; }
 
