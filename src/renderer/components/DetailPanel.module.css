@@ -841,9 +841,14 @@
   margin-top: 2px;
 }
 /* X-style layouts by image count. */
+/* Two images stack full-width instead of sitting in two half-width
+   columns — a landscape image (screenshot, photo) then keeps its real
+   orientation rather than being cropped into a tall vertical strip. */
 .thumbsTwo {
-  grid-template-columns: 1fr 1fr;
-  height: 150px;
+  grid-template-columns: 1fr;
+}
+.thumbsTwo .tweetThumb {
+  aspect-ratio: 16 / 10;
 }
 .thumbsThree {
   grid-template-columns: 1fr 1fr;
