@@ -38,13 +38,22 @@ function profilePathParts() {
   return parts;
 }
 
+// Is an element actually rendered (visible)? getClientRects() returns boxes
+// for anything laid out — including position:fixed/sticky elements, which
+// offsetParent wrongly reports as hidden — and nothing for display:none. So
+// this catches a real, visible control without false-negatives on a sticky
+// sidebar.
+function isVisible(el) {
+  return el.getClientRects().length > 0;
+}
+
 // Ownership check: only the signed-in user's own pages show a *visible*
 // "Edit profile" control. The home feed keeps that link in a hidden menu
-// (offsetParent null), and other people's pages show "Follow" instead — so
-// this reliably means "this is mine."
+// (display:none), and other people's pages show "Follow" instead — so a
+// visible "Edit profile" reliably means "this is mine."
 function isOwnPage() {
   return [...document.querySelectorAll('a, button')]
-    .some((el) => /edit profile/i.test(el.textContent || '') && el.offsetParent !== null);
+    .some((el) => /edit profile/i.test(el.textContent || '') && isVisible(el));
 }
 
 // On a collection page (/<username>/<slug>, not /saved), the collection's
@@ -107,4 +116,13 @@ const observer = new MutationObserver(schedule);
 observer.observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener('load', schedule);
 console.log('[gatheros] cosmos watcher active on', location.href);
+// One-time gate self-report after the page has rendered — makes it obvious in
+// the console whether this page is being treated as your own saves.
+setTimeout(() => {
+  console.log(
+    '[gatheros] cosmos gate —', location.pathname,
+    '| profile-shaped URL:', !!profilePathParts(),
+    '| own page:', isOwnPage(),
+  );
+}, 1500);
 schedule();
