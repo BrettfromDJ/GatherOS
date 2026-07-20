@@ -3,7 +3,7 @@
 // Cosmos serves its element data through Apollo GraphQL + Next.js server
 // components — no clean REST API — so instead of decoding that, we read the
 // saved elements straight off the rendered grid. Every saved element shows
-// as an <img src="https://cdn.cosmos.so/<id>?format=webp">. We watch the
+// as an <img src="https://cdn.cosmos.so/<id>?format=webp&w=…">. We watch the
 // page for those, dedupe by the CDN id, and relay batches to the background
 // worker, which routes them through the desktop /save pipeline.
 //
@@ -15,7 +15,7 @@
 const CDN_HOST = 'cdn.cosmos.so';
 const seen = new Set();
 
-// https://cdn.cosmos.so/<uuid>?format=webp  →  <uuid>
+// https://cdn.cosmos.so/<uuid>?format=webp&w=400  →  <uuid>
 function idFromCdnUrl(url) {
   const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(url || '');
   return m ? m[1] : null;
@@ -32,12 +32,19 @@ function collectElements() {
   if (!onOwnSavesPage()) return [];
   const out = [];
   for (const img of document.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
-    const src = img.currentSrc || img.src;
+    const src = img.currentSrc || img.src || '';
+    // Skip chrome, not saves: Cosmos serves default avatars from a
+    // /default-avatars/ path, and avatars / small preview thumbs render at a
+    // tiny width (the ?w= cap). Real grid tiles come down at w>=200.
+    if (src.includes('/default-avatars/')) continue;
+    const wMatch = /[?&]w=(\d+)/.exec(src);
+    if (wMatch && parseInt(wMatch[1], 10) < 200) continue;
     const id = idFromCdnUrl(src);
     if (!id || seen.has(id)) continue;
-    // The base CDN URL (format=webp, no size cap) is the full-res original
-    // re-encoded as webp — sharp handles webp on the desktop side.
-    const mediaUrl = src;
+    // Full resolution: rebuild the URL WITHOUT the rendered-size (w=) cap so
+    // we save the original, not the 400px grid thumbnail. format=webp is the
+    // form Cosmos already serves; sharp handles webp on the desktop side.
+    const mediaUrl = `https://${CDN_HOST}/${id}?format=webp`;
     // When the tile is a link, that's the element's page on Cosmos; keep it
     // for "Open on Cosmos". Fall back to the image URL when there's no link.
     const a = img.closest('a[href]');
@@ -55,6 +62,7 @@ function collectElements() {
 function flush() {
   const elements = collectElements();
   if (elements.length) {
+    console.log('[gatheros] cosmos: sending', elements.length, 'saved element(s) to GatherOS');
     chrome.runtime.sendMessage({ type: 'gatheros:cosmos-saved-batch', elements });
   }
 }
@@ -72,4 +80,5 @@ function schedule() {
 const observer = new MutationObserver(schedule);
 observer.observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener('load', schedule);
+console.log('[gatheros] cosmos watcher active on', location.href);
 schedule();
