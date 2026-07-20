@@ -786,12 +786,21 @@ async function handleCosmosSavedBatch(elements) {
   if (!Array.isArray(elements) || !elements.length) return;
   const seen = await readCosmosSeen();
   const fresh = elements.filter((el) => el && el.id && !seen.has(el.id));
+  let sent = 0;
   for (const el of fresh) {
-    try { await syncCosmosElementToGather(el); }
-    catch (err) { console.warn('[gatheros] cosmos sync failed:', err); }
-    seen.add(el.id);
+    try {
+      const res = await syncCosmosElementToGather(el);
+      // Only remember it as "sent" once the desktop actually accepted it —
+      // if the app was closed (or the save was rejected), leave it unseen so
+      // the next scroll retries instead of silently dropping it forever.
+      if (res && res.ok === false) throw new Error(res.error || 'save rejected');
+      seen.add(el.id);
+      sent += 1;
+    } catch (err) {
+      console.warn('[gatheros] cosmos sync failed (will retry):', err?.message || err);
+    }
   }
-  if (fresh.length) await writeCosmosSeen(seen);
+  if (sent) await writeCosmosSeen(seen);
 }
 
 // Map one Cosmos element to the same native-message /save payload the X and
