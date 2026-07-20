@@ -21,11 +21,26 @@ function idFromCdnUrl(url) {
   return m ? m[1] : null;
 }
 
-// Only the user's own profile shows an "Edit profile" affordance, and its
-// grid is their saved elements. Gate scraping to that page.
+// Strict gate: only scrape the user's OWN profile grid, never the home feed
+// or anyone else's profile. Two signals must BOTH hold:
+//   1. The URL is a profile path — /<username> (Profile tab) or
+//      /<username>/saved (Saved tab) — not the feed (/), explore, search, etc.
+//   2. A *visible* "Edit profile" control is present, which Cosmos only shows
+//      on your own profile (an "Edit profile" link buried in a global menu is
+//      hidden, so offsetParent is null and it won't count).
+const RESERVED_PATHS = new Set([
+  'home', 'explore', 'search', 'settings', 'notifications', 'about',
+  'login', 'signup', 'onboarding', 'e', 'element', 'cluster', 'clusters',
+]);
 function onOwnSavesPage() {
+  const parts = location.pathname.split('/').filter(Boolean);
+  const first = (parts[0] || '').toLowerCase();
+  const looksLikeProfile =
+    (parts.length === 1 && !RESERVED_PATHS.has(first))
+    || (parts.length === 2 && !RESERVED_PATHS.has(first) && parts[1].toLowerCase() === 'saved');
+  if (!looksLikeProfile) return false;
   return [...document.querySelectorAll('a, button')]
-    .some((el) => /edit profile/i.test((el.textContent || '').trim()));
+    .some((el) => /edit profile/i.test(el.textContent || '') && el.offsetParent !== null);
 }
 
 function collectElements() {
