@@ -37,10 +37,14 @@ function isVisible(el) {
   return el.getClientRects().length > 0;
 }
 
-// Only the signed-in user's own pages show a *visible* "Edit profile" control.
+// Owner-only, visible controls: "Edit profile" on your profile, "Organize"
+// on your own collection. Other people's pages show Follow/Save instead, and
+// the feed keeps these in a hidden menu — so a visible match means "mine".
 function isOwnPage() {
-  return [...document.querySelectorAll('a, button')]
-    .some((el) => /edit profile/i.test(el.textContent || '') && isVisible(el));
+  return [...document.querySelectorAll('a, button')].some((el) => {
+    const t = (el.textContent || '').trim();
+    return /^(edit profile|organize)$/i.test(t) && isVisible(el);
+  });
 }
 
 // Name a collection from its URL slug (deterministic; the page <h1> is often
@@ -53,33 +57,20 @@ function collectionNameFor(parts) {
     .slice(0, 80);
 }
 
-// A collection page shows a "Similar" recommendations section BELOW the real
-// grid, introduced by a standalone "Similar" label (a span/heading, not a
-// toolbar button). Everything below that label is recommendations, not saves —
-// so we treat its vertical position as a cutoff. Returns Infinity when there's
-// no such section (small collections, the profile grid, etc.).
-function similarCutoffY() {
-  const marks = [...document.querySelectorAll('span, h1, h2, h3, h4, p, div')]
-    .filter((el) => el.childElementCount === 0
-      && /^similar$/i.test((el.textContent || '').trim())
-      && !el.closest('button') && !el.closest('a'));
-  if (!marks.length) return Infinity;
-  return Math.min(...marks.map((el) => el.getBoundingClientRect().top + window.scrollY));
-}
-
 function collectElements() {
   const parts = profilePathParts();
   if (!parts || !isOwnPage()) return [];
   const collection = collectionNameFor(parts);
-  const cutoffY = similarCutoffY();
+  // Scope to the main content area — excludes the fixed header/bottom bar,
+  // whose preview images aren't saves.
+  const root = document.querySelector('main') || document;
   const out = [];
-  for (const img of document.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+  for (const img of root.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
     const src = img.currentSrc || img.src || '';
     if (src.includes('/default-avatars/')) continue;          // avatars
     const wMatch = /[?&]w=(\d+)/.exec(src);
     if (wMatch && parseInt(wMatch[1], 10) < 200) continue;    // small chrome thumbs
-    // Skip anything in the "Similar" recommendations section below the grid.
-    if (img.getBoundingClientRect().top + window.scrollY >= cutoffY) continue;
+    if (img.getClientRects().length === 0) continue;          // hidden / preload
     const id = idFromCdnUrl(src);
     if (!id || seen.has(id)) continue;
     const mediaUrl = `https://${CDN_HOST}/${id}?format=webp`;  // full-res
