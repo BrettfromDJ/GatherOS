@@ -97,6 +97,10 @@ function collectionNameFor(parts) {
 function collectElements() {
   const parts = profilePathParts();
   if (!parts || !isOwnPage()) return [];
+  // /<username>/collections is an index of collection cards, not saves — its
+  // cdn images are collection covers. Never import from it; we only enumerate
+  // the individual collections it links to (see collectOwnCollectionLinks).
+  if (parts.length === 2 && parts[1].toLowerCase() === 'collections') return [];
   const collection = collectionNameFor(parts);
   // Scope to the main content area — excludes the fixed header/bottom bar,
   // whose preview images aren't saves.
@@ -123,15 +127,33 @@ function collectElements() {
   return out;
 }
 
-// The user's own collection links, read off the profile root. Cosmos shows
-// each collection as a card linking to /<username>/<slug>; the backfill crawl
-// visits each of these after the profile's uncategorized grid. Returns [] on
-// any page that isn't the user's own profile root (so collection pages don't
-// re-enqueue themselves).
+// What to crawl next, given the current own-page. Cosmos nests saves two ways:
+//   /<username>              profile — uncategorized saves (scraped in place)
+//   /<username>/collections  index — lists collections, holds NO saves itself
+//   /<username>/<slug>       an individual collection — the real saves
+// So from the profile we head to the collections index; from the index we
+// enqueue each individual collection; an individual collection returns nothing
+// (its saves are scraped where we already are).
 function collectOwnCollectionLinks() {
+  // No isOwnPage() gate here: this only runs during our own backfill crawl, on
+  // pages the background navigated to from the stored username, and it's scoped
+  // to links under the current path's username. The collections index may not
+  // carry the "Organize"/"Edit profile" signal, and we can't miss it.
   const parts = profilePathParts();
-  if (!parts || parts.length !== 1 || !isOwnPage()) return [];
+  if (!parts) return [];
   const username = parts[0].toLowerCase();
+  const onProfileRoot = parts.length === 1;
+  const onCollectionsIndex = parts.length === 2 && parts[1].toLowerCase() === 'collections';
+
+  // From the profile, the only hop we need is the collections index — that's
+  // where the collections are listed. (The profile itself just holds the
+  // uncategorized saves, already scraped in place.)
+  if (onProfileRoot) return [`${location.origin}/${parts[0]}/collections`];
+
+  // From the collections index, enqueue each individual collection card. Any
+  // other page is already inside a collection — nothing more to enumerate.
+  if (!onCollectionsIndex) return [];
+
   const out = new Set();
   for (const a of document.querySelectorAll('a[href]')) {
     let href;
@@ -139,10 +161,10 @@ function collectOwnCollectionLinks() {
     catch { continue; }
     if (href.host !== location.host) continue;
     const p = href.pathname.split('/').filter(Boolean);
-    if (p.length !== 2) continue;                       // /<username>/<slug> only
-    if (p[0].toLowerCase() !== username) continue;      // our own collections
+    if (p.length !== 2) continue;                    // /<username>/<slug> only
+    if (p[0].toLowerCase() !== username) continue;   // our own collections
     const slug = p[1].toLowerCase();
-    if (slug === 'saved' || RESERVED_PATHS.has(slug)) continue;
+    if (slug === 'saved' || slug === 'collections' || RESERVED_PATHS.has(slug)) continue;
     out.add(`${href.origin}/${p[0]}/${p[1]}`);
   }
   return [...out];
