@@ -14,6 +14,28 @@
 const CDN_HOST = 'cdn.cosmos.so';
 const seen = new Set();
 
+// Real-time saves: the MAIN-world interceptor (cosmos-interceptor.js) detects
+// the save mutation and posts the saved element here. Relay it straight to the
+// background as a one-item batch so it lands in GatherOS immediately.
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  const d = event.data;
+  if (!d || d.source !== 'gatheros-cosmos-interceptor' || d.type !== 'save') return;
+  if (!d.mediaUrl) return; // image not seen yet — the profile/grid reader backfills it later
+  const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(d.mediaUrl);
+  const id = m ? m[1] : String(d.elementId);
+  if (seen.has(id)) return;
+  seen.add(id);
+  if (!chrome.runtime || !chrome.runtime.id) return;
+  try {
+    chrome.runtime.sendMessage({
+      type: 'gatheros:cosmos-saved-batch',
+      elements: [{ id, mediaUrl: d.mediaUrl, pageUrl: d.pageUrl || d.mediaUrl, type: 'image', caption: '', collection: null }],
+    });
+    console.log('[gatheros] cosmos: real-time save →', d.mediaUrl);
+  } catch { /* extension reloaded */ }
+});
+
 // https://cdn.cosmos.so/<uuid>?format=webp&w=400  →  <uuid>
 function idFromCdnUrl(url) {
   const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(url || '');
