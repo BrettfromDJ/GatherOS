@@ -702,8 +702,8 @@ function registerIpcHandlers() {
 
     const owner = BrowserWindow.fromWebContents(e.sender);
     const dlg = await dialog.showOpenDialog(owner ?? undefined, {
-      title: 'Export images to…',
-      buttonLabel: 'Export',
+      title: 'Download images to…',
+      buttonLabel: 'Download',
       properties: ['openDirectory', 'createDirectory'],
     });
     if (dlg.canceled || !dlg.filePaths?.[0]) return { ok: false, canceled: true };
@@ -746,8 +746,8 @@ function registerIpcHandlers() {
     const owner = BrowserWindow.fromWebContents(e.sender);
     const stamp = new Date().toISOString().slice(0, 10);
     const dlg = await dialog.showSaveDialog(owner ?? undefined, {
-      title: 'Export selection as zip',
-      buttonLabel: 'Export',
+      title: 'Download selection as zip',
+      buttonLabel: 'Download',
       defaultPath: `moodmark-export-${stamp}.zip`,
       filters: [{ name: 'Zip', extensions: ['zip'] }],
     });
@@ -826,8 +826,8 @@ function registerIpcHandlers() {
     const owner = BrowserWindow.fromWebContents(e.sender);
     const stamp = new Date().toISOString().slice(0, 10);
     const dlg = await dialog.showSaveDialog(owner ?? undefined, {
-      title: 'Export GatherOS library',
-      buttonLabel: 'Export',
+      title: 'Download GatherOS library',
+      buttonLabel: 'Download',
       defaultPath: `moodmark-backup-${stamp}.zip`,
       filters: [{ name: 'Zip', extensions: ['zip'] }],
     });
@@ -909,8 +909,8 @@ function registerIpcHandlers() {
     }
 
     const dlg = await dialog.showSaveDialog(owner, {
-      title: 'Export board as PNG',
-      buttonLabel: 'Export',
+      title: 'Download board as PNG',
+      buttonLabel: 'Download',
       defaultPath: defaultName || 'board.png',
       filters: [{ name: 'PNG Image', extensions: ['png'] }],
     });

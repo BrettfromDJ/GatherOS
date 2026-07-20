@@ -982,19 +982,19 @@ export default function SettingsModal({
     try {
       const result = await window.moodmark.library.exportZip();
       if (result?.ok) {
-        setExportState({ running: false, message: `Exported to ${result.savedPath}` });
+        setExportState({ running: false, message: `Downloaded to ${result.savedPath}` });
       } else if (result?.canceled) {
         setExportState({ running: false, message: null });
       } else {
         const reasonMsg = result?.reason === 'nothing-to-export'
-          ? 'Nothing to export yet'
+          ? 'Nothing to download yet'
           : result?.reason === 'no-active-library'
             ? 'No active library'
             : null;
-        setExportState({ running: false, message: result?.error || reasonMsg || 'Export failed' });
+        setExportState({ running: false, message: result?.error || reasonMsg || 'Download failed' });
       }
     } catch (err) {
-      setExportState({ running: false, message: err.message || 'Export failed' });
+      setExportState({ running: false, message: err.message || 'Download failed' });
     }
   }
 
@@ -1878,7 +1878,7 @@ export default function SettingsModal({
               </div>
 
               <p className={styles.sectionHint}>
-            Export your entire library — the GatherOS database plus every
+            Download your entire library — the GatherOS database plus every
             saved image and thumbnail — into a single .zip backup. You can
             restore later by replacing the contents of the app's data
             folder with this archive's contents.
@@ -1891,7 +1891,7 @@ export default function SettingsModal({
               disabled={exportState.running}
             >
               <FileArchiveIcon size={14} strokeWidth={1.5} aria-hidden="true" />
-              {exportState.running ? 'Exporting…' : 'Export library as zip'}
+              {exportState.running ? 'Downloading…' : 'Download library as zip'}
             </button>
           </div>
           {exportState.message && (

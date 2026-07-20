@@ -393,9 +393,9 @@ export default function FocusedView({
           <button
             type="button"
             className={styles.iconBtn}
-            data-tooltip="Export"
+            data-tooltip="Download"
             data-tooltip-pos="below"
-            aria-label="Export"
+            aria-label="Download"
             onClick={handleExport}
           >
             <ExportIcon />

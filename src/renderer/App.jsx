@@ -1487,7 +1487,7 @@ export default function App({ entitlement } = {}) {
     if (items.length > 0) items.push({ type: 'separator' });
     if (isMulti) {
       items.push({
-        label: `Export${suffix}`,
+        label: `Download${suffix}`,
         icon: <DownloadIcon />,
         onClick: () => window.moodmark.saves.exportBulk(targetIds),
       });
@@ -1499,7 +1499,7 @@ export default function App({ entitlement } = {}) {
           ? `${exportAnchor.title}.${ext}`
           : `moodmark-${exportAnchor.id.slice(0, 8)}.${ext}`;
         items.push({
-          label: 'Export',
+          label: 'Download',
           icon: <DownloadIcon />,
           onClick: () => window.moodmark.image.export(exportAnchor.file_path, exportName),
         });
@@ -2837,12 +2837,12 @@ export default function App({ entitlement } = {}) {
     if (!exportPicker) return [];
     return [
       {
-        label: 'Export as Files',
+        label: 'Download as files',
         icon: <DownloadIcon />,
         onClick: handleBulkExportFiles,
       },
       {
-        label: 'Export as Zip',
+        label: 'Download as zip',
         icon: <DownloadIcon />,
         onClick: handleBulkExportZip,
       },
@@ -3512,7 +3512,7 @@ export default function App({ entitlement } = {}) {
       { id: 'open-trash', label: 'Open trash', keywords: 'deleted bin', Icon: () => <Trash2 {...ICON} />, run: () => { handleModeChange('library'); handleViewChange({ type: 'trash' }); } },
       { id: 'shortcuts', label: 'Keyboard shortcuts', hint: '⌘/', keywords: 'keys help hotkeys', Icon: () => <Keyboard {...ICON} />, run: () => setShortcutsOpen(true) },
       { id: 'whats-new', label: "What's new", keywords: 'release notes changelog version', Icon: () => <Sparkles {...ICON} />, run: () => handleOpenReleaseNotes() },
-      { id: 'export-library', label: 'Export library as zip', keywords: 'backup download archive', Icon: () => <Archive {...ICON} />, run: () => window.moodmark.library?.exportZip?.() },
+      { id: 'export-library', label: 'Download library as zip', keywords: 'backup download archive export', Icon: () => <Archive {...ICON} />, run: () => window.moodmark.library?.exportZip?.() },
       { id: 'snapshot-library', label: 'Back up library now', keywords: 'snapshot data safety', Icon: () => <Save {...ICON} />, run: () => window.moodmark.backup?.snapshot?.() },
       { id: 'settings', label: 'Open settings', hint: '⌘,', keywords: 'preferences options', Icon: () => <Settings {...ICON} />, run: () => setSettingsOpen(true) },
       settingsPage('appearance', 'Settings · Appearance', 'theme dark light', () => <Palette {...ICON} />),
@@ -3524,7 +3524,7 @@ export default function App({ entitlement } = {}) {
       settingsPage('sound', 'Settings · Sound', 'effects volume', () => <Volume2 {...ICON} />),
       settingsPage('updates', 'Settings · Updates', 'version beta check', () => <RotateCw {...ICON} />),
       settingsPage('storage', 'Settings · Storage', 'space optimize reclaim size', () => <HardDrive {...ICON} />),
-      settingsPage('data', 'Settings · Data', 'backup snapshot restore wipe export', () => <Database {...ICON} />),
+      settingsPage('data', 'Settings · Data', 'backup snapshot restore wipe export download', () => <Database {...ICON} />),
       settingsPage('about', 'Settings · About', 'acknowledgments version privacy', () => <Info {...ICON} />),
     ];
   }, [handleCreateAndOpenCollection, handleCreateBoard, handleModeChange, handleViewChange, handleOpenReleaseNotes, setView]);
@@ -4009,8 +4009,8 @@ export default function App({ entitlement } = {}) {
             type="button"
             className="selection-btn selection-btn-compact"
             onClick={openExportPicker}
-            data-tooltip="Export"
-            aria-label="Export selected images"
+            data-tooltip="Download"
+            aria-label="Download selected images"
           >
             <span className="selection-btn-icon"><DownloadIcon /></span>
             <span className="selection-btn-chevron" aria-hidden="true">

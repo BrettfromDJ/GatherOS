@@ -2469,7 +2469,7 @@ export default function BoardView({
         <button
           type="button"
           className={styles.toolBtn}
-          title="Export PNG"
+          title="Download PNG"
           onClick={exportBoardPng}
           disabled={exporting}
         >

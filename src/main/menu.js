@@ -67,7 +67,7 @@ function buildAppMenu({ getMainWindow }) {
         },
         { type: 'separator' },
         {
-          label: 'Export Library…',
+          label: 'Download Library…',
           click: () => send('export-library'),
         },
         {
