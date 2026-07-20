@@ -9,9 +9,6 @@ import {
   Monitor as MonitorIcon,
   Sun as SunIcon,
   Moon as MoonIcon,
-  Crop as CropIcon,
-  AppWindow as AppWindowIcon,
-  Maximize as MaximizeIcon,
   LogOut as LogOutIcon,
   CreditCard as CreditCardIcon,
   FileArchive as FileArchiveIcon,
@@ -1444,31 +1441,6 @@ export default function SettingsModal({
                 <span className={styles.fieldHint}>
                   Captures the next key combo you press. Esc cancels.
                 </span>
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Default mode</label>
-                <div className={styles.segmentedRow}>
-                  {[
-                    { value: 'region',     label: 'Region',     Icon: CropIcon },
-                    { value: 'window',     label: 'Window',     Icon: AppWindowIcon },
-                    { value: 'fullscreen', label: 'Fullscreen', Icon: MaximizeIcon },
-                  ].map(({ value, label, Icon }) => {
-                    const active = prefs.captureMode === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`${styles.segmentBtn} ${active ? styles.segmentBtnActive : ''}`}
-                        onClick={() => updatePref('captureMode', value)}
-                        aria-pressed={active}
-                      >
-                        {active && <Icon size={14} strokeWidth={1.8} aria-hidden="true" />}
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               <div className={styles.field}>
