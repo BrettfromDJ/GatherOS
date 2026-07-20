@@ -288,6 +288,9 @@ async function handleMessage(msg) {
         // Optional collection name (Cosmos cluster) to file the save into on
         // the desktop side.
         collection: typeof msg.collection === 'string' ? msg.collection : null,
+        // A live save the user just made (vs a batch history sync) — stamped
+        // NOW so it lands at the top of the grid.
+        realtime: msg.realtime === true,
         // Explicit "Import bookmarks" backfill flag — must be forwarded
         // so the server can override a bookmark's tombstone and re-import
         // something the user previously deleted.

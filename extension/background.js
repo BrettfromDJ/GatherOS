@@ -816,6 +816,9 @@ async function syncCosmosElementToGather(el) {
     // name so the desktop can file the save into a matching GatherOS
     // collection. Null for plain profile saves.
     collection: el.collection || null,
+    // A live save (real-time capture) vs a grid backfill — drives whether the
+    // desktop stamps it "now" (top of grid) or on the descending sync clock.
+    realtime: el.realtime === true,
     pageUrl: el.pageUrl || el.mediaUrl || null,
     tweetMeta: {
       authorName: el.authorName || '',

@@ -371,10 +371,12 @@ async function handleSave(req, res) {
       notes: notes || null,
       tweetMeta,
       source,
-      // Synced posts (tweetMeta present) ride the descending sync clock so
-      // a newest-first stream stays newest-first in the app; one-off image
+      // A live save (realtime: a single Cosmos save you just made) is stamped
+      // NOW so it lands at the top of the grid, like a manual save. Batch
+      // history syncs (tweetMeta present, no realtime flag) ride the descending
+      // sync clock so a newest-first stream keeps its order; one-off image
       // saves keep the default now-timestamp.
-      createdAt: tweetMeta ? nextSyncCreatedAt() : undefined,
+      createdAt: body?.realtime ? Date.now() : (tweetMeta ? nextSyncCreatedAt() : undefined),
     });
     attachTags(record.id);
     notifyNew(record);

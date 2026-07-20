@@ -30,7 +30,7 @@ window.addEventListener('message', (event) => {
   try {
     chrome.runtime.sendMessage({
       type: 'gatheros:cosmos-saved-batch',
-      elements: [{ id, mediaUrl: d.mediaUrl, pageUrl: d.pageUrl || d.mediaUrl, type: 'image', caption: '', collection: null }],
+      elements: [{ id, mediaUrl: d.mediaUrl, pageUrl: d.pageUrl || d.mediaUrl, type: 'image', caption: '', collection: null, realtime: true }],
     });
     console.log('[gatheros] cosmos: real-time save →', d.mediaUrl);
   } catch { /* extension reloaded */ }
