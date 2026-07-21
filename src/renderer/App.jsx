@@ -69,6 +69,7 @@ import {
   Shuffle,
   Search,
   Images,
+  ImagePlus,
   Folder,
   Eclipse,
   Moon,
@@ -123,6 +124,7 @@ const InboxIcon = () => <Inbox {...ICON} />;
 const RestoreIcon = () => <RotateCcw {...ICON} />;
 const SimilarIcon = () => <Copy {...ICON} />;
 const MinusCircleIcon = () => <MinusCircle {...ICON} />;
+const CoverIcon = () => <ImagePlus {...ICON} />;
 const SortFabIcon = () => <Focus {...ICON} />;
 const ClipboardIcon = () => <Clipboard {...ICON} />;
 const ExternalLinkIcon = () => <ExternalLink {...ICON} />;
@@ -1216,6 +1218,24 @@ export default function App({ entitlement } = {}) {
       return items;
     }
     if (view.type === 'collection') {
+      // Set the sleeve cover for the collection being viewed. Single-save
+      // only (a cover is one image), and only when the save actually
+      // lives in this exact collection (not just a child of it), since
+      // setCollectionCover requires direct membership.
+      if (!isMulti && (memberIds || []).includes(view.id)) {
+        items.push({
+          label: 'Set as collection cover',
+          icon: <CoverIcon />,
+          onClick: async () => {
+            try {
+              await window.moodmark.collections.setCover(view.id, saveId);
+              loadCollections();
+            } catch (err) {
+              console.error('[cover] setCover failed:', err);
+            }
+          },
+        });
+      }
       // Membership-aware removal. The menu already knows which
       // collections hold the save(s) (memberIds resolved at open), so
       // when the membership within this view's subtree is known, offer

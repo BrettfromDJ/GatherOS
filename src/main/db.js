@@ -431,6 +431,12 @@ const MIGRATIONS = [
   (database) => {
     addColumnIfMissing(database, 'saves', 'hidden_at', 'INTEGER');
   },
+  // User-chosen collection cover. NULL = fall back to the newest save
+  // (the original auto-cover behaviour). Set via "Set as collection
+  // cover" on a save; the crate's sleeve face prefers it.
+  (database) => {
+    addColumnIfMissing(database, 'collections', 'cover_save_id', 'TEXT');
+  },
 ];
 
 function addColumnIfMissing(database, table, name, type) {
@@ -1506,8 +1512,15 @@ function getAllCollectionsWithThumbs() {
     SELECT c.id, c.name, c.color, c.created_at, c.order_index, c.parent_id,
            (SELECT COUNT(*) FROM membership m WHERE m.cid = c.id) AS save_count,
            tt.thumbs AS thumbs_blob,
-           (SELECT r.cover_or_file FROM ranked r
-             WHERE r.collection_id = c.id AND r.rn = 1) AS cover
+           -- Cover: the user's chosen save (full quality) when set and still
+           -- alive, otherwise the newest save in the collection.
+           COALESCE(
+             (SELECT COALESCE(NULLIF(cs.preview_path, ''), NULLIF(cs.file_path, ''), cs.thumb_path)
+                FROM saves cs
+               WHERE cs.id = c.cover_save_id AND cs.deleted_at IS NULL),
+             (SELECT r.cover_or_file FROM ranked r
+               WHERE r.collection_id = c.id AND r.rn = 1)
+           ) AS cover
     FROM collections c
     LEFT JOIN top_thumbs tt ON tt.collection_id = c.id
     ORDER BY c.order_index ASC, c.created_at ASC
@@ -1699,6 +1712,23 @@ function reorderCollections(orderedIds) {
 
 function renameCollection({ id, name } = {}) {
   getDatabase().prepare('UPDATE collections SET name = ? WHERE id = ?').run(name, id);
+  return { ok: true };
+}
+
+// Pin a specific save as the collection's cover. Pass saveId = null to
+// clear it (revert to the newest-save auto-cover). Only accepts a save
+// that actually belongs to the collection, so a stray id can't set a
+// cover the collection doesn't contain.
+function setCollectionCover({ id, saveId } = {}) {
+  if (!id) return { ok: false, reason: 'invalid' };
+  const db = getDatabase();
+  if (saveId) {
+    const member = db.prepare(
+      'SELECT 1 FROM collection_items WHERE collection_id = ? AND save_id = ? LIMIT 1'
+    ).get(id, saveId);
+    if (!member) return { ok: false, reason: 'not-in-collection' };
+  }
+  db.prepare('UPDATE collections SET cover_save_id = ? WHERE id = ?').run(saveId || null, id);
   return { ok: true };
 }
 
@@ -2059,6 +2089,7 @@ module.exports = {
   getCollectionsContainingAll,
   createCollection,
   renameCollection,
+  setCollectionCover,
   setCollectionParent,
   deleteCollection,
   reorderCollections,

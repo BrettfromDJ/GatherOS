@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('moodmark', {
     containingAll: (saveIds) => ipcRenderer.invoke('collections:containing-all', saveIds),
     create: (payload) => ipcRenderer.invoke('collections:create', payload),
     rename: (payload) => ipcRenderer.invoke('collections:rename', payload),
+    setCover: (id, saveId) => ipcRenderer.invoke('collections:set-cover', { id, saveId }),
     setParent: (id, parentId) => ipcRenderer.invoke('collections:set-parent', { id, parentId }),
     delete: (id) => ipcRenderer.invoke('collections:delete', id),
     reorder: (ids) => ipcRenderer.invoke('collections:reorder', ids),

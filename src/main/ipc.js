@@ -7,7 +7,7 @@ const {
   emptyTrash, wipeLibrary, updateSave, insertSave,
   getSaveEmbeddingsCached, getSavesByIds, getUnindexedSaves, getUnindexedCount, getSmartViewCounts,
   filterByColor, findSimilarByPalette,
-  getAllCollections, getAllCollectionsWithThumbs, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionParent,
+  getAllCollections, getAllCollectionsWithThumbs, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionCover, setCollectionParent,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
   getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
   listBoards, listBoardsWithThumbs, getBoard, createBoard, renameBoard, deleteBoard, reorderBoards,
@@ -529,6 +529,7 @@ function registerIpcHandlers() {
   ipcMain.handle('collections:containing-all', (_e, saveIds) => getCollectionsContainingAll(saveIds));
   ipcMain.handle('collections:create', (_e, payload) => createCollection(payload));
   ipcMain.handle('collections:rename', (_e, payload) => renameCollection(payload));
+  ipcMain.handle('collections:set-cover', (_e, payload) => setCollectionCover(payload));
   ipcMain.handle('collections:set-parent', (_e, payload) => setCollectionParent(payload));
   ipcMain.handle('collections:delete', (_e, id) => deleteCollection(id));
   ipcMain.handle('collections:reorder', (_e, ids) => reorderCollections(ids));

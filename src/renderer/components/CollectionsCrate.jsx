@@ -13,9 +13,14 @@ import { fileUrl } from '../lib/fileUrl.js';
 
 const FALLBACK_SPINE = '#55555a';
 
-// Average color of a collection's first thumbnail → its sleeve spine.
-// Sampled through a tiny canvas; wrapped in try/catch so a tainted canvas
-// (or unreadable file) just keeps the neutral fallback.
+// Average color of a collection's cover → its sleeve spine, so the folded
+// edge matches the face (including after the cover is changed). Sampled
+// through a tiny canvas; wrapped in try/catch so a tainted/unreadable
+// image just keeps the neutral fallback. Keyed by id+cover so changing a
+// collection's cover re-samples the spine rather than reusing the old one.
+function coverOf(c) {
+  return c.cover || (Array.isArray(c.thumbs) ? c.thumbs[0] : null);
+}
 function useSpineColors(collections, open) {
   const [colors, setColors] = useState({});
   const done = useRef(new Set());
@@ -23,9 +28,10 @@ function useSpineColors(collections, open) {
     if (!open) return undefined;
     let alive = true;
     for (const c of collections) {
-      const src = Array.isArray(c.thumbs) ? c.thumbs[0] : null;
-      if (!src || done.current.has(c.id)) continue;
-      done.current.add(c.id);
+      const src = coverOf(c);
+      const key = `${c.id}:${src || ''}`;
+      if (!src || done.current.has(key)) continue;
+      done.current.add(key);
       const img = new Image();
       img.onload = () => {
         if (!alive) return;
@@ -125,7 +131,7 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
         {items.map((c, i) => {
           // Full-quality cover (preview/original) for the big sleeve face —
           // thumb_path is grid-tile sized and reads blurry at 320px wide.
-          const face = c.cover || (Array.isArray(c.thumbs) ? c.thumbs[0] : null);
+          const face = coverOf(c);
           const cls = [
             styles.slot,
             i === hovIdx ? styles.hov : '',
