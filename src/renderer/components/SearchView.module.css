@@ -511,6 +511,10 @@
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
 }
 .chip:hover { background: var(--hover-bg); color: var(--text-primary); border-color: var(--border-strong); }
+/* Leading search glyph on recent-search chips — muted, brightens on hover. */
+.chipIcon { display: inline-flex; width: 13px; height: 13px; flex: none; color: var(--text-tertiary); margin-left: -1px; }
+.chipIcon svg { width: 100%; height: 100%; display: block; }
+.chip:hover .chipIcon { color: var(--text-secondary); }
 
 .chipHash { display: inline-flex; color: var(--text-tertiary); }
 .chipHash svg { width: 13px; height: 13px; display: block; }

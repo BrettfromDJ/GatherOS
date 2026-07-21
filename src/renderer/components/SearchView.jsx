@@ -757,6 +757,7 @@ export default function SearchView({
               <div className={styles.chips}>
                 {recents.map((t) => (
                   <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
+                    <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
                     {t}
                   </button>
                 ))}
