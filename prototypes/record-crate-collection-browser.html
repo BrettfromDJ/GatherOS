@@ -76,9 +76,13 @@
   .cov svg{position:absolute;inset:0;width:100%;height:100%}
   /* Raking light: the face is lit at its near (left) edge and falls into
      deep shadow across its width — this is most of the reference's drama.
-     Lifts when a sleeve opens toward the viewer. */
+     The vertical gradient dissolves each sleeve's top into the dark header
+     zone (per-cover, so it can never veil the labels above). Lifts when a
+     sleeve is pulled out. */
   .shade{position:absolute;inset:0;z-index:4;pointer-events:none;
-    background:linear-gradient(90deg,rgba(0,0,0,0) 4%,rgba(0,0,0,.28) 48%,rgba(0,0,0,.85) 100%);
+    background:
+      linear-gradient(180deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,0) 24%),
+      linear-gradient(90deg,rgba(0,0,0,0) 4%,rgba(0,0,0,.28) 48%,rgba(0,0,0,.85) 100%);
     transition:opacity .45s var(--ease)}
   .slot.hov .shade{opacity:.28}
   .slot.sel .shade{opacity:.5}
@@ -112,9 +116,6 @@
      raised layer. JS re-derives hover on every mousemove AND every scroll. */
   .covw{pointer-events:none}
 
-  /* Atmosphere: tops of the sleeves dissolve into the dark header zone,
-     bottoms sink under the deck gradient. */
-  .fadeTop{position:absolute;left:0;right:0;top:0;height:30vh;background:linear-gradient(#000 24%,transparent);z-index:400;pointer-events:none}
 
   /* ── Cover art (gradients + inline svg only) ───────────── */
   .cv1{background:linear-gradient(155deg,#2438ff,#0a18b8)}
@@ -160,7 +161,7 @@
 </style>
 </head>
 <body>
-  <div class="stage"><div class="row" id="row"></div><div class="fadeTop"></div></div>
+  <div class="stage"><div class="row" id="row"></div></div>
 
   <header class="hdr">
     <div class="mark"><span class="w">GatherOS</span><span class="s">Collections</span></div>
