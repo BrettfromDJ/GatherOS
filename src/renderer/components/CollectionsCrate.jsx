@@ -121,7 +121,16 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
   const activeIdx = hovIdx != null ? hovIdx : sel;
 
   return (
-    <div className={styles.scrim} role="dialog" aria-label="Browse collections">
+    <div
+      className={styles.scrim}
+      role="dialog"
+      aria-label="Browse collections"
+      /* Opt the whole crate out of the app-shell's horizontal-swipe
+         navigation — without this, sideways-scrolling the sleeves trips
+         the global wheel handler that flips between smart views and
+         collections one by one. */
+      data-allow-horizontal-scroll="true"
+    >
       <div
         className={styles.row}
         ref={rowRef}
