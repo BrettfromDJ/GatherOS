@@ -52,29 +52,49 @@ function DustField({ count, near = false, className }) {
     function seed() {
       parts.length = 0;
       for (let i = 0; i < count; i += 1) {
+        // ~30% sit out of focus (larger, dim, soft); the rest are crisp,
+        // bright specks — that mix is what reads as dust in a light beam.
+        const soft = Math.random() < 0.3;
         parts.push({
           x: rand(0, w), y: rand(0, h),
-          r: near ? rand(1.3, 2.8) : rand(0.5, 1.7),
+          r: soft
+            ? (near ? rand(2.6, 4.4) : rand(1.6, 3))
+            : (near ? rand(0.7, 1.5) : rand(0.4, 1)),
           vx: rand(-0.05, 0.05) * (near ? 1.5 : 1),
           vy: rand(-0.13, -0.03) * (near ? 1.5 : 1), // slow upward drift
-          baseA: near ? rand(0.18, 0.42) : rand(0.05, 0.22),
+          baseA: soft
+            ? (near ? rand(0.06, 0.14) : rand(0.04, 0.09))
+            : (near ? rand(0.5, 0.95) : rand(0.28, 0.6)),
+          soft,
           tw: rand(0, Math.PI * 2),
-          tws: rand(0.004, 0.013),
+          tws: rand(0.008, 0.03),
         });
       }
     }
     function draw() {
       ctx.clearRect(0, 0, w, h);
       for (const p of parts) {
-        const a = p.baseA * (0.6 + 0.4 * Math.sin(p.tw));
-        const rr = p.r * 3;
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
-        g.addColorStop(0, `rgba(255,248,236,${a.toFixed(3)})`);
-        g.addColorStop(1, 'rgba(255,248,236,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);
-        ctx.fill();
+        // Sharp specks flicker as they catch the light; soft ones barely pulse.
+        const a = p.baseA * (p.soft ? 0.75 + 0.25 * Math.sin(p.tw) : 0.4 + 0.6 * Math.sin(p.tw));
+        if (a <= 0.003) continue;
+        if (p.soft) {
+          const rr = p.r * 2.2;
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
+          g.addColorStop(0, `rgba(255,247,232,${a.toFixed(3)})`);
+          g.addColorStop(1, 'rgba(255,247,232,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, Math.PI * 2); ctx.fill();
+        } else {
+          // Faint glow (light caught around the speck) + a crisp bright core.
+          const halo = p.r * 3;
+          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, halo);
+          g.addColorStop(0, `rgba(255,247,232,${(a * 0.3).toFixed(3)})`);
+          g.addColorStop(1, 'rgba(255,247,232,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(p.x, p.y, halo, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `rgba(255,251,242,${Math.min(1, a).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        }
       }
     }
     function step() {
