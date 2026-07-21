@@ -300,6 +300,10 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
                       <video
                         src={fileUrl(face)}
                         poster={poster ? fileUrl(poster) : undefined}
+                        // crossOrigin so the spine sampler's canvas isn't
+                        // tainted (the moodmark-file protocol is CORS-enabled
+                        // for exactly this — see the eyedropper).
+                        crossOrigin="anonymous"
                         autoPlay
                         muted
                         loop
@@ -325,6 +329,11 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
                           src={fileUrl(face)}
                           alt=""
                           draggable={false}
+                          // crossOrigin so drawing this into the spine
+                          // sampler's canvas doesn't taint it (getImageData
+                          // throws on a tainted canvas). The moodmark-file
+                          // protocol is CORS-enabled for this.
+                          crossOrigin="anonymous"
                           loading="lazy"
                           decoding="async"
                           onLoad={(e) => {
