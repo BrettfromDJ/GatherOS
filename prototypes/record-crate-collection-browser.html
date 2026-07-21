@@ -97,16 +97,18 @@
   .edge.l{display:none}
   .slot.sel .c3d{transform:perspective(950px) translateZ(26px) rotateY(calc(var(--ry)*0.78))}
   .slot.sel .covw{filter:brightness(1.03)}
-  .slot.hov .c3d{transform:perspective(950px) translateZ(42px) translateY(-14px) rotateY(calc(var(--ry)*0.7))}
-  .slot.hov .covw{filter:brightness(1.08)}
+  /* Hover = pulling a book from the shelf: the sleeve slides out along its
+     OWN facing direction (rotate first, then translate along the local
+     normal), keeps its exact angle, moves no neighbors, and changes no
+     layering — it just comes forward from behind its left neighbor and
+     lights up. */
+  .slot.hov .c3d{transform:perspective(950px) rotateY(var(--ry)) translateZ(64px)}
+  .slot.hov .covw{filter:brightness(1.1)}
   /* Hover is the .hov class, applied by JS from the pointer's slot column —
      never CSS :hover. :hover goes stale when the row scrolls under a
      stationary mouse (no mouseleave fires), which left sleeves stuck on a
      raised layer. JS re-derives hover on every mousemove AND every scroll. */
   .covw{pointer-events:none}
-  /* The row parts gently around the hovered sleeve to give it room. */
-  .slot.hov ~ .slot .covw{transform:translateX(24px)}
-  .slot:has(~ .slot.hov) .covw{transform:translateX(-24px)}
 
   /* Atmosphere: tops of the sleeves dissolve into the dark header zone,
      bottoms sink under the deck gradient. */
@@ -273,7 +275,6 @@
     if (hovSlot) hovSlot.classList.remove('hov');
     hovSlot = s;
     if (s) s.classList.add('hov');
-    layout();
   }
   row.addEventListener('mousemove', (e) => {
     lastX = e.clientX; lastY = e.clientY;
@@ -286,15 +287,12 @@
     setHov(el ? el.closest('.slot') : null);
   }, { passive: true });
 
-  /* The rake is constant, so stacking is simple: the leftmost sleeve is
-     always on top of the one to its right, each sleeve tucking behind its
-     left neighbor — except the hovered sleeve, which takes the top layer. */
-  function layout() {
-    [...row.children].forEach((slot, i) => {
-      slot.style.zIndex = String(slot === hovSlot ? 999 : 10 + (N - i));
-    });
-  }
-  layout();
+  /* Stacking is fixed: the leftmost sleeve is always on top, each sleeve
+     tucking behind its left neighbor. Hover never changes layering —
+     the pulled sleeve just slides forward from behind its neighbor. */
+  [...row.children].forEach((slot, i) => {
+    slot.style.zIndex = String(10 + (N - i));
+  });
 
   function select(i, instant) {
     sel = Math.max(0, Math.min(N - 1, i));
