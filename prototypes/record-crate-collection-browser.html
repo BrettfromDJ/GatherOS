@@ -31,17 +31,19 @@
      not the list, so any number of collections pass through it. */
   .row{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
   .row::-webkit-scrollbar{display:none}
-  .slot{flex:none;width:122px;position:relative;cursor:pointer;animation:rise .8s var(--ease) backwards;animation-delay:calc(min(var(--i),14)*55ms)}
+  .slot{flex:none;width:122px;position:relative;cursor:pointer;animation:drop .7s cubic-bezier(0.22,1.2,0.36,1) backwards;animation-delay:calc(min(var(--i),14)*55ms)}
   .slot:first-child{margin-left:9vw}
   .slot:last-child{margin-right:9vw}
-  /* Sleeves rise in at full opacity — translucent overlapping sleeves
-     read as a rendering glitch, so the entrance is motion-only. */
-  @keyframes rise{from{transform:translateY(105vh)}}
+  /* Entrance: each sleeve falls from above and settles into place,
+     staggered left to right — full opacity throughout (translucent
+     overlapping sleeves read as a rendering glitch). The eased overshoot
+     gives a slight "drop into the crate" settle. */
+  @keyframes drop{from{transform:translateY(-115vh)}}
 
-  .lab{position:absolute;top:13vh;left:10px;right:4px;opacity:.72;transition:opacity .25s;cursor:pointer;z-index:500}
+  .lab{position:absolute;top:13vh;left:10px;right:4px;opacity:.65;transition:opacity .25s;cursor:pointer;z-index:500}
   .slot.hov .lab,.slot.sel .lab{opacity:1}
   .lab .n{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.32}
-  .lab .m{font-size:10.5px;color:rgba(255,255,255,.55);margin-top:3px}
+  .lab .m{font-size:10.5px;color:rgba(255,255,255,.7);margin-top:3px}
   .lab .p{font-size:9px;margin-top:10px;color:rgba(255,255,255,.8)}
 
   .covw{position:absolute;left:50%;top:27vh;width:320px;height:70vh;margin-left:-160px;cursor:pointer;
