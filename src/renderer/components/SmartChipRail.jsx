@@ -341,7 +341,7 @@ export default function SmartChipRail({
               <button
                 key={value}
                 type="button"
-                className={`${styles.sourceSeg}${sourceFilter === value ? ` ${styles.sourceSegOn}` : ''}`}
+                className={`${styles.sourceSeg}${Icon ? ` ${styles.sourceSegIcon}` : ''}${sourceFilter === value ? ` ${styles.sourceSegOn}` : ''}`}
                 onClick={() => onSourceChange(value)}
                 aria-pressed={sourceFilter === value}
                 title={value === 'all' ? 'All saves' : `${label} only`}

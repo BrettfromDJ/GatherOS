@@ -446,6 +446,14 @@
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease;
 }
 
+/* Icon-only segs (X / Instagram / Cosmos) sit in a square 1:1 container;
+   only "All" keeps its text width. */
+.sourceSegIcon {
+  padding: 0;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+}
+
 .sourceSeg:hover:not(.sourceSegOn) {
   color: var(--text-primary);
   background: rgba(120, 120, 128, 0.10);
