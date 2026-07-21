@@ -284,7 +284,7 @@
       slot.style.setProperty('--ry', ry.toFixed(1) + 'deg');
       slot.style.setProperty('--br', br.toFixed(2));
       slot.classList.toggle('lft', dx < 0);           // which spine faces the viewer
-      let z = 10 + Math.round(t * 60);
+      let z = 10 + Math.round((1 - t) * 60);          // center sleeves stack on top
       if (slot === hovSlot) z = 999;
       else if (settling.has(slot)) {
         const leftMs = settling.get(slot) - now;
