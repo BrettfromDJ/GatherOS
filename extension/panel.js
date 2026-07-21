@@ -184,16 +184,8 @@
       <div class="import" id="cosmosImport">
         <button class="btn" id="importCosmos"><span class="ico">${svg(ICONS.cosmos, 15)}</span><span class="txt"><span class="label">Import saves</span><span class="sub" id="cosmosSub">Backfill your Cosmos saves</span></span></button>
         <div class="scope" id="cosmosScope" hidden>
-          <select class="count" id="cosmosCount">
-            <option value="25" selected>Most recent 25</option>
-            <option value="50">Most recent 50</option>
-            <option value="100">Most recent 100</option>
-            <option value="200">Most recent 200</option>
-            <option value="500">Most recent 500</option>
-            <option value="0">All saves</option>
-          </select>
-          <button class="import-go" id="cosmosGo" disabled>Import</button>
-          <div class="scope-note">Opens your Cosmos profile and each collection, importing every save in the background — duplicates are skipped.</div>
+          <button class="import-go" id="cosmosGo">Import all saves</button>
+          <div class="scope-note">Cosmos saves aren't dated, so this imports everything — your profile and each collection — in the background. Duplicates are skipped.</div>
           <div class="scope-msg" id="cosmosMsg" hidden></div>
         </div>
       </div>
@@ -328,30 +320,23 @@
   const cosmosScope = root.getElementById('cosmosScope');
   const cosmosSub = root.getElementById('cosmosSub');
   const cosmosGo = root.getElementById('cosmosGo');
-  const cosmosCount = root.getElementById('cosmosCount');
-  let cosmosSelectedLimit = null;
 
+  // No count chooser: the crawl walks the profile then each collection in page
+  // order, and Cosmos saves have no date, so "most recent N" is meaningless —
+  // it's all-or-nothing. Clicking just expands a confirm.
   root.getElementById('importCosmos').addEventListener('click', () => {
     cosmosScope.hidden = !cosmosScope.hidden;
     cosmosImportEl.classList.toggle('expanded', !cosmosScope.hidden);
     cosmosSub.textContent = cosmosScope.hidden
       ? 'Backfill your Cosmos saves'
-      : 'Choose how many, then import';
+      : 'Profile and every collection';
   });
-
-  const syncCosmosCount = () => {
-    cosmosSelectedLimit = cosmosCount.value === '' ? null : Number(cosmosCount.value); // 0 = all
-    cosmosGo.disabled = cosmosSelectedLimit === null;
-  };
-  cosmosCount.addEventListener('change', syncCosmosCount);
-  syncCosmosCount();
 
   const cosmosMsg = root.getElementById('cosmosMsg');
   cosmosGo.addEventListener('click', () => {
-    if (cosmosSelectedLimit === null) return;
     clearMsg(cosmosMsg);
     cosmosGo.disabled = true;
-    chrome.runtime.sendMessage({ type: 'gatheros:import-cosmos', limit: cosmosSelectedLimit }, (resp) => {
+    chrome.runtime.sendMessage({ type: 'gatheros:import-cosmos', limit: 0 }, (resp) => {
       handleImportResult(resp, { goBtn: cosmosGo, msgEl: cosmosMsg, label: 'Cosmos', url: 'https://www.cosmos.so/' });
     });
   });
