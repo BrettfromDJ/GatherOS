@@ -1,0 +1,235 @@
+/* Collections crate — dark, theatre-style browse mode. The palette is
+   intentionally fixed (not theme tokens): the crate reads as a stage in
+   both light and dark app themes, matching the prototype exactly. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9400;
+  background: #000;
+  font-family: var(--font-ui);
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  animation: scrimIn var(--dur-quick, 160ms) ease-out;
+}
+
+@keyframes scrimIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The crate scrolls horizontally — any number of collections fit. */
+.row {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.row::-webkit-scrollbar { display: none; }
+
+.slot {
+  flex: none;
+  width: 122px;
+  position: relative;
+  cursor: pointer;
+  animation: drop 0.7s cubic-bezier(0.22, 1.2, 0.36, 1) backwards;
+  animation-delay: calc(var(--i) * 55ms);
+}
+.slot:first-child { margin-left: 9vw; }
+.slot:last-child { margin-right: 9vw; }
+
+/* Entrance: each sleeve falls from above and settles into place,
+   staggered left to right — full opacity throughout (translucent
+   overlapping sleeves read as a rendering glitch). */
+@keyframes drop {
+  from { transform: translateY(-115vh); }
+}
+
+/* Labels: only the hovered sleeve's label is fully lit — everything
+   else (selected included) rests at 50%. */
+.lab {
+  position: absolute;
+  top: 13vh;
+  left: 10px;
+  right: 4px;
+  opacity: 0.5;
+  transition: opacity 0.25s;
+  z-index: 500;
+}
+.slot.hov .lab { opacity: 1; }
+.labName {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.32;
+}
+.labMeta {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 3px;
+}
+.labTick {
+  font-size: 9px;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.covw {
+  position: absolute;
+  left: 50%;
+  top: 27vh;
+  width: 320px;
+  height: 70vh;
+  margin-left: -160px;
+  pointer-events: none; /* hover comes from the slot column, not the overlapping planes */
+  filter: brightness(1);
+  transition: filter 0.55s;
+}
+.slot.hov .covw { filter: brightness(1.1); }
+.slot.sel .covw { filter: brightness(1.03); }
+
+/* 3D group: the art face plus a real folded-back spine, so each sleeve
+   has cardboard thickness. (Brightness lives on the wrapper — a filter
+   on the preserve-3d element itself would flatten the spine.) */
+.c3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: perspective(950px) rotateY(-58deg);
+  transition: transform 0.45s var(--ease-out, cubic-bezier(0.32, 0.72, 0, 1));
+}
+/* Hover = pulling a book from the shelf: the sleeve comes toward the
+   viewer AND slides right, out from under its left neighbor — the
+   rightward component is what reveals the hidden left side of the
+   cover. Rake, layering, and neighbors stay untouched. */
+.slot.hov .c3d { transform: perspective(950px) translateZ(60px) translateX(52px) rotateY(-58deg); }
+.slot.sel .c3d { transform: perspective(950px) translateZ(26px) rotateY(-45deg); }
+.slot.hov.sel .c3d { transform: perspective(950px) translateZ(60px) translateX(52px) rotateY(-58deg); }
+
+.cov {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  backface-visibility: hidden;
+  background: #17171a;
+  /* Each sleeve throws hard onto the one behind it (to its right):
+     a tight contact shadow, a broad mid throw, and ambient depth. */
+  box-shadow:
+    28px 0 26px -12px rgba(0, 0, 0, 0.92),
+    80px 0 90px -18px rgba(0, 0, 0, 0.78),
+    0 18px 40px rgba(0, 0, 0, 0.7),
+    0 60px 120px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.45s var(--ease-out, cubic-bezier(0.32, 0.72, 0, 1));
+}
+.slot.hov .cov {
+  box-shadow:
+    44px 0 44px -12px rgba(0, 0, 0, 0.95),
+    110px 0 130px -16px rgba(0, 0, 0, 0.8),
+    0 26px 60px rgba(0, 0, 0, 0.75),
+    0 80px 150px rgba(0, 0, 0, 0.65);
+}
+/* Rim light on the near (left) edge + a soft diagonal sheen. */
+.cov::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0) 7%),
+    linear-gradient(105deg, rgba(255, 255, 255, 0.12), transparent 30%);
+}
+.cov img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+/* Empty-collection sleeve: big serif initial on dark stock. */
+.letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 130px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Raking light: the face is lit at its near (left) edge and falls into
+   deep shadow across its width. The vertical gradient dissolves each
+   sleeve's top into the dark header zone (per-cover, so it can never
+   veil the labels above). Lifts when a sleeve is pulled out. */
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0) 24%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0) 4%, rgba(0, 0, 0, 0.28) 48%, rgba(0, 0, 0, 0.85) 100%);
+  transition: opacity 0.45s var(--ease-out, cubic-bezier(0.32, 0.72, 0, 1));
+}
+.slot.hov .shade { opacity: 0.28; }
+.slot.sel .shade { opacity: 0.5; }
+
+/* Cardboard spine: a thin plane folded 90° back from the right edge (the
+   near side at this rake), tinted by the artwork's average color. Only
+   the near spine renders — under perspective the far edge would show
+   "around" the face's silhouette as a phantom slab. */
+.edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  transform-origin: right center;
+  transform: rotateY(-90deg);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--spine, #55555a) 78%, #fff) 0%,
+    var(--spine, #55555a) 48%,
+    color-mix(in srgb, var(--spine, #55555a) 68%, #000) 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+/* Bottom overlay: atmosphere gradient + the browse hint. */
+.deck {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16vh 38px 26px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0.88));
+  z-index: 600;
+  pointer-events: none;
+}
+.hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: -0.003em;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim, .slot, .c3d, .cov, .shade, .covw, .lab { animation: none !important; transition: none !important; }
+}

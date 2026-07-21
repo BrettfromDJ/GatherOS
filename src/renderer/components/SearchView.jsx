@@ -152,6 +152,7 @@ export default function SearchView({
   allTags = [],
   collections = [],
   onOpenCollection,
+  onBrowseCrate,
   onOpenCommandPalette,
   searchInputRef,
   scrollRef,
@@ -689,6 +690,11 @@ export default function SearchView({
             <section className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.label}>Your collections</span>
+                {onBrowseCrate && (
+                  <button type="button" className={styles.link} onClick={onBrowseCrate}>
+                    Browse crate
+                  </button>
+                )}
                 {(collArrows.left || collArrows.right) && (
                   <div className={styles.collArrows}>
                     <button

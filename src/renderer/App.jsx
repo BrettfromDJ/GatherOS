@@ -10,6 +10,7 @@ import QuickLookOverlay from './components/QuickLookOverlay.jsx';
 import BulkTagPicker from './components/BulkTagPicker.jsx';
 import MoodboardPreview from './components/MoodboardPreview.jsx';
 import RediscoverMode from './components/RediscoverMode.jsx';
+import CollectionsCrate from './components/CollectionsCrate.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import AIUnlockedModal from './components/AIUnlockedModal.jsx';
 import SaveUrlModal from './components/SaveUrlModal.jsx';
@@ -1180,6 +1181,8 @@ export default function App({ entitlement } = {}) {
   const [bulkPicker, setBulkPicker] = useState(null); // { x, y }
   const [bulkTagPicker, setBulkTagPicker] = useState(null); // { x, y } | null
   const [rediscoverOpen, setRediscoverOpen] = useState(false);
+  // Collections crate — the full-screen record-crate browse mode.
+  const [crateOpen, setCrateOpen] = useState(false);
 
   const buildCardMenuItems = useCallback((saveId, memberIds) => {
     // If the right-clicked save is part of an active multi-selection,
@@ -3499,6 +3502,7 @@ export default function App({ entitlement } = {}) {
       { id: 'new-space', label: 'New space', hint: '⌘⇧N', keywords: 'create board canvas moodboard', Icon: () => <SquarePlus {...ICON} />, run: () => { handleCreateBoard?.().then((b) => { if (b?.id) setView({ type: 'board', id: b.id }); }); } },
       { id: 'capture-screenshot', label: 'Capture screenshot', hint: '⌘⇧S', keywords: 'screen shot grab region', Icon: () => <Camera {...ICON} />, run: () => window.moodmark.capture?.screenshot?.() },
       { id: 'rediscover', label: 'Rediscover', hint: '⌘⇧R', keywords: 'review shuffle triage deck', Icon: () => <Shuffle {...ICON} />, run: () => setRediscoverOpen(true) },
+      { id: 'browse-crate', label: 'Browse the crate', keywords: 'collections records sleeves vinyl shelf browse', Icon: () => <Library {...ICON} />, run: () => setCrateOpen(true) },
       { id: 'go-search', label: 'Go to search', keywords: 'find query', Icon: () => <Search {...ICON} />, run: () => handleModeChange('search') },
       { id: 'go-library', label: 'Go to library', hint: '⌘1', keywords: 'home all saves grid', Icon: () => <Images {...ICON} />, run: () => handleModeChange('library') },
       { id: 'go-collections', label: 'Go to collections', hint: '⌘2', keywords: 'folders buckets', Icon: () => <Folder {...ICON} />, run: () => handleModeChange('folders') },
@@ -3665,6 +3669,7 @@ export default function App({ entitlement } = {}) {
                   onOpenCommandPalette={() => setQuickSwitcherOpen(true)}
                   collections={topLevelCollections}
                   onOpenCollection={handleOpenCollectionFromSearch}
+                  onBrowseCrate={() => setCrateOpen(true)}
                   searchInputRef={searchInputRef}
                   scrollRef={setGridScrollNode}
                   saves={visibleSaves}
@@ -4210,6 +4215,16 @@ export default function App({ entitlement } = {}) {
           onClose={() => setBulkTagPicker(null)}
         />
       )}
+
+      <CollectionsCrate
+        open={crateOpen}
+        collections={collections}
+        onOpenCollection={(id) => {
+          setCrateOpen(false);
+          handleOpenCollectionFromSearch(id);
+        }}
+        onClose={() => setCrateOpen(false)}
+      />
 
       <RediscoverMode
         open={rediscoverOpen}
