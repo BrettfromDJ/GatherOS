@@ -6,183 +6,155 @@
 <title>Record-crate collection browser</title>
 <style>
   :root{
-    --ink:#000; --paper:#FAFAF9;
     --ease:cubic-bezier(0.32,0.72,0,1);
     --font:'Geist Variable','Geist','SF Pro Display',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{font-family:var(--font);background:#0c0c0d;color:#fff;-webkit-font-smoothing:antialiased;overflow:hidden}
+  body{font-family:var(--font);background:#000;color:#fff;-webkit-font-smoothing:antialiased;overflow:hidden;user-select:none}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 
-  /* ── Shell ─────────────────────────────────────────────── */
-  .bar{display:flex;align-items:center;gap:18px;height:52px;padding:0 18px;background:#0c0c0d;border-bottom:1px solid rgba(255,255,255,.08);position:relative;z-index:50}
-  .bar h1{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
-  .bar .hint{font-size:11px;color:rgba(255,255,255,.35);margin-left:auto;white-space:nowrap}
-  .tabs{display:flex;gap:4px}
-  .tab{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:500;color:rgba(255,255,255,.55);transition:all .15s}
-  .tab i{font-style:normal;font-size:10.5px;font-weight:600;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.1)}
-  .tab:hover{color:#fff}
-  .tab.on{background:#fff;color:#000}
-  .tab.on i{background:rgba(0,0,0,.12)}
-  main{position:fixed;inset:52px 0 0 0}
-  .panel{position:absolute;inset:0;display:none;flex-direction:column}
-  .panel.on{display:flex}
-  .rat{display:flex;align-items:baseline;gap:12px;padding:12px 22px;font-size:12px;line-height:1.45;flex:none}
-  .rat b{font-size:13px;font-weight:600;white-space:nowrap}
-  .panel.dark .rat{color:rgba(255,255,255,.55);background:rgba(255,255,255,.02)}
-  .panel.dark .rat b{color:#fff}
-  .panel.light .rat{color:rgba(0,0,0,.55);background:#f1f1ee;border-bottom:1px solid rgba(0,0,0,.06)}
-  .panel.light .rat b{color:#000}
-  .stage{flex:1;position:relative;overflow:hidden}
+  /* ── Header ────────────────────────────────────────────── */
+  .hdr{position:fixed;left:0;right:0;top:0;height:76px;display:flex;align-items:center;padding:0 30px;z-index:700}
+  .mark{display:flex;align-items:baseline;gap:10px}
+  .mark .w{font-size:15px;font-weight:700;letter-spacing:-.02em}
+  .mark .s{font-size:11.5px;color:rgba(255,255,255,.45)}
+  .toggle{position:absolute;left:50%;transform:translateX(-50%);display:flex;padding:3px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.03)}
+  .tg{padding:7px 18px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.55)}
+  .tg.on{background:#fff;color:#000}
+  .search{margin-left:auto;display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(255,255,255,.16);border-radius:999px;font-size:11.5px;color:rgba(255,255,255,.55)}
+  .search b{font-weight:600;color:rgba(255,255,255,.75)}
 
-  /* ── Covers (shared art system, gradients + inline svg only) ── */
-  .cov{position:relative;overflow:hidden;border-radius:3px;backface-visibility:hidden}
-  .cov::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,rgba(255,255,255,.16),transparent 32%);pointer-events:none;z-index:3}
+  /* ── The crate ─────────────────────────────────────────── */
+  .stage{position:fixed;inset:0;background:#000;overflow:hidden}
+  .row{position:absolute;inset:0;display:flex}
+  .slot{flex:1;position:relative;animation:rise .8s var(--ease) backwards;animation-delay:calc(var(--i)*55ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(70px)}}
+
+  .lab{position:absolute;top:13vh;left:10px;right:4px;opacity:.4;transition:opacity .25s;cursor:pointer;z-index:500}
+  .slot:hover .lab,.slot.sel .lab{opacity:1}
+  .lab .n{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.32}
+  .lab .m{font-size:10.5px;color:rgba(255,255,255,.55);margin-top:3px}
+  .lab .p{font-size:9px;margin-top:10px;color:rgba(255,255,255,.8)}
+
+  .covw{position:absolute;left:50%;top:27vh;width:320px;height:70vh;margin-left:-160px;cursor:pointer}
+  .cov{position:relative;overflow:hidden;width:100%;height:100%;border-radius:3px;backface-visibility:hidden;
+    transform:perspective(950px) rotateY(var(--ry));
+    transition:transform .55s var(--ease),filter .55s;
+    filter:brightness(var(--br,1));
+    box-shadow:0 12px 30px rgba(0,0,0,.6),0 42px 90px rgba(0,0,0,.55)}
+  .cov::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,rgba(255,255,255,.15),transparent 34%);pointer-events:none;z-index:3}
   .cov svg{position:absolute;inset:0;width:100%;height:100%}
+  .slot:hover .cov{transform:perspective(950px) translateZ(46px) rotateY(calc(var(--ry)*0.62));filter:brightness(1.06)}
+  .slot.sel .cov{transform:perspective(950px) translateZ(24px) rotateY(calc(var(--ry)*0.76));filter:brightness(1.03)}
+  .slot:hover{z-index:350 !important}
+
+  /* Atmosphere: tops of the sleeves dissolve into the dark header zone,
+     bottoms sink under the deck gradient. */
+  .fadeTop{position:absolute;left:0;right:0;top:0;height:30vh;background:linear-gradient(#000 24%,transparent);z-index:400;pointer-events:none}
+
+  /* ── Cover art (gradients + inline svg only) ───────────── */
   .cv1{background:linear-gradient(155deg,#2438ff,#0a18b8)}
-  .cv1::after{content:'';position:absolute;left:12%;top:11%;width:17%;aspect-ratio:1;background:#fff}
+  .cv1::after{content:'';position:absolute;left:12%;top:10%;width:16%;aspect-ratio:1;background:#fff}
   .cv2{background:#E2B33C}
-  .cv2::after{content:'';position:absolute;inset:13%;border:2px solid #221605}
+  .cv2::after{content:'';position:absolute;inset:12%;border:2px solid #221605}
   .cv3{background:#0F5A50}
   .cv4{background:radial-gradient(120% 90% at 50% 35%,#ff6a2f 0%,#a91c05 45%,#230502 100%)}
   .cv5{background:#14141a}
-  .cv5 .tag{position:absolute;top:7%;right:9%;font-size:9px;font-weight:600;letter-spacing:.22em;color:#d8b558;z-index:4}
+  .cv5 .tag{position:absolute;top:6%;right:9%;font-size:9px;font-weight:600;letter-spacing:.22em;color:#d8b558;z-index:4}
   .cv6{background:#EDEDE8}
   .cv7{background:linear-gradient(115deg,#ff5da2 0 50%,#2a49ff 50% 100%)}
   .cv8{background:#EFE7D8}
-  .cv8 .glyph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-serif,Georgia,serif;font-size:900%;color:#191512;z-index:2}
+  .cv8 .glyph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-serif,Georgia,serif;font-size:130px;color:#191512;z-index:2}
   .cv9{background:linear-gradient(180deg,#173f2b,#0a1f14)}
-  .cv9::after{content:'';position:absolute;left:50%;top:50%;width:46%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.85);border-radius:50%}
+  .cv9::after{content:'';position:absolute;left:50%;top:42%;width:46%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.85);border-radius:50%}
   .cv10{background:linear-gradient(180deg,#7c7c80,#2e2e30)}
-  .cv10::after{content:'';position:absolute;left:12%;right:12%;bottom:12%;height:9%;background:#ecece9}
+  .cv10::after{content:'';position:absolute;left:12%;right:12%;bottom:14%;height:8%;background:#ecece9}
 
-  /* ── 1 · The crate ─────────────────────────────────────── */
-  .stage1{background:#050505;overflow-x:auto;overflow-y:hidden}
-  .row1{display:flex;align-items:flex-end;min-width:max-content;height:100%;padding:4vh 10vw 17vh;perspective:1500px}
-  .it1{width:124px;flex:none;cursor:pointer}
-  .it1 .lab{height:88px;padding-right:10px;opacity:.4;transition:opacity .25s}
-  .it1 .lab .n{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
-  .it1 .lab .m{font-size:10.5px;color:rgba(255,255,255,.6);margin-top:3px}
-  .it1 .lab .p{margin-top:7px;font-size:10px;color:rgba(255,255,255,.7)}
-  .it1 .covw{perspective:1500px}
-  .it1 .cov{width:270px;height:352px;transform:rotateY(-63deg);transform-origin:left center;transition:transform .5s var(--ease),filter .3s;filter:brightness(.82);-webkit-box-reflect:below 4px linear-gradient(transparent 72%,rgba(255,255,255,.10))}
-  .it1:hover .cov{transform:rotateY(-63deg) translateZ(22px);filter:brightness(1)}
-  .it1.act .lab{opacity:1}
-  .it1.act .cov{transform:rotateY(-48deg) translateZ(46px);filter:brightness(1.12)}
-  .deck1{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;padding:0 34px 26px;pointer-events:none;background:linear-gradient(transparent,rgba(0,0,0,.55))}
-  .deck1 .big{font-size:clamp(38px,4.6vw,60px);font-weight:700;letter-spacing:-.035em;line-height:1.02}
-  .deck1 .big small{display:block;font-size:12px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.55);margin-bottom:8px}
-  .ctr1{display:flex;gap:10px;pointer-events:auto}
-  .ctr1 button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
-  .ctr1 button:hover{background:rgba(255,255,255,.1)}
-  .openb{pointer-events:auto;padding:11px 18px;border-radius:999px;background:#fff;color:#000;font-size:12.5px;font-weight:550;letter-spacing:-.01em}
-  .openb:hover{opacity:.9}
+  /* ── Deck (bottom overlay) ─────────────────────────────── */
+  .deck{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;padding:16vh 38px 30px;background:linear-gradient(transparent,rgba(0,0,0,.5) 45%,rgba(0,0,0,.88));z-index:600;pointer-events:none}
+  .deck>*{pointer-events:auto}
+  .title .sub{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:9px;letter-spacing:-.005em}
+  .title .big{font-size:clamp(38px,4.4vw,60px);font-weight:700;letter-spacing:-.035em;line-height:1}
+  .ctr{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .ctr button{display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25);border-radius:50%;transition:background .15s,border-color .15s}
+  .ctr button:hover{background:rgba(255,255,255,.12)}
+  .ctr .step{width:44px;height:44px;font-size:16px}
+  .ctr .go{width:58px;height:58px;font-size:17px;background:#fff;color:#000;border-color:#fff}
+  .ctr .go:hover{opacity:.9;background:#fff}
+  .nowv{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+  .nowv .t{text-align:right}
+  .nowv .k{font-size:11px;color:rgba(255,255,255,.45)}
+  .nowv .n{font-size:13px;font-weight:600;letter-spacing:-.01em;margin-top:3px}
+  .disc{width:46px;height:46px;border-radius:50%;overflow:hidden;position:relative;flex:none;animation:spin 9s linear infinite;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+  .disc .art{position:absolute;inset:0}
+  .disc::after{content:'';position:absolute;left:50%;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);background:#000;border-radius:50%;border:2px solid rgba(255,255,255,.35);z-index:5}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* ── 2 · Cover flip ────────────────────────────────────── */
-  .stage2{background:radial-gradient(90% 90% at 50% 30%,#17171c 0%,#0a0a0d 70%)}
-  .flow{position:absolute;inset:0 0 120px 0;perspective:1400px}
-  .flow .cov{position:absolute;left:50%;top:46%;width:300px;height:330px;margin:-165px 0 0 -150px;cursor:pointer;transition:transform .55s var(--ease),filter .4s;box-shadow:0 30px 60px rgba(0,0,0,.5)}
-  .cap2{position:absolute;left:0;right:0;bottom:34px;text-align:center;pointer-events:none}
-  .cap2 .n{font-size:24px;font-weight:700;letter-spacing:-.025em}
-  .cap2 .m{font-size:12px;color:rgba(255,255,255,.5);margin-top:5px}
-  .cap2 .k{display:inline-block;margin-top:12px;font-size:10.5px;color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 10px}
+  .hint{position:fixed;right:38px;top:88px;font-size:11px;color:rgba(255,255,255,.28);z-index:700}
 
-  /* ── 3 · The shelf ─────────────────────────────────────── */
-  .panel.light .stage{background:var(--paper);color:var(--ink)}
-  .bar3{display:flex;align-items:center;gap:12px;padding:20px 34px 0}
-  .bar3 .t{font-size:13px;font-weight:600;letter-spacing:-.01em}
-  .bar3 .c{font-size:12px;color:rgba(0,0,0,.4)}
-  .bar3 .sort{margin-left:auto;font-size:12px;color:rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.1);border-radius:999px;padding:6px 12px;background:#fff}
-  .shelfwrap{position:absolute;inset:64px 0 0 0;overflow-x:auto;overflow-y:hidden}
-  .shelf{display:flex;align-items:flex-end;gap:38px;min-width:max-content;padding:7vh 5vw 0;perspective:1200px;height:calc(100% - 90px)}
-  .it3{flex:none;width:196px;cursor:pointer}
-  .it3 .cov{width:196px;height:252px;border-radius:5px;transform:rotateY(-13deg) rotateZ(-1.2deg);transform-origin:bottom left;box-shadow:6px 14px 28px rgba(0,0,0,.16),1px 2px 6px rgba(0,0,0,.1);transition:transform .4s var(--ease),box-shadow .4s}
-  .it3:hover .cov{transform:rotateY(-6deg) rotateZ(-.5deg) translateY(-6px)}
-  .it3.act .cov{transform:rotateY(0) rotateZ(0) translateY(-14px);box-shadow:0 22px 44px rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.08)}
-  .it3 .cap{padding:14px 2px 0}
-  .it3 .cap .n{font-size:13px;font-weight:600;letter-spacing:-.01em;color:rgba(0,0,0,.5);transition:color .2s}
-  .it3 .cap .m{font-size:11px;color:rgba(0,0,0,.38);margin-top:2px}
-  .it3.act .cap .n,.it3:hover .cap .n{color:#000}
-  .rail{position:absolute;left:34px;right:34px;bottom:88px;height:1px;background:rgba(0,0,0,.1)}
-  .foot3{position:absolute;left:34px;right:34px;bottom:26px;display:flex;align-items:center;justify-content:space-between}
-  .foot3 .n{font-size:20px;font-weight:700;letter-spacing:-.025em}
-  .foot3 .open{padding:9px 16px;border-radius:999px;background:#000;color:#fff;font-size:12.5px;font-weight:550}
-  .foot3 .open:hover{opacity:.9}
-
-  /* ── 4 · Flip bin ──────────────────────────────────────── */
-  .stage4{background:#101012;display:flex;align-items:center}
-  .info4{width:34%;min-width:280px;padding:0 4vw}
-  .info4 .k{font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4)}
-  .info4 .n{font-size:clamp(30px,3.4vw,46px);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin:14px 0 10px;min-height:2.1em}
-  .info4 .m{font-size:13px;color:rgba(255,255,255,.55)}
-  .info4 .pos{font-size:11px;color:rgba(255,255,255,.35);margin-top:22px;font-variant-numeric:tabular-nums}
-  .info4 .hint4{font-size:11px;color:rgba(255,255,255,.35);margin-top:6px}
-  .binwrap{flex:1;display:flex;align-items:center;justify-content:center}
-  .bin{position:relative;width:440px;height:470px;perspective:1300px;transform-style:preserve-3d}
-  .bin .cov{position:absolute;left:50%;bottom:70px;width:320px;height:380px;margin-left:-160px;transform-origin:bottom center;transition:transform .5s var(--ease),filter .4s,opacity .4s;cursor:pointer;box-shadow:0 14px 34px rgba(0,0,0,.45)}
-  .lip{position:absolute;left:0;right:0;bottom:26px;height:64px;border-radius:8px;background:linear-gradient(#26262b,#17171a);border:1px solid rgba(255,255,255,.09);z-index:400;pointer-events:none}
-  .lip::after{content:'';position:absolute;inset:6px;border-radius:5px;background:rgba(0,0,0,.35)}
-
-  /* ── 5 · Spotlight rack ────────────────────────────────── */
-  .stage5{background:#121110;color:#f3ede2;display:grid;grid-template-columns:42% 58%}
-  .spot{padding:5vh 4vw;display:flex;flex-direction:column;justify-content:center;gap:0}
-  .spot .cov{width:min(260px,20vw);height:min(330px,25.5vw);border-radius:4px;box-shadow:0 26px 60px rgba(0,0,0,.55);flex:none}
-  .spot .k{font-size:10.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(243,237,226,.45);margin-top:4vh}
-  .spot .n{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:clamp(34px,3.8vw,56px);letter-spacing:-.015em;line-height:1.05;margin:12px 0 10px}
-  .spot .m{font-size:13px;color:rgba(243,237,226,.55)}
-  .spot .open5{align-self:flex-start;margin-top:26px;padding:11px 20px;border-radius:999px;background:#f3ede2;color:#141210;font-size:12.5px;font-weight:550}
-  .spot .open5:hover{opacity:.9}
-  .rack{position:relative;perspective:1500px;overflow:hidden}
-  .rack .cov{position:absolute;left:7%;top:50%;width:250px;height:320px;margin-top:-160px;transform-origin:left center;transition:transform .55s var(--ease),filter .45s,opacity .45s;cursor:pointer;box-shadow:0 20px 44px rgba(0,0,0,.5)}
-  .rackhint{position:absolute;right:26px;bottom:20px;font-size:11px;color:rgba(243,237,226,.35)}
-
-  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-  <header class="bar">
-    <h1>Record-crate collection browser</h1>
-    <nav class="tabs" id="tabs"></nav>
-    <span class="hint">keys 1–5 switch · ←/→ browse</span>
+  <div class="stage"><div class="row" id="row"></div><div class="fadeTop"></div></div>
+
+  <header class="hdr">
+    <div class="mark"><span class="w">GatherOS</span><span class="s">Collections</span></div>
+    <div class="toggle"><button class="tg on">Collections</button><button class="tg">Saved</button></div>
+    <div class="search"><span>Search</span><b>⌘K</b></div>
   </header>
-  <main id="main"></main>
+  <div class="hint">← → to browse · click a sleeve to select</div>
+
+  <div class="deck">
+    <div class="title"><div class="sub" id="dsub"></div><div class="big" id="dbig"></div></div>
+    <div class="ctr">
+      <button class="step" id="prev" aria-label="previous">‹</button>
+      <button class="go" aria-label="open collection">↗</button>
+      <button class="step" id="next" aria-label="next">›</button>
+    </div>
+    <div class="nowv">
+      <div class="t"><div class="k">Now viewing</div><div class="n" id="nvn"></div></div>
+      <div class="disc"><div class="art" id="disc"></div></div>
+    </div>
+  </div>
 
 <script>
 (() => {
   'use strict';
 
-  /* Collections — GatherOS-flavored placeholder data. s = cover style. */
+  /* Collections — GatherOS-flavored placeholder data. s = cover style,
+     styles ordered to echo the reference palette left → right. */
   const C = [
-    { n:'Album art',         c:162, u:'updated 5h ago',  s:3  },
-    { n:'Type specimens',    c:128, u:'updated 2d ago',  s:8  },
-    { n:'Brand refs',        c:86,  u:'updated 1d ago',  s:1  },
-    { n:'Interiors',         c:54,  u:'updated 3d ago',  s:2  },
-    { n:'Editorial layouts', c:203, u:'updated 6h ago',  s:5  },
-    { n:'Motion frames',     c:41,  u:'updated 4d ago',  s:4  },
-    { n:'Color studies',     c:33,  u:'updated 1w ago',  s:7  },
-    { n:'Architecture',      c:95,  u:'updated 2d ago',  s:6  },
-    { n:'Film stills',       c:118, u:'updated 8h ago',  s:10 },
-    { n:'Posters',           c:149, u:'updated 3d ago',  s:9  },
-    { n:'UI patterns',       c:240, u:'updated 1h ago',  s:7  },
-    { n:'Product shots',     c:77,  u:'updated 6d ago',  s:2  },
+    { n:'Album art',         c:162, u:'updated 5h ago', s:1  },
+    { n:'Type specimens',    c:128, u:'updated 2d ago', s:2  },
+    { n:'Film stills',       c:118, u:'updated 8h ago', s:10 },
+    { n:'Motion frames',     c:41,  u:'updated 4d ago', s:4  },
+    { n:'Editorial layouts', c:203, u:'updated 6h ago', s:5  },
+    { n:'Brand refs',        c:86,  u:'updated 1d ago', s:7  },
+    { n:'Color studies',     c:33,  u:'updated 1w ago', s:8  },
+    { n:'Architecture',      c:95,  u:'updated 2d ago', s:9  },
+    { n:'Interiors',         c:54,  u:'updated 3d ago', s:6  },
+    { n:'Posters',           c:149, u:'updated 3d ago', s:4  },
+    { n:'UI patterns',       c:240, u:'updated 1h ago', s:1  },
+    { n:'Product shots',     c:77,  u:'updated 6d ago', s:3  },
   ];
 
   /* Inline SVG art for the styles that need more than a gradient. */
   function waves() {
     let p = '';
-    for (let j = 0; j < 11; j++) {
-      const y = 34 + j * 30, a = ((j % 3) + 1) * 11;
-      p += `<path d="M22 ${y} C 95 ${y - a}, 205 ${y + a}, 278 ${y}"/>`;
+    for (let j = 0; j < 13; j++) {
+      const y = 40 + j * 34, a = ((j % 3) + 1) * 12;
+      p += `<path d="M24 ${y} C 100 ${y - a}, 220 ${y + a}, 296 ${y}"/>`;
     }
-    return `<svg viewBox="0 0 300 380" preserveAspectRatio="none" fill="none" stroke="#cfe8e2" stroke-width="2" opacity=".85">${p}</svg>`;
+    return `<svg viewBox="0 0 320 480" preserveAspectRatio="none" fill="none" stroke="#cfe8e2" stroke-width="2" opacity=".85">${p}</svg>`;
   }
   function dots(fill, rBase) {
     let c = '';
-    for (let r = 0; r < 9; r++) for (let q = 0; q < 7; q++) {
-      c += `<circle cx="${30 + q * 40}" cy="${30 + r * 40}" r="${rBase + (r % 4)}"/>`;
+    for (let r = 0; r < 11; r++) for (let q = 0; q < 7; q++) {
+      c += `<circle cx="${32 + q * 42}" cy="${34 + r * 42}" r="${rBase + (r % 4)}"/>`;
     }
-    return `<svg viewBox="0 0 300 380" preserveAspectRatio="none" fill="${fill}">${c}</svg>`;
+    return `<svg viewBox="0 0 320 480" preserveAspectRatio="none" fill="${fill}">${c}</svg>`;
   }
   function covInner(s) {
     if (s === 3) return waves();
@@ -191,212 +163,55 @@
     if (s === 8) return `<span class="glyph">Aa</span>`;
     return '';
   }
-  const covHTML = (s, cls) => `<div class="cov cv${s} ${cls || ''}">${covInner(s)}</div>`;
 
-  /* Iteration meta */
-  const ITS = [
-    { name:'The crate',      rat:'Faithful to the reference — a full-bleed dark stage, every collection standing in the bin at the same rake, labels floating above. Browsing the whole library as atmosphere-first theatre.' },
-    { name:'Cover flip',     rat:'One collection in sharp focus, neighbors folding away to either side. The most player-like navigation — built for fast one-at-a-time flipping with the arrow keys.' },
-    { name:'The shelf',      rat:'The same metaphor translated into GatherOS’s light, typographic language — prints leaning on a rail, ink on off-white. The version that sits most quietly inside the existing app.' },
-    { name:'Flip bin',       rat:'Digging, not scanning: the stack faces you and every click tips a sleeve forward, exactly like flipping through records. Tactile and sequential — made for rediscovery.' },
-    { name:'Spotlight rack', rat:'Editorial split — the active collection gets a flat cover and big serif type on the left while the rest of the rack recedes to the right. For when detail matters as much as the browse.' },
-  ];
+  /* The fan: sleeves near the center sit almost edge-on and open toward
+     the viewer as they move outward — left half faces right, right half
+     faces left, exactly like standing in front of the middle of a crate.
+     Angle magnitude eases from ~84° (center) down to ~40° (edges). */
+  const N = C.length;
+  const MID = (N - 1) / 2;
+  const TH_MAX = 84, TH_MIN = 40;
 
-  const tabs = document.getElementById('tabs');
-  const main = document.getElementById('main');
-  const panels = [];
-  ITS.forEach((it, i) => {
-    const b = document.createElement('button');
-    b.className = 'tab';
-    b.innerHTML = `<i>${i + 1}</i>${it.name}`;
-    b.addEventListener('click', () => show(i));
-    tabs.appendChild(b);
-    const p = document.createElement('section');
-    p.className = 'panel ' + (i === 2 ? 'light' : 'dark');
-    p.innerHTML = `<div class="rat"><b>${i + 1} · ${it.name}</b><span>${it.rat}</span></div><div class="stage stage${i + 1}" id="st${i + 1}"></div>`;
-    main.appendChild(p);
-    panels.push(p);
-  });
+  const row = document.getElementById('row');
+  let sel = 4;
 
-  let cur = 0;
-  function show(i) {
-    cur = i;
-    panels.forEach((p, j) => p.classList.toggle('on', j === i));
-    [...tabs.children].forEach((t, j) => t.classList.toggle('on', j === i));
-  }
-
-  /* ── 1 · The crate ── */
-  const st1 = document.getElementById('st1');
-  let a1 = 1;
-  st1.innerHTML = `<div class="row1" id="row1"></div>
-    <div class="deck1">
-      <div class="big"><small id="d1m"></small><span id="d1n"></span></div>
-      <div class="ctr1"><button id="p1" aria-label="previous">‹</button><button id="n1" aria-label="next">›</button></div>
-      <button class="openb">Open collection</button>
-    </div>`;
-  const row1 = document.getElementById('row1');
   C.forEach((c, i) => {
-    const d = document.createElement('div');
-    d.className = 'it1';
-    d.innerHTML = `<div class="lab"><div class="n">${c.n}</div><div class="m">${c.c} saves</div><div class="p">▸</div></div><div class="covw">${covHTML(c.s)}</div>`;
-    d.addEventListener('click', () => set1(i));
-    row1.appendChild(d);
-  });
-  function set1(i) {
-    a1 = (i + C.length) % C.length;
-    [...row1.children].forEach((el, j) => el.classList.toggle('act', j === a1));
-    document.getElementById('d1n').textContent = C[a1].n;
-    document.getElementById('d1m').textContent = `${C[a1].c} saves · ${C[a1].u}`;
-    row1.children[a1].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }
-  document.getElementById('p1').addEventListener('click', () => set1(a1 - 1));
-  document.getElementById('n1').addEventListener('click', () => set1(a1 + 1));
+    const d = i - MID;
+    const t = Math.abs(d) / MID;
+    const th = TH_MAX - (TH_MAX - TH_MIN) * Math.pow(t, 1.1);
+    const ry = (d < 0 ? 1 : -1) * th;               // left opens right, right opens left
+    const br = (0.66 + (1 - th / 90) * 0.5).toFixed(2); // edge-on sleeves sit in shadow
+    const z = 10 + Math.round(Math.abs(d) * 20);    // outer sleeves stack in front
 
-  /* ── 2 · Cover flip ── */
-  const st2 = document.getElementById('st2');
-  let a2 = 5;
-  st2.innerHTML = `<div class="flow" id="flow"></div>
-    <div class="cap2"><div class="n" id="c2n"></div><div class="m" id="c2m"></div><span class="k">← → to flip · click a cover to jump</span></div>`;
-  const flow = document.getElementById('flow');
-  C.forEach((c, i) => {
-    const el = document.createElement('div');
-    el.className = `cov cv${c.s}`;
-    el.innerHTML = covInner(c.s);
-    el.addEventListener('click', () => set2(i));
-    flow.appendChild(el);
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.style.cssText = `--i:${i};--ry:${ry.toFixed(1)}deg;--br:${br};z-index:${z}`;
+    slot.innerHTML = `
+      <div class="lab"><div class="n">${c.n}</div><div class="m">${c.c} saves</div><div class="p">▸</div></div>
+      <div class="covw"><div class="cov cv${c.s}">${covInner(c.s)}</div></div>`;
+    slot.addEventListener('click', () => select(i));
+    row.appendChild(slot);
   });
-  function set2(i) {
-    a2 = Math.max(0, Math.min(C.length - 1, i));
-    [...flow.children].forEach((el, j) => {
-      const d = j - a2, ad = Math.abs(d);
-      const x = d * 168, z = -ad * 150, ry = d === 0 ? 0 : (d < 0 ? 54 : -54);
-      el.style.transform = `translateX(${x}px) rotateY(${ry}deg) translateZ(${z}px)`;
-      el.style.zIndex = 100 - ad;
-      el.style.filter = `brightness(${Math.max(0.45, 1 - ad * 0.14)})`;
-    });
-    document.getElementById('c2n').textContent = C[a2].n;
-    document.getElementById('c2m').textContent = `${C[a2].c} saves · ${C[a2].u}`;
-  }
-  set2(a2);
 
-  /* ── 3 · The shelf ── */
-  const st3 = document.getElementById('st3');
-  let a3 = 2;
-  st3.innerHTML = `<div class="bar3"><span class="t">Collections</span><span class="c">${C.length} collections</span><span class="sort">Recently updated ▾</span></div>
-    <div class="shelfwrap"><div class="shelf" id="shelf"></div></div>
-    <div class="rail"></div>
-    <div class="foot3"><span class="n" id="f3n"></span><button class="open">Open collection</button></div>`;
-  const shelf = document.getElementById('shelf');
-  C.forEach((c, i) => {
-    const d = document.createElement('div');
-    d.className = 'it3';
-    d.innerHTML = `${covHTML(c.s)}<div class="cap"><div class="n">${c.n}</div><div class="m">${c.c} saves · ${c.u}</div></div>`;
-    d.addEventListener('click', () => set3(i));
-    shelf.appendChild(d);
-  });
-  function set3(i) {
-    a3 = (i + C.length) % C.length;
-    [...shelf.children].forEach((el, j) => el.classList.toggle('act', j === a3));
-    document.getElementById('f3n').textContent = C[a3].n;
-    shelf.children[a3].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  function select(i) {
+    sel = (i + N) % N;
+    [...row.children].forEach((el, j) => el.classList.toggle('sel', j === sel));
+    const c = C[sel];
+    document.getElementById('dbig').textContent = c.n;
+    document.getElementById('dsub').textContent = `${c.c} saves · ${c.u}`;
+    document.getElementById('nvn').textContent = c.n;
+    document.getElementById('disc').className = `art cov cv${c.s}`;
+    document.getElementById('disc').innerHTML = covInner(c.s);
   }
-  set3(a3);
 
-  /* ── 4 · Flip bin ── */
-  const st4 = document.getElementById('st4');
-  const BIN = C.slice(0, 9);
-  let f4 = 0; // how many sleeves have been flipped forward
-  st4.innerHTML = `<div class="info4"><div class="k">Flip bin</div><div class="n" id="i4n"></div><div class="m" id="i4m"></div>
-      <div class="pos" id="i4p"></div><div class="hint4">click the front sleeve or press → to flip · ← to go back</div></div>
-    <div class="binwrap"><div class="bin" id="bin"><div class="lip"></div></div></div>`;
-  const bin = document.getElementById('bin');
-  BIN.forEach((c, i) => {
-    const el = document.createElement('div');
-    el.className = `cov cv${c.s}`;
-    el.innerHTML = covInner(c.s);
-    el.addEventListener('click', () => {
-      if (i === f4) flip4(1);            // front standing sleeve → flip it
-      else if (i === f4 - 1) flip4(-1);  // top of the flipped pile → unflip
-      else if (i > f4) { f4 = i; lay4(); } // deeper sleeve → jump to it
-    });
-    bin.appendChild(el);
-  });
-  function lay4() {
-    BIN.forEach((c, i) => {
-      const el = bin.children[i + 1]; // children[0] is the lip
-      if (i >= f4) { // standing
-        const d = i - f4;
-        el.style.transform = `translateX(-50%) translateY(${-d * 11}px) translateZ(${-d * 26}px) rotateX(-6deg)`;
-        el.style.zIndex = 300 - d;
-        el.style.filter = `brightness(${Math.max(0.5, 1 - d * 0.09)})`;
-        el.style.opacity = 1;
-      } else { // flipped forward, lying toward the viewer
-        const fi = f4 - 1 - i; // 0 = most recently flipped (top of pile)
-        el.style.transform = `translateX(-50%) translateY(44px) translateZ(${46 - fi * 16}px) rotateX(-78deg)`;
-        el.style.zIndex = 360 - fi;
-        el.style.filter = 'brightness(.55)';
-        el.style.opacity = fi > 3 ? 0 : 1;
-      }
-    });
-    const front = BIN[f4];
-    document.getElementById('i4n').textContent = front ? front.n : 'End of the bin';
-    document.getElementById('i4m').textContent = front ? `${front.c} saves · ${front.u}` : 'Press ← to flip back';
-    document.getElementById('i4p').textContent = `${Math.min(f4 + 1, BIN.length)} / ${BIN.length}`;
-  }
-  function flip4(dir) { f4 = Math.max(0, Math.min(BIN.length, f4 + dir)); lay4(); }
-  lay4();
-
-  /* ── 5 · Spotlight rack ── */
-  const st5 = document.getElementById('st5');
-  let a5 = 0;
-  st5.innerHTML = `<div class="spot"><div id="s5cov"></div><div class="k">Collection</div><div class="n" id="s5n"></div>
-      <div class="m" id="s5m"></div><button class="open5">Open collection</button></div>
-    <div class="rack" id="rack"></div><div class="rackhint">click a sleeve to bring it forward · ← → to step</div>`;
-  const rack = document.getElementById('rack');
-  C.forEach((c, i) => {
-    const el = document.createElement('div');
-    el.className = `cov cv${c.s}`;
-    el.innerHTML = covInner(c.s);
-    el.addEventListener('click', () => set5(i));
-    rack.appendChild(el);
-  });
-  function set5(i) {
-    a5 = (i + C.length) % C.length;
-    const order = [];
-    for (let k = 0; k < C.length; k++) order.push((a5 + k) % C.length); // active first, rest behind
-    order.forEach((idx, pos) => {
-      const el = rack.children[idx];
-      if (pos === 0) { el.style.opacity = 0; el.style.transform = 'translateX(-80px) rotateY(-58deg)'; el.style.zIndex = 0; }
-      else {
-        const p = pos - 1;
-        el.style.opacity = p > 7 ? 0 : 1;
-        el.style.transform = `translateX(${p * 88}px) translateZ(${-p * 60}px) rotateY(-58deg)`;
-        el.style.zIndex = 200 - p;
-        el.style.filter = `brightness(${Math.max(0.4, 1 - p * 0.09)})`;
-      }
-    });
-    document.getElementById('s5cov').innerHTML = covHTML(C[a5].s);
-    document.getElementById('s5n').textContent = C[a5].n;
-    document.getElementById('s5m').textContent = `${C[a5].c} saves · ${C[a5].u}`;
-  }
-  set5(a5);
-
-  /* ── Keyboard ── */
-  const NAV = [
-    (d) => set1(a1 + d),
-    (d) => set2(a2 + d),
-    (d) => set3(a3 + d),
-    (d) => flip4(d),
-    (d) => set5(a5 + d),
-  ];
+  document.getElementById('prev').addEventListener('click', () => select(sel - 1));
+  document.getElementById('next').addEventListener('click', () => select(sel + 1));
   document.addEventListener('keydown', (e) => {
-    if (e.key >= '1' && e.key <= '5') { show(Number(e.key) - 1); return; }
-    if (e.key === 'ArrowLeft') { NAV[cur](-1); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { NAV[cur](1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { select(sel - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { select(sel + 1); e.preventDefault(); }
   });
 
-  show(0);
-  set1(a1);
+  select(sel);
 })();
 </script>
 </body>
