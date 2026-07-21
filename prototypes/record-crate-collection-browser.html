@@ -273,13 +273,14 @@
   }, { passive: true });
 
   /* The rake is constant, so z-index is the only per-frame concern:
-     layered left → right at rest (each sleeve lays on top of the one
-     before it), hovered sleeve on top, recently-hovered settling just
-     below so its swing-back never clips through neighbors. */
+     the leftmost sleeve is always on top of the one to its right, each
+     sleeve tucking behind its left neighbor — except the hovered sleeve,
+     which takes the top layer (and settles just below while swinging
+     back, so it never clips through neighbors). */
   function layout() {
     const now = performance.now();
     [...row.children].forEach((slot, i) => {
-      let z = 10 + i;                                 // layered left → right
+      let z = 10 + (N - i);                           // leftmost always in front
       if (slot === hovSlot) z = 999;
       else if (settling.has(slot)) {
         const leftMs = settling.get(slot) - now;
