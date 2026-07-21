@@ -126,13 +126,9 @@
   .cv10{background:linear-gradient(180deg,#7c7c80,#2e2e30)}
   .cv10::after{content:'';position:absolute;left:12%;right:12%;bottom:14%;height:8%;background:#ecece9}
 
-  /* ── Deck (bottom overlay): just the prev/next arrows ──── */
-  .deck{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:center;padding:16vh 38px 30px;background:linear-gradient(transparent,rgba(0,0,0,.5) 45%,rgba(0,0,0,.88));z-index:600;pointer-events:none}
-  .deck>*{pointer-events:auto}
-  .ctr{display:flex;align-items:center;gap:12px;margin-bottom:4px}
-  .ctr button{display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25);border-radius:50%;transition:background .15s,border-color .15s}
-  .ctr button:hover{background:rgba(255,255,255,.12)}
-  .ctr .step{width:44px;height:44px;font-size:16px}
+  /* ── Deck (bottom overlay): just the browse hint ───────── */
+  .deck{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:center;padding:16vh 38px 26px;background:linear-gradient(transparent,rgba(0,0,0,.5) 45%,rgba(0,0,0,.88));z-index:600;pointer-events:none}
+  .hint{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:-.003em}
 
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -141,10 +137,7 @@
   <div class="stage"><div class="row" id="row"></div></div>
 
   <div class="deck">
-    <div class="ctr">
-      <button class="step" id="prev" aria-label="previous">‹</button>
-      <button class="step" id="next" aria-label="next">›</button>
-    </div>
+    <div class="hint">← → to browse · click a sleeve to select</div>
   </div>
 
 <script>
@@ -267,8 +260,6 @@
     row.children[sel].scrollIntoView({ behavior: instant ? 'instant' : 'smooth', inline: 'center', block: 'nearest' });
   }
 
-  document.getElementById('prev').addEventListener('click', () => select(sel - 1));
-  document.getElementById('next').addEventListener('click', () => select(sel + 1));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') { select(sel - 1); e.preventDefault(); }
     if (e.key === 'ArrowRight') { select(sel + 1); e.preventDefault(); }
