@@ -53,9 +53,19 @@
     transform:perspective(950px) rotateY(var(--ry));
     transition:transform .45s var(--ease)}
   .cov{position:absolute;inset:0;overflow:hidden;border-radius:3px;backface-visibility:hidden;
-    box-shadow:0 12px 30px rgba(0,0,0,.6),0 42px 90px rgba(0,0,0,.55)}
-  .cov::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,rgba(255,255,255,.15),transparent 34%);pointer-events:none;z-index:3}
+    box-shadow:0 18px 40px rgba(0,0,0,.7),0 60px 120px rgba(0,0,0,.6),-34px 0 60px -10px rgba(0,0,0,.8)}
+  .cov::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:linear-gradient(90deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,0) 7%),
+               linear-gradient(105deg,rgba(255,255,255,.12),transparent 30%)}
   .cov svg{position:absolute;inset:0;width:100%;height:100%}
+  /* Raking light: the face is lit at its near (left) edge and falls into
+     deep shadow across its width — this is most of the reference's drama.
+     Lifts when a sleeve opens toward the viewer. */
+  .shade{position:absolute;inset:0;z-index:4;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,0,0) 4%,rgba(0,0,0,.28) 48%,rgba(0,0,0,.85) 100%);
+    transition:opacity .45s var(--ease)}
+  .slot.hov .shade{opacity:.28}
+  .slot.sel .shade{opacity:.5}
   /* Cardboard spines: thin planes folded 90° back from each vertical edge.
      The near-side spine is what reads as thickness when a sleeve sits
      edge-on; the far one hides behind the face. */
@@ -67,10 +77,10 @@
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
   .edge.l{left:0;transform-origin:left center;transform:rotateY(90deg)}
   .edge.r{right:0;transform-origin:right center;transform:rotateY(-90deg)}
-  /* Only the spine facing the viewer renders — under perspective the far
-     edge is visible "around" the face's silhouette as a phantom slab. */
-  .slot.lft .edge.r{display:none}
-  .slot:not(.lft) .edge.l{display:none}
+  /* Only the near-side spine renders — under perspective the far edge is
+     visible "around" the face's silhouette as a phantom slab. All sleeves
+     face the same way, so it's always the right edge. */
+  .edge.l{display:none}
   .slot.sel .c3d{transform:perspective(950px) translateZ(26px) rotateY(calc(var(--ry)*0.78))}
   .slot.sel .covw{filter:brightness(1.03)}
   .slot.hov .c3d{transform:perspective(950px) translateZ(42px) translateY(-14px) rotateY(calc(var(--ry)*0.7))}
@@ -217,14 +227,11 @@
     return '';
   }
 
-  /* The fan is anchored to the VIEWPORT, not the list: whichever sleeve is
-     at the center of the screen sits almost edge-on (~84°), and sleeves
-     open toward the viewer as they approach the edges (~40°) — left half
-     faces right, right half faces left, like standing in front of the
-     middle of a crate. The row scrolls horizontally underneath, so any
-     number of collections pass through the lens. */
+  /* Every sleeve sits at the same rake, layered left → right — each one
+     lays on top of the one before it, like records leaning in a crate.
+     The row scrolls horizontally, so any number of collections fit. */
   const N = C.length;
-  const TH_MAX = 84, TH_MIN = 40;
+  const RAKE = -58; // degrees — uniform for the whole crate
 
   const row = document.getElementById('row');
   let sel = 4;
@@ -232,10 +239,10 @@
   C.forEach((c, i) => {
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slot.style.cssText = `--i:${i};--ry:0deg;--spine:${SPINE[c.s]}`;
+    slot.style.cssText = `--i:${i};--ry:${RAKE}deg;--spine:${SPINE[c.s]}`;
     slot.innerHTML = `
       <div class="lab"><div class="n">${c.n}</div><div class="m">${c.c} saves</div><div class="p">▸</div></div>
-      <div class="covw"><div class="c3d"><div class="cov cv${c.s}">${covInner(c.s)}</div><div class="edge l"></div><div class="edge r"></div></div></div>`;
+      <div class="covw"><div class="c3d"><div class="cov cv${c.s}">${covInner(c.s)}<i class="shade"></i></div><div class="edge l"></div><div class="edge r"></div></div></div>`;
     slot.addEventListener('click', () => select(i));
     row.appendChild(slot);
   });
@@ -265,26 +272,14 @@
     setHov(el ? el.closest('.slot') : null);
   }, { passive: true });
 
-  /* Every frame: recompute each sleeve's angle, shading, near-side spine,
-     and stacking from its current position on screen. layout() is the
-     single owner of z-index — hovered on top, recently-hovered settling
-     just below, everything else stacked by distance from center. The CSS
-     transition on the transform gives the fan its damped chase. */
+  /* The rake is constant, so z-index is the only per-frame concern:
+     layered left → right at rest (each sleeve lays on top of the one
+     before it), hovered sleeve on top, recently-hovered settling just
+     below so its swing-back never clips through neighbors. */
   function layout() {
-    const vw = row.clientWidth;
-    const center = vw / 2;
     const now = performance.now();
-    [...row.children].forEach((slot) => {
-      const r = slot.getBoundingClientRect();
-      const dx = (r.left + r.width / 2) - center;
-      const t = Math.min(1, Math.abs(dx) / (vw * 0.55));
-      const th = TH_MAX - (TH_MAX - TH_MIN) * Math.pow(t, 1.1);
-      const ry = (dx < 0 ? 1 : -1) * th;              // left opens right, right opens left
-      const br = 0.66 + (1 - th / 90) * 0.5;          // edge-on sleeves sit in shadow
-      slot.style.setProperty('--ry', ry.toFixed(1) + 'deg');
-      slot.style.setProperty('--br', br.toFixed(2));
-      slot.classList.toggle('lft', dx < 0);           // which spine faces the viewer
-      let z = 10 + Math.round((1 - t) * 60);          // center sleeves stack on top
+    [...row.children].forEach((slot, i) => {
+      let z = 10 + i;                                 // layered left → right
       if (slot === hovSlot) z = 999;
       else if (settling.has(slot)) {
         const leftMs = settling.get(slot) - now;
@@ -295,7 +290,6 @@
     });
   }
   (function tick() { layout(); requestAnimationFrame(tick); })();
-  window.addEventListener('resize', layout);
 
   function select(i, instant) {
     sel = Math.max(0, Math.min(N - 1, i));
