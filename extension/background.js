@@ -194,10 +194,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     captureActivePage(withSenderTab(msg, sender));
     return false;
   }
-  if (msg.type === 'gatheros:capture-full-page') {
-    captureFullPage(withSenderTab(msg, sender));
-    return false;
-  }
   if (msg.type === 'gatheros:capture-area') {
     captureActiveArea(withSenderTab(msg, sender));
     return false;
@@ -1934,118 +1930,6 @@ async function captureActiveArea({ tabId, windowId, pageUrl, pageTitle }) {
   let dataUrl = await blobToDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 }));
   dataUrl = await shrinkDataUrlIfNeeded(dataUrl);
   await finishCaptureSave(dataUrl, pageUrl, pageTitle);
-}
-
-// Full scrollable page: captureVisibleTab only grabs the viewport, so
-// we scroll the page one viewport at a time, shoot each, and stitch
-// the frames onto one tall OffscreenCanvas. captureVisibleTab is rate-
-// limited (~2/sec), hence the throttle + retry. The stitched image is
-// downscaled to stay under the native-messaging cap. Known limits:
-// sticky/fixed headers repeat across frames, and lazy-loaded content
-// may not have rendered — acceptable for a v1 snapshot.
-const FULLPAGE_MAX_CANVAS_PX = 16384; // Chrome canvas dimension ceiling
-const FULLPAGE_MAX_EDGE = 4000;       // allow a taller result than viewport shots
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function captureVisibleTabThrottled(windowId) {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 90 });
-    } catch (err) {
-      const m = err?.message || String(err);
-      if (attempt < 3 && /MAX_CAPTURE|too many|exceeded|quota|rate/i.test(m)) {
-        await sleep(650);
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
-async function captureFullPage({ tabId, windowId, pageUrl, pageTitle }) {
-  let metrics;
-  try {
-    const [res] = await chrome.scripting.executeScript({ target: { tabId }, func: fullPagePrepare });
-    metrics = res?.result || null;
-  } catch (err) {
-    notify(captureErrorText(err));
-    return;
-  }
-  if (!metrics || !metrics.totalH) { notify("This page can't be captured."); return; }
-
-  const { dpr, viewW, viewH, totalH, originalY } = metrics;
-  const shots = [];
-  try {
-    for (let y = 0; y < totalH; y += viewH) {
-      const top = Math.min(y, Math.max(0, totalH - viewH)); // last frame aligns to the bottom
-      await chrome.scripting.executeScript({ target: { tabId }, func: fullPageScrollTo, args: [top] });
-      await sleep(230); // paint + honor captureVisibleTab's rate limit
-      shots.push({ top, url: await captureVisibleTabThrottled(windowId) });
-      if (top >= totalH - viewH) break;
-    }
-  } catch (err) {
-    await restoreScroll(tabId, originalY);
-    notify(captureErrorText(err));
-    return;
-  }
-  await restoreScroll(tabId, originalY);
-
-  // Stitch. Scale the canvas down if the page is taller than Chrome's
-  // canvas ceiling so the whole page still fits in one image.
-  const fullW = Math.round(viewW * dpr);
-  const fullH = Math.round(totalH * dpr);
-  const renderScale = Math.min(1, FULLPAGE_MAX_CANVAS_PX / Math.max(fullW, fullH));
-  const canvas = new OffscreenCanvas(Math.max(1, Math.round(fullW * renderScale)),
-                                     Math.max(1, Math.round(fullH * renderScale)));
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (const { top, url } of shots) {
-    let bmp;
-    try { bmp = await createImageBitmap(await (await fetch(url)).blob()); }
-    catch { continue; }
-    ctx.drawImage(
-      bmp,
-      0, Math.round(top * dpr * renderScale),
-      bmp.width * renderScale, bmp.height * renderScale,
-    );
-    bmp.close?.();
-  }
-
-  let dataUrl = await blobToDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.82 }));
-  dataUrl = await shrinkDataUrlIfNeeded(dataUrl, FULLPAGE_MAX_EDGE);
-  await finishCaptureSave(dataUrl, pageUrl, pageTitle);
-}
-
-async function restoreScroll(tabId, y) {
-  try {
-    await chrome.scripting.executeScript({ target: { tabId }, func: fullPageScrollTo, args: [y] });
-  } catch { /* page may have navigated away — nothing to restore */ }
-}
-
-// Injected: measure the page and switch off smooth-scroll so the
-// per-frame scrolls land instantly. Returns null if unmeasurable.
-function fullPagePrepare() {
-  const de = document.documentElement;
-  if (!de) return null;
-  de.style.scrollBehavior = 'auto';
-  const totalH = Math.max(
-    de.scrollHeight || 0,
-    document.body ? document.body.scrollHeight : 0,
-    de.clientHeight || 0,
-  );
-  return {
-    dpr: window.devicePixelRatio || 1,
-    viewW: window.innerWidth,
-    viewH: window.innerHeight,
-    totalH,
-    originalY: window.scrollY || de.scrollTop || 0,
-  };
-}
-
-function fullPageScrollTo(top) {
-  window.scrollTo(0, top);
 }
 
 async function savePageUrl({ pageUrl, pageTitle }) {

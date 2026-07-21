@@ -22,7 +22,6 @@
 
   const ICONS = {
     page: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M2 8h20"/><path d="M6 4v4"/><path d="M10 4v4"/>',
-    full: '<path d="M7 2h10"/><path d="M5 6h14"/><rect width="18" height="12" x="3" y="10" rx="2"/>',
     area: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
     link: '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
     open: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
@@ -57,24 +56,38 @@
     <style>
       :host { all: initial; }
       * { box-sizing: border-box; }
+      /* Design tokens lifted straight from the app (styles/variables.css) so
+         the panel reads as a slice of GatherOS, not a browser popup. */
       .panel {
-        --content-bg: #fafaf9;
-        --surface-1: #ffffff;
+        --surface-1: #FAFAF9;
+        --content-bg: #FAFAF9;
         --border: rgba(0,0,0,0.07);
+        --border-subtle: rgba(0,0,0,0.05);
         --text-primary: #000;
         --text-secondary: rgba(0,0,0,0.55);
         --text-tertiary: rgba(0,0,0,0.4);
         --accent: #000;
-        --accent-hover: #1f1f1f;
         --on-accent: #fff;
-        --hover-bg: #eaeaea;
-        --shadow-control: 0 1px 3px -1px rgba(16,16,19,0.05);
+        --hover-bg: #EAEAEA;
+        --hover-bg-soft: rgba(0,0,0,0.04);
+        --input-bg: rgba(0,0,0,0.025);
+        --input-border: rgba(0,0,0,0.10);
+        --accent-ring: rgba(0,0,0,0.06);
+        --dot-on: #34c759; --dot-halo: rgba(52,199,89,0.18);
+        --dot-idle: #ff9f0a; --dot-off: #ff3b30;
         --font: 'Geist Variable','Geist','SF Pro Display','SF Pro Text',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
-        width: 264px;
-        padding: 12px;
-        border-radius: 13px;
-        background: var(--content-bg);
-        box-shadow: 0 10px 34px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12);
+        --shadow:
+          inset 0 1px 0 rgba(255,255,255,0.9),
+          0 1px 2px rgba(0,0,0,0.04),
+          0 12px 32px rgba(0,0,0,0.14),
+          0 24px 60px rgba(0,0,0,0.10);
+        --ease: cubic-bezier(0.32,0.72,0,1);
+        width: 270px;
+        padding: 7px;
+        border-radius: 14px;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
         font-family: var(--font);
         color: var(--text-primary);
         -webkit-font-smoothing: antialiased;
@@ -82,114 +95,121 @@
       }
       @media (prefers-color-scheme: dark) {
         .panel {
-          --content-bg: #1c1c1e; --surface-1: #242426; --border: rgba(255,255,255,0.09);
+          --surface-1: #242426; --content-bg: #1C1C1E;
+          --border: rgba(255,255,255,0.09); --border-subtle: rgba(255,255,255,0.06);
           --text-primary: #fff; --text-secondary: rgba(255,255,255,0.6); --text-tertiary: rgba(255,255,255,0.42);
-          --accent: #fff; --accent-hover: #f0f0f0; --on-accent: #000;
-          --hover-bg: rgba(255,255,255,0.08); --shadow-control: 0 1px 3px -1px rgba(0,0,0,0.4);
+          --accent: #fff; --on-accent: #000;
+          --hover-bg: rgba(255,255,255,0.08); --hover-bg-soft: rgba(255,255,255,0.05);
+          --input-bg: rgba(255,255,255,0.04); --input-border: rgba(255,255,255,0.09);
+          --accent-ring: rgba(255,255,255,0.08);
+          --shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 1px 2px rgba(0,0,0,0.4),
+            0 12px 32px rgba(0,0,0,0.55),
+            0 24px 60px rgba(0,0,0,0.45);
         }
       }
-      .head { display:flex; align-items:center; gap:7px; margin:1px 2px 11px; cursor:grab; }
+      .head { display:flex; align-items:center; gap:8px; padding:6px 6px 9px; cursor:grab; }
       .head.dragging { cursor:grabbing; }
-      .logo { width:18px; height:18px; display:block; flex:none; margin-left:-1px; border-radius:4px; -webkit-user-drag:none; user-select:none; }
-      .brand { font-size:13px; font-weight:600; letter-spacing:-0.012em; }
-      .ver { font-size:10px; color:var(--text-tertiary); font-variant-numeric:tabular-nums; margin-left:1px; }
-      /* Status moved out of the header to a centered row under the
-         Open GatherOS button so the header doesn't get squished. */
-      .status { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:10px; font-size:11px; color:var(--text-secondary); }
-      .dot { width:7px; height:7px; border-radius:50%; background:#c7c7c7; flex:none; }
-      .dot.on { background:#34c759; box-shadow:0 0 0 3px rgba(52,199,89,0.18); }
-      .dot.idle { background:#ff9f0a; }
-      .dot.off { background:#ff3b30; }
-      .x { display:flex; align-items:center; justify-content:center; width:20px; height:20px; margin-left:auto; padding:0; border:none; border-radius:6px; background:transparent; color:var(--text-secondary); cursor:pointer; }
+      .logo { width:18px; height:18px; display:block; flex:none; border-radius:5px; -webkit-user-drag:none; user-select:none; }
+      .brand { font-size:13px; font-weight:600; letter-spacing:-0.014em; }
+      .ver { font-size:10px; color:var(--text-tertiary); font-variant-numeric:tabular-nums; }
+      .x { display:flex; align-items:center; justify-content:center; width:22px; height:22px; margin-left:auto; padding:0; border:none; border-radius:7px; background:transparent; color:var(--text-tertiary); cursor:pointer; transition:background var(--ease) 120ms, color var(--ease) 120ms; }
       .x:hover { background:var(--hover-bg); color:var(--text-primary); }
-      .actions { display:flex; flex-direction:column; gap:6px; }
-      .btn { display:flex; align-items:center; gap:10px; width:100%; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface-1); box-shadow:var(--shadow-control); color:var(--text-primary); font-family:inherit; text-align:left; cursor:pointer; }
-      .btn:hover { background:var(--hover-bg); }
-      .btn:active { transform:scale(0.985); }
-      .ico { display:flex; flex:none; color:var(--text-secondary); }
+      .sep { height:1px; background:var(--border-subtle); margin:6px 4px; }
+      .group { display:flex; flex-direction:column; gap:1px; }
+      /* Menu-style rows: borderless, hover fills — the app's list/menu idiom. */
+      .row { display:flex; align-items:center; gap:11px; width:100%; padding:8px; border:none; border-radius:8px; background:transparent; color:var(--text-primary); font-family:inherit; text-align:left; cursor:pointer; transition:background var(--ease) 120ms; }
+      .row:hover { background:var(--hover-bg-soft); }
+      .row:active { background:var(--hover-bg); }
+      .ico { display:flex; flex:none; width:18px; justify-content:center; color:var(--text-secondary); }
       .txt { display:flex; flex-direction:column; gap:1px; min-width:0; }
-      .label { font-size:13px; font-weight:500; letter-spacing:-0.01em; }
-      .sub { font-size:11px; color:var(--text-secondary); letter-spacing:-0.005em; }
-      .open { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; margin-top:8px; padding:9px 12px; border:none; border-radius:8px; background:var(--accent); color:var(--on-accent); font-family:inherit; font-size:12.5px; font-weight:550; letter-spacing:-0.01em; cursor:pointer; }
-      .open .ico { color:var(--on-accent); }
-      .open:hover { background:var(--accent-hover); }
-      .open:active { transform:scale(0.985); }
-      /* Import bookmarks: collapsed it's a normal action button; open it
-         becomes a grouped card with the button as its borderless header
-         and the chooser nested inside. */
-      .import { margin-top:6px; }
-      .import.expanded { border:1px solid var(--border); border-radius:10px; background:var(--surface-1); box-shadow:var(--shadow-control); }
-      .import.expanded .btn { border:none; box-shadow:none; background:transparent; }
-      .import.expanded .btn:hover { background:transparent; }
-      .scope { display:flex; flex-direction:column; gap:8px; padding:0 10px 10px; }
+      .label { font-size:13px; font-weight:500; letter-spacing:-0.01em; line-height:1.25; }
+      .sub { font-size:11px; color:var(--text-secondary); letter-spacing:-0.004em; line-height:1.25; }
+      /* Expandable import group — soft fill wraps the header row + chooser. */
+      .import { border-radius:9px; }
+      .import.expanded { background:var(--hover-bg-soft); }
+      .import.expanded .row:hover { background:transparent; }
+      .scope { display:flex; flex-direction:column; gap:8px; padding:2px 9px 10px; }
       .scope[hidden] { display:none; }
-      .count { width:100%; padding:9px 16px 9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--content-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; cursor:pointer; }
-      .count:focus, .count:focus-visible { outline:none; border-color:var(--border); }
-      .import-go { width:100%; padding:9px 12px; border:none; border-radius:8px; background:var(--accent); color:var(--on-accent); font-family:inherit; font-size:12.5px; font-weight:550; letter-spacing:-0.01em; cursor:pointer; }
-      .import-go:disabled { opacity:0.4; cursor:default; }
-      .import-go:not(:disabled):hover { background:var(--accent-hover); }
-      .import-go:not(:disabled):active { transform:scale(0.985); }
-      .scope-note { font-size:10.5px; color:var(--text-tertiary); letter-spacing:-0.003em; line-height:1.35; margin:0 1px; }
+      .count { width:100%; padding:8px 12px; border:1px solid var(--input-border); border-radius:8px; background:var(--input-bg); color:var(--text-primary); font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:-0.01em; cursor:pointer; appearance:none; -webkit-appearance:none; transition:border-color var(--ease) 120ms, box-shadow var(--ease) 120ms; }
+      .count:focus, .count:focus-visible { outline:none; border-color:var(--input-border); box-shadow:0 0 0 3px var(--accent-ring); }
+      /* Primary actions (import + open): the app's black pill button. */
+      .primary { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:9px 12px; border:none; border-radius:9px; background:var(--accent); color:var(--on-accent); font-family:inherit; font-size:12.5px; font-weight:550; letter-spacing:-0.01em; cursor:pointer; transition:opacity var(--ease) 120ms, transform var(--ease) 120ms; }
+      .primary:not(:disabled):hover { opacity:0.92; }
+      .primary:not(:disabled):active { transform:scale(0.98); }
+      .primary:disabled { opacity:0.4; cursor:default; }
+      .open { margin:2px 3px 0; width:calc(100% - 6px); }
+      .open .ico { color:var(--on-accent); width:auto; }
+      .scope-note { font-size:10.5px; color:var(--text-tertiary); letter-spacing:-0.003em; line-height:1.4; }
       /* Inline result message (only shown on a problem — e.g. signed out).
          Lives in the panel so it can't be missed like a system toast. */
-      .scope-msg { font-size:11.5px; font-weight:500; color:#e5484d; letter-spacing:-0.005em; line-height:1.4; margin:1px 1px 0; }
+      .scope-msg { font-size:11.5px; font-weight:500; color:#e5484d; letter-spacing:-0.005em; line-height:1.4; }
       .scope-msg[hidden] { display:none; }
       .scope-msg .msg-link { color:inherit; font-weight:600; text-decoration:underline; cursor:pointer; }
+      .status { display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 0 4px; font-size:11px; color:var(--text-secondary); }
+      .dot { width:7px; height:7px; border-radius:50%; background:#c7c7c7; flex:none; }
+      .dot.on { background:var(--dot-on); box-shadow:0 0 0 3px var(--dot-halo); }
+      .dot.idle { background:var(--dot-idle); }
+      .dot.off { background:var(--dot-off); }
     </style>
     <div class="panel" part="panel">
       <div class="head" id="head">
         <img class="logo" src="${logoUrl}" alt="" draggable="false" />
         <span class="brand">GatherOS</span>
         <span class="ver" id="ver"></span>
-        <button class="x" id="close" title="Close">${svg(ICONS.close, 14)}</button>
+        <button class="x" id="close" title="Close">${svg(ICONS.close, 15)}</button>
       </div>
-      <div class="actions">
-        <button class="btn" data-action="gatheros:capture-page"><span class="ico">${svg(ICONS.page)}</span><span class="txt"><span class="label">Capture page</span><span class="sub">Visible browser area</span></span></button>
-        <button class="btn" data-action="gatheros:capture-full-page"><span class="ico">${svg(ICONS.full)}</span><span class="txt"><span class="label">Capture full page</span><span class="sub">Entire scrollable page</span></span></button>
-        <button class="btn" data-action="gatheros:capture-area"><span class="ico">${svg(ICONS.area)}</span><span class="txt"><span class="label">Capture area</span><span class="sub">Drag to select a region</span></span></button>
-        <button class="btn" data-action="gatheros:save-url"><span class="ico">${svg(ICONS.link)}</span><span class="txt"><span class="label">Save URL</span><span class="sub">This page as a link</span></span></button>
+      <div class="group">
+        <button class="row" data-action="gatheros:capture-page"><span class="ico">${svg(ICONS.page, 16)}</span><span class="txt"><span class="label">Capture page</span><span class="sub">Visible browser area</span></span></button>
+        <button class="row" data-action="gatheros:capture-area"><span class="ico">${svg(ICONS.area, 16)}</span><span class="txt"><span class="label">Capture area</span><span class="sub">Drag to select a region</span></span></button>
+        <button class="row" data-action="gatheros:save-url"><span class="ico">${svg(ICONS.link, 16)}</span><span class="txt"><span class="label">Save URL</span><span class="sub">This page as a link</span></span></button>
       </div>
-      <div class="import" id="import">
-        <button class="btn" id="importBookmarks"><span class="ico">${xLogo(15)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub" id="importSub">Backfill your X bookmarks</span></span></button>
-        <div class="scope" id="scope" hidden>
-          <select class="count" id="count">
-            <option value="25" selected>Most recent 25</option>
-            <option value="50">Most recent 50</option>
-            <option value="100">Most recent 100</option>
-            <option value="200">Most recent 200</option>
-            <option value="500">Most recent 500</option>
-            <option value="0">All bookmarks</option>
-          </select>
-          <button class="import-go" id="importGo" disabled>Import</button>
-          <div class="scope-note">Imports your most recent bookmarks in the background — duplicates are skipped.</div>
-          <div class="scope-msg" id="msg" hidden></div>
+      <div class="sep"></div>
+      <div class="group">
+        <div class="import" id="import">
+          <button class="row" id="importBookmarks"><span class="ico">${xLogo(15)}</span><span class="txt"><span class="label">Import bookmarks</span><span class="sub" id="importSub">Backfill your X bookmarks</span></span></button>
+          <div class="scope" id="scope" hidden>
+            <select class="count" id="count">
+              <option value="25" selected>Most recent 25</option>
+              <option value="50">Most recent 50</option>
+              <option value="100">Most recent 100</option>
+              <option value="200">Most recent 200</option>
+              <option value="500">Most recent 500</option>
+              <option value="0">All bookmarks</option>
+            </select>
+            <button class="primary" id="importGo" disabled>Import</button>
+            <div class="scope-note">Imports your most recent bookmarks in the background — duplicates are skipped.</div>
+            <div class="scope-msg" id="msg" hidden></div>
+          </div>
+        </div>
+        <div class="import" id="igImport">
+          <button class="row" id="importSaved"><span class="ico">${svg(ICONS.instagram, 15)}</span><span class="txt"><span class="label">Import saved</span><span class="sub" id="igSub">Backfill your Instagram saves</span></span></button>
+          <div class="scope" id="igScope" hidden>
+            <select class="count" id="igCount">
+              <option value="25" selected>Most recent 25</option>
+              <option value="50">Most recent 50</option>
+              <option value="100">Most recent 100</option>
+              <option value="200">Most recent 200</option>
+              <option value="500">Most recent 500</option>
+              <option value="0">All saved posts</option>
+            </select>
+            <button class="primary" id="igGo" disabled>Import</button>
+            <div class="scope-note">Imports your most recent saved posts in the background — duplicates are skipped.</div>
+            <div class="scope-msg" id="igMsg" hidden></div>
+          </div>
+        </div>
+        <div class="import" id="cosmosImport">
+          <button class="row" id="importCosmos"><span class="ico">${svg(ICONS.cosmos, 15)}</span><span class="txt"><span class="label">Import saves</span><span class="sub" id="cosmosSub">Backfill your Cosmos saves</span></span></button>
+          <div class="scope" id="cosmosScope" hidden>
+            <button class="primary" id="cosmosGo">Import all saves</button>
+            <div class="scope-note">Cosmos saves aren't dated, so this imports everything — your profile and each collection — in the background. Duplicates are skipped.</div>
+            <div class="scope-msg" id="cosmosMsg" hidden></div>
+          </div>
         </div>
       </div>
-      <div class="import" id="igImport">
-        <button class="btn" id="importSaved"><span class="ico">${svg(ICONS.instagram, 15)}</span><span class="txt"><span class="label">Import saved</span><span class="sub" id="igSub">Backfill your Instagram saves</span></span></button>
-        <div class="scope" id="igScope" hidden>
-          <select class="count" id="igCount">
-            <option value="25" selected>Most recent 25</option>
-            <option value="50">Most recent 50</option>
-            <option value="100">Most recent 100</option>
-            <option value="200">Most recent 200</option>
-            <option value="500">Most recent 500</option>
-            <option value="0">All saved posts</option>
-          </select>
-          <button class="import-go" id="igGo" disabled>Import</button>
-          <div class="scope-note">Imports your most recent saved posts in the background — duplicates are skipped.</div>
-          <div class="scope-msg" id="igMsg" hidden></div>
-        </div>
-      </div>
-      <div class="import" id="cosmosImport">
-        <button class="btn" id="importCosmos"><span class="ico">${svg(ICONS.cosmos, 15)}</span><span class="txt"><span class="label">Import saves</span><span class="sub" id="cosmosSub">Backfill your Cosmos saves</span></span></button>
-        <div class="scope" id="cosmosScope" hidden>
-          <button class="import-go" id="cosmosGo">Import all saves</button>
-          <div class="scope-note">Cosmos saves aren't dated, so this imports everything — your profile and each collection — in the background. Duplicates are skipped.</div>
-          <div class="scope-msg" id="cosmosMsg" hidden></div>
-        </div>
-      </div>
-      <button class="open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
+      <div class="sep"></div>
+      <button class="primary open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
       <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Checking…</span></div>
     </div>
   `;
@@ -207,9 +227,8 @@
   // Capture / save actions: close the panel first (so it never lands
   // in a screenshot), then fire the message. pageUrl/pageTitle come
   // from this page; the worker fills in the window/tab ids.
-  root.querySelectorAll('.btn').forEach((btn) => {
+  root.querySelectorAll('[data-action]').forEach((btn) => {
     const action = btn.getAttribute('data-action');
-    if (!action) return; // non-action buttons (e.g. Import) wire up below
     btn.addEventListener('click', () => {
       close();
       chrome.runtime.sendMessage({ type: action, pageUrl: location.href, pageTitle: document.title });
