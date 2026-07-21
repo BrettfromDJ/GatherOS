@@ -627,6 +627,26 @@ async function _writeVideoFiles(videoBuffer, { ext = 'mp4', posterUrl = null, vi
     }
   }
 
+  // No poster (e.g. Cosmos videos, whose capture has no still) → synthesize
+  // a plain dark placeholder thumbnail. saves.thumb_path is NOT NULL, and
+  // the grid still renders the inline <video> (its first frame) on top of
+  // this poster, so the card looks right; the placeholder only shows for
+  // the moment before the video's metadata loads.
+  if (!thumbPath) {
+    try {
+      const sharp = require('sharp');
+      const tw = 400;
+      const th = width && height ? Math.max(1, Math.round((height / width) * tw)) : 300;
+      thumbPath = path.join(getThumbsDir(), `${id}.jpg`);
+      await sharp({ create: { width: tw, height: Math.min(th, 400), channels: 3, background: { r: 23, g: 23, b: 26 } } })
+        .jpeg({ quality: 70 })
+        .toFile(thumbPath);
+    } catch (err) {
+      console.warn('[gatheros] video placeholder thumb failed:', err.message);
+      thumbPath = null; // last resort — surfaces the DB error rather than a silent bad row
+    }
+  }
+
   return {
     id,
     filePath,
