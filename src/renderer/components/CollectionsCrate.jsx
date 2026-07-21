@@ -133,17 +133,27 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
     const key = `${id}:${src || ''}`;
     if (!el || sampledRef.current.has(key)) return;
     sampledRef.current.add(key);
-    try {
-      const cv = document.createElement('canvas');
-      cv.width = 8; cv.height = 8;
-      const ctx = cv.getContext('2d');
-      ctx.drawImage(el, 0, 0, 8, 8);
-      const d = ctx.getImageData(0, 0, 8, 8).data;
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
-      const n = d.length / 4;
-      setSpines((prev) => ({ ...prev, [id]: `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(b / n)})` }));
-    } catch { /* tainted/undecoded — keep the fallback spine */ sampledRef.current.delete(key); }
+    const measure = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = 8; cv.height = 8;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(el, 0, 0, 8, 8);
+        const d = ctx.getImageData(0, 0, 8, 8).data;
+        let r = 0, g = 0, b = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+        const n = d.length / 4;
+        setSpines((prev) => ({ ...prev, [id]: `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(b / n)})` }));
+      } catch { /* tainted — keep the fallback spine */ sampledRef.current.delete(key); }
+    };
+    // decoding="async" means load can fire before the bitmap is ready, so
+    // drawImage would throw; decode() first when the element supports it
+    // (images do, <video> doesn't — it's already frame-ready on loadeddata).
+    if (typeof el.decode === 'function') {
+      el.decode().then(measure).catch(() => { sampledRef.current.delete(key); measure(); });
+    } else {
+      measure();
+    }
   }, []);
 
   const items = Array.isArray(collections) ? collections : [];
