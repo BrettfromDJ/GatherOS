@@ -97,12 +97,12 @@
   .edge.l{display:none}
   .slot.sel .c3d{transform:perspective(950px) translateZ(26px) rotateY(calc(var(--ry)*0.78))}
   .slot.sel .covw{filter:brightness(1.03)}
-  /* Hover = pulling a book from the shelf: the sleeve slides out along its
-     OWN facing direction (rotate first, then translate along the local
-     normal), keeps its exact angle, moves no neighbors, and changes no
-     layering — it just comes forward from behind its left neighbor and
+  /* Hover = pulling a book from the shelf: the sleeve comes straight out
+     toward the viewer (screen-space z — translate applied after the
+     rotation), keeps its exact rake, moves no neighbors, and changes no
+     layering — it just grows toward you from its place in the stack and
      lights up. */
-  .slot.hov .c3d{transform:perspective(950px) rotateY(var(--ry)) translateZ(64px)}
+  .slot.hov .c3d{transform:perspective(950px) translateZ(70px) rotateY(var(--ry))}
   .slot.hov .covw{filter:brightness(1.1)}
   /* Hover is the .hov class, applied by JS from the pointer's slot column —
      never CSS :hover. :hover goes stale when the row scrolls under a
