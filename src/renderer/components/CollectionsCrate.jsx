@@ -25,6 +25,78 @@ function posterOf(c) {
   return t || null;
 }
 
+// Ambient dust — slow, warm motes drifting up through the stage light, so
+// flipping through sleeves feels like leafing through canvases in a quiet
+// studio. Rendered on a canvas (cheap for many soft points). Two instances
+// are layered — a dense field behind the sleeves and a sparse, larger one
+// in front — for depth. Honors prefers-reduced-motion (draws a still field).
+function DustField({ count, near = false, className }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rand = (a, b) => a + Math.random() * (b - a);
+    let w = 0, h = 0, raf = 0;
+    const parts = [];
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth || window.innerWidth;
+      h = canvas.clientHeight || window.innerHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function seed() {
+      parts.length = 0;
+      for (let i = 0; i < count; i += 1) {
+        parts.push({
+          x: rand(0, w), y: rand(0, h),
+          r: near ? rand(1.3, 2.8) : rand(0.5, 1.7),
+          vx: rand(-0.05, 0.05) * (near ? 1.5 : 1),
+          vy: rand(-0.13, -0.03) * (near ? 1.5 : 1), // slow upward drift
+          baseA: near ? rand(0.18, 0.42) : rand(0.05, 0.22),
+          tw: rand(0, Math.PI * 2),
+          tws: rand(0.004, 0.013),
+        });
+      }
+    }
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      for (const p of parts) {
+        const a = p.baseA * (0.6 + 0.4 * Math.sin(p.tw));
+        const rr = p.r * 3;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
+        g.addColorStop(0, `rgba(255,248,236,${a.toFixed(3)})`);
+        g.addColorStop(1, 'rgba(255,248,236,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    function step() {
+      for (const p of parts) {
+        p.x += p.vx; p.y += p.vy; p.tw += p.tws;
+        if (p.y < -4) { p.y = h + 4; p.x = rand(0, w); }
+        if (p.x < -4) p.x = w + 4; else if (p.x > w + 4) p.x = -4;
+      }
+      draw();
+      raf = requestAnimationFrame(step);
+    }
+
+    resize(); seed();
+    if (reduce) draw();
+    else raf = requestAnimationFrame(step);
+    const onResize = () => { resize(); seed(); };
+    window.addEventListener('resize', onResize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
+  }, [count, near]);
+  return <canvas ref={ref} className={className} aria-hidden="true" />;
+}
+
 export default function CollectionsCrate({ open, collections, onOpenCollection, onCreateCollection, onClose }) {
   const rowRef = useRef(null);
   const slotRefs = useRef([]);
@@ -149,6 +221,7 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
          collections one by one. */
       data-allow-horizontal-scroll="true"
     >
+      <DustField count={70} className={styles.dustFar} />
       <div
         className={styles.row}
         ref={rowRef}
@@ -241,6 +314,7 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
         })}
         {N === 0 && <div className={styles.empty}>No collections yet</div>}
       </div>
+      <DustField count={18} near className={styles.dustNear} />
       <div className={styles.deck}>
         <div className={styles.hintRow}>
           <div className={styles.hint}>

@@ -21,6 +21,20 @@
   to   { opacity: 1; }
 }
 
+/* Ambient dust layers. Far drifts behind the sleeves (which start at
+   z 10); near drifts in front of them but below the deck (z 600). Both
+   are non-interactive. */
+.dustFar,
+.dustNear {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.dustFar { z-index: 1; }
+.dustNear { z-index: 550; }
+
 /* The crate scrolls horizontally — any number of collections fit. */
 .row {
   position: absolute;
