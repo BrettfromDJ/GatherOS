@@ -135,8 +135,13 @@ function ImageCard({
   // A video item is local only when it's the downloaded primary; every
   // other video plays from its url so it doesn't show as a frozen still.
   const localVideo = !activeMedia || activeMedia.primaryLocal || !activeMedia.url;
+  // Local videos get a #t media fragment so the element decodes and paints
+  // its own first frame at rest (preload="metadata" fetches just that byte
+  // range) instead of sitting on the poster until first play. This is what
+  // makes poster-less videos — e.g. Cosmos captures, whose stored thumb is
+  // a plain dark placeholder — show their real first frame without a hover.
   const videoSrc = showVideo
-    ? (localVideo ? src : activeMedia.url)
+    ? (localVideo ? `${src}#t=0.001` : activeMedia.url)
     : src;
   const videoPoster = (showVideo && !localVideo && activeMedia.poster)
     ? activeMedia.poster
