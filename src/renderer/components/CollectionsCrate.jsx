@@ -199,7 +199,7 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
           </div>
           {onCreateCollection && (
             <button type="button" className={styles.hintBtn} onClick={onCreateCollection}>
-              ＋ new collection
+              ＋ New collection
             </button>
           )}
         </div>
