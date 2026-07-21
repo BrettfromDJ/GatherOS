@@ -3698,6 +3698,7 @@ export default function App({ entitlement } = {}) {
                   open
                   collections={topLevelCollections}
                   onOpenCollection={(id) => handleViewChange({ type: 'collection', id })}
+                  onCreateCollection={handleCreateAndOpenCollection}
                 />
               ) : appMode === 'boards' ? (
                 // Boards mode → tile grid of every board. Clicking

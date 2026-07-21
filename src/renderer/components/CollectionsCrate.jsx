@@ -51,7 +51,7 @@ function useSpineColors(collections, open) {
   return colors;
 }
 
-export default function CollectionsCrate({ open, collections, onOpenCollection, onClose }) {
+export default function CollectionsCrate({ open, collections, onOpenCollection, onCreateCollection, onClose }) {
   const rowRef = useRef(null);
   const slotRefs = useRef([]);
   const [hovIdx, setHovIdx] = useState(null);
@@ -168,10 +168,17 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
         {N === 0 && <div className={styles.empty}>No collections yet</div>}
       </div>
       <div className={styles.deck}>
-        <div className={styles.hint}>
-          {onClose
-            ? '← → to browse · click a sleeve to open · esc to close'
-            : '← → to browse · click a sleeve to open'}
+        <div className={styles.hintRow}>
+          <div className={styles.hint}>
+            {onClose
+              ? '← → to browse · click a sleeve to open · esc to close'
+              : '← → to browse · click a sleeve to open'}
+          </div>
+          {onCreateCollection && (
+            <button type="button" className={styles.hintBtn} onClick={onCreateCollection}>
+              ＋ new collection
+            </button>
+          )}
         </div>
       </div>
     </div>

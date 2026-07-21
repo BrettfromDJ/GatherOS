@@ -216,10 +216,36 @@
   z-index: 600;
   pointer-events: none;
 }
+.hintRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 .hint {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   letter-spacing: -0.003em;
+}
+/* The one action in the hint bar — quiet bordered pill, sentence case. */
+.hintBtn {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: -0.003em;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill, 999px);
+  background: none;
+  cursor: pointer;
+  transition: background var(--dur-instant, 80ms) ease, color var(--dur-instant, 80ms) ease;
+}
+.hintBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.hintBtn:active {
+  transform: scale(0.97);
 }
 
 .empty {
