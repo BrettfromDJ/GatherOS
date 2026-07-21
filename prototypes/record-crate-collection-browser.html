@@ -249,17 +249,17 @@
 
   /* Hover, tracked in JS: the pointer's slot column is re-derived on every
      mousemove AND every scroll, so hover can never go stale mid-scroll
-     (the cause of sleeves stuck on the wrong layer). A sleeve that just
-     lost hover keeps a mid "settling" layer for 550ms so its swing-back
-     never clips through neighbors. */
+     (the cause of sleeves stuck on the wrong layer). On release the sleeve
+     drops straight back to its resting layer — sliding in behind its left
+     neighbor like a record going back into the crate. */
   let hovSlot = null;
-  const settling = new Map(); // slot -> timestamp when its settle window ends
   let lastX = null, lastY = null;
   function setHov(s) {
     if (s === hovSlot) return;
-    if (hovSlot) { hovSlot.classList.remove('hov'); settling.set(hovSlot, performance.now() + 550); }
+    if (hovSlot) hovSlot.classList.remove('hov');
     hovSlot = s;
-    if (s) { s.classList.add('hov'); settling.delete(s); }
+    if (s) s.classList.add('hov');
+    layout();
   }
   row.addEventListener('mousemove', (e) => {
     lastX = e.clientX; lastY = e.clientY;
@@ -272,25 +272,15 @@
     setHov(el ? el.closest('.slot') : null);
   }, { passive: true });
 
-  /* The rake is constant, so z-index is the only per-frame concern:
-     the leftmost sleeve is always on top of the one to its right, each
-     sleeve tucking behind its left neighbor — except the hovered sleeve,
-     which takes the top layer (and settles just below while swinging
-     back, so it never clips through neighbors). */
+  /* The rake is constant, so stacking is simple: the leftmost sleeve is
+     always on top of the one to its right, each sleeve tucking behind its
+     left neighbor — except the hovered sleeve, which takes the top layer. */
   function layout() {
-    const now = performance.now();
     [...row.children].forEach((slot, i) => {
-      let z = 10 + (N - i);                           // leftmost always in front
-      if (slot === hovSlot) z = 999;
-      else if (settling.has(slot)) {
-        const leftMs = settling.get(slot) - now;
-        if (leftMs <= 0) settling.delete(slot);
-        else z = 700 + Math.round(leftMs / 10);       // most recent settles highest
-      }
-      slot.style.zIndex = String(z);
+      slot.style.zIndex = String(slot === hovSlot ? 999 : 10 + (N - i));
     });
   }
-  (function tick() { layout(); requestAnimationFrame(tick); })();
+  layout();
 
   function select(i, instant) {
     sel = Math.max(0, Math.min(N - 1, i));
