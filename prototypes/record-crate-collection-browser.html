@@ -34,7 +34,9 @@
   .slot{flex:none;width:122px;position:relative;cursor:pointer;animation:rise .8s var(--ease) backwards;animation-delay:calc(min(var(--i),14)*55ms)}
   .slot:first-child{margin-left:9vw}
   .slot:last-child{margin-right:9vw}
-  @keyframes rise{from{opacity:0;transform:translateY(70px)}}
+  /* Sleeves rise in at full opacity — translucent overlapping sleeves
+     read as a rendering glitch, so the entrance is motion-only. */
+  @keyframes rise{from{transform:translateY(105vh)}}
 
   .lab{position:absolute;top:13vh;left:10px;right:4px;opacity:.4;transition:opacity .25s;cursor:pointer;z-index:500}
   .slot.hov .lab,.slot.sel .lab{opacity:1}
