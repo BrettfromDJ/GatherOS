@@ -82,30 +82,51 @@ window.addEventListener('message', (event) => {
 // was detected, what each source proposed (with a thumbnail), and every
 // large cdn image on screen (with thumbnails + sizes). Remove once fixed.
 function logCosmosSaveDiagnostic(elementId, interceptorUrl, domUrl) {
-  const dialogFound = [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')]
-    .some((d) => d.getClientRects().length > 0);
+  let dialogRoot = null;
+  for (const d of document.querySelectorAll('[role="dialog"], [aria-modal="true"]')) {
+    if (d.getClientRects().length > 0) { dialogRoot = d; break; }
+  }
+  const dialogFound = !!dialogRoot;
+
+  // Every <img> (any src form) that resolves to a cosmos image, big→small.
   const big = [];
-  for (const img of document.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+  for (const img of document.querySelectorAll('img')) {
+    const id = cosmosImageId(img.currentSrc || img.src);
+    if (!id) continue;
     if (img.getClientRects().length === 0) continue;
     const r = img.getBoundingClientRect();
     if (Math.min(r.width, r.height) < 120) continue;
-    big.push({ id: idFromCdnUrl(img.currentSrc || img.src) || '?', w: Math.round(r.width), h: Math.round(r.height) });
+    big.push({ id, w: Math.round(r.width), h: Math.round(r.height) });
   }
   big.sort((a, b) => (b.w * b.h) - (a.w * a.h));
 
+  // Raw <img> srcs inside the dialog — reveals the viewer's true src form
+  // (e.g. a _next/image proxy or a non-cdn host) when nothing else matches.
+  const dialogSrcs = [];
+  if (dialogRoot) {
+    for (const img of dialogRoot.querySelectorAll('img')) {
+      if (img.getClientRects().length === 0) continue;
+      const r = img.getBoundingClientRect();
+      if (Math.min(r.width, r.height) < 100) continue;
+      const raw = (img.currentSrc || img.src || '').replace(/^https?:\/\//, '');
+      dialogSrcs.push({ w: Math.round(r.width), h: Math.round(r.height), raw });
+    }
+    dialogSrcs.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+  }
+
   console.log(
-    '[gatheros] cosmos save diag — element', elementId,
-    '| dialog:', dialogFound,
-    '| chose:', domUrl ? `DOM ${idFromCdnUrl(domUrl)}` : `interceptor ${idFromCdnUrl(interceptorUrl) || 'none'}`,
-    '| interceptor:', idFromCdnUrl(interceptorUrl) || 'none',
-    '| on-screen big images:', big.map((b) => `${b.id}(${b.w}×${b.h})`).join(', ') || '(none)',
+    '[gatheros] cosmos save diag — element', elementId, '| dialog:', dialogFound,
+    '| chose:', domUrl ? `DOM ${cosmosImageId(domUrl)}` : `interceptor ${cosmosImageId(interceptorUrl) || 'none'}`,
+    '| dialog img srcs:', dialogSrcs.map((s) => `${s.w}×${s.h} ${s.raw}`),
   );
 
-  const thumb = (id) => id && id !== '?'
+  const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  const thumb = (id) => id
     ? `<img src="https://${CDN_HOST}/${id}?format=webp&w=64" style="width:38px;height:38px;object-fit:cover;border-radius:4px;flex:none;background:#222">`
     : '<span style="width:38px;height:38px;border-radius:4px;background:#333;flex:none;display:inline-block"></span>';
-  const chosenId = idFromCdnUrl(domUrl) || idFromCdnUrl(interceptorUrl) || '';
+  const chosenId = cosmosImageId(domUrl) || cosmosImageId(interceptorUrl) || '';
   const rows = big.map((b) => `<div style="display:flex;align-items:center;gap:8px;margin-top:4px">${thumb(b.id)}<span>${b.id.slice(0, 8)} · ${b.w}×${b.h}</span></div>`).join('');
+  const dsrc = dialogSrcs.slice(0, 5).map((s) => `<div style="margin-top:4px;color:#bcd;word-break:break-all">${s.w}×${s.h} · ${esc(s.raw.slice(0, 90))}</div>`).join('');
 
   let panel = document.getElementById('gatheros-cosmos-debug');
   if (!panel) {
@@ -129,46 +150,61 @@ function logCosmosSaveDiagnostic(elementId, interceptorUrl, domUrl) {
     <div style="margin-top:8px;color:#7fd77f">SAVED (chosen)</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:2px">${thumb(chosenId)}<span>${chosenId.slice(0, 8) || 'none'}<br>via ${domUrl ? 'on-screen' : 'interceptor'}</span></div>
     <div style="margin-top:8px;color:#d7a77f">interceptor guessed</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:2px">${thumb(idFromCdnUrl(interceptorUrl))}<span>${(idFromCdnUrl(interceptorUrl) || 'none').slice(0, 8)}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px">${thumb(cosmosImageId(interceptorUrl))}<span>${(cosmosImageId(interceptorUrl) || 'none').slice(0, 8)}</span></div>
+    <div style="margin-top:8px;color:#9aa">dialog img srcs (${dialogSrcs.length})</div>
+    ${dsrc || '<div style="color:#666;margin-top:4px">(none / no dialog)</div>'}
     <div style="margin-top:8px;color:#9aa">on-screen big images (${big.length})</div>
     ${rows || '<div style="color:#666;margin-top:4px">(none ≥120px)</div>'}
     <div style="margin-top:10px;color:#666">Screenshot this &amp; send it over.</div>
   `;
 }
 
-// The one big image the user is looking at when they save — the detail
-// viewer, whether it's a full /e/<id> page or a lightbox modal rendered in
-// a portal off <body> (so we scan the whole document, not just <main>).
-//
-// A viewer has a single image that dwarfs everything else on screen
-// (thumbnail rail ~64px, sidebar covers ~48px, avatars, feed tiles behind
-// the modal). We take the largest cdn image, but only if it's genuinely
-// dominant — clearly bigger than the next one. In a grid of similarly
-// sized tiles nothing dominates, so we return '' and let the caller fall
-// back to the per-element anchor instead of grabbing a neighbour.
-function dominantViewerCdnSrc() {
-  // If a lightbox/dialog is open, the saved image is the big one inside it —
-  // scope to that surface so the feed behind can't interfere.
+// Extract a cosmos image id from ANY image url the page might use, not just
+// a bare cdn url. The lightbox viewer runs its image through Next.js's
+// optimizer — src="/_next/image?url=<percent-encoded cdn url>&w=…" — so the
+// cdn id hides inside an encoded query param. Direct cdn urls and
+// percent-encoded slashes are handled too. Returns the id or null.
+function cosmosImageId(rawUrl) {
+  if (!rawUrl) return null;
+  let url = String(rawUrl);
+  if (/\/_next\/image/i.test(url)) {
+    const q = /[?&]url=([^&]+)/.exec(url);
+    if (q) { try { url = decodeURIComponent(q[1]); } catch { /* keep raw */ } }
+  }
+  // Decode once more in case the whole src arrived encoded.
+  if (!/cdn\.cosmos\.so\//i.test(url) && /cdn\.cosmos\.so%2F/i.test(url)) {
+    try { url = decodeURIComponent(url); } catch { /* keep */ }
+  }
+  const m = /cdn\.cosmos\.so(?:\/|%2F)([A-Za-z0-9-]+)/i.exec(url);
+  return m ? m[1] : null;
+}
+
+// The big image the user is looking at when they save — the lightbox/detail
+// viewer. Scan EVERY <img> (the viewer's src is a _next/image proxy url, not
+// a bare cdn url, so a cdn-only selector misses it), keyed through
+// cosmosImageId. Scope to an open dialog when present so the feed behind
+// can't interfere. Returns the viewer's cosmos image id, or ''.
+function dominantViewerImageId() {
   let root = null;
   for (const dlg of document.querySelectorAll('[role="dialog"], [aria-modal="true"]')) {
     if (dlg.getClientRects().length) { root = dlg; break; }
   }
   const scope = root || document;
   const boxes = [];
-  for (const img of scope.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+  for (const img of scope.querySelectorAll('img')) {
+    const id = cosmosImageId(img.currentSrc || img.src);
+    if (!id) continue;
     if (img.getClientRects().length === 0) continue;
     const r = img.getBoundingClientRect();
-    const minDim = Math.min(r.width, r.height);
-    if (minDim < 240) continue;                 // thumbnails, covers, tiles, avatars
-    boxes.push({ src: img.currentSrc || img.src || '', area: r.width * r.height });
+    if (Math.min(r.width, r.height) < 240) continue; // skip thumbnails/covers/tiles
+    boxes.push({ id, area: r.width * r.height });
   }
   if (!boxes.length) return '';
   boxes.sort((a, b) => b.area - a.area);
-  // Inside an explicit dialog, trust the largest image outright. On a bare
-  // page, require the top image to clearly dominate — two comparably large
-  // images means a grid, not a viewer, so don't guess.
+  // In a dialog, trust the largest. On a bare page require clear dominance so
+  // a grid of similarly sized tiles isn't mistaken for a viewer.
   if (!root && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
-  return boxes[0].src;
+  return boxes[0].id;
 }
 
 // Resolve the image the user is actually saving, straight from the page, so
@@ -177,17 +213,16 @@ function dominantViewerCdnSrc() {
 // url, or '' if the DOM can't answer.
 function resolveCosmosImageFromDom(elementId) {
   // Preferred: the dominant viewer image (detail page or lightbox modal).
-  let src = dominantViewerCdnSrc();
+  let id = dominantViewerImageId();
   // Fallback: saved off a grid tile with no open viewer — find the tile
   // that links to this specific element and take its own image.
-  if (!src && elementId != null) {
+  if (!id && elementId != null) {
     const a = document.querySelector(`a[href*="/e/${elementId}"]`);
     if (a) {
-      const img = a.querySelector(`img[src*="${CDN_HOST}"]`);
-      if (img) src = img.currentSrc || img.src || '';
+      const img = a.querySelector('img');
+      if (img) id = cosmosImageId(img.currentSrc || img.src);
     }
   }
-  const id = idFromCdnUrl(src);
   return id ? `https://${CDN_HOST}/${id}?format=webp` : '';
 }
 
