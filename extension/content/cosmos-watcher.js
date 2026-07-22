@@ -56,6 +56,11 @@ window.addEventListener('message', (event) => {
   // interceptor's mediaUrl when the DOM can't answer.
   const domMediaUrl = resolveCosmosImageFromDom(d.elementId);
   const mediaUrl = domMediaUrl || d.mediaUrl;
+  // Diagnostic: if a save ever records the wrong image, this one line shows
+  // exactly what was on screen and what each source proposed — no guessing.
+  try {
+    logCosmosSaveDiagnostic(d.elementId, d.mediaUrl, domMediaUrl);
+  } catch { /* never let logging break a save */ }
   if (!mediaUrl) return; // image not seen yet — the profile/grid reader backfills it later
   const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(mediaUrl);
   const id = m ? m[1] : String(d.elementId);
@@ -71,38 +76,75 @@ window.addEventListener('message', (event) => {
   } catch { /* extension reloaded */ }
 });
 
-// The largest visible cdn.cosmos.so image inside `root` (by rendered area).
-// On a detail page that's the viewer; small chrome (sidebar covers, the
-// thumbnail rail, avatars) never wins.
-function largestCdnImgSrc(root) {
-  let best = null;
-  let bestArea = 0;
-  for (const img of root.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+// One-line snapshot of what's on screen when a save fires: the element id,
+// what the interceptor guessed, what the DOM resolver chose, and every large
+// cdn image visible (sorted big→small). If a save still records the wrong
+// image, this makes the cause obvious instead of another blind fix.
+function logCosmosSaveDiagnostic(elementId, interceptorUrl, domUrl) {
+  const big = [];
+  for (const img of document.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
     if (img.getClientRects().length === 0) continue;
     const r = img.getBoundingClientRect();
-    const area = r.width * r.height;
-    if (area > bestArea) { bestArea = area; best = img; }
+    if (Math.min(r.width, r.height) < 120) continue;
+    big.push(`${idFromCdnUrl(img.currentSrc || img.src) || '?'}(${Math.round(r.width)}×${Math.round(r.height)})`);
   }
-  return best ? (best.currentSrc || best.src || '') : '';
+  console.log(
+    '[gatheros] cosmos save diag — element', elementId,
+    '| chose:', domUrl ? `DOM ${idFromCdnUrl(domUrl)}` : `interceptor ${idFromCdnUrl(interceptorUrl) || 'none'}`,
+    '| interceptor:', idFromCdnUrl(interceptorUrl) || 'none',
+    '| on-screen big images:', big.join(', ') || '(none)',
+  );
+}
+
+// The one big image the user is looking at when they save — the detail
+// viewer, whether it's a full /e/<id> page or a lightbox modal rendered in
+// a portal off <body> (so we scan the whole document, not just <main>).
+//
+// A viewer has a single image that dwarfs everything else on screen
+// (thumbnail rail ~64px, sidebar covers ~48px, avatars, feed tiles behind
+// the modal). We take the largest cdn image, but only if it's genuinely
+// dominant — clearly bigger than the next one. In a grid of similarly
+// sized tiles nothing dominates, so we return '' and let the caller fall
+// back to the per-element anchor instead of grabbing a neighbour.
+function dominantViewerCdnSrc() {
+  // If a lightbox/dialog is open, the saved image is the big one inside it —
+  // scope to that surface so the feed behind can't interfere.
+  let root = null;
+  for (const dlg of document.querySelectorAll('[role="dialog"], [aria-modal="true"]')) {
+    if (dlg.getClientRects().length) { root = dlg; break; }
+  }
+  const scope = root || document;
+  const boxes = [];
+  for (const img of scope.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+    if (img.getClientRects().length === 0) continue;
+    const r = img.getBoundingClientRect();
+    const minDim = Math.min(r.width, r.height);
+    if (minDim < 240) continue;                 // thumbnails, covers, tiles, avatars
+    boxes.push({ src: img.currentSrc || img.src || '', area: r.width * r.height });
+  }
+  if (!boxes.length) return '';
+  boxes.sort((a, b) => b.area - a.area);
+  // Inside an explicit dialog, trust the largest image outright. On a bare
+  // page, require the top image to clearly dominate — two comparably large
+  // images means a grid, not a viewer, so don't guess.
+  if (!root && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
+  return boxes[0].src;
 }
 
 // Resolve the image the user is actually saving, straight from the page, so
-// a save records the frame on screen rather than the interceptor's guess.
-// Returns a normalized full-res cdn url, or '' if the DOM can't answer.
+// a save records the frame on screen rather than the interceptor's guess
+// (which mis-keys multi-image elements). Returns a normalized full-res cdn
+// url, or '' if the DOM can't answer.
 function resolveCosmosImageFromDom(elementId) {
-  let src = '';
-  // On the element's own detail page (/e/<id>), the big viewer image is the
-  // frame being looked at — the right one even for a multi-image element.
-  if (elementId != null && new RegExp(`/e/${elementId}(?:[/?#]|$)`).test(location.pathname)) {
-    src = largestCdnImgSrc(document.querySelector('main') || document);
-  }
-  // Otherwise the save came off a grid tile — find the tile that links to
-  // this element and take its image.
+  // Preferred: the dominant viewer image (detail page or lightbox modal).
+  let src = dominantViewerCdnSrc();
+  // Fallback: saved off a grid tile with no open viewer — find the tile
+  // that links to this specific element and take its own image.
   if (!src && elementId != null) {
     const a = document.querySelector(`a[href*="/e/${elementId}"]`);
     if (a) {
       const img = a.querySelector(`img[src*="${CDN_HOST}"]`);
-      src = img ? (img.currentSrc || img.src || '') : largestCdnImgSrc(a);
+      if (img) src = img.currentSrc || img.src || '';
     }
   }
   const id = idFromCdnUrl(src);
