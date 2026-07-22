@@ -76,24 +76,64 @@ window.addEventListener('message', (event) => {
   } catch { /* extension reloaded */ }
 });
 
-// One-line snapshot of what's on screen when a save fires: the element id,
-// what the interceptor guessed, what the DOM resolver chose, and every large
-// cdn image visible (sorted big→small). If a save still records the wrong
-// image, this makes the cause obvious instead of another blind fix.
+// Temporary, on-page debug panel (screenshot-friendly) shown when a save
+// fires, so the wrong-image bug can be diagnosed from a screenshot instead
+// of another blind guess. Shows: the element id, whether a dialog/lightbox
+// was detected, what each source proposed (with a thumbnail), and every
+// large cdn image on screen (with thumbnails + sizes). Remove once fixed.
 function logCosmosSaveDiagnostic(elementId, interceptorUrl, domUrl) {
+  const dialogFound = [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')]
+    .some((d) => d.getClientRects().length > 0);
   const big = [];
   for (const img of document.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
     if (img.getClientRects().length === 0) continue;
     const r = img.getBoundingClientRect();
     if (Math.min(r.width, r.height) < 120) continue;
-    big.push(`${idFromCdnUrl(img.currentSrc || img.src) || '?'}(${Math.round(r.width)}×${Math.round(r.height)})`);
+    big.push({ id: idFromCdnUrl(img.currentSrc || img.src) || '?', w: Math.round(r.width), h: Math.round(r.height) });
   }
+  big.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+
   console.log(
     '[gatheros] cosmos save diag — element', elementId,
+    '| dialog:', dialogFound,
     '| chose:', domUrl ? `DOM ${idFromCdnUrl(domUrl)}` : `interceptor ${idFromCdnUrl(interceptorUrl) || 'none'}`,
     '| interceptor:', idFromCdnUrl(interceptorUrl) || 'none',
-    '| on-screen big images:', big.join(', ') || '(none)',
+    '| on-screen big images:', big.map((b) => `${b.id}(${b.w}×${b.h})`).join(', ') || '(none)',
   );
+
+  const thumb = (id) => id && id !== '?'
+    ? `<img src="https://${CDN_HOST}/${id}?format=webp&w=64" style="width:38px;height:38px;object-fit:cover;border-radius:4px;flex:none;background:#222">`
+    : '<span style="width:38px;height:38px;border-radius:4px;background:#333;flex:none;display:inline-block"></span>';
+  const chosenId = idFromCdnUrl(domUrl) || idFromCdnUrl(interceptorUrl) || '';
+  const rows = big.map((b) => `<div style="display:flex;align-items:center;gap:8px;margin-top:4px">${thumb(b.id)}<span>${b.id.slice(0, 8)} · ${b.w}×${b.h}</span></div>`).join('');
+
+  let panel = document.getElementById('gatheros-cosmos-debug');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'gatheros-cosmos-debug';
+    panel.style.cssText = [
+      'position:fixed', 'left:16px', 'bottom:16px', 'z-index:2147483647',
+      'width:300px', 'max-height:70vh', 'overflow:auto', 'padding:12px 14px',
+      'background:#0b0b0c', 'color:#eaeaea', 'border:1px solid #2a2a2c', 'border-radius:10px',
+      'font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'box-shadow:0 10px 40px rgba(0,0,0,.5)',
+    ].join(';');
+    document.body.appendChild(panel);
+  }
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="color:#8ad">GatherOS save debug</b>
+      <span style="cursor:pointer;color:#888" onclick="this.closest('#gatheros-cosmos-debug').remove()">✕</span>
+    </div>
+    <div>element: <b>${elementId}</b> · dialog: <b>${dialogFound}</b></div>
+    <div style="margin-top:8px;color:#7fd77f">SAVED (chosen)</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px">${thumb(chosenId)}<span>${chosenId.slice(0, 8) || 'none'}<br>via ${domUrl ? 'on-screen' : 'interceptor'}</span></div>
+    <div style="margin-top:8px;color:#d7a77f">interceptor guessed</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px">${thumb(idFromCdnUrl(interceptorUrl))}<span>${(idFromCdnUrl(interceptorUrl) || 'none').slice(0, 8)}</span></div>
+    <div style="margin-top:8px;color:#9aa">on-screen big images (${big.length})</div>
+    ${rows || '<div style="color:#666;margin-top:4px">(none ≥120px)</div>'}
+    <div style="margin-top:10px;color:#666">Screenshot this &amp; send it over.</div>
+  `;
 }
 
 // The one big image the user is looking at when they save — the detail
