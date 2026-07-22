@@ -131,7 +131,7 @@ function collectElements() {
     // still mid-load reads small here; we skip it now and the 2s re-sweep
     // catches it at full size, since `seen` isn't marked until it passes.)
     const rect = img.getBoundingClientRect();
-    if (rect.width < 120 || rect.height < 120) continue;
+    if (rect.width < 100 || rect.height < 100) continue;
     // Chrome that isn't a save: profile header avatar, side rails, etc.
     if (img.closest('header, nav, aside, [role="banner"]')) continue;
     const id = idFromCdnUrl(src);
