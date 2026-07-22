@@ -47,8 +47,17 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (d.type !== 'save') return;
-  if (!d.mediaUrl) return; // image not seen yet — the profile/grid reader backfills it later
-  const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(d.mediaUrl);
+  // Trust what's on screen over the interceptor's guess. The interceptor
+  // maps element→image by walking Cosmos's GraphQL response, which for a
+  // multi-image element (or nested element/media sub-objects) can attach
+  // the wrong cdn url — surfacing as a "random image" that isn't even one
+  // of the element's frames. The image the user is actually looking at is
+  // in the DOM, so resolve from there first and only fall back to the
+  // interceptor's mediaUrl when the DOM can't answer.
+  const domMediaUrl = resolveCosmosImageFromDom(d.elementId);
+  const mediaUrl = domMediaUrl || d.mediaUrl;
+  if (!mediaUrl) return; // image not seen yet — the profile/grid reader backfills it later
+  const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(mediaUrl);
   const id = m ? m[1] : String(d.elementId);
   if (seen.has(id)) return;
   seen.add(id);
@@ -56,11 +65,49 @@ window.addEventListener('message', (event) => {
   try {
     chrome.runtime.sendMessage({
       type: 'gatheros:cosmos-saved-batch',
-      elements: [{ id, mediaUrl: d.mediaUrl, pageUrl: d.pageUrl || d.mediaUrl, type: 'image', caption: '', collection: null, realtime: true }],
+      elements: [{ id, mediaUrl, pageUrl: d.pageUrl || mediaUrl, type: 'image', caption: '', collection: null, realtime: true }],
     });
-    console.log('[gatheros] cosmos: real-time save →', d.mediaUrl);
+    console.log('[gatheros] cosmos: real-time save →', mediaUrl, domMediaUrl ? '(from view)' : '(from interceptor)');
   } catch { /* extension reloaded */ }
 });
+
+// The largest visible cdn.cosmos.so image inside `root` (by rendered area).
+// On a detail page that's the viewer; small chrome (sidebar covers, the
+// thumbnail rail, avatars) never wins.
+function largestCdnImgSrc(root) {
+  let best = null;
+  let bestArea = 0;
+  for (const img of root.querySelectorAll(`img[src*="${CDN_HOST}"]`)) {
+    if (img.getClientRects().length === 0) continue;
+    const r = img.getBoundingClientRect();
+    const area = r.width * r.height;
+    if (area > bestArea) { bestArea = area; best = img; }
+  }
+  return best ? (best.currentSrc || best.src || '') : '';
+}
+
+// Resolve the image the user is actually saving, straight from the page, so
+// a save records the frame on screen rather than the interceptor's guess.
+// Returns a normalized full-res cdn url, or '' if the DOM can't answer.
+function resolveCosmosImageFromDom(elementId) {
+  let src = '';
+  // On the element's own detail page (/e/<id>), the big viewer image is the
+  // frame being looked at — the right one even for a multi-image element.
+  if (elementId != null && new RegExp(`/e/${elementId}(?:[/?#]|$)`).test(location.pathname)) {
+    src = largestCdnImgSrc(document.querySelector('main') || document);
+  }
+  // Otherwise the save came off a grid tile — find the tile that links to
+  // this element and take its image.
+  if (!src && elementId != null) {
+    const a = document.querySelector(`a[href*="/e/${elementId}"]`);
+    if (a) {
+      const img = a.querySelector(`img[src*="${CDN_HOST}"]`);
+      src = img ? (img.currentSrc || img.src || '') : largestCdnImgSrc(a);
+    }
+  }
+  const id = idFromCdnUrl(src);
+  return id ? `https://${CDN_HOST}/${id}?format=webp` : '';
+}
 
 // https://cdn.cosmos.so/<uuid>?format=webp&w=400  →  <uuid>
 function idFromCdnUrl(url) {
