@@ -123,6 +123,17 @@ function collectElements() {
     const wMatch = /[?&]w=(\d+)/.exec(src);
     if (wMatch && parseInt(wMatch[1], 10) < 200) continue;    // small chrome thumbs
     if (img.getClientRects().length === 0) continue;          // hidden / preload
+    // Avatars and mini collection covers are often *requested* at retina
+    // width (w≥200) while rendering tiny, so the w filter alone lets them
+    // through — they were landing as stray "avatar" saves. Gate on the
+    // actual on-screen size instead: real grid tiles are large; account
+    // avatars, collaborator faces, and index thumbnails are not. (A tile
+    // still mid-load reads small here; we skip it now and the 2s re-sweep
+    // catches it at full size, since `seen` isn't marked until it passes.)
+    const rect = img.getBoundingClientRect();
+    if (rect.width < 120 || rect.height < 120) continue;
+    // Chrome that isn't a save: profile header avatar, side rails, etc.
+    if (img.closest('header, nav, aside, [role="banner"]')) continue;
     const id = idFromCdnUrl(src);
     if (!id || seen.has(id)) continue;
     if (excludedUuids.has(id.toLowerCase())) continue;        // "Similar" recommendation, not a save

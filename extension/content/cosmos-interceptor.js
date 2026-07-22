@@ -29,6 +29,13 @@
       const raw = node.id;
       if (typeof raw === 'number') elId = raw;
       else if (typeof raw === 'string' && /^\d+$/.test(raw)) elId = Number(raw);
+    } else if (/user|profile|cluster|team|author|owner|account/i.test(tn)) {
+      // A nested account or collection object hanging off an element (the
+      // saver's avatar, the destination cluster's cover, …). Its cdn image
+      // is NOT the element's artwork — clear the inherited elId so nothing
+      // found inside gets attributed to the enclosing element. This is what
+      // was turning up as an avatar in place of the real save.
+      elId = null;
     }
     for (const k in node) {
       const v = node[k];
