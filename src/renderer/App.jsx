@@ -3626,7 +3626,13 @@ export default function App({ entitlement } = {}) {
                   scroll this pill simply stays put — no crossfade, no
                   shift, no flash. */}
               <div className="mode-pill-float">
-                <ModePill mode={appMode} onModeChange={handleModeChange} />
+                {/* The crate is a fixed dark stage — force the pill dark so
+                    it doesn't float as a bright light-mode chip over it. */}
+                <ModePill
+                  mode={appMode}
+                  onModeChange={handleModeChange}
+                  dark={appMode === 'folders' && view.type === 'all'}
+                />
               </div>
               {appMode === 'search' ? (
                 // Dedicated Search tab — search-first canvas. Hero field

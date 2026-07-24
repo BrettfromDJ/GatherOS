@@ -713,6 +713,24 @@
     box-shadow var(--dur-medium) var(--ease-out);
 }
 
+/* Forced-dark pill for the Collections crate. The crate is a fixed dark
+   stage in both app themes, so a light pill floating over it clashes.
+   Redefine the tokens the pill and its children read (bg, text, thumb,
+   border, hover, accent) to dark values locally — every descendant picks
+   these up, so the whole pill flips cohesively without per-element rules.
+   --surface-1 doubles as the pill background AND the on-thumb (active)
+   text color, exactly as in the themed version. */
+.modePillDark {
+  --surface-1: #161618;
+  --text-primary: #f4f4f5;
+  --accent: #f4f4f5;
+  --border: rgba(255, 255, 255, 0.14);
+  --hover-bg: rgba(255, 255, 255, 0.10);
+  background: #161618;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
 /* Compact form — driven by App.jsx via the grid scroll position
    (scrollTop > 8px). One transform handles the resize so we don't
    reflow neighbouring toolbar items as the user scrolls. Shadow

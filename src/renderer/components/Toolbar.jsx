@@ -305,7 +305,7 @@ function AddMenu({ compact = false, onUpload, onSaveUrl }) {
   );
 }
 
-export function ModePill({ mode, onModeChange, compact = false }) {
+export function ModePill({ mode, onModeChange, compact = false, dark = false }) {
   // Search lives as the first tab inside the pill, ahead of the three
   // labeled segments. It's icon-only with a circular hover / active fill
   // and sits outside the sliding-thumb track — the thumb only covers the
@@ -314,7 +314,7 @@ export function ModePill({ mode, onModeChange, compact = false }) {
   const showThumb = labeledIndex >= 0;
   return (
     <div
-      className={[styles.modePill, compact && styles.modePillCompact]
+      className={[styles.modePill, compact && styles.modePillCompact, dark && styles.modePillDark]
         .filter(Boolean)
         .join(' ')}
       role="tablist"
