@@ -20,21 +20,6 @@ import {
 
 export const RELEASE_NOTES = [
   {
-    version: '0.8.1',
-    items: [
-      {
-        Icon: CardsIcon,
-        title: 'A calmer crate',
-        description: 'The Collections view now drifts with ambient studio dust and rests dark and quiet — nothing lit until you hover or arrow to a sleeve, so flipping through feels like leafing through a real crate.',
-      },
-      {
-        Icon: PermissionIcon,
-        title: 'Sharper sleeves',
-        description: 'Covers load crisp instead of blurred, video covers play muted on their sleeves, and each spine now picks up the boldest color from its artwork.',
-      },
-    ],
-  },
-  {
     version: '0.8.0',
     items: [
       {
