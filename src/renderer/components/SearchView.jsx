@@ -136,12 +136,14 @@ function TokenChip({ chip, onRemove }) {
   );
 }
 
-// The dedicated Search tab. A search-first canvas: an oversized hero
-// field on top, then either a landing state (recent searches +
-// suggested tags) while the query is empty, or the scrollable masonry
-// of matching saves once the user types. Reuses the library <Grid> for
-// results so card behavior (select, peek, drag, context menu) is
-// identical to the rest of the app.
+// The dedicated Search tab. Empty query = a launcher: the field sits at
+// the optical centre of the canvas with the library count beneath it, and
+// recent searches, the collections rail and tag chips orbiting below —
+// so the page fills rather than hugging the top. Typing keeps the field
+// in place (same DOM slot, so focus is never lost) and swaps everything
+// below it for the scrollable masonry of matches. Reuses the library
+// <Grid> for results so card behavior (select, peek, drag, context menu)
+// is identical to the rest of the app.
 export default function SearchView({
   search,
   onSearchChange,
@@ -495,167 +497,283 @@ export default function SearchView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collections.length, hasQuery]);
 
-  return (
-    <div className={`grid-scroll ${styles.scroll}`} ref={scrollRef}>
-      <div className={styles.hero}>
-        <div className={styles.fieldWrap}>
-          <div className={styles.field}>
-            <span className={styles.fieldIcon}><SearchGlyph /></span>
-            {chips.map((chip, i) => (
-              <TokenChip
-                key={`${chip.key}-${chip.value}-${i}`}
-                chip={chip}
-                onRemove={() => removeChip(i)}
-              />
-            ))}
-            <div className={styles.inputWrap}>
-              <input
-                ref={inputRef}
-                className={styles.input}
-                type="text"
-                value={text}
-                /* Native placeholder is empty — the rotating ghost below
-                   stands in for it so it can cross-fade. aria-label keeps a
-                   stable name for screen readers while the visual rotates. */
-                placeholder=""
-                aria-label="Search your library by title, tag, source or colour"
-                role="combobox"
-                aria-expanded={popOpen}
-                aria-autocomplete="list"
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                onKeyDown={handleKeyDown}
-              />
-              {!hasQuery && (
-                ghostTerm ? (
-                  // key on the term so each rotation remounts → fade-in.
-                  <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
-                    Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
-                  </span>
-                ) : (
-                  <span className={styles.ghost} aria-hidden="true">
-                    Search titles, tags and sources…
-                  </span>
-                )
-              )}
-            </div>
-            {/* Teach the shortcut at the moment of highest relevance:
-                the user is mid-search, and ⌘K would've gotten them here
-                (and more) from anywhere. */}
-            {onOpenCommandPalette && (
-              <button
-                type="button"
-                className={styles.kbdBtn}
-                onClick={onOpenCommandPalette}
-                aria-label="Open command palette"
-                data-tooltip="Search & commands anywhere"
-              >
-                ⌘K
-              </button>
-            )}
-            <span className={styles.filterWrap} ref={filterWrapRef}>
-              <button
-                type="button"
-                className={`${styles.filterBtn}${filterMenuOpen ? ` ${styles.filterBtnActive}` : ''}`}
-                onClick={() => setFilterMenuOpen((v) => !v)}
-                aria-label="Add a filter"
-                aria-expanded={filterMenuOpen}
-                data-tooltip={filterMenuOpen ? undefined : 'Add a filter'}
-              >
-                <FilterGlyph />
-              </button>
-              {filterMenuOpen && (
-                <div className={styles.filterMenu} role="menu">
-                  {FILTER_MENU.map(({ key, label, Glyph }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={styles.popRow}
-                      role="menuitem"
-                      onClick={() => pickFilter(key)}
-                    >
-                      <span className={styles.popIcon}>
-                        {Glyph ? <Glyph /> : (
-                          <span className={styles.swatchTrio} aria-hidden="true">
-                            <i style={{ background: '#ff6347' }} />
-                            <i style={{ background: '#2e8b57' }} />
-                            <i style={{ background: '#1e88e5' }} />
-                          </span>
-                        )}
-                      </span>
-                      <span className={styles.popLabel}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </span>
-            {hasQuery && (
-              <button
-                type="button"
-                className={styles.clear}
-                onClick={() => { onSearchChange(''); inputRef.current?.focus(); }}
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
-          </div>
-          {popOpen && (
-            <div className={styles.pop} role="listbox" aria-label="Filter suggestions">
-              {showDateHint && (
-                <div className={styles.popHint}>Pick a preset or type a date — YYYY-MM-DD</div>
-              )}
-              {suggestions.map((row, i) => (
+  // The search field (+ its suggestion popover) — built once and placed
+  // either at the top of the results view or at the optical centre of the
+  // empty launcher, so both share one instance of the input's state.
+  const fieldNode = (
+    <div className={styles.fieldWrap}>
+      <div className={styles.field}>
+        <span className={styles.fieldIcon}><SearchGlyph /></span>
+        {chips.map((chip, i) => (
+          <TokenChip
+            key={`${chip.key}-${chip.value}-${i}`}
+            chip={chip}
+            onRemove={() => removeChip(i)}
+          />
+        ))}
+        <div className={styles.inputWrap}>
+          <input
+            ref={inputRef}
+            className={styles.input}
+            type="text"
+            value={text}
+            /* Native placeholder is empty — the rotating ghost below
+               stands in for it so it can cross-fade. aria-label keeps a
+               stable name for screen readers while the visual rotates. */
+            placeholder=""
+            aria-label="Search your library by title, tag, source or colour"
+            role="combobox"
+            aria-expanded={popOpen}
+            aria-autocomplete="list"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={handleKeyDown}
+          />
+          {!hasQuery && (
+            ghostTerm ? (
+              // key on the term so each rotation remounts → fade-in.
+              <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
+                Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
+              </span>
+            ) : (
+              <span className={styles.ghost} aria-hidden="true">
+                Search titles, tags and sources…
+              </span>
+            )
+          )}
+        </div>
+        {/* Teach the shortcut at the moment of highest relevance:
+            the user is mid-search, and ⌘K would've gotten them here
+            (and more) from anywhere. */}
+        {onOpenCommandPalette && (
+          <button
+            type="button"
+            className={styles.kbdBtn}
+            onClick={onOpenCommandPalette}
+            aria-label="Open command palette"
+            data-tooltip="Search & commands anywhere"
+          >
+            ⌘K
+          </button>
+        )}
+        <span className={styles.filterWrap} ref={filterWrapRef}>
+          <button
+            type="button"
+            className={`${styles.filterBtn}${filterMenuOpen ? ` ${styles.filterBtnActive}` : ''}`}
+            onClick={() => setFilterMenuOpen((v) => !v)}
+            aria-label="Add a filter"
+            aria-expanded={filterMenuOpen}
+            data-tooltip={filterMenuOpen ? undefined : 'Add a filter'}
+          >
+            <FilterGlyph />
+          </button>
+          {filterMenuOpen && (
+            <div className={styles.filterMenu} role="menu">
+              {FILTER_MENU.map(({ key, label, Glyph }) => (
                 <button
-                  key={`${row.key}-${row.value}-${row.label}`}
+                  key={key}
                   type="button"
-                  className={`${styles.popRow}${i === activeIdx ? ` ${styles.popRowActive}` : ''}`}
-                  role="option"
-                  aria-selected={i === activeIdx}
-                  /* Commit on pointerdown, not click: the app has several
-                     document-level mousedown listeners (context menu,
-                     switcher, dropdowns) that can blur the input and
-                     unmount this popover between mousedown and mouseup —
-                     which silently eats the click. pointerdown fires
-                     before any of that can happen; preventDefault keeps
-                     focus in the input. */
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    applySuggestion(row);
-                  }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onMouseEnter={() => setActiveIdx(i)}
-                  /* Fallback for synthetic clicks (assistive tech) that
-                     skip pointer events; applySuggestion's !frag guard
-                     makes a double fire a no-op. */
-                  onClick={() => applySuggestion(row)}
+                  className={styles.popRow}
+                  role="menuitem"
+                  onClick={() => pickFilter(key)}
                 >
                   <span className={styles.popIcon}>
-                    {row.swatch
-                      ? <span className={styles.popSwatch} style={{ background: row.swatch }} />
-                      : row.Icon && <row.Icon />}
+                    {Glyph ? <Glyph /> : (
+                      <span className={styles.swatchTrio} aria-hidden="true">
+                        <i style={{ background: '#ff6347' }} />
+                        <i style={{ background: '#2e8b57' }} />
+                        <i style={{ background: '#1e88e5' }} />
+                      </span>
+                    )}
                   </span>
-                  <span className={styles.popLabel}>{row.label}</span>
-                  {row.meta && <span className={styles.popMeta}>{row.meta}</span>}
+                  <span className={styles.popLabel}>{label}</span>
                 </button>
               ))}
             </div>
           )}
+        </span>
+        {hasQuery && (
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => { onSearchChange(''); inputRef.current?.focus(); }}
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        )}
+      </div>
+      {popOpen && (
+        <div className={styles.pop} role="listbox" aria-label="Filter suggestions">
+          {showDateHint && (
+            <div className={styles.popHint}>Pick a preset or type a date — YYYY-MM-DD</div>
+          )}
+          {suggestions.map((row, i) => (
+            <button
+              key={`${row.key}-${row.value}-${row.label}`}
+              type="button"
+              className={`${styles.popRow}${i === activeIdx ? ` ${styles.popRowActive}` : ''}`}
+              role="option"
+              aria-selected={i === activeIdx}
+              /* Commit on pointerdown, not click: the app has several
+                 document-level mousedown listeners (context menu,
+                 switcher, dropdowns) that can blur the input and
+                 unmount this popover between mousedown and mouseup —
+                 which silently eats the click. pointerdown fires
+                 before any of that can happen; preventDefault keeps
+                 focus in the input. */
+              onPointerDown={(e) => {
+                e.preventDefault();
+                applySuggestion(row);
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setActiveIdx(i)}
+              /* Fallback for synthetic clicks (assistive tech) that
+                 skip pointer events; applySuggestion's !frag guard
+                 makes a double fire a no-op. */
+              onClick={() => applySuggestion(row)}
+            >
+              <span className={styles.popIcon}>
+                {row.swatch
+                  ? <span className={styles.popSwatch} style={{ background: row.swatch }} />
+                  : row.Icon && <row.Icon />}
+              </span>
+              <span className={styles.popLabel}>{row.label}</span>
+              {row.meta && <span className={styles.popMeta}>{row.meta}</span>}
+            </button>
+          ))}
         </div>
-        {hasQuery ? (
-          <div className={styles.meta}>
-            <span className={styles.count}>{resultCount.toLocaleString()}</span>
-            {' '}{resultCount === 1 ? 'result' : 'results'}
-            {semanticSearchActive && <span className={styles.metaSoft}> · visual search</span>}
-          </div>
-        ) : (
-          <div className={styles.meta}>
-            <span className={styles.count}>{resultCount.toLocaleString()}</span> saves in your library
+      )}
+    </div>
+  );
+
+  // Collections rail for the launcher — the section head (label + arrows)
+  // and the horizontal snap row, width-capped and centred by .launchRail.
+  const collectionsRail = collections.length > 0 && (
+    <div className={styles.launchRail}>
+      <div className={styles.launchRailHead}>
+        <span className={styles.label}>Your collections</span>
+        {(collArrows.left || collArrows.right) && (
+          <div className={styles.collArrows}>
+            <button
+              type="button"
+              className={styles.collArrow}
+              onClick={() => scrollColls(-1)}
+              disabled={!collArrows.left}
+              aria-label="Scroll collections left"
+            >
+              <Chevron dir="left" />
+            </button>
+            <button
+              type="button"
+              className={styles.collArrow}
+              onClick={() => scrollColls(1)}
+              disabled={!collArrows.right}
+              aria-label="Scroll collections right"
+            >
+              <Chevron dir="right" />
+            </button>
           </div>
         )}
+      </div>
+      <div className={styles.collRow} ref={collRef} onScroll={updateCollArrows}>
+        {collections.map((c) => {
+          const covers = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className={styles.collCard}
+              onClick={() => onOpenCollection?.(c.id)}
+            >
+              {covers.length > 0 ? (
+                <span className={styles.collFan} aria-hidden="true">
+                  {covers.map((src, i) => (
+                    <img key={i} src={fileUrl(src)} alt="" draggable={false} />
+                  ))}
+                </span>
+              ) : (
+                <span className={`${styles.collFan} ${styles.collFanEmpty}`} aria-hidden="true">
+                  <FolderGlyph />
+                </span>
+              )}
+              <span className={styles.collName}>{c.name}</span>
+              <span className={styles.collMeta}>
+                {(c.save_count ?? 0).toLocaleString()} saves
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Recent searches — a centred pill row right under the field, with a
+  // quiet Clear at the end so the affordance survives the launcher layout.
+  const recentsRow = recents.length > 0 && (
+    <div className={styles.launchRow}>
+      {recents.map((t) => (
+        <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
+          <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
+          {t}
+        </button>
+      ))}
+      {onClearRecentSearches && (
+        <button type="button" className={styles.launchClear} onClick={onClearRecentSearches}>
+          Clear
+        </button>
+      )}
+    </div>
+  );
+
+  // Suggested tags — a centred pill row; the # prefix names them without a
+  // heading, matching the calmer launcher composition.
+  const tagsRow = suggestedTags.length > 0 && (
+    <div className={styles.launchRow}>
+      {suggestedTags.map((tag) => (
+        <button
+          key={tag.id ?? tag.name}
+          type="button"
+          className={styles.chip}
+          onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
+        >
+          <span className={styles.chipHash}><HashGlyph /></span>
+          {tag.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  // The field lives in a single, stable structural slot (.hero) in both
+  // states — never moved between parents — so typing the first character
+  // (empty → results) can't remount the input and steal focus mid-keystroke.
+  // Empty state adds .launchMode, which vertically centres the hero +
+  // landing group so the field sits at the optical centre of the canvas
+  // instead of hugging the top. Typing swaps the group below the field
+  // from the landing rows to the results grid.
+  return (
+    <div
+      className={`grid-scroll ${styles.scroll}${hasQuery ? '' : ` ${styles.launchMode}`}`}
+      ref={scrollRef}
+    >
+      <div className={styles.hero}>
+        {fieldNode}
+        <div className={styles.meta}>
+          {hasQuery ? (
+            <>
+              <span className={styles.count}>{resultCount.toLocaleString()}</span>
+              {' '}{resultCount === 1 ? 'result' : 'results'}
+              {semanticSearchActive && <span className={styles.metaSoft}> · visual search</span>}
+            </>
+          ) : (
+            <>
+              <span className={styles.count}>{resultCount.toLocaleString()}</span> saves in your library
+            </>
+          )}
+        </div>
       </div>
 
       {hasQuery ? (
@@ -684,110 +802,10 @@ export default function SearchView({
           onClearSearch={() => onSearchChange('')}
         />
       ) : (
-        <div className={styles.landing}>
-          {collections.length > 0 && (
-            <section className={styles.section}>
-              <div className={styles.sectionHead}>
-                <span className={styles.label}>Your collections</span>
-                {(collArrows.left || collArrows.right) && (
-                  <div className={styles.collArrows}>
-                    <button
-                      type="button"
-                      className={styles.collArrow}
-                      onClick={() => scrollColls(-1)}
-                      disabled={!collArrows.left}
-                      aria-label="Scroll collections left"
-                    >
-                      <Chevron dir="left" />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.collArrow}
-                      onClick={() => scrollColls(1)}
-                      disabled={!collArrows.right}
-                      aria-label="Scroll collections right"
-                    >
-                      <Chevron dir="right" />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className={styles.collRow} ref={collRef} onScroll={updateCollArrows}>
-                {collections.map((c) => {
-                  const covers = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={styles.collCard}
-                      onClick={() => onOpenCollection?.(c.id)}
-                    >
-                      {covers.length > 0 ? (
-                        <span className={styles.collFan} aria-hidden="true">
-                          {covers.map((src, i) => (
-                            <img key={i} src={fileUrl(src)} alt="" draggable={false} />
-                          ))}
-                        </span>
-                      ) : (
-                        <span className={`${styles.collFan} ${styles.collFanEmpty}`} aria-hidden="true">
-                          <FolderGlyph />
-                        </span>
-                      )}
-                      <span className={styles.collName}>{c.name}</span>
-                      <span className={styles.collMeta}>
-                        {(c.save_count ?? 0).toLocaleString()} saves
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {recents.length > 0 && (
-            <section className={styles.section}>
-              <div className={styles.sectionHead}>
-                <span className={styles.label}>Recent</span>
-                {onClearRecentSearches && (
-                  <button type="button" className={styles.link} onClick={onClearRecentSearches}>
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div className={styles.chips}>
-                {recents.map((t) => (
-                  <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
-                    <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {suggestedTags.length > 0 && (
-            <section className={styles.section}>
-              <div className={styles.sectionHead}>
-                <span className={styles.label}>Jump to a tag</span>
-              </div>
-              <div className={styles.chips}>
-                {suggestedTags.map((tag) => (
-                  <button
-                    key={tag.id ?? tag.name}
-                    type="button"
-                    className={styles.chip}
-                    onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
-                  >
-                    {/* No per-chip counts — a wall of "1"s read as a junk
-                        drawer, and the chips are already ordered by count. */}
-                    <span className={styles.chipHash}><HashGlyph /></span>
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
+        <div className={styles.landingRows}>
+          {recentsRow}
+          {collectionsRail}
+          {tagsRow}
           {recents.length === 0 && suggestedTags.length === 0 && collections.length === 0 && (
             <div className={styles.blank}>Start typing to search your whole library.</div>
           )}

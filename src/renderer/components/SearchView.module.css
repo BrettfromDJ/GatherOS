@@ -549,3 +549,72 @@
   background: var(--hover-bg);
   color: var(--text-primary);
 }
+
+/* ── Launcher (empty query) ─────────────────────────────────────────
+   The field drops to the optical centre of the canvas, with the library
+   count beneath it and recent searches, the collections rail and tags
+   below — so the page fills instead of hugging the top. The field stays
+   in .hero (never moved), so only the framing changes: .launchMode
+   centres the hero + landing group with auto margins (they collapse when
+   content is tall, so nothing clips and scrolling still starts at the
+   top), and centres the hero's own text. */
+.launchMode .hero {
+  margin-top: auto;
+  text-align: center;
+}
+.launchMode .landingRows {
+  margin-bottom: auto;
+}
+
+.landingRows {
+  width: 100%;
+  box-sizing: border-box;
+  /* Bottom padding is lighter than the auto top margin so the group rests
+     slightly above true centre — the optical centre, where the eye expects
+     a launcher field to sit. */
+  padding: 22px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Centred pill rows for recents + tags. */
+.launchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  max-width: 720px;
+}
+
+/* Quiet Clear that trails the recent chips (no section header to hang
+   it off in this layout). */
+.launchClear {
+  border: none;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 7px 8px;
+  border-radius: var(--radius-pill);
+}
+.launchClear:hover { color: var(--text-primary); }
+
+/* Collections rail — wider than the chip rows, still centred. */
+.launchRail {
+  width: 100%;
+  max-width: 940px;
+}
+/* Label leads the rail, arrows trail it — the rail is the one block wide
+   enough to carry its own header, so it stays left-aligned to the cards
+   below it rather than centring like the pill rows. */
+.launchRailHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  text-align: left;
+}
