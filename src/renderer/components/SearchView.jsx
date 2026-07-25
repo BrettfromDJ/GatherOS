@@ -534,9 +534,11 @@ export default function SearchView({
           />
           {!hasQuery && (
             ghostTerm ? (
-              // key on the term so each rotation remounts → fade-in.
-              <span key={ghostTerm} className={styles.ghost} aria-hidden="true">
-                Try <span className={styles.ghostTerm}>“{ghostTerm}”</span>
+              // Key the TERM, not the whole ghost: only the quoted word
+              // remounts each rotation, so "Try" holds still while the term
+              // animates in and the highlight sweeps across it.
+              <span className={styles.ghost} aria-hidden="true">
+                Try <span key={ghostTerm} className={styles.ghostTerm}>“{ghostTerm}”</span>
               </span>
             ) : (
               <span className={styles.ghost} aria-hidden="true">
