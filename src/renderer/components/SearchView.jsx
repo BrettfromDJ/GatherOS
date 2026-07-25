@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Grid from './Grid.jsx';
 import { fileUrl } from '../lib/fileUrl.js';
 import { buildSearchPlaceholders } from '../lib/searchPlaceholders.js';
@@ -136,19 +136,21 @@ function TokenChip({ chip, onRemove }) {
   );
 }
 
-// The dedicated Search tab. Empty query = a launcher: the field sits at
-// the optical centre of the canvas with the library count beneath it, and
-// recent searches, the collections rail and tag chips orbiting below —
-// so the page fills rather than hugging the top. Typing keeps the field
-// in place (same DOM slot, so focus is never lost) and swaps everything
-// below it for the scrollable masonry of matches. Reuses the library
-// <Grid> for results so card behavior (select, peek, drag, context menu)
-// is identical to the rest of the app.
+// The dedicated Search tab. Empty query = a launcher: the field sits high
+// in the upper third with the library count beneath it, then labelled
+// sections — recent searches, the collections rail, tags — all sharing one
+// measure so the page reads as a single composition. The field is anchored
+// rather than vertically centred: its position doesn't drift with window
+// height or content, and typing eases it up to the results offset instead
+// of teleporting. It also never leaves its DOM slot, so focus survives the
+// first keystroke. Reuses the library <Grid> for results so card behavior
+// (select, peek, drag, context menu) is identical to the rest of the app.
 export default function SearchView({
   search,
   onSearchChange,
   onRecordSearch,
   onClearRecentSearches,
+  onRestoreRecentSearches,
   recentSearches = [],
   suggestedTags = [],
   allTags = [],
@@ -447,6 +449,25 @@ export default function SearchView({
     [recentSearches],
   );
 
+  // Clearing recents is destructive and irreversible, so every clear is
+  // undoable: snapshot the list, then offer Undo in the row the chips
+  // just vacated (recovery where the loss happened) for a short window.
+  const [clearedRecents, setClearedRecents] = useState(null);
+  const clearedTimer = useRef(0);
+  useEffect(() => () => clearTimeout(clearedTimer.current), []);
+  const handleClearRecents = useCallback(() => {
+    const snapshot = (recentSearches || []).slice();
+    onClearRecentSearches?.();
+    setClearedRecents(snapshot);
+    clearTimeout(clearedTimer.current);
+    clearedTimer.current = setTimeout(() => setClearedRecents(null), 10000);
+  }, [recentSearches, onClearRecentSearches]);
+  const handleUndoClearRecents = useCallback(() => {
+    clearTimeout(clearedTimer.current);
+    if (clearedRecents?.length) onRestoreRecentSearches?.(clearedRecents);
+    setClearedRecents(null);
+  }, [clearedRecents, onRestoreRecentSearches]);
+
   // Rotating, library-personal placeholder: real tags + the dominant
   // colours in the user's own saves, cycled while the field is empty so
   // it teaches what's searchable ("Try 'navy'", "Try 'branding'").
@@ -655,8 +676,8 @@ export default function SearchView({
   // Collections rail for the launcher — the section head (label + arrows)
   // and the horizontal snap row, width-capped and centred by .launchRail.
   const collectionsRail = collections.length > 0 && (
-    <div className={styles.launchRail}>
-      <div className={styles.launchRailHead}>
+    <section className={`${styles.launchSection} ${styles.launchRail}`}>
+      <div className={styles.launchSectionHead}>
         <span className={styles.label}>Your collections</span>
         {(collArrows.left || collArrows.right) && (
           <div className={styles.collArrows}>
@@ -710,43 +731,61 @@ export default function SearchView({
           );
         })}
       </div>
-    </div>
+    </section>
   );
 
-  // Recent searches — a centred pill row right under the field, with a
-  // quiet Clear at the end so the affordance survives the launcher layout.
-  const recentsRow = recents.length > 0 && (
-    <div className={styles.launchRow}>
-      {recents.map((t) => (
-        <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
-          <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
-          {t}
-        </button>
-      ))}
-      {onClearRecentSearches && (
-        <button type="button" className={styles.launchClear} onClick={onClearRecentSearches}>
-          Clear
-        </button>
+  // Recent searches. Labelled — without a heading, a row of search-glyph
+  // pills and a row of #-glyph pills are told apart only by a 13px mark.
+  const recentsRow = (recents.length > 0 || clearedRecents) && (
+    <section className={styles.launchSection}>
+      <div className={styles.launchSectionHead}>
+        <span className={styles.label}>Recent</span>
+        {recents.length > 0 && onClearRecentSearches && (
+          <button type="button" className={styles.launchClear} onClick={handleClearRecents}>
+            Clear
+          </button>
+        )}
+      </div>
+      {recents.length > 0 ? (
+        <div className={styles.launchRow}>
+          {recents.map((t) => (
+            <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
+              <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
+              {t}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.undoRow}>
+          <span>Recent searches cleared</span>
+          <button type="button" className={styles.undoBtn} onClick={handleUndoClearRecents}>
+            Undo
+          </button>
+        </div>
       )}
-    </div>
+    </section>
   );
 
-  // Suggested tags — a centred pill row; the # prefix names them without a
-  // heading, matching the calmer launcher composition.
+  // Suggested tags.
   const tagsRow = suggestedTags.length > 0 && (
-    <div className={styles.launchRow}>
-      {suggestedTags.map((tag) => (
-        <button
-          key={tag.id ?? tag.name}
-          type="button"
-          className={styles.chip}
-          onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
-        >
-          <span className={styles.chipHash}><HashGlyph /></span>
-          {tag.name}
-        </button>
-      ))}
-    </div>
+    <section className={styles.launchSection}>
+      <div className={styles.launchSectionHead}>
+        <span className={styles.label}>Jump to a tag</span>
+      </div>
+      <div className={styles.launchRow}>
+        {suggestedTags.map((tag) => (
+          <button
+            key={tag.id ?? tag.name}
+            type="button"
+            className={styles.chip}
+            onClick={() => submitTerm(`tag:${quoteValue(tag.name)}`)}
+          >
+            <span className={styles.chipHash}><HashGlyph /></span>
+            {tag.name}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 
   // The field lives in a single, stable structural slot (.hero) in both

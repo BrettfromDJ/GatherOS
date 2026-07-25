@@ -21,7 +21,15 @@
      transparent black so they pick up the surface tint underneath. */
   --text-primary: #000000;
   --text-secondary: rgba(0, 0, 0, 0.55);
-  --text-tertiary: rgba(0, 0, 0, 0.4);
+  /* Tertiary carries real information (counts, section labels, meta,
+     placeholders), so it has to clear WCAG AA. At 0.4 over --content-bg
+     it measured ~2.8:1 and vanished on a glossy screen in daylight;
+     0.55 lands ~4.6:1. Anything purely decorative uses --text-quaternary
+     below rather than pulling this back down. */
+  --text-tertiary: rgba(0, 0, 0, 0.55);
+  /* Non-informational marks only — glyphs inside a labelled chip, hairline
+     ornament. Never the sole carrier of meaning. */
+  --text-quaternary: rgba(0, 0, 0, 0.4);
   --text-on-accent: #ffffff;
 
   /* Accent — monochrome ink. The product reads as a typographic
@@ -244,7 +252,10 @@
 
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-tertiary: rgba(255, 255, 255, 0.42);
+  /* Same AA reasoning as light mode: 0.42 over the near-black canvas
+     measured ~3.9:1; 0.55 clears 4.5:1. */
+  --text-tertiary: rgba(255, 255, 255, 0.55);
+  --text-quaternary: rgba(255, 255, 255, 0.42);
   --icon-muted: #4a4a4a;
   /* Accent flips to the primary ink in dark mode (white) so
      accented surfaces stay visible on the dark canvas. Text on top

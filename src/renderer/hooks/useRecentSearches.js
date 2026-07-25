@@ -43,5 +43,12 @@ export function useRecentSearches() {
     setItems([]);
   }, []);
 
-  return { items, recordSearch, removeOne, clearAll };
+  // Put a cleared list back — clearing recents is otherwise irreversible,
+  // so the UI snapshots the list before clearing and offers an Undo.
+  const restore = useCallback((list) => {
+    if (!Array.isArray(list)) return;
+    setItems(list.filter((t) => typeof t === 'string').slice(0, MAX_ENTRIES));
+  }, []);
+
+  return { items, recordSearch, removeOne, clearAll, restore };
 }

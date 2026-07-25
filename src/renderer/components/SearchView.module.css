@@ -6,11 +6,27 @@
   /* nothing extra — see .grid-scroll in global.css */
 }
 
+/* One measure for the whole page — field, section rows and the
+   collections rail all share this width so everything lines up on a
+   single left edge instead of reading as three stacked blocks. */
+.scroll {
+  --search-measure: 820px;
+}
+
 .hero {
   padding: 26px 28px 18px;
-  max-width: 760px;
+  max-width: var(--search-measure);
   width: 100%;
   margin: 0 auto;
+  /* The field is ANCHORED: it holds one position per state and eases
+     between them. It used to be centred with auto margins, so its height
+     depended on the window size and how many tags/collections existed —
+     and the first keystroke teleported it to the top mid-word. */
+  transition: padding-top var(--dur-pronounced, 260ms) var(--ease-out, cubic-bezier(0.2, 0.8, 0.2, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero { transition: none; }
 }
 
 /* Anchors the suggestion popover to the field's bottom edge. */
@@ -375,23 +391,8 @@
 .metaSoft { color: var(--text-tertiary); }
 
 /* ── Landing (empty query) ──────────────────────────────────────────── */
-.landing {
-  max-width: 760px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 8px 28px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.section { display: flex; flex-direction: column; gap: 11px; }
-
-.sectionHead {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
+/* Layout lives in .landingRows / .launchSection further down — the old
+   .landing / .section / .sectionHead trio went with the launcher. */
 
 /* ── Collections row ──────────────────────────────────────────────────── */
 .collArrows {
@@ -430,8 +431,10 @@
 .collRow::-webkit-scrollbar { display: none; }
 
 .collCard {
-  /* Exactly five per view: five cards + four 12px gaps fill the row. */
-  flex: 0 0 calc((100% - 48px) / 5);
+  /* Five per view at full width, but clamped: a narrow window drops to
+     four or three legible cards instead of squeezing five toward
+     illegibility (the fan covers inside are a fixed 74px). */
+  flex: 0 0 clamp(142px, calc((100% - 48px) / 5), 190px);
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
@@ -552,12 +555,14 @@
   transition: background var(--dur-instant) ease, color var(--dur-instant) ease, border-color var(--dur-instant) ease;
 }
 .chip:hover { background: var(--hover-bg); color: var(--text-primary); border-color: var(--border-strong); }
-/* Leading search glyph on recent-search chips — muted, brightens on hover. */
-.chipIcon { display: inline-flex; width: 13px; height: 13px; flex: none; color: var(--text-tertiary); margin-left: -1px; }
+/* Leading glyphs on chips are ornament, not information — the section
+   label says what the row is, so these use --text-quaternary and stay
+   light rather than following tertiary up to AA weight. */
+.chipIcon { display: inline-flex; width: 13px; height: 13px; flex: none; color: var(--text-quaternary); margin-left: -1px; }
 .chipIcon svg { width: 100%; height: 100%; display: block; }
 .chip:hover .chipIcon { color: var(--text-secondary); }
 
-.chipHash { display: inline-flex; color: var(--text-tertiary); }
+.chipHash { display: inline-flex; color: var(--text-quaternary); }
 .chipHash svg { width: 13px; height: 13px; display: block; }
 
 .chipCount {
@@ -592,70 +597,93 @@
 }
 
 /* ── Launcher (empty query) ─────────────────────────────────────────
-   The field drops to the optical centre of the canvas, with the library
-   count beneath it and recent searches, the collections rail and tags
-   below — so the page fills instead of hugging the top. The field stays
-   in .hero (never moved), so only the framing changes: .launchMode
-   centres the hero + landing group with auto margins (they collapse when
-   content is tall, so nothing clips and scrolling still starts at the
-   top), and centres the hero's own text. */
+   The field sits high in the upper third with the library count beneath
+   it, then the labelled sections below. The field never drifts: this is
+   a fixed offset, not vertical centring, so its position is identical
+   whatever the window height and however many tags or collections exist.
+   Typing eases it up to the results offset instead of teleporting. */
 .launchMode .hero {
-  margin-top: auto;
-  text-align: center;
+  padding-top: 22vh;
 }
-.launchMode .landingRows {
-  margin-bottom: auto;
+/* Only the count centres under the full-width field — a small deliberate
+   accent. Everything else shares the measure's left edge. */
+.launchMode .meta {
+  text-align: center;
 }
 
 .landingRows {
   width: 100%;
+  max-width: var(--search-measure);
   box-sizing: border-box;
-  /* Bottom padding is lighter than the auto top margin so the group rests
-     slightly above true centre — the optical centre, where the eye expects
-     a launcher field to sit. */
-  padding: 22px 28px 40px;
+  margin: 0 auto;
+  padding: 10px 28px 48px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
+  gap: 26px;
 }
 
-/* Centred pill rows for recents + tags. */
+/* A landing section: label (+ optional trailing action) over its content,
+   all flush to the shared left edge. */
+.launchSection {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.launchSectionHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 20px;
+}
+
 .launchRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: center;
   align-items: center;
-  max-width: 720px;
 }
 
-/* Quiet Clear that trails the recent chips (no section header to hang
-   it off in this layout). */
+/* Clear is destructive and irreversible, so it stays OUT of the chip flow
+   (it used to sit inline with the chips, one slip from wiping history).
+   It only materialises when the section is hovered or keyboard-focused,
+   trailing at the right edge, and every clear is undoable. */
 .launchClear {
+  margin-left: auto;
   border: none;
   background: transparent;
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
   cursor: pointer;
-  padding: 7px 8px;
-  border-radius: var(--radius-pill);
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--dur-instant) ease, color var(--dur-instant) ease;
 }
-.launchClear:hover { color: var(--text-primary); }
+.launchSection:hover .launchClear,
+.launchClear:focus-visible { opacity: 1; }
+.launchClear:hover { color: var(--text-primary); background: var(--hover-bg); }
 
-/* Collections rail — wider than the chip rows, still centred. */
-.launchRail {
-  width: 100%;
-  max-width: 940px;
-}
-/* Label leads the rail, arrows trail it — the rail is the one block wide
-   enough to carry its own header, so it stays left-aligned to the cards
-   below it rather than centring like the pill rows. */
-.launchRailHead {
+/* Undo affordance — replaces the row in place, right where the chips
+   were, so the recovery is exactly where the loss happened. */
+.undoRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  text-align: left;
+  gap: 10px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
 }
+.undoBtn {
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
+.undoBtn:hover { background: var(--hover-bg); border-color: var(--border-strong); }
+
+/* The rail shares the page measure; only its scroll overflow bleeds. */
+.launchRail { width: 100%; }

@@ -3643,6 +3643,7 @@ export default function App({ entitlement } = {}) {
                   onSearchChange={setSearch}
                   onRecordSearch={recentSearches.recordSearch}
                   onClearRecentSearches={recentSearches.clearAll}
+                  onRestoreRecentSearches={recentSearches.restore}
                   recentSearches={recentSearches.items}
                   suggestedTags={suggestedTags}
                   allTags={allTags}
