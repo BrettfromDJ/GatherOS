@@ -232,10 +232,11 @@
 
 .tokenKey { color: var(--text-tertiary); font-weight: 400; }
 
+/* Removing a filter is frequent and precise — 20px was a fiddly target. */
 .tokenX {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   color: var(--text-tertiary);
@@ -252,13 +253,16 @@
 /* ── Filter affordance + menu ───────────────────────────────────────── */
 .filterWrap { position: relative; flex: 0 0 auto; display: inline-flex; }
 
+/* The only no-syntax route to colour / date / untagged filtering, so it
+   reads at secondary weight rather than tertiary — it used to be the
+   quietest thing in the field while guarding the most useful feature. */
 .filterBtn {
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
@@ -563,6 +567,39 @@
 .chip:hover .chipIcon { color: var(--text-secondary); }
 
 .chipHash { display: inline-flex; color: var(--text-quaternary); }
+/* Same ornament role as .chipHash, for the starter-filter chips. */
+.chipGlyph { display: inline-flex; align-items: center; color: var(--text-quaternary); flex: none; }
+.chipGlyph svg { width: 13px; height: 13px; display: block; }
+
+/* Compact, non-removable filter marks inside a recent-search pill —
+   the field's token chip at reading size, so a saved query reads as
+   filters rather than as syntax. */
+.miniTok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-bg-faint);
+  color: var(--text-primary);
+  font-weight: 500;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.miniTok + .miniTok { margin-left: 4px; }
+.miniIcon { display: inline-flex; color: var(--text-quaternary); flex: none; }
+.miniIcon svg { width: 11px; height: 11px; display: block; }
+.miniSwatch {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-circle);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+/* Free text sitting alongside the marks in a mixed query. */
+.miniText { margin-left: 5px; }
 .chipHash svg { width: 13px; height: 13px; display: block; }
 
 .chipCount {
@@ -577,24 +614,9 @@
   color: var(--text-tertiary);
 }
 
-/* ⌘K keycap in the hero field — clickable, opens the command palette.
-   Same chip recipe as the palette's own kbd hints. */
-.kbdBtn {
-  flex: 0 0 auto;
-  padding: 3px 7px;
-  background: var(--hover-bg-soft);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color var(--dur-instant) ease, background var(--dur-instant) ease;
-}
-.kbdBtn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
+/* (The ⌘K keycap that used to sit in the field is gone — offering to open
+   the command palette from inside search stacked a second search surface
+   on the first. The palette lives in the top bar.) */
 
 /* ── Launcher (empty query) ─────────────────────────────────────────
    The field sits high in the upper third with the library count beneath

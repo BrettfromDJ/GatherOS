@@ -12,8 +12,10 @@ import {
 } from '../lib/searchTokens.js';
 import styles from './SearchView.module.css';
 
-// How long each rotating placeholder term lingers before the next.
+// How long each rotating placeholder term lingers before the next, and
+// how many times it rotates before settling on one term for good.
 const PLACEHOLDER_ROTATE_MS = 2000;
+const MAX_PLACEHOLDER_ROTATIONS = 3;
 
 function SearchGlyph() {
   return (
@@ -136,6 +138,59 @@ function TokenChip({ chip, onRemove }) {
   );
 }
 
+// Glyph for a filter key — shared by the field's token chips and the
+// compact marks inside recent-search pills.
+function KeyGlyph({ filterKey }) {
+  if (filterKey === 'tag') return <HashGlyph />;
+  if (filterKey === 'collection') return <FolderGlyph />;
+  if (filterKey === 'before' || filterKey === 'after') return <CalendarGlyph />;
+  if (filterKey === 'is') return <UntaggedGlyph />;
+  return <SearchGlyph />;
+}
+
+// A recent search, rendered the way the field renders it: filter marks
+// plus any free text. The pill used to print the raw composed query
+// (`tag:"serif logo" navy`), which threw the syntax the field works hard
+// to hide back in the user's face.
+function RecentLabel({ term }) {
+  const { chips, text } = explodeQuery(term);
+  if (!chips.length) {
+    return (
+      <>
+        <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
+        {term}
+      </>
+    );
+  }
+  return (
+    <>
+      {chips.map((c, i) => (
+        <span key={`${c.key}-${c.value}-${i}`} className={styles.miniTok}>
+          {c.key === 'color' ? (
+            <span
+              className={styles.miniSwatch}
+              style={{ background: resolveColor(c.value) }}
+              aria-hidden="true"
+            />
+          ) : (
+            <span className={styles.miniIcon} aria-hidden="true"><KeyGlyph filterKey={c.key} /></span>
+          )}
+          {c.key === 'is' ? 'untagged' : c.value}
+        </span>
+      ))}
+      {text ? <span className={styles.miniText}>{text}</span> : null}
+    </>
+  );
+}
+
+// One-click starting points for the filters most users never discover by
+// typing syntax. Only shown on the empty launcher.
+const STARTER_FILTERS = [
+  { key: 'untagged', label: 'Untagged' },
+  { key: 'week', label: 'Saved this week' },
+  { key: 'color', label: 'By colour' },
+];
+
 // The dedicated Search tab. Empty query = a launcher: the field sits high
 // in the upper third with the library count beneath it, then labelled
 // sections — recent searches, the collections rail, tags — all sharing one
@@ -156,7 +211,6 @@ export default function SearchView({
   allTags = [],
   collections = [],
   onOpenCollection,
-  onOpenCommandPalette,
   searchInputRef,
   scrollRef,
   // grid passthrough
@@ -429,6 +483,19 @@ export default function SearchView({
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
+  // Starter filters — one click into the features that otherwise require
+  // knowing the token syntax. "By colour" seeds `color:` and lets the
+  // existing suggestion popover take over.
+  const applyStarter = (key) => {
+    if (key === 'color') { pickFilter('color'); return; }
+    const chip = key === 'untagged'
+      ? { key: 'is', value: 'untagged' }
+      : { key: 'after', value: isoDaysAgo(7) };
+    const parsed = explodeQuery(text);
+    commit({ chips: addChips(addChips(chips, parsed.chips), [chip]), text: parsed.text });
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   // Focus the hero field whenever the search tab mounts.
   useEffect(() => {
     const id = requestAnimationFrame(() => inputRef.current?.focus());
@@ -476,14 +543,21 @@ export default function SearchView({
     [suggestedTags, saves],
   );
   const [phIndex, setPhIndex] = useState(0);
+  // Rotations are counted across the whole session, not per mount, so the
+  // hint plays a few times and then holds. Perpetual motion beside an
+  // empty field competes with the user's own thinking — the point is to
+  // teach what's searchable, and after a few examples it's taught.
+  const rotationsRef = useRef(0);
   useEffect(() => {
     // Only rotate on the empty landing (no query) with more than one
     // term to cycle; pause otherwise so a typed query is never disturbed.
     if (hasQuery || placeholders.length <= 1) return undefined;
-    const id = setInterval(
-      () => setPhIndex((i) => (i + 1) % placeholders.length),
-      PLACEHOLDER_ROTATE_MS,
-    );
+    if (rotationsRef.current >= MAX_PLACEHOLDER_ROTATIONS) return undefined;
+    const id = setInterval(() => {
+      rotationsRef.current += 1;
+      setPhIndex((i) => (i + 1) % placeholders.length);
+      if (rotationsRef.current >= MAX_PLACEHOLDER_ROTATIONS) clearInterval(id);
+    }, PLACEHOLDER_ROTATE_MS);
     return () => clearInterval(id);
   }, [hasQuery, placeholders.length]);
   const ghostTerm = placeholders.length
@@ -545,6 +619,10 @@ export default function SearchView({
             aria-label="Search your library by title, tag, source or colour"
             role="combobox"
             aria-expanded={popOpen}
+            aria-controls={popOpen ? 'search-suggestions' : undefined}
+            /* Names the highlighted row so a screen reader announces each
+               suggestion as the user arrows through the popover. */
+            aria-activedescendant={popOpen ? `search-suggestion-${activeIdx}` : undefined}
             aria-autocomplete="list"
             autoComplete="off"
             spellCheck={false}
@@ -568,20 +646,9 @@ export default function SearchView({
             )
           )}
         </div>
-        {/* Teach the shortcut at the moment of highest relevance:
-            the user is mid-search, and ⌘K would've gotten them here
-            (and more) from anywhere. */}
-        {onOpenCommandPalette && (
-          <button
-            type="button"
-            className={styles.kbdBtn}
-            onClick={onOpenCommandPalette}
-            aria-label="Open command palette"
-            data-tooltip="Search & commands anywhere"
-          >
-            ⌘K
-          </button>
-        )}
+        {/* No ⌘K affordance here: the user is already in search, so it
+            offered to open a second, competing search surface on top of
+            this one. The palette stays discoverable from the top bar. */}
         <span className={styles.filterWrap} ref={filterWrapRef}>
           <button
             type="button"
@@ -630,13 +697,14 @@ export default function SearchView({
         )}
       </div>
       {popOpen && (
-        <div className={styles.pop} role="listbox" aria-label="Filter suggestions">
+        <div className={styles.pop} id="search-suggestions" role="listbox" aria-label="Filter suggestions">
           {showDateHint && (
             <div className={styles.popHint}>Pick a preset or type a date — YYYY-MM-DD</div>
           )}
           {suggestions.map((row, i) => (
             <button
               key={`${row.key}-${row.value}-${row.label}`}
+              id={`search-suggestion-${i}`}
               type="button"
               className={`${styles.popRow}${i === activeIdx ? ` ${styles.popRowActive}` : ''}`}
               role="option"
@@ -734,6 +802,40 @@ export default function SearchView({
     </section>
   );
 
+  // Starter filters. The sliders menu is the only no-syntax route to the
+  // app's most powerful filters and it's a 28px icon — these put the three
+  // most useful ones one click away on the landing.
+  const startersRow = (
+    <section className={styles.launchSection}>
+      <div className={styles.launchSectionHead}>
+        <span className={styles.label}>Filters</span>
+      </div>
+      <div className={styles.launchRow}>
+        {STARTER_FILTERS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={styles.chip}
+            onClick={() => applyStarter(key)}
+          >
+            <span className={styles.chipGlyph} aria-hidden="true">
+              {key === 'untagged' && <UntaggedGlyph />}
+              {key === 'week' && <CalendarGlyph />}
+              {key === 'color' && (
+                <span className={styles.swatchTrio}>
+                  <i style={{ background: '#ff6347' }} />
+                  <i style={{ background: '#2e8b57' }} />
+                  <i style={{ background: '#1e88e5' }} />
+                </span>
+              )}
+            </span>
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+
   // Recent searches. Labelled — without a heading, a row of search-glyph
   // pills and a row of #-glyph pills are told apart only by a 13px mark.
   const recentsRow = (recents.length > 0 || clearedRecents) && (
@@ -749,9 +851,14 @@ export default function SearchView({
       {recents.length > 0 ? (
         <div className={styles.launchRow}>
           {recents.map((t) => (
-            <button key={t} type="button" className={styles.chip} onClick={() => submitTerm(t)}>
-              <span className={styles.chipIcon} aria-hidden="true"><SearchGlyph /></span>
-              {t}
+            <button
+              key={t}
+              type="button"
+              className={styles.chip}
+              onClick={() => submitTerm(t)}
+              title={t}
+            >
+              <RecentLabel term={t} />
             </button>
           ))}
         </div>
@@ -802,7 +909,9 @@ export default function SearchView({
     >
       <div className={styles.hero}>
         {fieldNode}
-        <div className={styles.meta}>
+        {/* Live region: the result count is the only confirmation that a
+            search ran, so it has to be announced, not just repainted. */}
+        <div className={styles.meta} role="status" aria-live="polite">
           {hasQuery ? (
             <>
               <span className={styles.count}>{resultCount.toLocaleString()}</span>
@@ -844,6 +953,7 @@ export default function SearchView({
         />
       ) : (
         <div className={styles.landingRows}>
+          {startersRow}
           {recentsRow}
           {collectionsRail}
           {tagsRow}

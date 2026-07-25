@@ -3647,7 +3647,6 @@ export default function App({ entitlement } = {}) {
                   recentSearches={recentSearches.items}
                   suggestedTags={suggestedTags}
                   allTags={allTags}
-                  onOpenCommandPalette={() => setQuickSwitcherOpen(true)}
                   collections={topLevelCollections}
                   onOpenCollection={handleOpenCollectionFromSearch}
                   searchInputRef={searchInputRef}
