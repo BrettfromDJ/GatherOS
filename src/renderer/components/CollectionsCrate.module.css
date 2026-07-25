@@ -23,20 +23,6 @@
   to   { opacity: 1; }
 }
 
-/* Ambient dust layers. Far drifts behind the sleeves (which start at
-   z 10); near drifts in front of them but below the deck (z 600). Both
-   are non-interactive. */
-.dustFar,
-.dustNear {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.dustFar { z-index: 1; }
-.dustNear { z-index: 550; }
-
 /* The crate scrolls horizontally — any number of collections fit. */
 .row {
   position: absolute;
@@ -53,18 +39,9 @@
   width: 122px;
   position: relative;
   cursor: pointer;
-  animation: drop 0.7s cubic-bezier(0.22, 1.2, 0.36, 1) backwards;
-  animation-delay: calc(var(--i) * 55ms);
 }
 .slot:first-child { margin-left: 9vw; }
 .slot:last-child { margin-right: 9vw; }
-
-/* Entrance: each sleeve falls from above and settles into place,
-   staggered left to right — full opacity throughout (translucent
-   overlapping sleeves read as a rendering glitch). */
-@keyframes drop {
-  from { transform: translateY(-115vh); }
-}
 
 /* Labels: only the active sleeve's label is fully lit — the active sleeve
    is whichever one the pointer is over, or the keyboard selection when the

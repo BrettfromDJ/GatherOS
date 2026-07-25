@@ -25,98 +25,6 @@ function posterOf(c) {
   return t || null;
 }
 
-// Ambient dust — slow, warm motes drifting up through the stage light, so
-// flipping through sleeves feels like leafing through canvases in a quiet
-// studio. Rendered on a canvas (cheap for many soft points). Two instances
-// are layered — a dense field behind the sleeves and a sparse, larger one
-// in front — for depth. Honors prefers-reduced-motion (draws a still field).
-function DustField({ count, near = false, className }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return undefined;
-    const ctx = canvas.getContext('2d');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const rand = (a, b) => a + Math.random() * (b - a);
-    let w = 0, h = 0, raf = 0;
-    const parts = [];
-
-    function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.clientWidth || window.innerWidth;
-      h = canvas.clientHeight || window.innerHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    function seed() {
-      parts.length = 0;
-      for (let i = 0; i < count; i += 1) {
-        // ~30% sit out of focus (larger, dim, soft); the rest are crisp,
-        // bright specks — that mix is what reads as dust in a light beam.
-        const soft = Math.random() < 0.3;
-        parts.push({
-          x: rand(0, w), y: rand(0, h),
-          r: soft
-            ? (near ? rand(2.6, 4.4) : rand(1.6, 3))
-            : (near ? rand(0.7, 1.5) : rand(0.4, 1)),
-          vx: rand(-0.05, 0.05) * (near ? 1.5 : 1),
-          vy: rand(-0.13, -0.03) * (near ? 1.5 : 1), // slow upward drift
-          baseA: soft
-            ? (near ? rand(0.06, 0.14) : rand(0.04, 0.09))
-            : (near ? rand(0.5, 0.95) : rand(0.28, 0.6)),
-          soft,
-          tw: rand(0, Math.PI * 2),
-          tws: rand(0.008, 0.03),
-        });
-      }
-    }
-    function draw() {
-      ctx.clearRect(0, 0, w, h);
-      for (const p of parts) {
-        // Sharp specks flicker as they catch the light; soft ones barely pulse.
-        const a = p.baseA * (p.soft ? 0.75 + 0.25 * Math.sin(p.tw) : 0.4 + 0.6 * Math.sin(p.tw));
-        if (a <= 0.003) continue;
-        if (p.soft) {
-          const rr = p.r * 2.2;
-          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
-          g.addColorStop(0, `rgba(255,247,232,${a.toFixed(3)})`);
-          g.addColorStop(1, 'rgba(255,247,232,0)');
-          ctx.fillStyle = g;
-          ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, Math.PI * 2); ctx.fill();
-        } else {
-          // Faint glow (light caught around the speck) + a crisp bright core.
-          const halo = p.r * 3;
-          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, halo);
-          g.addColorStop(0, `rgba(255,247,232,${(a * 0.3).toFixed(3)})`);
-          g.addColorStop(1, 'rgba(255,247,232,0)');
-          ctx.fillStyle = g;
-          ctx.beginPath(); ctx.arc(p.x, p.y, halo, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = `rgba(255,251,242,${Math.min(1, a).toFixed(3)})`;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-    }
-    function step() {
-      for (const p of parts) {
-        p.x += p.vx; p.y += p.vy; p.tw += p.tws;
-        if (p.y < -4) { p.y = h + 4; p.x = rand(0, w); }
-        if (p.x < -4) p.x = w + 4; else if (p.x > w + 4) p.x = -4;
-      }
-      draw();
-      raf = requestAnimationFrame(step);
-    }
-
-    resize(); seed();
-    if (reduce) draw();
-    else raf = requestAnimationFrame(step);
-    const onResize = () => { resize(); seed(); };
-    window.addEventListener('resize', onResize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
-  }, [count, near]);
-  return <canvas ref={ref} className={className} aria-hidden="true" />;
-}
-
 export default function CollectionsCrate({ open, collections, onOpenCollection, onCreateCollection, onClose }) {
   const rowRef = useRef(null);
   const slotRefs = useRef([]);
@@ -129,6 +37,25 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
   // cover re-samples rather than reusing the old edge color.
   const [spines, setSpines] = useState({});
   const sampledRef = useRef(new Set());
+  // Spine results are batched. Writing each cover's color to state the moment
+  // it loaded re-rendered the whole crate once per sleeve (N covers → N full
+  // renders), which is what made the page stutter as it filled in. Instead we
+  // collect colors in a ref and flush them to state together, off the render
+  // path, so the crate re-renders a couple of times rather than dozens.
+  const pendingSpines = useRef({});
+  const flushHandle = useRef(0);
+  const flushSpines = useCallback(() => {
+    if (flushHandle.current) return;
+    const run = () => {
+      flushHandle.current = 0;
+      const pending = pendingSpines.current;
+      pendingSpines.current = {};
+      if (Object.keys(pending).length) setSpines((prev) => ({ ...prev, ...pending }));
+    };
+    flushHandle.current = typeof requestIdleCallback === 'function'
+      ? requestIdleCallback(run, { timeout: 500 })
+      : setTimeout(run, 120);
+  }, []);
   const sampleSpine = useCallback((id, src, el) => {
     const key = `${id}:${src || ''}`;
     if (!el || sampledRef.current.has(key)) return;
@@ -162,18 +89,24 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
         const amt = 1.3;
         const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
         R = clamp(l + (R - l) * amt); G = clamp(l + (G - l) * amt); B = clamp(l + (B - l) * amt);
-        setSpines((prev) => ({ ...prev, [id]: `rgb(${R} ${G} ${B})` }));
+        pendingSpines.current[id] = `rgb(${R} ${G} ${B})`;
+        flushSpines();
       } catch { /* tainted — keep the fallback spine */ sampledRef.current.delete(key); }
     };
-    // decoding="async" means load can fire before the bitmap is ready, so
-    // drawImage would throw; decode() first when the element supports it
-    // (images do, <video> doesn't — it's already frame-ready on loadeddata).
-    if (typeof el.decode === 'function') {
-      el.decode().then(measure).catch(() => { sampledRef.current.delete(key); measure(); });
-    } else {
-      measure();
-    }
-  }, []);
+    // Sample off the critical path: while the crate fills, the main thread is
+    // busy laying out and decoding covers, so defer the canvas read to idle
+    // time. decoding="async" also means the bitmap may not be ready on load,
+    // so decode() first when supported (images do; <video> is frame-ready).
+    const runMeasure = () => {
+      if (typeof el.decode === 'function') {
+        el.decode().then(measure).catch(() => { sampledRef.current.delete(key); measure(); });
+      } else {
+        measure();
+      }
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(runMeasure, { timeout: 800 });
+    else runMeasure();
+  }, [flushSpines]);
 
   const items = Array.isArray(collections) ? collections : [];
   const N = items.length;
@@ -270,7 +203,6 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
          collections one by one. */
       data-allow-horizontal-scroll="true"
     >
-      <DustField count={70} className={styles.dustFar} />
       <div
         className={styles.row}
         ref={rowRef}
@@ -298,7 +230,6 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
               className={cls}
               data-idx={i}
               style={{
-                '--i': Math.min(i, 14),
                 '--spine': spines[c.id] || FALLBACK_SPINE,
                 zIndex: 10 + (N - i), // leftmost sleeve always in front
               }}
@@ -372,7 +303,6 @@ export default function CollectionsCrate({ open, collections, onOpenCollection, 
         })}
         {N === 0 && <div className={styles.empty}>No collections yet</div>}
       </div>
-      <DustField count={18} near className={styles.dustNear} />
       <div className={styles.deck}>
         <div className={styles.hintRow}>
           <div className={styles.hint}>
