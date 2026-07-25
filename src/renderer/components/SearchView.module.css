@@ -567,10 +567,6 @@
 .chip:hover .chipIcon { color: var(--text-secondary); }
 
 .chipHash { display: inline-flex; color: var(--text-quaternary); }
-/* Same ornament role as .chipHash, for the starter-filter chips. */
-.chipGlyph { display: inline-flex; align-items: center; color: var(--text-quaternary); flex: none; }
-.chipGlyph svg { width: 13px; height: 13px; display: block; }
-
 /* Compact, non-removable filter marks inside a recent-search pill —
    the field's token chip at reading size, so a saved query reads as
    filters rather than as syntax. */
