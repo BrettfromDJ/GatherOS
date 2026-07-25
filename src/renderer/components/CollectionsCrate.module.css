@@ -8,7 +8,9 @@
   /* Below the floating mode pill (z 45) so the Collections tab stays
      switchable while the crate is the active tab's view. */
   z-index: 40;
-  background: #000;
+  /* Near-black stage — matches the app's dark-mode canvas (--content-bg
+     #080808), a hair off pure black so it reads soft rather than a void. */
+  background: #080808;
   font-family: var(--font-ui);
   color: #fff;
   -webkit-font-smoothing: antialiased;
