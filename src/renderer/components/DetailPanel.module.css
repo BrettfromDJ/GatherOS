@@ -19,20 +19,8 @@
 }
 .panelNoBlur { background: rgba(20, 20, 22, 0.58); }
 
-/* Lights-out (FocusedView): slide off to the right and stop taking
-   clicks. Kept mounted — an in-flight tag or note edit shouldn't be
-   thrown away just because the user wanted a better look at the image. */
-.panelHidden {
-  opacity: 0;
-  transform: translateX(18px);
-  pointer-events: none;
-}
-
 .panel {
   position: fixed;
-  transition:
-    opacity var(--dur-medium, 200ms) var(--ease-out),
-    transform var(--dur-medium, 200ms) var(--ease-out);
   /* Sits below the FocusedView top bar (~47px: 10 top pad + 28
      controls + 8 bot pad + 1 border) with the same 16px breathing
      on every visible edge — top, right, bottom — so the pane feels

@@ -222,9 +222,6 @@ export default function DetailPanel({
   // chosen index. 0 = the locally saved primary image.
   altImageIdx = 0,
   onAltImageIdxChange,
-  // FocusedView's lights-out mode — the panel steps aside so the image
-  // gets the whole window.
-  immersive = false,
 }) {
   // X-bookmark capture stashes the tweet's author + handle + avatar +
   // caption + every image URL into tweet_meta as JSON. Parse once per
@@ -786,16 +783,13 @@ export default function DetailPanel({
         addingTag && suggestionsOpen && totalSuggestionRows > 0
           ? ` ${styles.panelTagRoom}`
           : ''
-      }${immersive ? ` ${styles.panelHidden}` : ''}${
+      }${
         // A playing video re-samples every backdrop-filter in the window
         // once per frame, which shimmers along this panel's edge. Solid
         // tint instead whenever a video could be on the stage — including
         // a carousel whose primary is an image but which holds a clip.
         hasVideoMedia ? ` ${styles.panelNoBlur}` : ''
       }`}
-      // Lights-out: slide out of the way and stop taking clicks, but stay
-      // mounted so nothing in-flight (a tag edit, a note) is lost.
-      aria-hidden={immersive || undefined}
       data-onboarding="detail-panel"
     >
       <header className={styles.header}>

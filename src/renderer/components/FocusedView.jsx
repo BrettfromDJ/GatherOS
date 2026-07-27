@@ -11,8 +11,6 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Maximize2,
-  Minimize2,
 } from 'lucide-react';
 import styles from './FocusedView.module.css';
 import { fileUrl } from '../lib/fileUrl.js';
@@ -107,33 +105,8 @@ export default function FocusedView({
   // pbs.twimg.com so we don't have to download every image on the
   // tweet at save time.
   altImageIdx = 0,
-  // Lights-out mode. App owns the flag because the DetailPanel is its
-  // sibling, not our child — both have to dim together.
-  immersive = false,
-  onToggleImmersive,
 }) {
   const [zoom, setZoom] = useState(1);
-  // In lights-out, chrome sleeps until the pointer moves, then sleeps
-  // again after a beat — the picture is the only thing on screen while
-  // you're just looking at it.
-  const [chromeAwake, setChromeAwake] = useState(false);
-  const chromeTimer = useRef(0);
-  useEffect(() => {
-    if (!immersive) { setChromeAwake(false); return undefined; }
-    // Entering lights-out: show chrome briefly so the way back is visible.
-    setChromeAwake(true);
-    const wake = () => {
-      setChromeAwake(true);
-      clearTimeout(chromeTimer.current);
-      chromeTimer.current = setTimeout(() => setChromeAwake(false), 2500);
-    };
-    wake();
-    window.addEventListener('mousemove', wake);
-    return () => {
-      window.removeEventListener('mousemove', wake);
-      clearTimeout(chromeTimer.current);
-    };
-  }, [immersive]);
   // Tracks whether the cursor is over the focused-view video so the
   // ← / → nav hint below can hide while the native HTML5 controls
   // strip is visible — the two pieces of chrome were stacking on top
@@ -252,16 +225,7 @@ export default function FocusedView({
           togglePicking();
           return;
         }
-        // Same ladder for lights-out: the first Escape brings the chrome
-        // back, the next one leaves the view.
-        if (immersive) {
-          onToggleImmersive?.();
-          return;
-        }
         onBack();
-      } else if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        e.preventDefault();
-        onToggleImmersive?.();
       } else if (e.key === 'ArrowLeft' && hasPrev) {
         e.preventDefault();
         onPrev();
@@ -272,7 +236,7 @@ export default function FocusedView({
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onBack, onPrev, onNext, hasPrev, hasNext, picking, togglePicking, immersive, onToggleImmersive]);
+  }, [onBack, onPrev, onNext, hasPrev, hasNext, picking, togglePicking]);
 
   // For multi-image X-bookmark saves, the user can click any of the
   // tweet's images in the DetailPanel's tweet card to bring it into
@@ -341,8 +305,6 @@ export default function FocusedView({
       className={[
         styles.focused,
         openedViaMorph && styles.focusedMorphing,
-        immersive && styles.immersive,
-        immersive && chromeAwake && styles.chromeAwake,
       ].filter(Boolean).join(' ')}
       /* Atmospheric backdrop — heavy blur + dark overlay layer
          painted via .focused::before. Lives on the root so it
@@ -450,20 +412,6 @@ export default function FocusedView({
             onClick={() => onDelete(record.id)}
           >
             <TrashIcon />
-          </button>
-
-          <span className={styles.divider} aria-hidden="true" />
-
-          <button
-            type="button"
-            className={`${styles.iconBtn}${immersive ? ` ${styles.iconBtnActive}` : ''}`}
-            data-tooltip={immersive ? 'Exit lights out (F)' : 'Lights out (F)'}
-            data-tooltip-pos="below"
-            aria-label={immersive ? 'Exit lights out' : 'Lights out'}
-            aria-pressed={immersive}
-            onClick={() => onToggleImmersive?.()}
-          >
-            {immersive ? <Minimize2 size={16} strokeWidth={2} /> : <Maximize2 size={16} strokeWidth={2} />}
           </button>
 
           <span className={styles.divider} aria-hidden="true" />

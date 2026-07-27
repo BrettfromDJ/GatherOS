@@ -518,12 +518,6 @@ export default function App({ entitlement } = {}) {
   // a stale alt-image selection across.
   const [focusedAltImageIdx, setFocusedAltImageIdx] = useState(0);
   useEffect(() => { setFocusedAltImageIdx(0); }, [focusedId]);
-  // FocusedView "lights out": the top bar and the DetailPanel step aside
-  // so the image gets the whole window. Lives here because the panel is
-  // FocusedView's sibling, not its child. Always starts off — opening a
-  // save should show its details, and it resets between saves.
-  const [immersive, setImmersive] = useState(false);
-  useEffect(() => { setImmersive(false); }, [focusedId]);
   // Spacebar Quick Look — a lightweight, dismissible peek of the
   // currently-focused save without opening the full focused view.
   // Holds a save id while the overlay is up, null when dismissed.
@@ -3575,8 +3569,6 @@ export default function App({ entitlement } = {}) {
               videoMuted={prefs.videoMuted !== false}
               onVideoMutedChange={handleVideoMutedChange}
               altImageIdx={focusedAltImageIdx}
-              immersive={immersive}
-              onToggleImmersive={() => setImmersive((v) => !v)}
             />
           ) : (
             <>
@@ -3860,7 +3852,6 @@ export default function App({ entitlement } = {}) {
             aiIndexing={indexingIds.has(focused.id)}
             altImageIdx={focusedAltImageIdx}
             onAltImageIdxChange={setFocusedAltImageIdx}
-            immersive={immersive}
             onClose={() => setFocusedId(null)}
             onCollectionsChanged={loadCollections}
             onTagsChanged={loadAllTags}

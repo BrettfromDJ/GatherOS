@@ -396,46 +396,6 @@
   padding: 32px 340px 32px 56px;
   overflow: hidden;
   background: transparent;
-  transition: padding var(--dur-pronounced, 280ms) var(--ease-out, cubic-bezier(0.32, 0.72, 0, 1));
-}
-
-/* ── Lights out ──────────────────────────────────────────────────────
-   The panel and the top bar step aside and the stage reclaims the whole
-   window, so the picture is the only thing on screen. Chrome comes back
-   on pointer movement (see chromeAwake) and Escape steps back out
-   before it closes the view. */
-.immersive .stage {
-  /* Symmetric now that nothing is reserved on the right — the image
-     finally sits in the window's true centre. */
-  padding: 40px;
-}
-.immersive .topBar {
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
-  transition:
-    opacity var(--dur-medium, 200ms) var(--ease-out),
-    transform var(--dur-medium, 200ms) var(--ease-out);
-}
-.immersive.chromeAwake .topBar {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-/* Hide the pointer once the chrome has slept — it reappears the moment
-   the mouse moves, which is also what wakes the chrome. */
-.immersive:not(.chromeAwake) { cursor: none; }
-/* The hint pill is centred against the panel's reserved space; without
-   the panel it would sit off-centre, and it's noise in lights-out. */
-.immersive .navHint { opacity: 0; }
-/* A touch more lift for the print now that it owns the room. */
-.immersive .image {
-  filter: drop-shadow(0 26px 70px rgba(0, 0, 0, 0.62));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stage,
-  .immersive .topBar { transition: none; }
 }
 
 .stageScroll {
@@ -443,11 +403,6 @@
   align-items: flex-start;
   justify-content: flex-start;
 }
-/* Zoomed past fit the image fills or overflows the stage, so there are no
-   edges left to cast a shadow from — and re-rasterising a drop-shadow on
-   every zoom frame is the one place it gets expensive. Drop it. */
-.stageScroll .image,
-.immersive .stageScroll .image { filter: none; }
 
 /* Text-tweet stage — just centers the card. The card itself is the
    scroll container (see TweetCard .focus) so its rounded corners stay
@@ -473,18 +428,13 @@
      slider. With width/height: auto + max-width/height: 100%,
      the image stuck at its natural pixel size once the wrap grew
      past 100%, so anything not several × the stage didn't appear
-     to zoom at all. */
+     to zoom at all. No border-radius / box-shadow here: with
+     object-fit: contain the element box extends beyond the visible
+     image (letterbox bands), and any chrome on the box would draw
+     a frame around the whole stage rather than around the image. */
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* Physical presence: the picture reads as a print hanging in the
-     blurred room rather than a texture painted on the backdrop.
-     border-radius / box-shadow can't do this — with object-fit:
-     contain the element box includes the letterbox bands, so any
-     box chrome would frame the whole stage. filter: drop-shadow
-     follows the PAINTED pixels instead, so it hugs the image's true
-     edges (and a transparent PNG's actual silhouette). */
-  filter: drop-shadow(0 18px 44px rgba(0, 0, 0, 0.55));
 }
 
 /* ── Custom video controls ───────────────────────────────────────────
@@ -606,7 +556,6 @@
   font-size: var(--text-xs);
   pointer-events: none;
   user-select: none;
-  transition: opacity var(--dur-medium, 200ms) var(--ease-out);
 }
 
 .kbd {
