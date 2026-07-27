@@ -222,6 +222,9 @@ export default function DetailPanel({
   // chosen index. 0 = the locally saved primary image.
   altImageIdx = 0,
   onAltImageIdxChange,
+  // FocusedView's lights-out mode — the panel steps aside so the image
+  // gets the whole window.
+  immersive = false,
 }) {
   // X-bookmark capture stashes the tweet's author + handle + avatar +
   // caption + every image URL into tweet_meta as JSON. Parse once per
@@ -775,7 +778,10 @@ export default function DetailPanel({
         addingTag && suggestionsOpen && totalSuggestionRows > 0
           ? ` ${styles.panelTagRoom}`
           : ''
-      }`}
+      }${immersive ? ` ${styles.panelHidden}` : ''}`}
+      // Lights-out: slide out of the way and stop taking clicks, but stay
+      // mounted so nothing in-flight (a tag edit, a note) is lost.
+      aria-hidden={immersive || undefined}
       data-onboarding="detail-panel"
     >
       <header className={styles.header}>
