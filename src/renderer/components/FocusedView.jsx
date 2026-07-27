@@ -351,9 +351,11 @@ export default function FocusedView({
          (thumb_path) instead of file_path — file_path is the MP4
          and CSS background-image can't render video. */
       style={(() => {
-        const bg = record.kind === 'video' && record.thumb_path
-          ? fileUrl(record.thumb_path)
-          : src;
+        // Always a still frame. Keyed off what's actually on the stage
+        // rather than record.kind, so a carousel switched to a clip still
+        // gets that clip's poster — before, that case fell through to the
+        // MP4 path, which CSS can't paint at all.
+        const bg = showVideo ? videoPoster : src;
         return bg ? { '--stage-bg': `url(${JSON.stringify(bg)})` } : undefined;
       })()}
     >

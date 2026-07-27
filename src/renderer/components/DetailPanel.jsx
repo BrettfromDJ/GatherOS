@@ -234,6 +234,14 @@ export default function DetailPanel({
     try { return JSON.parse(record.tweet_meta); }
     catch { return null; }
   }, [record?.tweet_meta]);
+  // Does anything on this save play? Drives the solid-tint treatment
+  // below — a playing <video> forces a per-frame re-sample of every
+  // backdrop-filter in the window, which shimmers along this panel's edge.
+  const hasVideoMedia = useMemo(
+    () => record?.kind === 'video'
+      || tweetMediaItems(record, tweetMeta).some((m) => m.type === 'video'),
+    [record, tweetMeta],
+  );
   // Picks the source glyph + open label on the card (X / Instagram / Cosmos).
   const igSource = record?.source === 'instagram';
   const cosmosSource = record?.source === 'cosmos';
@@ -778,7 +786,13 @@ export default function DetailPanel({
         addingTag && suggestionsOpen && totalSuggestionRows > 0
           ? ` ${styles.panelTagRoom}`
           : ''
-      }${immersive ? ` ${styles.panelHidden}` : ''}`}
+      }${immersive ? ` ${styles.panelHidden}` : ''}${
+        // A playing video re-samples every backdrop-filter in the window
+        // once per frame, which shimmers along this panel's edge. Solid
+        // tint instead whenever a video could be on the stage — including
+        // a carousel whose primary is an image but which holds a clip.
+        hasVideoMedia ? ` ${styles.panelNoBlur}` : ''
+      }`}
       // Lights-out: slide out of the way and stop taking clicks, but stay
       // mounted so nothing in-flight (a tag edit, a note) is lost.
       aria-hidden={immersive || undefined}

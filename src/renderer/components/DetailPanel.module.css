@@ -4,6 +4,21 @@
    of the surface family rather than as a separate rail. Fixed
    positioning takes it out of the flex row, which lets the
    FocusedView's top bar span the full app width below it. */
+/* Video saves: keep the translucency, drop the backdrop blur.
+   A playing <video> repaints every frame, and each repaint forces
+   Chromium to re-sample every backdrop-filter in the window — that
+   resample is what shimmered along this panel's edge. (The backdrop
+   image itself is a static poster frame, so it was never the thing
+   moving.) The blur was doing almost no work here anyway: what's behind
+   the panel is *already* blurred 60px, so translucency alone carries the
+   same ambient colour. Same look, no per-frame resample. */
+.panelNoBlur,
+.panelNoBlur .typeBadge {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.panelNoBlur { background: rgba(20, 20, 22, 0.58); }
+
 /* Lights-out (FocusedView): slide off to the right and stop taking
    clicks. Kept mounted — an in-flight tag or note edit shouldn't be
    thrown away just because the user wanted a better look at the image. */
