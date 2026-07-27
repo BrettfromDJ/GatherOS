@@ -23,8 +23,6 @@ import TweetCard from './TweetCard.jsx';
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.05;
-// How long the outgoing image + backdrop linger while dissolving.
-const CROSSFADE_MS = 260;
 
 // Magnifier loupe rendered at the cursor while the eyedropper is
 // active. Paints the hook's N×N pixel block onto a small canvas and
@@ -334,31 +332,6 @@ export default function FocusedView({
     : fileUrl(record.file_path);
   const zoomFillPct = ((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100;
 
-  // The image behind the atmospheric backdrop. Videos use their poster
-  // (thumb_path) — file_path is the MP4 and CSS can't paint video.
-  const bgUrl = record.kind === 'video' && record.thumb_path
-    ? fileUrl(record.thumb_path)
-    : src;
-
-  // Cross-fade on navigation. Arrowing through a collection used to hard-
-  // cut: the <img> src swapped and the blurred backdrop popped to a new
-  // colour in the same frame. We hold the OUTGOING frame for a beat and
-  // fade it out on top; the incoming one is already painted underneath
-  // (preloaded + decoding="sync"), so the result is a true dissolve —
-  // and the live <img> is untouched, keeping its ref, drag handlers,
-  // eyedropper wiring and view-transition name intact.
-  const [swap, setSwap] = useState(null);
-  const lastFrame = useRef({ src, bg: bgUrl });
-  useEffect(() => {
-    const prev = lastFrame.current;
-    if (prev.src === src && prev.bg === bgUrl) return undefined;
-    lastFrame.current = { src, bg: bgUrl };
-    setSwap(prev);
-    const t = setTimeout(() => setSwap(null), CROSSFADE_MS);
-    return () => clearTimeout(t);
-  }, [src, bgUrl]);
-  const cssUrl = (u) => (u ? `url(${JSON.stringify(u)})` : undefined);
-
   const handleExport = () => {
     window.moodmark.image.export(record.file_path, defaultExportName(record));
   };
@@ -370,17 +343,19 @@ export default function FocusedView({
         openedViaMorph && styles.focusedMorphing,
         immersive && styles.immersive,
         immersive && chromeAwake && styles.chromeAwake,
-        swap && styles.bgSwap,
       ].filter(Boolean).join(' ')}
-      /* Atmospheric backdrop — heavy blur + dark overlay layer painted
-         via .focused::before. Lives on the root so it covers the topBar
-         too (the divider stays via topBar's border-bottom).
-         --stage-bg-prev feeds the matching ::after layer that dissolves
-         the previous image's wash out during a navigation crossfade. */
-      style={{
-        '--stage-bg': cssUrl(bgUrl),
-        '--stage-bg-prev': cssUrl(swap?.bg),
-      }}
+      /* Atmospheric backdrop — heavy blur + dark overlay layer
+         painted via .focused::before. Lives on the root so it
+         covers the topBar too (the divider stays via topBar's
+         border-bottom). For video saves we use the poster image
+         (thumb_path) instead of file_path — file_path is the MP4
+         and CSS background-image can't render video. */
+      style={(() => {
+        const bg = record.kind === 'video' && record.thumb_path
+          ? fileUrl(record.thumb_path)
+          : src;
+        return bg ? { '--stage-bg': `url(${JSON.stringify(bg)})` } : undefined;
+      })()}
     >
       <div className={styles.topBar}>
         {onToggleSidebar && (
@@ -703,18 +678,6 @@ export default function FocusedView({
             className={styles.imageWrap}
             style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
           >
-            {/* Outgoing frame, fading out over the incoming one. Inert:
-                no ref, no handlers, not draggable, hidden from a11y. */}
-            {swap?.src && swap.src !== src && (
-              <img
-                key={swap.src}
-                className={`${styles.image} ${styles.imageGhost}`}
-                src={swap.src}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-              />
-            )}
             <img
               ref={imageRef}
               src={src}

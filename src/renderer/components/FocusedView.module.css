@@ -55,34 +55,10 @@
   pointer-events: none;
 }
 
-/* Outgoing backdrop during a navigation crossfade. Only exists while
-   .bgSwap is on (content: none otherwise), so we're not keeping a second
-   full-window blurred layer alive for the 99% of the time nothing is
-   dissolving. Paints after ::before, so it sits on top and fades away to
-   reveal the new wash underneath. */
-.bgSwap::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background:
-    linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.62)),
-    var(--stage-bg-prev, none) center / cover no-repeat;
-  filter: blur(60px) saturate(1.2);
-  transform: scale(1.18);
-  pointer-events: none;
-  animation: fadeOutLayer 260ms var(--ease-out, ease-out) forwards;
-}
-
 /* All direct children of .focused sit above the backdrop layer. */
 .focused > * {
   position: relative;
   z-index: 1;
-}
-
-@keyframes fadeOutLayer {
-  from { opacity: 1; }
-  to   { opacity: 0; }
 }
 
 .focused.focusedMorphing {
@@ -452,9 +428,6 @@
 @media (prefers-reduced-motion: reduce) {
   .stage,
   .immersive .topBar { transition: none; }
-  /* Skip the dissolve entirely — the outgoing layers just don't paint. */
-  .imageGhost,
-  .bgSwap::after { animation: none; opacity: 0; }
 }
 
 .stageScroll {
@@ -485,23 +458,6 @@
   align-items: center;
   justify-content: center;
   margin: auto;
-  /* Containing block for the crossfade ghost below. */
-  position: relative;
-}
-
-/* The previous image, held for a beat and dissolved out on top of the
-   new one. Absolute so it overlays instead of becoming a flex sibling
-   that would split the box in two. */
-.imageGhost {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* Must sit ABOVE the incoming image — .image carries a drop-shadow
-     filter, which gives it a stacking context, so being positioned isn't
-     enough to win paint order against a later DOM sibling. Without this
-     the outgoing frame hides underneath and the dissolve never shows. */
-  z-index: 2;
-  animation: fadeOutLayer 260ms var(--ease-out, ease-out) forwards;
 }
 
 .image {
