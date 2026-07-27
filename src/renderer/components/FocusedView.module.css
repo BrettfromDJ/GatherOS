@@ -40,18 +40,26 @@
 /* Atmospheric backdrop — heavily-blurred copy of the focused
    image with a dark overlay on top. Lives on the .focused root so
    it covers the topBar too; topBar's border-bottom remains the
-   chrome divider. transform: scale lifts the blur edge past the
-   viewport so we don't see the soft falloff at the edges. */
+   chrome divider.
+   The layer is oversized with negative insets so the blur's soft
+   falloff sits outside the viewport. This used to be transform:
+   scale(1.18), which flickered behind the DetailPanel while a video
+   played: the panel's backdrop-filter has to re-sample whatever is
+   behind it on every video frame, and re-rasterising a filtered +
+   transformed layer that often let the untransformed edge show
+   through — the falloff would blink in at the panel's border.
+   Geometry can't fall out of sync the way a transform can, and
+   -180px (3x the blur radius) keeps the edge clear at any window
+   size, where a percentage would not. */
 .focused::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -180px;
   z-index: 0;
   background:
     linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.62)),
     var(--stage-bg, none) center / cover no-repeat;
   filter: blur(60px) saturate(1.2);
-  transform: scale(1.18);
   pointer-events: none;
 }
 
