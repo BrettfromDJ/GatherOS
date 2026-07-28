@@ -70,35 +70,39 @@
     <a href="/" class="crumb">← Back to GatherOS</a>
 
     <h1>Privacy policy</h1>
-    <p class="updated">Last updated: June 10, 2026</p>
+    <p class="updated">Last updated: July 28, 2026</p>
 
     <p>The GatherOS browser extension does not sell your data, and does not transmit it to GatherOS or any third-party service. Everything it captures goes only to the GatherOS desktop application running on your own computer.</p>
 
     <h2>What the extension handles</h2>
     <p>The extension passes data only to the GatherOS desktop application running locally on your own machine, via Chrome’s native messaging protocol. Depending on how you save:</p>
     <ul>
-      <li><strong>Saving images and pages</strong> — when you right-click an image and choose “Save to GatherOS”, or use the in-page capture panel to capture the page, a region, the full page, or its link: the image or capture, plus the URL and title of the page you were viewing.</li>
+      <li><strong>Saving images and pages</strong> — when you right-click an image and choose “Save to GatherOS”, or use the in-page capture panel to capture a region of the page or its link: the image or capture, plus the URL and title of the page you were viewing.</li>
       <li><strong>Saving your X (Twitter) bookmarks</strong> — when you bookmark a tweet on x.com, the extension reads that tweet’s content (its text, author name and handle, and any image or video URLs) and forwards it to the desktop app. To pick up bookmarks you made on other devices, it also re-issues your own bookmarks request to x.com in the background, using your existing x.com session cookie to authenticate it.</li>
+      <li><strong>Saving your Instagram saved posts</strong> — when you save a post on instagram.com, or run “Import saved” from the panel, the extension reads the saved-posts data Instagram returns to your own browser (the post’s caption, author, and image or video URLs) and forwards it to the desktop app. “Import saved” scrolls your saved page so Instagram loads older posts for the same read.</li>
+      <li><strong>Saving from Cosmos</strong> — when you save an element on cosmos.so, or run “Import saves” from the panel, the extension reads that element’s image address and page link off the page you are already viewing and forwards them to the desktop app. Import walks your own profile and collections to collect the ones you have saved.</li>
     </ul>
-    <p>This data goes only to the GatherOS desktop application on your computer and to x.com itself — your own authenticated request, which never leaves your browser session. It is used solely to store the content in your local library, with the source URL preserved as a breadcrumb.</p>
+    <p>This data goes only to the GatherOS desktop application on your computer, and — in the case of the X bookmarks refresh — to x.com itself, as your own authenticated request, which never leaves your browser session. It is used solely to store the content in your local library, with the source URL preserved as a breadcrumb.</p>
 
     <h2>What the extension stores</h2>
-    <p>So your X bookmark sync doesn’t import the same tweet twice, the extension keeps a small amount of bookkeeping data locally in <code>chrome.storage.local</code> — the IDs of tweets already imported, plus the template of your own bookmarks request used to refresh them. This stays on your machine. The extension maintains no remote server and includes no analytics or telemetry.</p>
+    <p>So a sync doesn’t import the same item twice, the extension keeps a small amount of bookkeeping data locally in <code>chrome.storage.local</code> — the IDs of tweets, Instagram posts and Cosmos elements already imported, your Cosmos username (so “Import saves” knows which profile to open), plus the template of your own bookmarks request used to refresh them. This stays on your machine. The extension maintains no remote server and includes no analytics or telemetry.</p>
 
     <h2>Permissions in use</h2>
     <ul>
       <li><strong>contextMenus</strong> — to register the “Save to GatherOS” right-click menu item.</li>
       <li><strong>nativeMessaging</strong> — to communicate with the GatherOS desktop application installed on the same machine.</li>
       <li><strong>scripting / activeTab</strong> — to inject the in-page capture panel into the current tab when you click the toolbar icon.</li>
-      <li><strong>storage</strong> — to remember which X bookmarks have already been imported.</li>
+      <li><strong>storage</strong> — to remember which items have already been imported, so a re-sync doesn’t duplicate them.</li>
       <li><strong>alarms</strong> — to periodically check for newly added X bookmarks in the background.</li>
-      <li><strong>cookies</strong> — to read your existing x.com session cookie so your own bookmarks request can be re-issued to x.com.</li>
+      <li><strong>cookies</strong> — to read your existing x.com session cookie so your own bookmarks request can be re-issued to x.com, and to check whether you are signed in to x.com and instagram.com so the panel can say “sign in” instead of failing silently. The cookies are never transmitted anywhere.</li>
       <li><strong>notifications</strong> — to show a single confirmation toast after a save.</li>
       <li><strong>Host access to x.com / twitter.com</strong> — to detect when you bookmark a tweet and read its content for saving.</li>
+      <li><strong>Host access to instagram.com</strong> — to detect when you save a post and read its content for saving.</li>
+      <li><strong>Host access to cosmos.so</strong> — to detect when you save an element and read its image address for saving.</li>
     </ul>
 
     <h2>Third parties</h2>
-    <p>The extension does not transfer your data to GatherOS’s servers or to any third-party service. It communicates only with the GatherOS desktop application on your own computer and with x.com — re-issuing your own bookmarks request using your existing session.</p>
+    <p>The extension does not transfer your data to GatherOS’s servers or to any third-party service. It communicates only with the GatherOS desktop application on your own computer and with x.com — re-issuing your own bookmarks request using your existing session. On instagram.com and cosmos.so it only reads what those sites have already sent to your own browser; it makes no requests of its own to them.</p>
 
     <h2>Changes to this policy</h2>
     <p>If this policy changes in any material way, the updated version will be published at this URL with a new “Last updated” date.</p>
