@@ -46,7 +46,15 @@ function captureCosmosClick(x, y) {
     const area = r.width * r.height;
     if (area < bestArea) { bestArea = area; best = { id, el: img }; }
   }
-  if (!best) return;
+  if (!best) {
+    // Pointer landed on chrome, not a picture — the Save button in the
+    // detail view's sidebar, a menu, the page background. Forget the last
+    // tile rather than keeping it: a stale grid tile that outlives the
+    // click that made it is exactly what got saved in place of the image
+    // the user was actually looking at.
+    lastCosmosClick = null;
+    return;
+  }
   // Element id too, when the tile happens to expose an /e/<id> link — lets the
   // save handler confirm the match. Feed tiles often don't, so it may be null
   // and the handler matches on recency instead.
@@ -103,16 +111,26 @@ window.addEventListener('message', (event) => {
   //  3. The interceptor's element→image guess (walks Cosmos's GraphQL; can
   //     mis-key multi-image/video elements — a "random image" that isn't
   //     even the saved tile).
-  // A click counts if it's recent and either its tile's element id matches the
-  // save, or the tile exposed no element id (feed tiles) — in which case the
-  // click immediately preceding the mutation is the save target.
-  const clickRecent = lastCosmosClick && (Date.now() - lastCosmosClick.at) < 5000;
-  const clickUsable = clickRecent && lastCosmosClick.imageId
-    && (!lastCosmosClick.elementId || lastCosmosClick.elementId === elKey);
-  const clickId = clickUsable ? lastCosmosClick.imageId : null;
-  const fromClick = clickId ? `https://${CDN_HOST}/${clickId}?format=webp` : '';
-  const domMediaUrl = fromClick || resolveCosmosImageFromDom(d.elementId);
-  const mediaUrl = domMediaUrl || d.mediaUrl;
+  const cdn = (id) => `https://${CDN_HOST}/${id}?format=webp`;
+  const clickRecent = !!lastCosmosClick && !!lastCosmosClick.imageId
+    && (Date.now() - lastCosmosClick.at) < 5000;
+  // A click whose tile named THIS element is unambiguous — nothing beats it.
+  const fromClickExact = clickRecent && lastCosmosClick.elementId === elKey
+    ? cdn(lastCosmosClick.imageId) : '';
+  // Then the picture actually on screen. This has to outrank an un-named
+  // click: in the detail view the last thing clicked is usually chrome, and
+  // letting a leftover grid tile win there is what saved the wrong image.
+  const fromView = fromClickExact ? '' : resolveCosmosImageFromDom(d.elementId);
+  // Finally an un-named click — feed tiles expose no element id, so in the
+  // grid (where no single image dominates) this is the one that identifies
+  // the tile, and by now the viewer has had its say.
+  const fromClickLoose = (!fromClickExact && !fromView && clickRecent && !lastCosmosClick.elementId)
+    ? cdn(lastCosmosClick.imageId) : '';
+  const mediaUrl = fromClickExact || fromView || fromClickLoose || d.mediaUrl;
+  const pickedBy = fromClickExact ? 'clicked tile'
+    : fromView ? 'on screen'
+      : fromClickLoose ? 'clicked tile (unnamed)'
+        : 'interceptor';
   if (!mediaUrl) return; // image not seen yet — the profile/grid reader backfills it later
   const m = /cdn\.cosmos\.so\/([^/?#]+)/i.exec(mediaUrl);
   const id = m ? m[1] : String(d.elementId);
@@ -125,8 +143,7 @@ window.addEventListener('message', (event) => {
       type: 'gatheros:cosmos-saved-batch',
       elements: [{ id, mediaUrl, pageUrl: d.pageUrl || mediaUrl, type: 'image', caption: '', collection: null, realtime: true }],
     });
-    console.log('[gatheros] cosmos: real-time save →', mediaUrl,
-      fromClick ? '(from click)' : domMediaUrl ? '(from view)' : '(from interceptor)');
+    console.log('[gatheros] cosmos: real-time save →', mediaUrl, `(${pickedBy})`);
   } catch { /* extension reloaded */ }
 });
 
@@ -160,21 +177,33 @@ function dominantViewerImageId() {
   for (const dlg of document.querySelectorAll('[role="dialog"], [aria-modal="true"]')) {
     if (dlg.getClientRects().length) { root = dlg; break; }
   }
-  const scope = root || document;
-  const boxes = [];
-  for (const img of scope.querySelectorAll('img')) {
-    const id = cosmosImageId(img.currentSrc || img.src);
-    if (!id) continue;
-    if (img.getClientRects().length === 0) continue;
-    const r = img.getBoundingClientRect();
-    if (Math.min(r.width, r.height) < 240) continue; // skip thumbnails/covers/tiles
-    boxes.push({ id, area: r.width * r.height });
-  }
+  const collect = (scope) => {
+    const out = [];
+    for (const img of scope.querySelectorAll('img')) {
+      const id = cosmosImageId(img.currentSrc || img.src);
+      if (!id) continue;
+      if (img.getClientRects().length === 0) continue;
+      const r = img.getBoundingClientRect();
+      if (Math.min(r.width, r.height) < 240) continue; // thumbnails/covers/tiles
+      out.push({ id, area: r.width * r.height });
+    }
+    return out;
+  };
+
+  let boxes = root ? collect(root) : [];
+  // A visible [role=dialog] isn't proof the viewer lives inside it — Cosmos
+  // keeps an empty dialog container mounted, and scoping to it found nothing
+  // and gave up, handing the save back to the interceptor's guess. If the
+  // dialog holds no picture, scan the page instead of surrendering.
+  const scopedToDialog = boxes.length > 0;
+  if (!scopedToDialog) boxes = collect(document);
   if (!boxes.length) return '';
   boxes.sort((a, b) => b.area - a.area);
-  // In a dialog, trust the largest. On a bare page require clear dominance so
-  // a grid of similarly sized tiles isn't mistaken for a viewer.
-  if (!root && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
+  // Inside a dialog that really holds the viewer, trust the largest. Scanning
+  // the whole page, require clear dominance so a grid of similarly sized tiles
+  // is never mistaken for a viewer — that's what keeps grid saves on the
+  // clicked-tile path rather than grabbing whichever tile is biggest.
+  if (!scopedToDialog && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
   return boxes[0].id;
 }
 
