@@ -20,19 +20,6 @@ import {
 
 export const RELEASE_NOTES = [
   {
-    // Minor bump, not a patch: pickNotesForUpgrade stays silent when the
-    // major.minor line is unchanged, so 0.8.x -> 0.8.x would never show
-    // this. Cosmos going live is worth announcing, so it earns the 0.9.
-    version: '0.9.0',
-    items: [
-      {
-        Icon: WindowIcon,
-        title: 'Save from Cosmos',
-        description: 'Cosmos joins X and Instagram as a place you can save from. Save anything on cosmos.so and it lands in your library, or pull in everything you’ve already saved with “Import saves” from the browser panel. Update the GatherOS extension in Chrome to switch it on.',
-      },
-    ],
-  },
-  {
     version: '0.8.0',
     items: [
       {

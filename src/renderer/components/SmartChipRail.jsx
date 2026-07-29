@@ -48,31 +48,14 @@ const TYPE_FILTERS = [
   { value: 'video', label: 'Video',     Icon: Film },
 ];
 
-// Saved-view source filter — a segmented control (All · X · Instagram ·
-// Cosmos) shown only on the Saved view. 'all' is the no-op default; the
+// Saved-view source filter — a segmented control (All · X · Instagram)
+// shown only on the Saved view. 'all' is the no-op default; the
 // rest are icon-only segments.
 const SOURCE_FILTERS = [
   { value: 'all',       label: 'All', Icon: null },
   { value: 'x',         label: 'X',   Icon: XGlyph },
   { value: 'instagram', label: 'Instagram', Icon: InstagramGlyph },
-  { value: 'cosmos',    label: 'Cosmos', Icon: CosmosGlyph },
 ];
-
-// The cosmos.so mark: six dots in a hexagonal ring. Fill-based, tints with
-// currentColor, and takes a `size` (lucide-style) so it slots into the toggle
-// beside the X / Instagram glyphs.
-function CosmosGlyph({ size = 15 }) {
-  return (
-    <svg viewBox="0 0 38 42" width={size} height={size} fill="currentColor" aria-hidden="true">
-      <circle cx="19.02" cy="5.95" r="5.95" />
-      <circle cx="19.02" cy="35.99" r="5.95" />
-      <circle cx="5.97" cy="13.46" r="5.95" />
-      <circle cx="32.08" cy="13.46" r="5.95" />
-      <circle cx="5.97" cy="28.48" r="5.95" />
-      <circle cx="32.08" cy="28.48" r="5.95" />
-    </svg>
-  );
-}
 
 // Instagram mark, drawn to match the lucide icon API (takes a `size`)
 // so it slots beside the X glyph in the source toggle.

@@ -34,10 +34,6 @@
   // can't go through the stroke-based svg() helper above.
   const xLogo = (w = 15) =>
     `<svg viewBox="0 0 1200 1227" width="${w}" height="${w}" fill="currentColor" aria-hidden="true"><path d="M714 519L1161 0h-106L667 451 357 0H0l469 682L0 1226h106l410-476 327 476h357L714 519zM569 688l-47-68L144 80h163l305 436 48 68 396 567H892L569 688z"/></svg>`;
-  // The real cosmos.so mark: six dots in a hexagonal ring. Fill-based (like
-  // the X logo), so it tints with currentColor beside the other glyphs.
-  const cosmosLogo = (w = 15) =>
-    `<svg viewBox="0 0 38 42" width="${w}" height="${w}" fill="currentColor" aria-hidden="true"><circle cx="19.02" cy="5.95" r="5.95"/><circle cx="19.02" cy="35.99" r="5.95"/><circle cx="5.97" cy="13.46" r="5.95"/><circle cx="32.08" cy="13.46" r="5.95"/><circle cx="5.97" cy="28.48" r="5.95"/><circle cx="32.08" cy="28.48" r="5.95"/></svg>`;
 
   // The app icon, served from the extension as a web-accessible
   // resource. Loading it via chrome-extension:// (rather than a data:
@@ -202,14 +198,6 @@
             <div class="scope-msg" id="igMsg" hidden></div>
           </div>
         </div>
-        <div class="import" id="cosmosImport">
-          <button class="row" id="importCosmos"><span class="ico">${cosmosLogo(15)}</span><span class="txt"><span class="label">Import saves</span><span class="sub" id="cosmosSub">Backfill your Cosmos saves</span></span></button>
-          <div class="scope" id="cosmosScope" hidden>
-            <button class="primary" id="cosmosGo">Import all saves</button>
-            <div class="scope-note">Cosmos saves aren't dated, so this imports everything — your profile and each collection — in the background. Duplicates are skipped.</div>
-            <div class="scope-msg" id="cosmosMsg" hidden></div>
-          </div>
-        </div>
       </div>
       <div class="sep"></div>
       <button class="primary open" id="open"><span class="ico">${svg(ICONS.open, 15)}</span><span>Open GatherOS</span></button>
@@ -259,7 +247,6 @@
     if (chrome.runtime.lastError) { showText(msgEl, 'Could not reach the extension. Reload it and try again.'); return; }
     if (!resp || resp.ok) { close(); return; } // success — import runs in the background
     if (resp.needsSignIn) { showSignIn(msgEl, label, url); return; }
-    if (resp.needsProfile) { showSignIn(msgEl, label, url, 'Open your Cosmos profile once, then import. '); return; }
     if (resp.appClosed) { showText(msgEl, 'Open GatherOS first, then import.'); return; }
     if (resp.disabled) { showText(msgEl, 'Import is temporarily unavailable.'); return; }
     if (resp.busy) { showText(msgEl, 'An import is already running.'); return; }
@@ -332,34 +319,6 @@
     igGo.disabled = true;
     chrome.runtime.sendMessage({ type: 'gatheros:import-saved', limit: igSelectedLimit }, (resp) => {
       handleImportResult(resp, { goBtn: igGo, msgEl: igMsg, label: 'Instagram', url: 'https://www.instagram.com/' });
-    });
-  });
-
-  // Import saves (Cosmos) — same two-step flow as the others. Cosmos has no
-  // replayable API, so the background opens the user's profile and drives a
-  // gentle auto-scroll while the watcher relays each saved element.
-  const cosmosImportEl = root.getElementById('cosmosImport');
-  const cosmosScope = root.getElementById('cosmosScope');
-  const cosmosSub = root.getElementById('cosmosSub');
-  const cosmosGo = root.getElementById('cosmosGo');
-
-  // No count chooser: the crawl walks the profile then each collection in page
-  // order, and Cosmos saves have no date, so "most recent N" is meaningless —
-  // it's all-or-nothing. Clicking just expands a confirm.
-  root.getElementById('importCosmos').addEventListener('click', () => {
-    cosmosScope.hidden = !cosmosScope.hidden;
-    cosmosImportEl.classList.toggle('expanded', !cosmosScope.hidden);
-    cosmosSub.textContent = cosmosScope.hidden
-      ? 'Backfill your Cosmos saves'
-      : 'Profile and every collection';
-  });
-
-  const cosmosMsg = root.getElementById('cosmosMsg');
-  cosmosGo.addEventListener('click', () => {
-    clearMsg(cosmosMsg);
-    cosmosGo.disabled = true;
-    chrome.runtime.sendMessage({ type: 'gatheros:import-cosmos', limit: 0 }, (resp) => {
-      handleImportResult(resp, { goBtn: cosmosGo, msgEl: cosmosMsg, label: 'Cosmos', url: 'https://www.cosmos.so/' });
     });
   });
 

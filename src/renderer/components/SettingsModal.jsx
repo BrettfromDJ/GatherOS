@@ -1480,17 +1480,10 @@ export default function SettingsModal({
                     onChange={(v) => updatePref('syncInstagramEnabled', v)}
                   />
                 </div>
-                <div className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>Sync Cosmos saves</span>
-                  <ToggleSwitch
-                    on={prefs.syncCosmosEnabled !== false}
-                    onChange={(v) => updatePref('syncCosmosEnabled', v)}
-                  />
-                </div>
                 <span className={styles.fieldHint}>
-                  When off, posts you bookmark on X, save on Instagram, or
-                  save on Cosmos stop flowing into your library. Saving
-                  images and pages from the browser extension still works.
+                  When off, posts you bookmark on X or save on Instagram
+                  stop flowing into your library. Saving images and pages
+                  from the browser extension still works.
                 </span>
               </div>
             </div>
