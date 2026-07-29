@@ -61,7 +61,10 @@ function captureCosmosClick(x, y) {
   let elementId = null;
   const a = best.el.closest('a[href*="/e/"]');
   if (a) { const m = /\/e\/(\d+)/.exec(a.getAttribute('href') || ''); if (m) elementId = m[1]; }
-  lastCosmosClick = { elementId, imageId: best.id, at: Date.now() };
+  // Record the route too. Cosmos is an SPA, so clicking a grid tile to open
+  // its /e/<id> page never reloads this script — the click survived the
+  // navigation and got saved in place of the element actually being viewed.
+  lastCosmosClick = { elementId, imageId: best.id, path: location.pathname, at: Date.now() };
 }
 document.addEventListener('pointerdown', (e) => {
   try { captureCosmosClick(e.clientX, e.clientY); } catch { /* never break the page */ }
@@ -112,7 +115,10 @@ window.addEventListener('message', (event) => {
   //     mis-key multi-image/video elements — a "random image" that isn't
   //     even the saved tile).
   const cdn = (id) => `https://${CDN_HOST}/${id}?format=webp`;
+  // A click only speaks for the route it happened on — see the path note in
+  // captureCosmosClick.
   const clickRecent = !!lastCosmosClick && !!lastCosmosClick.imageId
+    && lastCosmosClick.path === location.pathname
     && (Date.now() - lastCosmosClick.at) < 5000;
   // A click whose tile named THIS element is unambiguous — nothing beats it.
   const fromClickExact = clickRecent && lastCosmosClick.elementId === elKey
@@ -190,6 +196,12 @@ function dominantViewerImageId() {
     return out;
   };
 
+  // On an element's own page the largest image IS the element — Cosmos lays
+  // related work out beneath it at nearly the same size (measured: 506x760
+  // hero against a 496x703 neighbour, 91% of its area), so the dominance
+  // test below would call the page a grid and decline. Take the largest.
+  const onElementPage = /^\/e\/\d+/.test(location.pathname);
+
   let boxes = root ? collect(root) : [];
   // A visible [role=dialog] isn't proof the viewer lives inside it — Cosmos
   // keeps an empty dialog container mounted, and scoping to it found nothing
@@ -203,7 +215,8 @@ function dominantViewerImageId() {
   // the whole page, require clear dominance so a grid of similarly sized tiles
   // is never mistaken for a viewer — that's what keeps grid saves on the
   // clicked-tile path rather than grabbing whichever tile is biggest.
-  if (!scopedToDialog && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
+  if (!scopedToDialog && !onElementPage
+    && boxes.length > 1 && boxes[1].area > boxes[0].area * 0.62) return '';
   return boxes[0].id;
 }
 
