@@ -44,7 +44,13 @@ function InstagramGlyph() {
 // 'focus' (standalone card on the focused-view stage). Renders real,
 // selectable text — the captured PNG is only a thumbnail/export fallback.
 // `source` ('x' | 'instagram') picks the corner glyph + open label.
-export default function TweetCard({ meta, variant = 'grid', onOpenX = null, source = 'x' }) {
+export default function TweetCard({
+  meta, variant = 'grid', onOpenX = null, source = 'x',
+  // Given a handle, filter the library to that account. Only wired where
+  // the card isn't itself a click target — on a grid card the click would
+  // race the card's own open-the-save handler.
+  onOpenAuthor = null,
+}) {
   const [avatarOk, setAvatarOk] = useState(true);
   if (!meta) return null;
   const isIg = source === 'instagram';
@@ -80,7 +86,27 @@ export default function TweetCard({ meta, variant = 'grid', onOpenX = null, sour
             />
           )}
         </span>
-        <span className={styles.id}>
+        <span
+          className={`${styles.id}${onOpenAuthor && handle ? ` ${styles.idLink}` : ''}`}
+          {...(onOpenAuthor && handle ? {
+            role: 'button',
+            tabIndex: 0,
+            title: `Show everything saved from ${handle}`,
+            // The name and handle stay selectable text, so only treat this
+            // as a click when the user hasn't just finished a selection.
+            onClick: (e) => {
+              if (!window.getSelection()?.isCollapsed) return;
+              e.stopPropagation();
+              onOpenAuthor(handle);
+            },
+            onKeyDown: (e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              e.stopPropagation();
+              onOpenAuthor(handle);
+            },
+          } : {})}
+        >
           <span className={styles.name} data-tweet-selectable>{name}</span>
           {handle && <span className={styles.handle} data-tweet-selectable>{handle}</span>}
         </span>

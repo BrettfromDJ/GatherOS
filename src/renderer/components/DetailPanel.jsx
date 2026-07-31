@@ -222,6 +222,9 @@ export default function DetailPanel({
   // chosen index. 0 = the locally saved primary image.
   altImageIdx = 0,
   onAltImageIdxChange,
+  // Filter the library to this bookmark's author. Omitted = the card's
+  // author stays plain, unclickable text.
+  onFilterAuthor,
 }) {
   // X-bookmark capture stashes the tweet's author + handle + avatar +
   // caption + every image URL into tweet_meta as JSON. Parse once per
@@ -970,7 +973,22 @@ export default function DetailPanel({
           // the source.
           <div className={styles.tweetCard}>
             <div className={styles.tweetCardHeader}>
-              <div className={styles.tweetAuthorText}>
+              <div
+                className={`${styles.tweetAuthorText}${
+                  onFilterAuthor && tweetMeta.authorHandle ? ` ${styles.tweetAuthorLink}` : ''
+                }`}
+                {...(onFilterAuthor && tweetMeta.authorHandle ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  title: `Show everything saved from ${tweetMeta.authorHandle}`,
+                  onClick: () => onFilterAuthor(tweetMeta.authorHandle),
+                  onKeyDown: (e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    e.preventDefault();
+                    onFilterAuthor(tweetMeta.authorHandle);
+                  },
+                } : {})}
+              >
                 {tweetMeta.authorName && (
                   <span className={styles.tweetName}>{tweetMeta.authorName}</span>
                 )}

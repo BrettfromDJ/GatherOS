@@ -105,6 +105,8 @@ export default function FocusedView({
   // pbs.twimg.com so we don't have to download every image on the
   // tweet at save time.
   altImageIdx = 0,
+  // Filter the library to a bookmark's author (the tweet card's byline).
+  onFilterAuthor,
 }) {
   const [zoom, setZoom] = useState(1);
   // Tracks whether the cursor is over the focused-view video so the
@@ -531,6 +533,7 @@ export default function FocusedView({
                 onOpenX={record.source_url
                   ? () => window.moodmark?.shell?.openUrl?.(record.source_url)
                   : undefined}
+                onOpenAuthor={onFilterAuthor}
               />
             </div>
           </div>

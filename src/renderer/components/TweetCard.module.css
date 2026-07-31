@@ -88,6 +88,20 @@
   line-height: 1.2;
 }
 
+/* Author becomes a filter affordance where a handler is wired. Kept as
+   plain text until hover so the card stays quiet — and the name/handle
+   remain selectable, so the click handler ignores clicks that end a
+   text selection. */
+.idLink {
+  cursor: pointer;
+  border-radius: 5px;
+}
+.idLink:hover .name { text-decoration: underline; text-underline-offset: 2px; }
+.idLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .name {
   display: block;
   font-weight: 700;

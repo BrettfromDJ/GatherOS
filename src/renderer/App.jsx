@@ -518,6 +518,21 @@ export default function App({ entitlement } = {}) {
   // a stale alt-image selection across.
   const [focusedAltImageIdx, setFocusedAltImageIdx] = useState(0);
   useEffect(() => { setFocusedAltImageIdx(0); }, [focusedId]);
+
+  // Jump to everything saved from one account. Clicking a bookmark's byline
+  // is the fastest route into the from: filter — no syntax, no typing.
+  // handleModeChange clears the query on its way into Search; setting ours
+  // right after lands in the same React batch, so the clear never renders.
+  const handleFilterByAuthor = useCallback((handle) => {
+    const h = String(handle || '').trim().replace(/^@+/, '');
+    if (!h) return;
+    setFocusedId(null);
+    handleModeChange('search');
+    const query = `from:${h}`;
+    setSearch(query);
+    recentSearches.recordSearch(query);
+  }, [handleModeChange, setSearch, recentSearches]);
+
   // Spacebar Quick Look — a lightweight, dismissible peek of the
   // currently-focused save without opening the full focused view.
   // Holds a save id while the overlay is up, null when dismissed.
@@ -3585,6 +3600,7 @@ export default function App({ entitlement } = {}) {
               videoMuted={prefs.videoMuted !== false}
               onVideoMutedChange={handleVideoMutedChange}
               altImageIdx={focusedAltImageIdx}
+              onFilterAuthor={handleFilterByAuthor}
             />
           ) : (
             <>
@@ -3869,6 +3885,7 @@ export default function App({ entitlement } = {}) {
             aiIndexing={indexingIds.has(focused.id)}
             altImageIdx={focusedAltImageIdx}
             onAltImageIdxChange={setFocusedAltImageIdx}
+            onFilterAuthor={handleFilterByAuthor}
             onClose={() => setFocusedId(null)}
             onCollectionsChanged={loadCollections}
             onTagsChanged={loadAllTags}

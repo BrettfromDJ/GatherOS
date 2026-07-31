@@ -735,6 +735,12 @@
   flex: 1 1 auto;
 }
 
+/* Author doubles as a filter affordance when a handler is wired. */
+.tweetAuthorLink { cursor: pointer; border-radius: 5px; }
+.tweetAuthorLink:hover .tweetName { text-decoration: underline; text-underline-offset: 2px; }
+.tweetAuthorLink:hover .tweetHandle { color: rgba(255, 255, 255, 0.75); }
+.tweetAuthorLink:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.5); outline-offset: 2px; }
+
 .tweetName {
   font-size: var(--text-sm);
   font-weight: 600;
