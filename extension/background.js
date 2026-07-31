@@ -242,6 +242,14 @@ function handleClickBookmark(msg, sendResponse) {
     posterUrl: msg.posterUrl,
     tweetMeta: msg.tweetMeta,
     tags: msg.tags,
+    // The user just pressed Bookmark on this tweet, so honour it even if
+    // they'd previously deleted the save: the desktop tombstones a removed
+    // bookmark to stop PASSIVE re-sync resurrecting it, and this is the
+    // opposite of passive. Without this, deleting a save silently made the
+    // tweet unbookmarkable into GatherOS ever again. The cross-device batch
+    // and background poll still omit the flag, so a deletion keeps sticking
+    // against everything the user didn't explicitly ask for.
+    forceImport: true,
   }).then(async (response) => {
     const ok = !!(response && response.ok);
     sendResponse({
