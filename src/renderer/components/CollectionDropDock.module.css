@@ -107,6 +107,7 @@
 .rows { display: flex; flex-direction: column; }
 
 .row {
+  position: relative; /* so the per-row zIndex applies */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -214,6 +215,11 @@
   flex: 0 0 auto;
   width: 32px;
   height: 26px;
+  /* Confine the cover z-indexes below to this element. position:relative
+     alone does NOT open a stacking context, so those values were escaping
+     into .edge's context — every row's cover competed with every other
+     row's at the same level, layering them against their own rows. */
+  isolation: isolate;
 }
 .fan img,
 .fanEmpty {

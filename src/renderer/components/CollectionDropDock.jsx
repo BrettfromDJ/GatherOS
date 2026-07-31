@@ -89,7 +89,7 @@ export default function CollectionDropDock({
     onDismiss?.();
   }
 
-  function renderRow(c) {
+  function renderRow(c, i, total) {
     const thumbs = Array.isArray(c.thumbs) ? c.thumbs.slice(0, 4) : [];
     // Already contains every dragged save → not a valid drop; mark it
     // and refuse the drop instead of silently adding a dupe.
@@ -105,6 +105,12 @@ export default function CollectionDropDock({
           already && styles.rowIn,
           isTarget && styles.rowTarget,
         ].filter(Boolean).join(' ')}
+        // Rows ride up over each other into a pile, and each cover casts a
+        // downward shadow — so the row ABOVE has to paint in front for that
+        // shadow to land on the one beneath. Without this the browser used
+        // DOM order, putting every row in front of the one above it and
+        // burying each shadow, which is what read as random layering.
+        style={{ zIndex: total - i }}
         onClick={() => handleRowClick(c.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -163,7 +169,7 @@ export default function CollectionDropDock({
             of space above the deck and throw off the vertical balance. */}
         {expanded && <span className={styles.listLabel}>Collections</span>}
         <div className={styles.rows}>
-          {topLevel.map((c) => renderRow(c))}
+          {topLevel.map((c, i) => renderRow(c, i, topLevel.length))}
         </div>
       </div>
     </div>
