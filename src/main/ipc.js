@@ -9,7 +9,7 @@ const {
   filterByColor, findSimilarByPalette,
   getAllCollections, getAllCollectionsWithThumbs, getCollectionsForSave, getCollectionsContainingAll, createCollection, renameCollection, setCollectionCover, setCollectionParent,
   deleteCollection, reorderCollections, addSaveToCollection, removeSaveFromCollection,
-  getAllTags, getTagsForSave, addTagToSave, removeTagFromSave,
+  getAllTags, getAllAuthors, getTagsForSave, addTagToSave, removeTagFromSave,
   listBoards, listBoardsWithThumbs, getBoard, createBoard, renameBoard, deleteBoard, reorderBoards,
   getBoardItems, getBoardPreviewSaves, getBoardSaveIds, getBoardsForSave,
   upsertBoardItem, bulkUpdateBoardItems, deleteBoardItem, deleteBoardItems,
@@ -555,6 +555,8 @@ function registerIpcHandlers() {
   ipcMain.handle('boards:delete-items', (_e, payload) => deleteBoardItems(payload));
 
   ipcMain.handle('tags:get-all', () => getAllTags());
+  // Accounts you've saved from — powers the from: filter's autocomplete.
+  ipcMain.handle('authors:get-all', () => getAllAuthors());
   ipcMain.handle('tags:get-for-save', (_e, saveId) => getTagsForSave(saveId));
   ipcMain.handle('tags:add-to-save', (_e, payload) => addTagToSave(payload));
   ipcMain.handle('tags:remove-from-save', (_e, payload) => removeTagFromSave(payload));

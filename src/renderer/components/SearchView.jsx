@@ -35,6 +35,17 @@ function HashGlyph() {
   );
 }
 
+// The @ mark for the from:<handle> filter — author is the one dimension
+// every bookmark already carries.
+function AtGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.4" />
+      <path d="M10.4 8v1.3a1.9 1.9 0 0 0 3.1 1.4A6 6 0 1 0 10.9 13.5" />
+    </svg>
+  );
+}
+
 function FolderGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -101,6 +112,7 @@ function isoDaysAgo(days) {
 const FILTER_MENU = [
   { key: 'tag', label: 'Tag', Glyph: HashGlyph },
   { key: 'collection', label: 'Collection', Glyph: FolderGlyph },
+  { key: 'from', label: 'Author', Glyph: AtGlyph },
   { key: 'color', label: 'Color', Glyph: null }, // swatch trio drawn inline
   { key: 'before', label: 'Saved before', Glyph: CalendarGlyph },
   { key: 'after', label: 'Saved after', Glyph: CalendarGlyph },
@@ -113,6 +125,7 @@ function TokenChip({ chip, onRemove }) {
     <span className={styles.token}>
       {key === 'tag' && <span className={styles.tokenIcon}><HashGlyph /></span>}
       {key === 'collection' && <span className={styles.tokenIcon}><FolderGlyph /></span>}
+      {key === 'from' && <span className={styles.tokenIcon}><AtGlyph /></span>}
       {key === 'color' && (
         <span className={styles.tokenSwatch} style={{ background: resolveColor(value) }} aria-hidden="true" />
       )}
@@ -141,6 +154,7 @@ function TokenChip({ chip, onRemove }) {
 function KeyGlyph({ filterKey }) {
   if (filterKey === 'tag') return <HashGlyph />;
   if (filterKey === 'collection') return <FolderGlyph />;
+  if (filterKey === 'from') return <AtGlyph />;
   if (filterKey === 'before' || filterKey === 'after') return <CalendarGlyph />;
   if (filterKey === 'is') return <UntaggedGlyph />;
   return <SearchGlyph />;
@@ -199,6 +213,7 @@ export default function SearchView({
   recentSearches = [],
   suggestedTags = [],
   allTags = [],
+  allAuthors = [],
   collections = [],
   onOpenCollection,
   searchInputRef,
@@ -306,6 +321,22 @@ export default function SearchView({
           Icon: FolderGlyph,
         }));
     }
+    if (frag.key === 'from') {
+      const used = new Set(chips.filter((c) => c.key === 'from').map((c) => c.value.toLowerCase()));
+      return allAuthors
+        .filter((a) => a.handle && !used.has(a.handle)
+          && (a.handle.includes(q) || String(a.name || '').toLowerCase().includes(q)))
+        .slice(0, 8)
+        .map((a) => ({
+          key: 'from',
+          value: a.handle,
+          // Handle, not display name — it's what the token filters on, so
+          // the row reads the same as the chip it becomes.
+          label: `@${a.handle}`,
+          meta: a.save_count != null ? String(a.save_count) : null,
+          Icon: AtGlyph,
+        }));
+    }
     if (frag.key === 'color') {
       const rows = COLOR_SUGGESTIONS
         .filter((c) => (q ? c.name.startsWith(q) : true))
@@ -333,7 +364,7 @@ export default function SearchView({
       }));
     }
     return [];
-  }, [frag, chips, allTags, collections]);
+  }, [frag, chips, allTags, allAuthors, collections]);
 
   const popOpen = focused && !!frag && !popDismissed && suggestions.length > 0;
   const showDateHint = popOpen && (frag.key === 'before' || frag.key === 'after')

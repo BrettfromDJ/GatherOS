@@ -10,6 +10,7 @@ import { resolveColor } from './searchColors.js';
 
 export const FILTER_KEYS = new Set([
   'tag', 'bucket', 'folder', 'collection', 'color', 'is', 'before', 'after',
+  'from',
 ]);
 
 // bucket/folder/collection are backend aliases; chips display and
@@ -25,6 +26,7 @@ export function isValidChip(key, value) {
   switch (key) {
     case 'tag':
     case 'collection':
+    case 'from':
       return true;
     case 'color':
       return !!resolveColor(v);
@@ -63,7 +65,9 @@ export function explodeQuery(input) {
         value = value.slice(1, -1);
       }
       const key = normalizeKey(m[1]);
-      const clean = key === 'tag' ? value.toLowerCase().replace(/^#+/, '') : value;
+      const clean = key === 'tag' ? value.toLowerCase().replace(/^#+/, '')
+        : key === 'from' ? value.toLowerCase().replace(/^@+/, '')
+          : value;
       if (isValidChip(key, clean)) {
         chips.push({ key, value: clean });
         continue;

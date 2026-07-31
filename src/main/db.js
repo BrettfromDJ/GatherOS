@@ -919,6 +919,16 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
     params.push(name);
   }
 
+  // from:<handle> — bookmarks by the account that wrote them, read out of
+  // tweet_meta. The stored handle keeps its leading '@', so both sides are
+  // stripped and lowercased before comparing. Multiple from: filters would
+  // AND to nothing (a tweet has one author), so they OR instead.
+  if (parsed.authors.length) {
+    const slots = parsed.authors.map(() => '?').join(', ');
+    conditions.push(`LOWER(REPLACE(COALESCE(json_extract(tweet_meta, '$.authorHandle'), ''), '@', '')) IN (${slots})`);
+    params.push(...parsed.authors);
+  }
+
   // bucket:<name> — resolve via collections.name (case-insensitive).
   // Multiple bucket filters intersect, same as tags.
   for (const name of parsed.bucketNames) {
@@ -963,6 +973,7 @@ function getAllSaves({ search = '', sort = 'newest', collectionId = null, colorH
       text || collectionId || effectiveColorHex
       || parsed.tagNames.length || parsed.bucketNames.length
       || parsed.untagged || parsed.before != null || parsed.after != null
+      || parsed.authors.length
     );
     if (view === 'all' && !activeFilter) {
       conditions.push('hidden_at IS NULL');
@@ -1606,6 +1617,24 @@ function getAllTags() {
   `).all();
 }
 
+// Every account whose posts you've saved, most-saved first. Drives the
+// from: filter's autocomplete. Handles are returned without the stored
+// leading '@' so they compose straight into a `from:` token.
+function getAllAuthors() {
+  return getDatabase().prepare(`
+    SELECT
+      LOWER(REPLACE(json_extract(tweet_meta, '$.authorHandle'), '@', '')) AS handle,
+      json_extract(tweet_meta, '$.authorName') AS name,
+      COUNT(*) AS save_count
+    FROM saves
+    WHERE deleted_at IS NULL
+      AND tweet_meta IS NOT NULL
+      AND COALESCE(json_extract(tweet_meta, '$.authorHandle'), '') <> ''
+    GROUP BY handle
+    ORDER BY save_count DESC, name ASC
+  `).all();
+}
+
 function getTagsForSave(saveId) {
   return getDatabase().prepare(`
     SELECT t.* FROM tags t
@@ -2097,6 +2126,7 @@ module.exports = {
   addSaveToCollection,
   removeSaveFromCollection,
   getAllTags,
+  getAllAuthors,
   getTagsForSave,
   addTagToSave,
   removeTagFromSave,

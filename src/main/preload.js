@@ -137,6 +137,9 @@ contextBridge.exposeInMainWorld('moodmark', {
     deleteItem: (payload) => ipcRenderer.invoke('boards:delete-item', payload),
     deleteItems: (payload) => ipcRenderer.invoke('boards:delete-items', payload),
   },
+  authors: {
+    getAll: () => ipcRenderer.invoke('authors:get-all'),
+  },
   tags: {
     getAll: () => ipcRenderer.invoke('tags:get-all'),
     getForSave: (saveId) => ipcRenderer.invoke('tags:get-for-save', saveId),

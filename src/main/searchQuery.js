@@ -5,6 +5,7 @@
 //
 // Recognised tokens:
 //   tag:<name>        — saves carrying that tag (AND across multiple)
+//   from:<handle>     — bookmarks written by that account
 //   bucket:<name>     — saves in that bucket (AND across multiple)
 //   color:<name|hex>  — saves whose palette contains the color
 //   is:untagged       — saves with zero tags
@@ -44,6 +45,7 @@ function parseSearchQuery(input) {
   const filters = {
     text: '',
     tagNames: [],
+    authors: [],
     bucketNames: [],
     colorHex: null,
     untagged: false,
@@ -73,6 +75,14 @@ function parseSearchQuery(input) {
       case 'tag': {
         const cleaned = value.toLowerCase().replace(/^#+/, '').trim();
         if (cleaned) filters.tagNames.push(cleaned);
+        break;
+      }
+      // from:<handle> — bookmarks by the account that wrote them. The
+      // stored handle carries a leading '@'; strip it on both sides so
+      // `from:swyx` and `from:@swyx` behave identically.
+      case 'from': {
+        const cleaned = value.toLowerCase().replace(/^@+/, '').trim();
+        if (cleaned) filters.authors.push(cleaned);
         break;
       }
       case 'bucket':

@@ -985,6 +985,22 @@ export default function App({ entitlement } = {}) {
 
   useEffect(() => { loadAllTags(); }, [loadAllTags]);
 
+  // Accounts whose posts you've saved — powers the search field's from:
+  // autocomplete. Every bookmark already carries its author in tweet_meta;
+  // this is the first thing that lets you navigate by it. Reloaded with the
+  // library so newly synced bookmarks bring their authors along.
+  const [allAuthors, setAllAuthors] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await window.moodmark.authors.getAll();
+        if (!cancelled) setAllAuthors(Array.isArray(data) ? data : []);
+      } catch { /* older preload — from: just has no suggestions */ }
+    })();
+    return () => { cancelled = true; };
+  }, [saves.length]);
+
   // Most-used tags, surfaced as quick-jump chips on the Search tab's
   // landing state. Sorted by usage so the densest tags lead. Filters:
   //   - zero-count tags (nothing to jump to),
@@ -3647,6 +3663,7 @@ export default function App({ entitlement } = {}) {
                   recentSearches={recentSearches.items}
                   suggestedTags={suggestedTags}
                   allTags={allTags}
+                  allAuthors={allAuthors}
                   collections={topLevelCollections}
                   onOpenCollection={handleOpenCollectionFromSearch}
                   searchInputRef={searchInputRef}
