@@ -1,7 +1,8 @@
 // Entitlement = "what is this user allowed to do right now", combining
 // the local no-account trial with the server licensing state.
 //
-//   'paid'  — active paid subscription → everything unlocked, forever.
+//   'paid'  — active paid subscription, OR a cancelled one whose paid
+//             period hasn't elapsed yet → everything unlocked, forever.
 //   'trial' — the local 14-day trial is still running, OR the server says
 //             the account is in an (entitled) trial → full app.
 //   'free'  — trial is over and there's no paid subscription → soft free
@@ -12,7 +13,10 @@
 // SAFETY: this fails OPEN. A user is only ever put in 'free' when we are
 // CONFIDENT the trial is over AND there's no subscription. Any
 // uncertainty (cache unreadable, offline, can't verify) resolves to a
-// permissive mode so a paying user is never wrongly blocked.
+// permissive mode so a paying user is never wrongly blocked. Cancelling
+// counts as certainty about the *future*, not the present: the paid
+// period they already bought still entitles them until it runs out,
+// even if the server has mistakenly said otherwise.
 
 const { getPref, setPref } = require('./settings');
 
@@ -73,6 +77,16 @@ function serverState() {
   return { state: 'unauth' };
 }
 
+// True when the subscription's paid period hasn't elapsed yet. Note it
+// deliberately ignores `status`: a cancelled-but-not-yet-ended
+// subscription is exactly the case this exists to cover. A `trialing`
+// subscription is excluded so a trial can't masquerade as a purchase.
+function paidPeriodStillRunning(sub) {
+  if (!sub || sub.status === 'trialing') return false;
+  const endsAt = Number(sub.current_period_end);
+  return Number.isFinite(endsAt) && endsAt > Date.now();
+}
+
 function build(mode, trial, server) {
   return {
     mode,
@@ -94,6 +108,17 @@ function getEntitlement() {
 
   // Active paid subscription → unlocked forever.
   if (server.state === 'entitled' && sub && sub.status !== 'trialing') {
+    return build('paid', trial, server);
+  }
+  // Paid through a period that hasn't run out yet → still paid, whatever
+  // the server said about the state. Cancelling a subscription doesn't
+  // refund the rest of the term, so it must not revoke the rest of the
+  // term either: someone who buys a year and cancels in week one keeps
+  // the year. The server is the authority on this and now says so
+  // itself, but the client refuses the downgrade independently — this
+  // is the one call where being wrong means taking away something a
+  // customer already paid for, and that deserves two locks.
+  if (sub && paidPeriodStillRunning(sub)) {
     return build('paid', trial, server);
   }
   // Any other entitled / offline-grace state (incl. server trial) → allow.

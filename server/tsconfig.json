@@ -13,5 +13,11 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  // Tests are excluded here on purpose. This config pins `types` to
+  // @cloudflare/workers-types so Worker code can't silently reference a
+  // Node global that won't exist at runtime — and the tests need Node's
+  // types. They get checked by tsconfig.test.json instead (npm run
+  // typecheck runs both).
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

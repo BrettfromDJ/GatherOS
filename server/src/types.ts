@@ -52,12 +52,21 @@ export interface SessionRow {
   revoked_at: number | null;
 }
 
+// `canceled` means "cancellation scheduled" — Lemon Squeezy sets this
+// the moment the customer cancels, while they still hold the rest of
+// the period they paid for. `expired` is the terminal state, after
+// that period has actually elapsed. Collapsing the two into one value
+// is what let a fresh cancellation read as "no longer a customer".
+// Entitlement still leans on current_period_end rather than on this
+// distinction (see rowEntitles) so historical rows written before the
+// split are handled correctly too.
 export type SubscriptionStatus =
   | 'trialing'
   | 'active'
   | 'past_due'
   | 'paused'
-  | 'canceled';
+  | 'canceled'
+  | 'expired';
 
 export interface SubscriptionRow {
   id: string;

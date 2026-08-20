@@ -24,6 +24,9 @@
 
 import { Hono } from 'hono';
 import type { Env, SubscriptionRow } from './types';
+import { isSubscriptionUpsertEvent, derivePeriodEnd } from './rules';
+
+export { isSubscriptionUpsertEvent };
 
 export const webhookRoutes = new Hono<{ Bindings: Env }>();
 
@@ -136,29 +139,6 @@ export interface LSSubscriptionAttributes {
   test_mode?: boolean;
 }
 
-// LS events whose `data` is a subscription object (data.type ===
-// 'subscriptions') and therefore carries subscription-shaped
-// attributes we can upsert. Everything else — crucially the
-// subscription_payment_* events — must NOT be fed to upsertSubscription.
-const SUBSCRIPTION_EVENTS = new Set<string>([
-  'subscription_created',
-  'subscription_updated',
-  'subscription_cancelled',
-  'subscription_resumed',
-  'subscription_expired',
-  'subscription_paused',
-  'subscription_unpaused',
-]);
-
-// True only for events we should upsert a subscription row from.
-// Exported for the truth-table test. The `subscription-invoices` type
-// guard is belt-and-braces: the payment events already fall outside
-// SUBSCRIPTION_EVENTS, but if LS ever routes an invoice payload under a
-// name we do handle, we still refuse to key a row off an invoice id.
-export function isSubscriptionUpsertEvent(eventName: string, dataType?: string): boolean {
-  return SUBSCRIPTION_EVENTS.has(eventName) && dataType !== 'subscription-invoices';
-}
-
 async function handleEvent(env: Env, eventName: string, evt: LSEvent): Promise<void> {
   // Opportunistically link the LS customer to our user row using
   // meta.custom_data.user_id when present. LS strips custom_data on
@@ -217,8 +197,8 @@ export async function linkCustomerToUser(
 //   past_due → past_due
 //   unpaid   → past_due  (similar dunning state, no need for a separate slot)
 //   paused   → paused
-//   cancelled → canceled (note the two-l British spelling on LS's side)
-//   expired  → canceled  (final)
+//   cancelled → canceled (scheduled; note the two-l British spelling)
+//   expired  → expired   (final — the paid period has elapsed)
 function mapStatus(s?: string): SubscriptionRow['status'] {
   switch (s) {
     case 'on_trial': return 'trialing';
@@ -226,9 +206,14 @@ function mapStatus(s?: string): SubscriptionRow['status'] {
     case 'past_due': return 'past_due';
     case 'unpaid': return 'past_due';
     case 'paused': return 'paused';
-    case 'cancelled':
-    case 'expired':
-      return 'canceled';
+    // LS emits 'cancelled' the moment the customer cancels, while they
+    // still hold the rest of the period they paid for. 'expired' is the
+    // terminal state, once that period has actually elapsed. These used
+    // to collapse into a single 'canceled', which made a week-old
+    // cancellation on a yearly plan indistinguishable from a plan whose
+    // year had run out. Keep them apart.
+    case 'cancelled': return 'canceled';
+    case 'expired': return 'expired';
     default:
       return 'active';
   }
@@ -248,7 +233,9 @@ export async function upsertSubscription(
     if (String(d.variant_id) === env.LEMONSQUEEZY_VARIANT_MONTHLY) plan = 'monthly';
     else if (String(d.variant_id) === env.LEMONSQUEEZY_VARIANT_YEARLY) plan = 'yearly';
   }
-  const periodEnd = parseTs(d.renews_at) ?? parseTs(d.ends_at);
+  // The date the user's paid access runs out — the column entitlement
+  // is decided from. See derivePeriodEnd for why ends_at wins.
+  const periodEnd = derivePeriodEnd(d.renews_at, d.ends_at);
   // LS doesn't expose an explicit period_start. The previous
   // updated_at is a reasonable proxy; we only use this for display.
   const periodStart = parseTs(d.updated_at);
@@ -292,10 +279,19 @@ export async function upsertSubscription(
     .first<{ id: string }>();
 
   if (existing) {
+    // COALESCE, not a plain overwrite: current_period_end is the column
+    // entitlement is decided from, and plan is what the user sees. An
+    // event that simply omits either field (LS sends thinner payloads on
+    // some transitions) must not blank out what we already know — that
+    // would read as "paid access already ran out" and drop a paying
+    // customer to free. Real changes still land, because a real change
+    // arrives as a value, not as null.
     await env.DB.prepare(
       `UPDATE subscriptions
-          SET status = ?, plan = ?, current_period_start = ?,
-              current_period_end = ?, cancel_at_period_end = ?,
+          SET status = ?, plan = COALESCE(?, plan),
+              current_period_start = ?,
+              current_period_end = COALESCE(?, current_period_end),
+              cancel_at_period_end = ?,
               canceled_at = ?, updated_at = ?
         WHERE id = ?`,
     )

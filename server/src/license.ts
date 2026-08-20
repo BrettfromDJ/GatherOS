@@ -22,14 +22,9 @@ import {
   linkCustomerToUser,
   type LSSubscriptionAttributes,
 } from './lemonsqueezy';
+import { rowEntitles } from './rules';
 
 export const licenseRoutes = new Hono<{ Bindings: Env }>();
-
-const ENTITLED_SUB_STATUSES = new Set<SubscriptionRow['status']>([
-  'active',
-  'past_due', // grace window — LS dunning will eventually flip to canceled
-  'trialing',
-]);
 
 licenseRoutes.get('/verify', async (c) => {
   const token = bearer(c.req.header('Authorization'));
@@ -57,7 +52,7 @@ licenseRoutes.get('/verify', async (c) => {
     .all<SubscriptionRow>();
   const rows = subsResult.results ?? [];
 
-  const entitlingRows = rows.filter((r) => ENTITLED_SUB_STATUSES.has(r.status));
+  const entitlingRows = rows.filter((r) => rowEntitles(r, now));
   const entitledViaSub = entitlingRows.length > 0;
 
   // Which subscription to report back for display. Prefer a real paid
@@ -262,6 +257,130 @@ licenseRoutes.post('/admin-sync', async (c) => {
     synced += 1;
   }
   return c.json({ ok: true, synced });
+});
+
+// Admin-only: who is currently NOT entitled despite having bought
+// something? This is the "who did we hurt" report — run it after any
+// change to entitlement logic, and periodically as a watchdog.
+//
+// Lists every user who has at least one subscription row but would be
+// answered `entitled: false` by /license/verify right now. Each entry
+// carries a `suspicious` flag: the user has a paid plan on record, yet
+// no subscription of theirs has a period end in the past. That
+// combination means we can't point at a date and say "this is when
+// their access legitimately ran out" — the shape of a wrongful
+// downgrade, as opposed to an ordinary lapsed subscription.
+//
+// Anything with suspicious: true wants a POST /license/admin-sync
+// ?email=… to re-pull the truth from Lemon Squeezy.
+licenseRoutes.get('/admin-audit', async (c) => {
+  const provided = bearer(c.req.header('Authorization'));
+  if (!provided || !c.env.ADMIN_TOKEN || provided !== c.env.ADMIN_TOKEN) {
+    return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  }
+
+  const now = Date.now();
+  const rowsResult = await c.env.DB.prepare(
+    `SELECT s.id, s.user_id, s.lemonsqueezy_subscription_id, s.status, s.plan,
+            s.current_period_start, s.current_period_end,
+            s.cancel_at_period_end, s.canceled_at, s.created_at, s.updated_at,
+            u.email AS email
+       FROM subscriptions s
+       JOIN users u ON u.id = s.user_id
+      ORDER BY s.user_id, s.updated_at DESC`,
+  ).all<SubscriptionRow & { email: string }>();
+  const rows = rowsResult.results ?? [];
+
+  const byUser = new Map<string, Array<SubscriptionRow & { email: string }>>();
+  for (const r of rows) {
+    const list = byUser.get(r.user_id);
+    if (list) list.push(r);
+    else byUser.set(r.user_id, [r]);
+  }
+
+  const report = [];
+  for (const [userId, subs] of byUser) {
+    const entitled = subs.some((r) => rowEntitles(r, now));
+    if (entitled) continue;
+    const everPaid = subs.some((r) => r.plan != null);
+    // A legitimate lapse has a period end in the past to point at.
+    const hasElapsedPeriod = subs.some(
+      (r) => r.current_period_end != null && r.current_period_end <= now,
+    );
+    report.push({
+      user_id: userId,
+      email: subs[0]?.email ?? null,
+      suspicious: everPaid && !hasElapsedPeriod,
+      subscriptions: subs.map((r) => ({
+        lemonsqueezy_subscription_id: r.lemonsqueezy_subscription_id,
+        status: r.status,
+        plan: r.plan,
+        current_period_end: r.current_period_end,
+        cancel_at_period_end: r.cancel_at_period_end === 1,
+        updated_at: r.updated_at,
+      })),
+    });
+  }
+
+  report.sort((a, b) => Number(b.suspicious) - Number(a.suspicious));
+  return c.json({
+    ok: true,
+    checked_at: now,
+    users_with_subscriptions: byUser.size,
+    unentitled: report.length,
+    suspicious: report.filter((r) => r.suspicious).length,
+    report,
+  });
+});
+
+// Admin-only: extend a user's paid access to an explicit date.
+//
+// The last-resort remediation, for when Lemon Squeezy can no longer
+// tell us the truth — the subscription was refunded away, deleted, or
+// the user's access was wrongly revoked long enough ago that goodwill
+// is owed on top. Prefer /license/admin-sync first; that re-derives
+// state from LS and is self-correcting. Reach for this only when a
+// sync can't produce the right answer.
+//
+// POST /license/admin-grant?email=…&until=2027-01-01  (or until=<ms>)
+// Optional &plan=monthly|yearly for display.
+//
+// Writes a subscription row with no lemonsqueezy_subscription_id so a
+// later real webhook can never collide with or clobber it.
+licenseRoutes.post('/admin-grant', async (c) => {
+  const provided = bearer(c.req.header('Authorization'));
+  if (!provided || !c.env.ADMIN_TOKEN || provided !== c.env.ADMIN_TOKEN) {
+    return c.json({ ok: false, error: 'unauthenticated' }, 401);
+  }
+  const email = (c.req.query('email') || '').trim().toLowerCase();
+  if (!email) return c.json({ ok: false, error: 'missing_email' }, 400);
+
+  const rawUntil = (c.req.query('until') || '').trim();
+  if (!rawUntil) return c.json({ ok: false, error: 'missing_until' }, 400);
+  const until = /^\d+$/.test(rawUntil) ? Number(rawUntil) : Date.parse(rawUntil);
+  if (!Number.isFinite(until)) return c.json({ ok: false, error: 'invalid_until' }, 400);
+  if (until <= Date.now()) return c.json({ ok: false, error: 'until_in_past' }, 400);
+
+  const planParam = c.req.query('plan');
+  const plan = planParam === 'monthly' || planParam === 'yearly' ? planParam : null;
+
+  const user = await c.env.DB.prepare(
+    `SELECT id FROM users WHERE email = ?`,
+  ).bind(email).first<{ id: string }>();
+  if (!user) return c.json({ ok: false, error: 'user_not_found' }, 404);
+
+  const now = Date.now();
+  await c.env.DB.prepare(
+    `INSERT INTO subscriptions
+       (id, user_id, lemonsqueezy_subscription_id, status, plan,
+        current_period_start, current_period_end,
+        cancel_at_period_end, canceled_at, created_at, updated_at)
+     VALUES (?, ?, NULL, 'active', ?, ?, ?, 0, NULL, ?, ?)`,
+  )
+    .bind(crypto.randomUUID(), user.id, plan, now, until, now, now)
+    .run();
+
+  return c.json({ ok: true, user_id: user.id, email, entitled_until: until, plan });
 });
 
 function lsHeaders(apiKey: string): Record<string, string> {

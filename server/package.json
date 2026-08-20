@@ -6,9 +6,10 @@
   "description": "Cloudflare Workers + D1 backend for GatherOS auth, licensing, and Paddle webhooks.",
   "scripts": {
     "dev": "wrangler dev",
+    "test": "node --experimental-strip-types --test src/*.test.ts",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "db:create": "wrangler d1 create gatheros-db",
     "db:migrate:local": "wrangler d1 migrations apply gatheros-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply gatheros-db --remote",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
+    "@types/node": "^22.20.1",
     "typescript": "^5.6.0",
     "wrangler": "^3.90.0"
   }

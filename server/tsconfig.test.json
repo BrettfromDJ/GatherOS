@@ -1,0 +1,14 @@
+// Typecheck config for the unit tests only.
+//
+// They run under Node (node --experimental-strip-types --test), not in
+// the Worker runtime, so they need Node's types and .ts-suffixed import
+// specifiers — neither of which belongs in the Worker's own config.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "@cloudflare/workers-types"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.test.ts", "src/rules.ts", "src/types.ts"],
+  "exclude": []
+}

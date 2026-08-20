@@ -44,7 +44,9 @@ never touch the server (until the optional cloud add-on below).
 Today, a single entitlement bit per user:
 
 ```
-entitled = (now < user.trial_ends_at) OR sub.status IN ('active', 'past_due')
+entitled = (now < user.trial_ends_at)
+        OR ANY sub WHERE sub.status IN ('active', 'past_due', 'trialing')
+        OR ANY sub WHERE sub.current_period_end > now
 ```
 
 - Trial begins when the user signs up (first magic-link verify).
@@ -53,6 +55,19 @@ entitled = (now < user.trial_ends_at) OR sub.status IN ('active', 'past_due')
 - `past_due` keeps the user entitled for a grace window so a failed
   card doesn't lock them out instantly. LS dunning eventually flips
   them to `cancelled` if they don't update payment.
+- **Cancelling never revokes time already paid for.** That second
+  clause is load-bearing, not a nicety. Lemon Squeezy sets a
+  subscription's status to `cancelled` the moment the customer clicks
+  cancel, and puts the end of the period they paid for in `ends_at`. A
+  yearly subscriber who cancels in week one is `cancelled` with ~51
+  weeks left. Deciding entitlement on status alone downgraded them on
+  the spot, which is why entitlement is a function of
+  `current_period_end`, not of the status string. See `rowEntitles` in
+  `server/src/rules.ts` and its truth table in `license.test.ts`.
+- Entitlement is `ANY subscription row entitles`, never "the newest
+  row". A user can accumulate rows (re-subscribe, plan switch, a
+  trailing webhook on a dead subscription), and trusting only the
+  most-recently-updated one has dropped a paying user to free before.
 - The desktop app caches the verify response in the OS keychain
   (`electron-store`) with a **7-day offline grace window** so flaky
   wifi or laptop-on-a-plane never paywalls a paying user.
